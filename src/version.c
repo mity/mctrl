@@ -29,10 +29,18 @@ mcVersion(MC_VERSION* version)
     version->dwRelease = MC_VERSION_RELEASE;
 }
 
+
+/* DllGetVersion accepts pointer to structure determined in runtime
+ * by first DWORD (cbSize). */
+typedef union dllgetversioninfo_tag dllgetversioninfo_t;
+union dllgetversioninfo_tag { 
+	DWORD cbSize;
+    DLLVERSIONINFO info1;
+    DLLVERSIONINFO2 info2; 
+};
+
 HRESULT MCTRL_API
-DllGetVersion(union { DWORD cbSize;
-                      DLLVERSIONINFO info1;
-                      DLLVERSIONINFO2 info2; }* dvi)
+DllGetVersion(dllgetversioninfo_t* dvi)
 {
     switch(dvi->cbSize) {
         case sizeof(DLLVERSIONINFO2):

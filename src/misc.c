@@ -54,9 +54,9 @@ mc_str_n(void* from_str, int from_type, int from_len,
         
     if(from_len < 0) {
         if(from_type == MC_STRW) 
-            from_len = (wcslen((WCHAR*)from_str)) * sizeof(WCHAR);
+            from_len = (int)(wcslen((WCHAR*)from_str) * sizeof(WCHAR));
         else
-            from_len = strlen((char*)from_str);
+            from_len = (int)strlen((char*)from_str);
     }     
         
     if(from_type == to_type) {
@@ -176,16 +176,21 @@ setup_win_version(void)
     mc_win_version = MC_WIN_VER(os_version.dwPlatformId,
             os_version.dwMajorVersion, os_version.dwMinorVersion);
             
-    MC_TRACE(
 #ifdef UNICODE
+    MC_TRACE(
         "setup_win_version: Detected %hs %ls (%u.%u.%u.%u)",
-#else
-        "setup_win_version: Detected %hs %hs (%u.%u.%u.%u)",
-#endif            
         get_win_name(), os_version.szCSDVersion,
         os_version.dwPlatformId, os_version.dwMajorVersion,
         os_version.dwMinorVersion, os_version.dwBuildNumber
     );
+#else
+    MC_TRACE(
+        "setup_win_version: Detected %hs %hs (%u.%u.%u.%u)",
+        get_win_name(), os_version.szCSDVersion,
+        os_version.dwPlatformId, os_version.dwMajorVersion,
+        os_version.dwMinorVersion, os_version.dwBuildNumber
+    );
+#endif
 }
 
 static void (WINAPI *fn_InitCommonControlsEx)(INITCOMMONCONTROLSEX*) = NULL;

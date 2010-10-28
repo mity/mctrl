@@ -34,7 +34,7 @@
 const TCHAR button_wc[] = MC_WC_BUTTON;      /* Window class name */
 static const WCHAR button_tc[] = L"BUTTON";  /* Theming identifier */
 static int extra_offset;
-static LRESULT CALLBACK (*orig_button_proc)(HWND, UINT, WPARAM, LPARAM) = NULL;
+static WNDPROC orig_button_proc = NULL;
 
 
 #define DROPDOWN_W     16
