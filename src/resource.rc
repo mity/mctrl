@@ -52,7 +52,7 @@ BEGIN
             VALUE "FileVersion",       MC_VERSION_STR
             VALUE "ProductVersion",    MC_VERSION_STR
             VALUE "CompanyName",       "morous.org"
-            VALUE "WWW",               "http://www.morous.org/mctrl"
+            VALUE "WWW",               "http://mctrl.sourceforge.net"
         END
     END
     BLOCK "VarFileInfo"
