@@ -20,7 +20,7 @@
 #include "theme.h"
 
 
-/* Uncomment this to have more verbous traces about MC_HTML control. */
+/* Uncomment this to have more verbous traces about MC_BUTTON control. */
 /*#define BUTTON_DEBUG     1*/
 
 #ifdef BUTTON_DEBUG
@@ -477,7 +477,7 @@ button_needs_fake_icon(button_t* button)
 static LRESULT CALLBACK
 button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
-    button_t* button = NULL;
+    button_t* button = (button_t*) GetWindowLongPtr(win, extra_offset);
     
     /* Window procedure for our subclassed BUTTON does some logic if 
      * either [1] the control is split button and system does not support it
@@ -491,7 +491,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     switch(msg) {
         case WM_PAINT:
         case WM_PRINTCLIENT:
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             if(button_needs_fake_split(button)) {
                 HDC dc = (HDC)wp;
                 PAINTSTRUCT ps;
@@ -533,7 +532,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
             
         case WM_LBUTTONDOWN:
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             if(button_needs_fake_split(button)) {
                 static DWORD last_unpush = 0;
                 int x = LOWORD(lp);
@@ -568,7 +566,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_LBUTTONDBLCLK:
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             if(button_needs_fake_split(button)) {
                 int x = LOWORD(lp);
                 int y = HIWORD(lp);
@@ -585,7 +582,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case BM_GETSTATE:
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             if(button_needs_fake_split(button)) {
                 DWORD s = CallWindowProc(orig_button_proc, win, msg, wp, lp);
                 if(button->style & IS_DROPDOWN_PUSHED)
@@ -599,7 +595,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
              * as default, as it is done for normal push buttons. Unfortunately
              * it causes other problems. See the comment in WM_STYLECHANGING.
              */
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             if(button_needs_fake_split(button)) {
                 if((button->style & MC_BS_DEFSPLITBUTTON) == 
                                                   MC_BS_DEFSPLITBUTTON)
@@ -639,13 +634,11 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_STYLECHANGED:
             if(wp == GWL_STYLE) {
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
-                button = (button_t*) GetWindowLongPtr(win, extra_offset);
                 button->style = ~IS_DROPDOWN_PUSHED & ss->styleNew;
             }
             break;
             
         case WM_THEMECHANGED:
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             if(button->theme)
                 theme_CloseThemeData(button->theme);
             button->theme = theme_OpenThemeData(win, button_tc);
@@ -653,7 +646,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
             
         case WM_UPDATEUISTATE:
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             switch(LOWORD(wp)) {
                 case UIS_CLEAR:       button->ui_state &= ~HIWORD(wp); break;
                 case UIS_SET:         button->ui_state |= HIWORD(wp); break;
@@ -681,7 +673,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
         
         case WM_DESTROY:
-            button = (button_t*) GetWindowLongPtr(win, extra_offset);
             if(button->theme)
                 theme_CloseThemeData(button->theme);
             free(button);
