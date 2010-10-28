@@ -8,13 +8,11 @@ obj/button.o: src/button.c src/button.h src/misc.h src/compat.h src/debug.h \
  src/theme.h src/theme_fn.h
 obj/debug.o: src/debug.c src/debug.h src/misc.h src/compat.h src/resource.h \
  src/version.h
-obj/gbuf.o: src/gbuf.c src/gbuf.h src/misc.h src/compat.h src/debug.h \
- src/resource.h src/version.h
 obj/guid.o: src/guid.c src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h
 obj/html.o: src/html.c src/html.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/html.h include/mCtrl/defs.h \
- src/theme.h src/theme_fn.h src/com/exdisp.h src/com/mshtmhst.h
+ src/theme.h src/theme_fn.h
 obj/mditab.o: src/mditab.c src/mditab.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/mditab.h include/mCtrl/defs.h \
  src/theme.h src/theme_fn.h
