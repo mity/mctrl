@@ -24,6 +24,43 @@
  * and toolchains. */
 
 
+/*********************************
+ *** MSVC Compatibility hacks  ***
+ *********************************/
+
+#ifdef _MSC_VER
+	/* Disable warning C4996 ("This function or variable may be unsafe.") */
+	#pragma warning( disable : 4996 )
+
+	/* MSVC does not understand inline when building as pure C (not C++) */
+	#ifndef __cplusplus
+		#define inline
+	#endif
+
+	/* MS platform SDK #defines [GS]etWindowLongPtr as plain [GS]etWindowLong for 
+	 * x86 builds, without any casting, hence causing lots of compiler 
+	 * warnings C4312. Lets workaround it. */
+	#ifndef _WIN64
+		#ifdef GetWindowLongPtrA
+			#undef GetWindowLongPtrA
+			#define GetWindowLongPtrA(win,ix)  (intptr_t)GetWindowLongA(win,ix)
+		#endif
+		#ifdef GetWindowLongPtrW
+			#undef GetWindowLongPtrW
+			#define GetWindowLongPtrW(win,ix)  (intptr_t)GetWindowLongW(win,ix)
+		#endif
+		#ifdef SetWindowLongPtrA
+			#undef SetWindowLongPtrA
+			#define SetWindowLongPtrA(win,ix,val)  SetWindowLongA(win,ix,(LONG)val)
+		#endif
+		#ifdef SetWindowLongPtrW
+			#undef SetWindowLongPtrW
+			#define SetWindowLongPtrW(win,ix,val)  SetWindowLongW(win,ix,(LONG)val)
+		#endif
+	#endif
+#endif
+
+
 /******************************************
  *** Missing constants in mingw headers ***
  ******************************************/
@@ -61,19 +98,21 @@
 #endif
 
 
-/******************************
- *** Hack for mingw_include ***
- ******************************/
+/********************************************
+ *** Hack for broken COM headers in mingw ***
+ ********************************************/
 
 /* There is a lot of COM interfaces missing in the w32api package (as of 
  * version 3.13) of mingw project. Hence we use copy of those headers 
- * from mingw-w64 project which seems to be more compelte.
+ * from mingw-w64 project which seems to be more complete.
  * 
- * These are placed in the mingw_include/ subdirectory. The below are hacks
+ * These are placed in the com/ subdirectory. The below are hacks
  * hiding incompatibilities between headeres mingw-w64 and mingw.
  */
 
-#define SHANDLE_PTR HANDLE_PTR
+#if defined __GNUC__  &&  !defined SHANDLE_PTR
+    #define SHANDLE_PTR HANDLE_PTR
+#endif
 
 
 #endif  /* MC_COMPAT_H */

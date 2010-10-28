@@ -1,4 +1,5 @@
-# This Makefile expects mingw/msys environment and GNU Make.
+# This Makefile expects mingw/mingw-w64 toolchain, unix-like shell and utilities
+# (e.g. msys) and GNU Make.
 #
 # Targets:
 # --------
@@ -17,7 +18,7 @@
 #   DEBUG=<number>  - Sets debugging level. Default is 0. Possible values:
 #                         0 = no debugging (i.e. release build)
 #                         1 = enables some asserts and traces
-#                         2 = as 1 and also tracks mc_malloc/mc_free usage
+#                         2 = as 1 and also tracks malloc/free usage
 
 
 BASENAME = mCtrl.dll
@@ -38,18 +39,18 @@ RM = rm -rf
 INCLUDES = -I$(INCDIR) -I$(SRCDIR)
 
 
-ifneq ($(filter $(PREFIX), x86_64-w64-mingw32- i686-w64-mingw32-),)
-    # mingw-w64 does not support lower _WIN32_IE then 0x0501
-    WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0501 -DWINVER=_WIN32_WINNT
-else
-    # IE 5.0 was the oldest installed with Win2K, so we want to support it:
-    WINVER = -D_WIN32_IE=0x0500 -D_WIN32_WINNT=0x0501 -DWINVER=_WIN32_WINNT
-    
-    # We need extra headers filling gaps in w32api 3.13 of mingw project
-    # (some COM/OLE related):
+ifeq ($(filter $(PREFIX), x86_64-w64-mingw32- i686-w64-mingw32-),)
+    # Package w32api 3.13 of mingw project has incomplete headers related 
+    # to COM/OLE. So lets provide our own copy of headers we need.
+    # (taken from mingw-w64 project):
+    #
+    # When PREFIX is set to x86_64-w64-mingw32- or i686-w64-mingw32-, 
+    # it can be probably assumed we build with toolchain from mingw-w64 and
+    # this workaround is not needed.
     INCLUDES += -I$(SRCDIR)/com
 endif
 
+WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0501 -DWINVER=_WIN32_WINNT
 UNICODE = -DUNICODE -D_UNICODE
 
 CPPFLAGS += -DMCTRL_BUILD $(UNICODE) $(WINVER) $(INCLUDES)

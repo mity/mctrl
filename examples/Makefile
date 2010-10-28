@@ -39,7 +39,7 @@ clean:
 ################
 
 $(BINDIR)/ex_button.exe: $(OBJDIR)/button.o $(OBJDIR)/button_rc.o
-$(BINDIR)/ex_dllgetversion.exe: $(OBJDIR)/dllgetversion.o
+$(BINDIR)/ex_dllgetversion.exe: $(OBJDIR)/dllgetversion.o $(OBJDIR)/manifest_rc.o
 $(BINDIR)/ex_html.exe: $(OBJDIR)/html.o $(OBJDIR)/manifest_rc.o
 $(BINDIR)/ex_mditab.exe: $(OBJDIR)/mditab.o $(OBJDIR)/mditab_rc.o
 
