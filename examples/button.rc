@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) 2008-2009 Martin Mitas
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, 
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include <windows.h>
+#include <mCtrl/button.h>
+
+/* Manifest enabling XP theme on Win XP */
+1 RT_MANIFEST res/manifest.xml
+
+/* Dialog box */
+1000 DIALOG 0, 0, 300, 160
+STYLE WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME
+EXSTYLE WS_EX_DLGMODALFRAME
+CAPTION "mCtrl Sample"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    CONTROL "On left, you can see two buttons with BS_ICON style. The upper one is the standard with class BUTTON as implemented in comctl32.dll. The second button is mCtrl control MC_WC_BUTTON. If you have Windows XP (and havn't disabled theming), you can see that the buttons look differently (unless you have disabled the styling) because on Windows XP, COMCTL32.DLL does not support themed BS_ICON for some reason.", -1, "STATIC", 0, 50, 5, 240, 116
+    CONTROL "", 100, "BUTTON", WS_TABSTOP | BS_ICON, 5, 5, 35, 35
+    CONTROL "", 101, MC_WC_BUTTON, WS_TABSTOP | MC_BS_ICON, 5, 45, 35, 35
+    CONTROL "Microsoft introduced split buttons on Windows Vista's comctl32.dll. Some applications implement their own custom control which provide this funcitonality for compatibility with older Windows versions. But having each application to reinvent wheel is just bad idea. So here is the split button for you.", -1, "STATIC", 0, 80, 90, 210, 116
+    CONTROL "&Split button", 102, MC_WC_BUTTON, WS_TABSTOP | MC_BS_SPLITBUTTON, 5, 90, 70, 25
+    CONTROL "", 103, MC_WC_BUTTON, WS_TABSTOP | MC_BS_SPLITBUTTON | MC_BS_ICON, 5, 120, 70, 35
+END
+
+

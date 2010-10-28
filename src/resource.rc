@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) 2008-2009 Martin Mitas
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, 
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include <winresrc.h>
+#include "version.h"
+#include "resource.h"
+
+
+MCR_BMP_GLYPHS BITMAP   res/glyphs.bmp
+
+
+/* Version info */
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_RELEASE, 0
+PRODUCTVERSION MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_RELEASE, 0
+FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+#ifndef DEBUG
+FILEFLAGS      0
+#else
+FILEFLAGS      VS_FF_DEBUG
+#endif
+FILEOS         VOS_NT_WINDOWS32
+FILETYPE       VFT_DLL
+FILESUBTYPE    0
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+#pragma code_page(1250)
+            VALUE "LegalCopyright",    "© 2008-2009 Martin Mitáš"
+#pragma code_page(DEFAULT)
+            VALUE "ProductName",       "mCtrl Library"
+            VALUE "FileDescription",   "mCtrl Library"
+            VALUE "OriginalFilename",  "mCtrl.dll"
+            VALUE "InternalName",      "mCtrl"
+            VALUE "FileVersion",       MC_VERSION_STR
+            VALUE "ProductVersion",    MC_VERSION_STR
+            VALUE "CompanyName",       "morous.org"
+            VALUE "WWW",               "http://www.morous.org/mctrl"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0, 1200
+    END
+END

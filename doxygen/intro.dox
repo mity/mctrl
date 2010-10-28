@@ -1,0 +1,70 @@
+/**
+ * @page page_intro Introduction
+ *
+ * @section sec_features mCtrl Features
+ * TODO
+ *
+ *
+ * @section sec_sysreq System Requirements and Compatibility Notes
+ *
+ * @c MCTRL.DLL addresses MS Windows 2000 and newer (i.e. MS Windows 2000, 
+ * MS Windows XP, MS Windows Server 2003, MS Windows Vista, MS Windows Server 
+ * 2008 and MS Windows 7), both 32 and 64-bit versions.
+ *
+ * Unfortunatly for capacity and availability reasons, the mCtrl is regularly
+ * tested on MS Windows XP (32-bit). MS Windows 2000 and Vista are tested only 
+ * on sendom opportunity, as well as 64-bit builds on 64-bit systems.
+ *
+ *
+ * @section sec_debug Debug Level
+ * 
+ * @c MCTRL.DLL provides some debugging facilities which can be turned on or 
+ * off. The debugging level is controlled with preprocessor macro DEBUG during
+ * building of @c MCTRL.DLL.
+ *
+ * Value 0 means the debugging is disabled ("Release" version). This is 
+ * expected to be used with the final release of the application.
+ *
+ * Value 1 enables the "Debug" build. This implies several points:
+ * - @c MCTRL.DLL disables compiler optizations and keeps debugging 
+ * information in resulted @c MCTRL.DLL binary (at least when built with mingw
+ * using the @c MAKEFILE included in mCtrl source package.)
+ * - @c Traces are enabled when something interesting happens or if any 
+ * failure is detected. The traces are outputted with @c OutputDebugString
+ * so you can catch them with any reasonable debugger for Windows 
+ * (debugger in MS Visual Studio or gdb are fine) or with application
+ * DebugView (http://technet.microsoft.com/en-us/sysinternals/bb896647.aspx).
+ *
+ * This @c MCTRL.DLL variant is recommanded as first step if your application
+ * based on @c MCTRL.DLL does not do what it should. It can be very well used
+ * during application development, switching to the release @c MCTRL.DLL only
+ * in release-candidate stage of your deveoplment cycle.
+ * 
+ * The traces can give you a valuable information what's going wrong and that
+ * can often directly point to a bug in your application or in mCtrl. 
+ *
+ * Value 2 enables everyting what value 1 does and additionally enables
+ * tracking memory allocation and releases performed inside of @c MCTRL.DLL.
+ * It can help the classical memory management bugs like memory leaks, multiple
+ * freeing of the same memory block, buffer overruns or underruns etc.
+ *
+ * This is especially usuful when debugging @c MCTRL.DLL, but it can also
+ * be used to check that there are no leaks in your application caused by
+ * calling some function from @c MCTRL.DLL allocating some resource which is
+ * not paired with corresponding releasing function. Typical example is that
+ * your application can call some initialization function 
+ * (e.g. mcMditab_Initialize()) but not corresponding function 
+ * (e.g. mcMditab_Terminate()).
+ *
+ * However it is not intended for general use: it has higher memory and CPU
+ * consumtion, and tracing is much more verbous about the memory management,
+ * making the resulted log much longer.
+ *
+ * When refering to "degbug build" of @c MCTRL.DLL without specifying 
+ * the debug level, DEBUG=1 is usually assumed.
+ *
+ * Some extra debugging traces can also be turned on for some mCtrl
+ * modules by defining additional preprocessor macros, but these are intended
+ * only for mCtrl own development and bug hunting, so these are not covered 
+ * here.
+ */

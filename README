@@ -1,0 +1,80 @@
+
+                              ============
+                                 README
+                              ============
+
+
+What is mCtrl
+=============
+
+mCtrl is a library providing set of user interface controls for Win32API.
+Interface of the library is very similar to other controls of Win32API, 
+including the standard and common controls (buttons, edit boxes, combo boxes 
+etc.). 
+
+mCtrl is covered with the GNU General Public License. See file COPYING 
+for more info. 
+
+
+Getting mCtrl
+=============
+
+You can always get latest version, and most actual information on project 
+homepage:
+
+    http://morous.org/mCtrl/
+
+Source package, documentation as well as pre-built x86 and x86_64 binaries 
+can be downloaded from there.
+
+
+Building mCtrl
+==============
+
+Note: If you want just to use mCtrl in your application, you might prefer to 
+get prebuilt mCtrl binary from the project homepage, rather then building
+it from the sources.
+
+mCtrl is primarily developed and built with mingw (32bit builds) and mingw-w64
+(64bit builds). Building with other toolchains or IDEs like MS Visual Studio
+should be probably possible with some effort: you just have to create the 
+project file compatible with the IDE yourself.
+
+In the steps below I assume mingw and msys are to be used for the building:
+
+(1) Download and install mingw and msys. Any recent versions of mingw packages
+    should be ok. You can download both from mingw project page on the
+    sourceforge: http://sourceforge.net/projects/mingw/
+
+    If you want to build 64bit version as well, download and setup mingw-w64 
+    too. You can get it here: http://sourceforge.net/projects/mingw-w64/
+    Currently I use the prebilt toolchain based on gcc version 4.4.0
+    mingw-w64_x86-64_mingw32_4.4.0-1.zip. 
+    Unlike mingw, mingw-w64 has very poor documentation, so follow these steps
+    to setup it:
+    (M64-1) Download mingw-w64. 
+    (M64-2) Unzip it into some directory, so that its path does not 
+            contain any space. Do not place it directly into mingw 
+            installation. I use C:\mingw64
+    (M64-2) Add its bin directory into your PATH in msys. E.g. in ~/.profile,
+            add this line in your favorite editor:
+                export PATH=$PATH:/c/mingw64/bin
+
+(2) Download and unzip the mCtrl source package somewhere on your disk.
+    
+(3) In bash (from the msys), navigate to the mCtrl project directory and just
+    build it:
+        $ make                                     # x86 release build
+    or
+        $ make DEBUG=1                             # x86 debug build
+    or
+        $ make PREFIX=x86_64-w64-mingw32-          # x86_64 release build
+    or 
+        $ make PREFIX=x86_64-w64-mingw32- DEBUG=1  # x86_64 debug build
+        
+Note that if you change any source file (or add new one) under the src/ 
+subdirectory, the Makefile will try to regenerate Makefile.dep as first step
+of the building, to update source dependencies. 
+If you do not modify the sources, that should not happen as the up-to-date
+Makefile.dep is part of the mCtrl source package.
+(This is because I am lazy so I like the stuff automated.)
