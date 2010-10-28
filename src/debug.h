@@ -79,8 +79,8 @@
     void* debug_malloc(const char* fname, int line, size_t size);
     void debug_free(const char* fname, int line, void* mem);
     
-    #define malloc   debug_malloc
-    #define free     debug_free
+    #define malloc(size)   debug_malloc(__FILE__, __LINE__, (size))
+    #define free(ptr)      debug_free(__FILE__, __LINE__, (ptr))
     
     void debug_init(void);
     void debug_fini(void);

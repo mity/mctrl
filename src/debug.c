@@ -56,12 +56,13 @@ static CRITICAL_SECTION mem_lock;
 
 /* Head and tail bytes are prepended/appended to the allocated memory
  * chunk, so that buffer over/underruns can be detected. 
- * Head bytes are 0xAx, where x is negative offset from the memory chunk start.
- * Tail bytes are 0xBx, where x is positive offset from the memory chunk end.
  */
-static const DWORD head_guard[4] = { 0xa0afaead, 0xacabaaa9, 0xa8a7a6a5, 0xa4a3a2a1 };
-static const DWORD tail_guard[4] = { 0xb1b2b3b4, 0xb5b6b7b8, 0xb9babbbc, 0xbdbebfb0 };
-
+static const BYTE head_guard[] = 
+        { 0xaf, 0xae, 0xad, 0xac, 0xab, 0xaa, 0xa9, 0xa8, 
+          0xa7, 0xa6, 0xa5, 0xa4, 0xa3, 0xa2, 0xa1, 0xa0 };
+static const BYTE tail_guard[] = 
+        { 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 
+          0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf };
 
 void* 
 debug_malloc(const char* fname, int line, size_t size)

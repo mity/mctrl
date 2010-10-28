@@ -43,16 +43,11 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
         
         case WM_CREATE:
-        {
-            RECT rect;
-            GetClientRect(win, &rect);
-            
             /* Create html control */
             html = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_HTML, _T(""), 
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP, 
                     0, 0, 0, 0, win, (HMENU) 100, inst, NULL);
             return 0;
-        }
         
         case WM_DESTROY:
             PostQuitMessage(0);

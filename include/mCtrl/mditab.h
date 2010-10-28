@@ -57,8 +57,8 @@ extern "C" {
  * However please note that the messages and styles are not interchangeable: 
  * The constants of styles and messages generally differ in their values.
  *
- * Altough the purpose of the control is to provide a replacement for the MDI,
- * the programmatic interfaces veru differs. If you want to replace MDI
+ * Although the purpose of the control is to provide a replacement for the 
+ * MDI, the programmatic interfaces very differs. If you want to replace MDI
  * with this control in an existing application, expect it will take some 
  * time.
  * - In MDI, the child MDI windows can be minimalized or restored so they
@@ -82,149 +82,44 @@ extern "C" {
  
 
 /**
- * Registers the MDI tab control class.
+ * @brief Registers window class of the MDI tab control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @see sec_initialization
+ * @sa @ref sec_init
  */
 BOOL MCTRL_API mcMditab_Initialize(void);
 
 /**
- * Unregisters the MDI tab control class.
- * @see sec_initialization
+ * @brief Unregisters window class of the MDI tab control.
+ * @sa @ref sec_init
  */
 void MCTRL_API mcMditab_Terminate(void);
 
 
-/*@{*/
 /**
- * @name Window class
+ * @name Window Class
  */
-#define MC_WC_MDITABW        L"mCtrl.mditab"  /**< Unicode window class name */
-#define MC_WC_MDITABA         "mCtrl.mditab"  /**< ANSI window class name */
+/*@{*/
+/** @brief Window class name (unicode variant). */
+#define MC_WC_MDITABW        L"mCtrl.mditab"  
+/** @brief Window class name (ANSI variant). */
+#define MC_WC_MDITABA         "mCtrl.mditab"  
 #ifdef UNICODE
-    #define MC_WC_MDITAB     MC_WC_MDITABW    /**< Unicode-resolution alias */
+    /** 
+     * @brief Unicode-resolution alias. 
+     * @sa @ref MC_WC_MDITABW @ref MC_WC_MDITABA
+     */
+    #define MC_WC_MDITAB     MC_WC_MDITABW
 #else
     #define MC_WC_MDITAB     MC_WC_MDITABA
 #endif
 /*@}*/
 
+
+/**
+ * @name Control Styles 
+ */
 /*@{*/
-/**
- * @name mc_MT_ITEM::dwMask bits
- * These specifies which members of mc_MT_ITEM structure are valid.
- */
-#define MC_MTIF_TEXT         (1 << 0)  /**< mc_MT_ITEM::pszText is valid. */
-#define MC_MTIF_IMAGE        (1 << 1)  /**< mc_MT_ITEM::iImage is valid. */
-#define MC_MTIF_PARAM        (1 << 2)  /**< mc_MT_ITEM::lParam is valid. */
-/*@}*/
 
-
-/*@{*/
-/**
- * Structure for manipulating with tab item (unicode version).
- * @sa mc_MT_INSERTITEM mc_MT_DELETEITEM mc_MT_SETITEM mc_MT_GETITEM
- */
-typedef struct mc_MT_ITEMW_tag {
-    /**
-     * @brief Mask specifying which other members are valid. 
-     * 
-     * On input, set this member to mark which members of the stucture are 
-     * valid. use any combination of @c MC_MTIF_TEXT, @c MC_MTIF_IMAGE and
-     * @c MC_MTIF_PARAM.
-     */
-    DWORD dwMask;    
-    /** @brief Text label of the tab. */
-    LPWSTR pszText;  
-    /** @brief Number of characters in @c psxText. Used only on output. */
-    int cchTextMax;
-    /** @brief Index into control image list. */
-    int iImage;
-    /** @brief User data. */
-    LPARAM lParam;
-} mc_MT_ITEMW;
-
-/**
- * Structure for manipulating with tab item (ANSI version).
- * @sa mc_MT_INSERTITEM mc_MT_DELETEITEM mc_MT_SETITEM mc_MT_GETITEM
- */
-typedef struct mc_MT_ITEMA_tag {
-    /**
-     * @brief Mask specifying which other members are valid. 
-     * 
-     * Set to combination of @c MC_MTIF_TEXT, @c MC_MTIF_IMAGE and
-     * @c MC_MTIF_PARAM.
-     */
-    DWORD dwMask;
-    
-    /** @brief Text label of the tab. */
-    LPSTR pszText;
-    /** @brief Number of characters in @c psxText. Used only on output. */
-    int cchTextMax;
-    /** @brief Index into control image list. */
-    int iImage;
-    /** @brief User data. */
-    LPARAM lParam;
-} mc_MT_ITEMA;
-/*@}*/
-
-
-#ifdef UNICODE
-    /**
-     * Structure for manipulating with tab item.
-     * @sa mc_MT_INSERTITEM mc_MT_DELETEITEM mc_MT_SETITEM mc_MT_GETITEM
-     */
-    #define mc_MT_ITEM          mc_MT_ITEMW
-#else
-    #define mc_MT_ITEM          mc_MT_ITEMA
-#endif
-
-
-/*@{*/
-/**
- * @name mc_MT_HITTESTINFO::flags bits
- */
-/**
- * The hit test coordinates are outside of any tabs.
- */
-#define MC_MTHT_NOWHERE              (1 << 0)
-
-/**
- * The coordinates hit the tab on its icon.
- */
-#define MC_MTHT_ONITEMICON           (1 << 1)
-
-/**
- * The coordinates hit the tab, but not its icon, neither its close button.
- */
-#define MC_MTHT_ONITEMLABEL          (1 << 2)
-
-/**
- * The coordinates hit the tab on its close button.
- */
-#define MC_MTHT_ONITEMCLOSEBUTTON    (1 << 3)
-
-/**
- * The coordinates hit the tab anywhere in its rectangle.
- */
-#define MC_MTHT_ONITEM               \
-    (MC_MTHT_ONITEMICON | MC_MTHT_ONITEMLABEL | MC_MTHT_ONITEMCLOSEBUTTON)
-/*@}*/
-
-/**
- * @brief Structure for @c MC_MT_HITTEST message.
- */
-typedef struct mc_MT_HITTESTINFO_tag {
-    /** @brief Coordinates to test. */
-    POINT pt;
-    /** @brief On output, set to the result of the test. */
-    UINT flags;
-} mc_MT_HITTESTINFO;
-
-
-/**
- * @name Style constants
- */
-/* @{ */
 /** @brief Show close button on right side of the control. This is default. */
 #define MC_MTS_CBONTOOLBAR          (0x00000000L)
 /** @brief Not supported, reserved for future use. */
@@ -257,8 +152,122 @@ typedef struct mc_MT_HITTESTINFO_tag {
 #define MC_MTS_FOCUSNEVER           (0x00000080L)
 /** @brief This is not valid style, but bitmask of @c MC_NTS_FOCUSxxx styles. */
 #define MC_MTS_FOCUSMASK            (0x000000C0L)
-/* @} */
 
+/*@}*/
+
+
+/** 
+ * @anchor MC_MTIF_xxxx
+ * @name MC_MTITEM::dwMask Bits
+ * @memberof MC_MTITEMW
+ * @memberof MC_MTITEMA
+ */
+/*@{*/
+/** @brief @ref MC_MTITEMW::pszText or @ref MC_MTITEMA::pszText is valid. */
+#define MC_MTIF_TEXT         (1 << 0)
+/** @brief @ref MC_MTITEMW::iImage or @ref MC_MTITEMA::iImage is valid. */  
+#define MC_MTIF_IMAGE        (1 << 1)
+/** @brief @ref MC_MTITEMW::lParam or @ref MC_MTITEMA::lParam is valid. */
+#define MC_MTIF_PARAM        (1 << 2)
+/*@}*/
+
+/**
+ * @brief Structure for manipulating with the tab item (unicode variant).
+ * @sa @ref MC_MTM_INSERTITEM @ref MC_MTM_DELETEITEM @ref MC_MTM_SETITEM @ref MC_MTM_GETITEM
+ */
+typedef struct mc_MT_ITEMW_tag {
+    /** @brief Bit mask indicating which members of the structure are valid. */
+    DWORD dwMask;    
+    /** @brief Text label of the tab. */
+    LPWSTR pszText;  
+    /** @brief Number of characters in @c pszText. Used only on output. */
+    int cchTextMax;
+    /** @brief Index into control image list. */
+    int iImage;
+    /** @brief User data. */
+    LPARAM lParam;
+} MC_MTITEMW;
+
+/**
+ * @brief Structure for manipulating with the tab item (ANSI variant).
+ * @sa @ref MC_MTM_INSERTITEM @ref MC_MTM_DELETEITEM @ref MC_MTM_SETITEM @ref MC_MTM_GETITEM
+ */
+typedef struct mc_MT_ITEMA_tag {
+    /** @brief Bit mask indicating which members of the structure are valid. */
+    DWORD dwMask;    
+    /** @brief Text label of the tab. */
+    LPSTR pszText;
+    /** @brief Number of characters in @c psxText. Used only on output. */
+    int cchTextMax;
+    /** @brief Index into control image list. */
+    int iImage;
+    /** @brief User data. */
+    LPARAM lParam;
+} MC_MTITEMA;
+
+
+#ifdef UNICODE
+    /** 
+     * @brief Unicode-resolution alias. 
+     * @sa @ref MC_MTITEMW @ref MC_MTITEMA
+     */
+    #define MC_MTITEM          MC_MTITEMW
+#else
+    #define MC_MTITEM          MC_MTITEMA
+#endif
+
+
+/**
+ * @brief Structure for messages @ref MC_MTM_SETITEMWIDTH and @ref MC_MTM_GETITEMWIDTH.
+ *
+ * The control sizes all tabs to the same width. Normally they all have
+ * the default width. But if the control contains to many tab items and not 
+ * all of them can be visible at once, the control is allowed to resize them
+ * as much as the minimal width specifies, so more of them can be visible
+ * without using the scrolling buttons.
+ */
+typedef struct mc_MT_ITEMWIDTH_tag {
+    /** @brief Default width for tabs, in pixels. */
+    DWORD dwDefWidth;
+    /** @brief Minimal width for tabs, in pixels. */
+    DWORD dwMinWidth;
+} mc_MT_ITEMWIDTH;
+
+
+/**
+ * @anchor MC_MTHT_xxxx
+ * @name mc_MT_HITTESTINFO::flags bits
+ * @relates mc_MT_HITTESTINFO
+ */
+/*@{*/
+/** @brief The hit test coordinates are outside of any tabs. */
+#define MC_MTHT_NOWHERE              (1 << 0)
+/** @brief The coordinates hit the tab on its icon. */
+#define MC_MTHT_ONITEMICON           (1 << 1)
+/** @brief The coordinates hit the tab, but its icon or close button. */
+#define MC_MTHT_ONITEMLABEL          (1 << 2)
+/** @brief The coordinates hit the tab on its close button. */
+#define MC_MTHT_ONITEMCLOSEBUTTON    (1 << 3)
+/** @brief The coordinates hit the tab anywhere in its rectangle. */
+#define MC_MTHT_ONITEM               \
+    (MC_MTHT_ONITEMICON | MC_MTHT_ONITEMLABEL | MC_MTHT_ONITEMCLOSEBUTTON)
+/*@}*/
+
+/**
+ * @brief Structure for message @ref MC_MTM_HITTEST.
+ */
+typedef struct mc_MT_HITTESTINFO_tag {
+    /** @brief Coordinates to test. */
+    POINT pt;
+    /** @brief On output, set to the result of the test. */
+    UINT flags;
+} mc_MT_HITTESTINFO;
+
+
+/**
+ * @name Control Messages
+ */
+/*@{*/
 
 /**
  * Gets count of tabs.
@@ -290,9 +299,10 @@ typedef struct mc_MT_HITTESTINFO_tag {
 #define MC_MTM_SETIMAGELIST       (WM_USER + 102)
 
 /**
- * Delete all tab items. Sends @c MC_MTN_DELETEALLITEMS notification
- * and (unless @c MC_MTN_DELETEALLITEMS prevents that) @c MC_MTN_DELETEITEM
- * for each tab.
+ * Delete all tab items. The control sends @ref MC_MTN_DELETEALLITEMS 
+ * notification. Depending on the return value from the notifications,
+ * it may also send notification @ref MC_MTN_DELETEITEM for each tab being 
+ * deleted.
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -302,30 +312,27 @@ typedef struct mc_MT_HITTESTINFO_tag {
 #define MC_MTM_DELETEALLITEMS     (WM_USER + 103)
 
 /**
- * Inserts new tab into the tab control (unicode version). Note that the new 
- * item is @b not automatically selected.
+ * Inserts new tab into the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the new item.
- * @param[in] lParam (@c mc_MT_ITEMW*) Pointer to detailed data of the new tab.
+ * @param[in] lParam (@ref MC_MTITEM*) Pointer to detailed data of the new 
+ * tab.
  * @return (@c int) index of the new tab, or @c -1 on failure.
  */
 #define MC_MTM_INSERTITEMW        (WM_USER + 105)
 
 /**
- * Inserts new tab into the tab control (ANSI version). Note that the new 
- * item is @b not automatically selected.
- * @param[in] wParam (@c int) Index of the new control.
- * @param[in] lParam (@c mc_MT_ITEMA*) Pointer to detailed data of the new tab.
+ * Inserts new tab into the tab control (ANSI variant).
+ * @param[in] wParam (@c int) Index of the new item.
+ * @param[in] lParam (@ref MC_MTITEM*) Pointer to detailed data of the new 
+ * tab.
  * @return (@c int) index of the new tab, or @c -1 on failure.
  */
 #define MC_MTM_INSERTITEMA        (WM_USER + 106)
 
 #ifdef UNICODE
-    /**
-     * Inserts new tab into the tab control.
-     * @param[in] wParam (@c int) Index of the new item.
-     * @param[in] lParam (@c mc_MT_ITEM*) Pointer to detailed data of the new 
-     * tab.
-     * @return (@c int) index of the new tab, or @c -1 on failure.
+    /** 
+     * @brief Unicode-resolution alias. 
+     * @sa @ref MC_MTM_INSERTITEMW @ref MC_MTM_INSERTITEMA
      */
     #define MC_MTM_INSERTITEM     MC_MTM_INSERTITEMW
 #else
@@ -333,27 +340,25 @@ typedef struct mc_MT_HITTESTINFO_tag {
 #endif
 
 /**
- * Sets tab in the tab control (unicode version).
+ * Sets tab in the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the item.
- * @param[in] lParam (@c mc_MT_ITEMW*) Pointer to detailed data of the tab.
+ * @param[in] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the tab.
  * @return @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_SETITEMW           (WM_USER + 107)
 
 /**
- * Sets tab in the tab control (ANSI version).
+ * Sets tab in the tab control (ANSI variant).
  * @param[in] wParam (@c int) Index of the item.
- * @param[in] lParam (@c mc_MT_ITEMA*) Pointer to detailed data of the tab.
+ * @param[in] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the tab.
  * @return @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_SETITEMA           (WM_USER + 108)
 
 #ifdef UNICODE
-    /**
-     * Sets tab in the tab control.
-     * @param[in] wParam (@c int) Index of the item.
-     * @param[in] lParam (@c mc_MT_ITEM*) Pointer to detailed data of the tab.
-     * @return @c TRUE on success, @c FALSE otherwise.
+    /** 
+     * @brief Unicode-resolution alias. 
+     * @sa @ref MC_MTM_SETITEMW @ref MC_MTM_SETITEMA
      */
     #define MC_MTM_SETITEM        MC_MTM_SETITEMW
 #else
@@ -362,30 +367,27 @@ typedef struct mc_MT_HITTESTINFO_tag {
 
 
 /**
- * Gets tab data from the tab control (unicode version).
+ * Gets tab data from the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the item.
- * @param[in,out] lParam (@c mc_MT_ITEMW*) Pointer to detailed data of the 
- * tab, receiving the data according to @c mc_MT_ITEM::dwMask.
+ * @param[in,out] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the 
+ * tab, receiving the data according to @c MC_MTITEM::dwMask.
  * @return @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_GETITEMW           (WM_USER + 109)
 
 /**
- * Gets tab data from the tab control (ANSI version).
+ * Gets tab data from the tab control (ANSI variant).
  * @param[in] wParam (@c int) Index of the item.
- * @param[in,out] lParam (@c mc_MT_ITEMA*) Pointer to detailed data of the 
- * tab, receiving the data according to @c mc_MT_ITEM::dwMask.
+ * @param[in,out] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the 
+ * tab, receiving the data according to @c MC_MTITEM::dwMask.
  * @return @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_GETITEMA           (WM_USER + 110)
 
 #ifdef UNICODE
-    /**
-     * Gets tab data from the tab control.
-     * @param[in] wParam (@c int) Index of the item.
-     * @param[in,out] lParam (@c mc_MT_ITEM*) Pointer to detailed data of the 
-     * tab, receiving the data according to @c mc_MT_ITEM::dwMask.
-     * @return @c TRUE on success, @c FALSE otherwise.
+    /** 
+     * @brief Unicode-resolution alias. 
+     * @sa @ref MC_MTM_GETITEMW @ref MC_MTM_GETITEMA
      */
     #define MC_MTM_GETITEM        MC_MTM_GETITEMW
 #else
@@ -393,7 +395,7 @@ typedef struct mc_MT_HITTESTINFO_tag {
 #endif
 
 /**
- * Deletes the item. Sends @c MC_MTN_DELETEITEM notification to parent window.
+ * Deletes the item. Sends @ref MC_MTN_DELETEITEM notification to parent window.
  * @param[in] wParam (@c int) Index of tab to be deleted.
  * @param lParam Reserved, set to zero.
  * @return @c TRUE on success, @c FALSE otherwise.
@@ -403,8 +405,8 @@ typedef struct mc_MT_HITTESTINFO_tag {
 /**
  * Tests which tab (and its part) is placed on specified position.
  * @param wParam Reserved, set to zero.
- * @param[in,out] lParam (@c mc_MT_HITTESTINFO*) Pointer to a hit test 
- * structure. Set @c mc_MT_HITTESTINFO::pt on input.
+ * @param[in,out] lParam (@ref mc_MT_HITTESTINFO*) Pointer to a hit test 
+ * structure. Set @ref mc_MT_HITTESTINFO::pt on input.
  * @return (@c int) Index of the hit tab, or -1.
  */
 #define MC_MTM_HITTEST            (WM_USER + 112)
@@ -434,24 +436,13 @@ typedef struct mc_MT_HITTESTINFO_tag {
  */
 #define MC_MTM_CLOSEITEM          (WM_USER + 115)
 
-
-/**
- * @brief Structure for messages @c MC_MTM_SETWIDTH and @c MC_MTM_GETWIDTH.
- */
-typedef struct mc_MT_ITEMWIDTH_tag {
-    /** @brief Default width for tabs, in pixels. */
-    DWORD dwDefWidth;
-    /** @brief Minimal width for tabs, in pixels. */
-    DWORD dwMinWidth;
-} mc_MT_ITEMWIDTH;
-
 /**
  * Sets default and minimal width for each tab. If there is enough space,
  * all tabs have the default width. When there are too many widths, they are
  * made narrower so more tabs fit into the visible space area, but never
  * narrower then the minimal width.
  * @param wParam 
- * @param[in] lParam (@c mc_MT_ITEMWIDTH*) Pointer to a structure specifying 
+ * @param[in] lParam (@ref mc_MT_ITEMWIDTH*) Pointer to a structure specifying 
  * the default and minimal widths. When @c NULL is passed, the values are 
  * reset to built-in defaults.
  * @return @c TRUE on success, @c FALSE otherwise.
@@ -462,15 +453,17 @@ typedef struct mc_MT_ITEMWIDTH_tag {
 /**
  * Gets default and minimal width for each tab. 
  * @param wParam 
- * @param[out] lParam (@c mc_MT_ITEMWIDTH*) Pointer to a structure where the 
+ * @param[out] lParam (@ref mc_MT_ITEMWIDTH*) Pointer to a structure where the 
  * current widths will be set.
  * @return @c TRUE on success, @c FALSE otherwise.
  * @sa MC_MTM_SETITEMWIDTH
  */
 #define MC_MTM_GETITEMWIDTH       (WM_USER + 117)
+/*@}*/
+
 
 /**
- * @brief Structure for @c MC_MTN_SELCHANGE notification.
+ * @brief Structure for notification @ref MC_MTN_SELCHANGE.
  */
 typedef struct mc_NM_MT_SELCHANGE_tag {
     /** @brief Common notification structure header. */
@@ -486,16 +479,7 @@ typedef struct mc_NM_MT_SELCHANGE_tag {
 } mc_NM_MT_SELCHANGE;
 
 /**
- * Controls sends this notification when other tab has been selected.
- * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@c mc_NM_MT_SELCHANGE*) Pointer to a structure specifying
- * details about the selection change.
- * @return You should return zero , if you process the message.
- */
-#define MC_MTN_SELCHANGE          (0xfffffddb)
-
-/**
- * @brief Structure for @c MC_MTN_DELETEITEM notification.
+ * @brief Structure for notification @ref MC_MTN_DELETEITEM.
  */
 typedef struct mc_NM_MT_DELETEITEM_tag {
     /** @brief Common notification structure header. */
@@ -506,11 +490,39 @@ typedef struct mc_NM_MT_DELETEITEM_tag {
     LPARAM lParam;
 } mc_NM_MT_DELETEITEM;
 
+
+/**
+ * @brief Structure for notification @ref MC_MTN_CLOSEITEM.
+ */
+typedef struct mc_NM_MT_CLOSEITEM {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief Index of the item being closed. */
+    int iItem;
+    /** @brief User data of the control being closed. */
+    LPARAM lParam;
+} mc_NM_MT_CLOSEITEM;
+
+
+/**
+ * @name Control Notifications
+ */
+/*@{*/
+
+/**
+ * Controls sends this notification when other tab has been selected.
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref mc_NM_MT_SELCHANGE*) Pointer to a structure specifying
+ * details about the selection change.
+ * @return You should return zero , if you process the message.
+ */
+#define MC_MTN_SELCHANGE          (0xfffffddb)
+
 /**
  * Control sends this notification when a tab is being deleted. When called
  * the item still exists.
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@c mc_NM_MT_DELETEITEM*) Pointer to a structure 
+ * @param[in] lParam (@ref mc_NM_MT_DELETEITEM*) Pointer to a structure 
  * specifying details about the item being deleted.
  * @return You should return zero if you process the notification.
  */
@@ -524,34 +536,22 @@ typedef struct mc_NM_MT_DELETEITEM_tag {
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@c NMHDR*)
  * @return You should return @c FALSE to receive subsequent 
- * @c MC_MTN_DELETEITEM for each item; or @c TRUE to supress sending them.
+ * @ref MC_MTN_DELETEITEM for each item; or @c TRUE to supress sending them.
  */
 #define MC_MTN_DELETEALLITEMS     (0xfffffdcf)
 
-
 /**
- * @brief Structure for @c MC_MTN_CLOSEITEM notification.
- */
-typedef struct mc_NM_MT_CLOSEITEM {
-    /** @brief Common notification structure header. */
-    NMHDR hdr;
-    /** @brief Index of the item being closed. */
-    int iItem;
-    /** @brief User data of the control being closed. */
-    LPARAM lParam;
-} mc_NM_MT_CLOSEITEM;
-
-/**
- * Control sends this notification when user requets closing a tab item.
+ * Control sends this notification when user requests closing a tab item.
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@c mc_NM_MT_CLOSEITEM*) Pointer to a structure specifying
+ * @param[in] lParam (@ref mc_NM_MT_CLOSEITEM*) Pointer to a structure specifying
  * details about the item being closed.
  * @return You should return @c FALSE to remove the tab (the tab is then 
- * deleted and @c MC_MTN_DELETEITEM notification is sent); or @c TRUE
+ * deleted and @ref MC_MTN_DELETEITEM notification is sent); or @c TRUE
  * to cancel the tab closure.
  */ 
 #define MC_MTN_CLOSEITEM          (0xfffffdce)
 
+/*@}*/
 
 
 #ifdef __cplusplus

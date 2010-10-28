@@ -34,7 +34,7 @@ mcVersion(MC_VERSION* version)
  * by first DWORD (cbSize). */
 typedef union dllgetversioninfo_tag dllgetversioninfo_t;
 union dllgetversioninfo_tag { 
-	DWORD cbSize;
+    DWORD cbSize;
     DLLVERSIONINFO info1;
     DLLVERSIONINFO2 info2; 
 };
@@ -61,7 +61,7 @@ DllGetVersion(dllgetversioninfo_t* dvi)
             return S_OK;
 
         default:
-            MC_TRACE("DllGetVersion: invalid cbSize");
+            MC_TRACE("DllGetVersion: unsupported cbSize");
             return E_INVALIDARG;
     }
 }

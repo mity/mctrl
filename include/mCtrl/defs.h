@@ -26,10 +26,21 @@ extern "C" {
 #endif
 
 
+/** 
+ * @file
+ * This is helper header included by all the other public mCtrl headers. 
+ * You should don't need to include this header file directly.
+ */
+
+
 #ifdef MCTRL_BUILD
-    #define MCTRL_API  __declspec(dllexport) __stdcall
+    #define MCTRL_API       __declspec(dllexport) __stdcall
 #else
-    #define MCTRL_API  __declspec(dllimport) __stdcall
+    /** 
+     * Helper macro specifying the calling convention of functions exported
+     * by @c MCTRL.DLL.
+     */
+    #define MCTRL_API       __declspec(dllimport) __stdcall
 #endif
 
 

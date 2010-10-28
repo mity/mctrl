@@ -7,7 +7,7 @@
  * http://www.morous.org/mctrl for newer versions and more actual informations.
  *
  * 
- * @section License
+ * @section sec_license License
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the 
@@ -29,22 +29,17 @@
  * Boston, MA 02110-1301 USA
  *
  *
- * @section toc_general General Design
- *
+ * @section sec_toc Table of Contents
+ * 
+ * @subsection toc_general General Design
  * - @ref page_intro
  * - @ref page_design_notes
  *
- * @section toc_controls Control Reference
- * - @c mCtrl/button.h - Enhanced button control (window class @c MC_WC_BUTTON)
- * - @c mCtrl/edit.h - Advanced edit control  (window class @c MC_WC_EDIT)
- * - @c mCtrl/html.h - HTML control (window class @c MC_WC_HTML)
- * - @c mCtrl/mditab.h - MDI tab control (window class @c MC_WC_MDITAB)
+ * @subsection toc_controls Control Reference
+ * - @ref mCtrl/button.h - Enhanced button control (window class @c MC_WC_BUTTON)
+ * - @ref mCtrl/html.h - HTML control (window class @c MC_WC_HTML)
+ * - @ref mCtrl/mditab.h - MDI tab control (window class @c MC_WC_MDITAB)
  *
- * @section toc_models Models Reference
- * - @c mCtrl/doc.h - Text document (model for @c MC_WC_EDIT control)
- *
- * @section toc_misc Reference of Miscalenous Functions
- * - @c mCtrl/version.h - Retrieving mCtrl version.
+ * @subsection toc_misc Miscalenous Functions
+ * - @ref mCtrl/version.h - Retrieving mCtrl version.
  */
- 
-

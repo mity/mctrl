@@ -649,7 +649,7 @@ mditab_notify_sel_change(mditab_t* mditab, int old_index, int new_index)
 }
 
 static int
-mditab_insert_item(mditab_t* mditab, int index, mc_MT_ITEM* id, BOOL unicode)
+mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
     mditab_item_t* items;
     TCHAR* item_text = NULL;
@@ -735,7 +735,7 @@ mditab_insert_item(mditab_t* mditab, int index, mc_MT_ITEM* id, BOOL unicode)
 }
 
 static BOOL
-mditab_set_item(mditab_t* mditab, int index, mc_MT_ITEM* id, BOOL unicode)
+mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
     BOOL need_scroll;
 
@@ -778,7 +778,7 @@ mditab_set_item(mditab_t* mditab, int index, mc_MT_ITEM* id, BOOL unicode)
 }
 
 static BOOL
-mditab_get_item(mditab_t* mditab, int index, mc_MT_ITEM* id, BOOL unicode)
+mditab_get_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
     if(MC_ERR(id == NULL)) {
         MC_TRACE("mditab_get_item: id == NULL");
@@ -787,7 +787,7 @@ mditab_get_item(mditab_t* mditab, int index, mc_MT_ITEM* id, BOOL unicode)
     }
     if(MC_ERR(index < 0  ||  index >= mditab->item_count)) {
         MC_TRACE("mditab_get_item: invalid tab index (%d)", index);
-        memset(id, 0, sizeof(mc_MT_ITEM));
+        memset(id, 0, sizeof(MC_MTITEM));
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
@@ -1369,15 +1369,15 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_MTM_INSERTITEMW:
         case MC_MTM_INSERTITEMA:
-            return mditab_insert_item(mditab, (int)wp, (mc_MT_ITEM*)lp, (msg == MC_MTM_INSERTITEMW));
+            return mditab_insert_item(mditab, (int)wp, (MC_MTITEM*)lp, (msg == MC_MTM_INSERTITEMW));
 
         case MC_MTM_SETITEMW:
         case MC_MTM_SETITEMA:
-            return mditab_set_item(mditab, (int)wp, (mc_MT_ITEM*)lp, (msg == MC_MTM_SETITEMW));
+            return mditab_set_item(mditab, (int)wp, (MC_MTITEM*)lp, (msg == MC_MTM_SETITEMW));
 
         case MC_MTM_GETITEMW:
         case MC_MTM_GETITEMA:
-            return mditab_get_item(mditab, (int)wp, (mc_MT_ITEM*)lp, (msg == MC_MTM_GETITEMW));
+            return mditab_get_item(mditab, (int)wp, (MC_MTITEM*)lp, (msg == MC_MTM_GETITEMW));
 
         case MC_MTM_DELETEITEM:
             return mditab_delete_item(mditab, wp);

@@ -28,15 +28,33 @@ extern "C" {
 
 /**
  * @file 
- * @brief Main header file of mCtrl.
+ * @brief Retrieving mCtrl version.
  *
- * This header includes all the other public mCtrl headers.
+ * This header provides a functions to retrieve mCtrl version.
+ * 
+ * A simpler and very straightforward way is to call the function @ref 
+ * mcVersion.
+ *
+ * More generic way is to use a de-facto standard way by calling the function
+ * @c DllGetVersion. @c MCTRL.DLL exports this function, as a lot of standard 
+ * DLLs distributed by Microsoft does. Note this function has no declaration 
+ * in any mCtrl public header, as it is inteded to be used with @c LoadLibrary 
+ * only. Prototype of the function looks like this:
+ *
+ * @code 
+ * HRESULT MCTRL_API DllGetVersion(DLLVERSIONINFO* pdvi);
+ * @endcode
+ *
+ * The function supports @c DLLVERSIONINFO as well as @c DLLVERSIONINFO2 
+ * structure. See documentation of the function on MSDN for further info
+ * about the function:\n
+ * http://msdn.microsoft.com/en-us/library/bb776404%28VS.85%29.aspx
  */
 
 
 /**
  * @brief Structure describing @c MCTRL.DLL version.
- * @see mcGetVersion
+ * @sa @ref mcVersion
  */
 typedef struct MC_VERSION_TAG {
     DWORD dwMajor;      /**< @brief Major version number. */
@@ -44,18 +62,10 @@ typedef struct MC_VERSION_TAG {
     DWORD dwRelease;    /**< @brief Release version number. */
 } MC_VERSION;
 
+
 /** 
  * @brief Retrieve @c MCTRL.DLL version.
  * @param[out] lpVersion Pointer to the version structure.
- *
- * @note @c MCTRL.DLL exports also the function @c DllGetVersion, as a 
- * lot of standard DLLs distributed by Microsoft. Note this function has no 
- * declaration in any mCtrl public header, as it is inteded to use with 
- * @c LoadLibrary only. Prototype of the function looks like this:
- * @code HRESULT MCTRL_API DllGetVersion(DLLVERSIONINFO* pdvi);@endcode
- * The function supports @c DLLVERSIONINFO as well as @c DLLVERSIONINFO2 
- * structure. See documentation of the function on MSDN for further info:
- * http://msdn.microsoft.com/en-us/library/bb776404%28VS.85%29.aspx
  */
 void MCTRL_API mcVersion(MC_VERSION* lpVersion);
 

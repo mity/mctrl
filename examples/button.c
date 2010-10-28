@@ -61,7 +61,7 @@ dlg_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_NOTIFY:
         {
             /* React when user clicks on drop-down of a split button. */
-            mc_NMBCDROPDOWN* notify = (mc_NMBCDROPDOWN*)lp;
+            MC_NMBCDROPDOWN* notify = (MC_NMBCDROPDOWN*)lp;
             if((notify->hdr.idFrom == 102  ||  notify->hdr.idFrom == 103)  &&
                 notify->hdr.code == MC_BCN_DROPDOWN) {
                 ClientToScreen(notify->hdr.hwndFrom, ((POINT*) &notify->rcButton)+1);

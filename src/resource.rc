@@ -43,7 +43,7 @@ BEGIN
         BLOCK "000004b0"
         BEGIN
 #pragma code_page(1250)
-            VALUE "LegalCopyright",    "© 2008-2009 Martin Mitáš"
+            VALUE "LegalCopyright",    "© 2008-2010 Martin Mitáš"
 #pragma code_page(DEFAULT)
             VALUE "ProductName",       "mCtrl Library"
             VALUE "FileDescription",   "mCtrl Library"

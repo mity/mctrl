@@ -26,7 +26,6 @@
 #endif
 
 
-HRESULT (WINAPI* theme_CloseThemeData)(HTHEME);
 #ifndef DISABLE_UXTHEME
     /* Preprocessor magic to define pointers to UXTHEME.DLL functions */
     #define THEME_FN(rettype, name, params)            \

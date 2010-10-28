@@ -39,7 +39,7 @@ add_tab(void)
     static UINT counter = 0;
     int i, n;
     TCHAR buffer[32];
-    mc_MT_ITEM item = {MC_MTIF_TEXT | MC_MTIF_IMAGE, buffer, 0, 0, 0};
+    MC_MTITEM item = {MC_MTIF_TEXT | MC_MTIF_IMAGE, buffer, 0, 0, 0};
     
     /* Setup tab icon and label */
     counter++;

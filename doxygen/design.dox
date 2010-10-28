@@ -3,21 +3,22 @@
  *
  * @section sec_error_handling About Error Handling
  * 
- * In general, mCtrl follows Win32API conventions in error handling. On error 
- * the mCtrlfunctions set the error code with @c SetLastError() and then 
+ * In general, mCtrl follows Win32API conventions in error handling. On error, 
+ * the mCtrl functions set the error code with @c SetLastError() and then 
  * typically return a value indicating an error has occured. In most cases
  * this error indicator is 0, -1, @c FALSE or @c NULL, depending on the 
  * function and type it returns.
  *
- * As usual, if a function fails, any output parameters are undefined and you 
+ * If a function fails, any output parameters are undefined and you 
  * cannot rely on their value. 
  *
- * Also note that for a category of caller's programmatic errors (e.g.
- * typically using invalid value in a function parameter or invalid combination
- * of multiple parameters; or when calling any function without having the 
- * particular mCtrl module initialized), mCtrl uses very pragmatic approach: 
- * they are only checked if it is reasdonably easy to do so. Some more checks 
- * can be enabled if you use DEBUG build of mCtrl (see @ref sec_debug).
+ * Also note that for the category of caller's programmatic errors (e.g.
+ * when application specifies an invalid value in a function parameter or 
+ * invalid combination of multiple parameters; or when calling any function 
+ * without having the particular mCtrl module initialized), mCtrl uses very 
+ * pragmatic approach: Such error conditions are only checked if it is 
+ * reasdonably easy to do so. Some more checks can be enabled if you use 
+ * DEBUG build of mCtrl (see @ref sec_debug).
  *
  *
  * @section sec_strings About Strings
@@ -25,27 +26,20 @@
  * @c MCTRL.DLL supports Unicode and strings held internally in the library 
  * are encoded in Unicode. 
  *
- * However on interfave level, @c MCTRL.DLL supports both Unicode and ANSI
+ * However on interface level, @c MCTRL.DLL supports both Unicode and ANSI
  * strings as well. If a function, message of a control or a structure 
- * uses string, there are usually two variants of the entity: one for Unicode
+ * uses string, there are usually two flavors of the entity: one for Unicode
  * and one for the ANSI string. When calling a function or sending a message,
  * ANSI strings in paramaters and structure members are converted to Unicode 
  * on input and Unicode to ANSI on output.
  *
- * Identifiers of the Unicode variant then have the "W" suffix and ANSI have
- * "A" suffix, in the same way as Win32API does. The public headers also 
+ * Identifiers of the Unicode flavor then have the @c "W" suffix and ANSI have
+ * @c "A" suffix, in the same way as Win32API does. The public headers also 
  * provide preprocessor macros without the suffix, as an alias for the one
  * of the two depending whether @c UNICODE is defined or not.
  *
  * This means you may use @c MCTRL.DLL easily in Unicode-enabled application
- * as well in ANSI applications.
- *
- * @note On source file level, the strings held internally are of type @c 
- * TCHAR, but @c MCTRL.DLL is then always built with preoprocessor macros 
- * @c UNICODE and @c _UNICODE defined. The @c TCHAR is used mainly as a 
- * courtesy for people who might want to port @c MCTRL.DLL to non-unicode
- * environments (e.g. Windows 95/98). The non-unicode builds are not tested,
- * and they are not supported.
+ * as well as in ANSI applications.
  *
  * 
  * @section sec_multithreading About Multithreading
@@ -57,7 +51,7 @@
  *
  * However remeber that access to data visible externally through @c MCTRL.DLL
  * interface is not synchronized: If you have such data (e.g. instance of 
- * document, see @ref mc_DOC created with mcDoc_Create()), and then want to 
+ * document, see @ref mcDOC created with mcDoc_Create()), and then want to 
  * manipulate with the data concurrently from multiple threads, @c MCTRL.DLL 
  * does not synchronize for you: It's your application developer's 
  * responsibility to do so in order to avoid race conditions.
@@ -97,7 +91,7 @@
  * the counter drops back down to zero.
  *
  * @attention
- * Note that if you are using @c MCTRL.DLL from you dynamic library, you may 
+ * Note that if you are using @c MCTRL.DLL from your dynamic library, you may 
  * not call the initialization and termination functions in context of 
  * @c DllMain(). Its severly limited what can be done safely in the @c DllMain
  * context. Even if it would be safe for some modules currently there is no 

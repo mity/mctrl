@@ -34,7 +34,7 @@ extern "C" {
  * fact the control embeds Internet Explorer in it, so it can display much 
  * more, inclusing images, directory contents, Microsoft help files etc.
  *
- * Currently there is only one message, @c MC_HM_GOTOURL which controls what 
+ * Currently there is only one message, @ref MC_HM_GOTOURL which controls what 
  * page is displayed in the control. That's all. ;-)
  *
  * Examples of URLs accepted by the @c MC_HM_GOTOURL message:
@@ -50,11 +50,11 @@ extern "C" {
  * However it will never be intended to do everything, so do not plan 
  * developing of full-featured web browser on top of the control ;-)
  *
- * @attention
  * The HTML control implementation is based on OLE and COM technologies.
- * During creation of the control @c OleInitialize() is called. This 
- * initializes the OLE subsystem for that particular thread. Sending a message
- * from other thread(s) can fail.
+ * During creation of the control @c OleInitialize() is called. I.e.
+ * the OLE subsystem is inirialized for every thread which creates 
+ * the HTML control. @c OleUninitialize() is similarly called when the 
+ * control is destroyed.
  *
  * @attention
  * If you want to send some messages to the control from another thread then
@@ -64,41 +64,44 @@ extern "C" {
 
 
 /**
- * Registers the HTML control class.
+ * @brief Registers window class of the HTML control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @see sec_initialization
+ * @sa @ref sec_init
  */
 BOOL MCTRL_API mcHtml_Initialize(void);
 
 /**
- * Unregisters the HTML control class.
- * @see sec_initialization
+ * @brief Unregisters window class of the HTML control.
+ *
+ * @sa @ref sec_init
  */
 void MCTRL_API mcHtml_Terminate(void);
 
 
 /**
- * Window class (unicode version). 
- */ 
+ * @name Window Class
+ */
+/*@{*/
+/** @brief Window class name (unicode variant). */
 #define MC_WC_HTMLW            L"mCtrl.html"
-
-/**
- * Window class (ANSI version). 
- */ 
+/** @brief Window class name (ANSI variant). */
 #define MC_WC_HTMLA             "mCtrl.html"
-
 #ifdef UNICODE
-    /**
-     * Window class.
-     */
+    /** @brief Unicode-resolution alias. */
     #define MC_WC_HTML          MC_WC_HTMLW
 #else
     #define MC_WC_HTML          MC_WC_HTMLA
 #endif
+/*@}*/
 
 
 /**
- * Send this message to display a specific HTML page in the control.
+ * @name Control Messages
+ */
+/*@{*/
+
+/**
+ * Displays a contents specified by the given URL (unicode variant).
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c const @c WCHAR*) Pointer to URL string.
  * @return Zero on success, -1 on failure.
@@ -106,7 +109,7 @@ void MCTRL_API mcHtml_Terminate(void);
 #define MC_HM_GOTOURLW        (WM_USER + 10)
 
 /**
- * Send this message to display a specific HTML page in the control.
+ * Displays a contents specified by the given URL (ANSI variant).
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c const @c char*) Pointer to URL string.
  * @return Zero on success, -1 on failure.
@@ -115,16 +118,13 @@ void MCTRL_API mcHtml_Terminate(void);
 
 
 #ifdef UNICODE
-    /**
-     * Send this message to display a specific HTML page in the control.
-     * @param wParam Reserved, set to zero.
-     * @param[in] lParam (@c const @c TCHAR*) Pointer to URL string.
-     * @return Zero on success, -1 on failure.
-     */
+    /** @brief Unicode-resolution alias. */
     #define MC_HM_GOTOURL     MC_HM_GOTOURLW
 #else
     #define MC_HM_GOTOURL     MC_HM_GOTOURLA
 #endif
+
+/*@}*/
 
 
 #ifdef __cplusplus

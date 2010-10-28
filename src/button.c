@@ -544,7 +544,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 if(rect.left <= x  &&  x <= rect.right  &&
                    rect.top <= y  &&  y <= rect.bottom) {
                     if(GetTickCount() - last_unpush > 100) {
-                        mc_NMBCDROPDOWN notify;
+                        MC_NMBCDROPDOWN notify;
                             
                         button->style |= IS_DROPDOWN_PUSHED;
                         InvalidateRect(win, &rect, TRUE);
