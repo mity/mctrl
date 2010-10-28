@@ -438,12 +438,12 @@ typedef struct mc_MT_HITTESTINFO_tag {
 /**
  * @brief Structure for messages @c MC_MTM_SETWIDTH and @c MC_MTM_GETWIDTH.
  */
-typedef struct mc_MT_TABWIDTH_tag {
+typedef struct mc_MT_ITEMWIDTH_tag {
     /** @brief Default width for tabs, in pixels. */
     DWORD dwDefWidth;
     /** @brief Minimal width for tabs, in pixels. */
     DWORD dwMinWidth;
-} mc_MT_TABWIDTH;
+} mc_MT_ITEMWIDTH;
 
 /**
  * Sets default and minimal width for each tab. If there is enough space,
@@ -451,23 +451,23 @@ typedef struct mc_MT_TABWIDTH_tag {
  * made narrower so more tabs fit into the visible space area, but never
  * narrower then the minimal width.
  * @param wParam 
- * @param[in] lParam (@c mc_MT_TABWIDTH*) Pointer to a structure specifying 
+ * @param[in] lParam (@c mc_MT_ITEMWIDTH*) Pointer to a structure specifying 
  * the default and minimal widths. When @c NULL is passed, the values are 
  * reset to built-in defaults.
  * @return @c TRUE on success, @c FALSE otherwise.
- * @sa MC_MTM_GETTABWIDTH
+ * @sa MC_MTM_GETITEMWIDTH
  */
-#define MC_MTM_SETTABWIDTH        (WM_USER + 116)
+#define MC_MTM_SETITEMWIDTH       (WM_USER + 116)
 
 /**
  * Gets default and minimal width for each tab. 
  * @param wParam 
- * @param[out] lParam (@c mc_MT_TABWIDTH*) Pointer to a structure where the 
+ * @param[out] lParam (@c mc_MT_ITEMWIDTH*) Pointer to a structure where the 
  * current widths will be set.
  * @return @c TRUE on success, @c FALSE otherwise.
- * @sa MC_MTM_SETTABWIDTH
+ * @sa MC_MTM_SETITEMWIDTH
  */
-#define MC_MTM_GETTABWIDTH        (WM_USER + 117)
+#define MC_MTM_GETITEMWIDTH       (WM_USER + 117)
 
 /**
  * @brief Structure for @c MC_MTN_SELCHANGE notification.

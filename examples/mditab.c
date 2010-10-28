@@ -71,7 +71,7 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_CREATE:
         {
             RECT rect;
-            mc_MT_TABWIDTH tw;
+            mc_MT_ITEMWIDTH tw;
             
             GetClientRect(win, &rect);
             
@@ -84,9 +84,9 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             SendMessage(mditab, MC_MTM_SETIMAGELIST, 0, (LPARAM) img_list);
             
             /* Change minimal tab width */
-            SendMessage(mditab, MC_MTM_GETTABWIDTH, 0, (LPARAM) &tw);
+            SendMessage(mditab, MC_MTM_GETITEMWIDTH, 0, (LPARAM) &tw);
             tw.dwMinWidth += 30;
-            SendMessage(mditab, MC_MTM_SETTABWIDTH, 0, (LPARAM) &tw);
+            SendMessage(mditab, MC_MTM_SETITEMWIDTH, 0, (LPARAM) &tw);
                 
             /* Create button for creating new tabs */
             btn_new = CreateWindow(_T("BUTTON"), _T("New tab"),
