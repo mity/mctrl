@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Mitas
+ * Copyright (c) 2009 - 2010 Martin Mitas
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,11 +40,11 @@ struct mem_info_tag {
 /* Here we keep all alocated mem_info_t instances, hashed by the memory chunk
  * address. Keep the hashtable size not dividable by four, so that all slots 
  * are used approximately evenly. (The dynamic allocator usually tends to 
- * allocate on DWORD or QUADWORD boudnaries ;-). 
+ * allocate on DWORD or QUADWORD boundaries ;-). 
  *
  * The hashtable lives in its own heap, so it's somewhat separated from 
- * other memory usage. This makes lower probability these core data will be 
- * oberwritten by some bug. (That would make this tool for memory debugging
+ * other memory usage. This lowers the probability these core data will be 
+ * overwritten by some bug. (That would make this tool for memory debugging
  * a bit useless...)
  */
 #define MEM_HASHTABLE_SIZE       ((16 * 1024) - 1)
@@ -97,11 +97,11 @@ debug_malloc(const char* fname, int line, size_t size)
     MC_ASSERT(mi != NULL);
     mi->next = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
     mem_hashtable[MEM_HASHTABLE_INDEX(mem)] = mi;
-    LeaveCriticalSection(&mem_lock);
     mi->mem = mem;
     mi->size = size;
     mi->fname = fname;
     mi->line = line;
+    LeaveCriticalSection(&mem_lock);
     
     MC_TRACE("%s:%d: \tdebug_malloc(%lu) -> %p", fname, line, mi->size, mem);
     return mem;
@@ -116,6 +116,8 @@ debug_free(const char* fname, int line, void* mem)
     DWORD* tail;
     
     MC_ASSERT(mem != NULL);
+
+    EnterCriticalSection(&mem_lock);
     
     /* Find memory info for the memory chunk */
     mi = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
@@ -155,12 +157,12 @@ debug_free(const char* fname, int line, void* mem)
     memset(head, 0xee, mi->size + sizeof(head_guard) + sizeof(tail_guard));
     
     /* Unregister the memory info */
-    EnterCriticalSection(&mem_lock);
     if(mi_prev != NULL)
         mi_prev->next = mi->next;
     else
         mem_hashtable[MEM_HASHTABLE_INDEX(mem)] = mi->next;
     HeapFree(mem_heap, 0, mi);
+    
     LeaveCriticalSection(&mem_lock);
 
     /* Finally we can free it */
@@ -170,8 +172,11 @@ debug_free(const char* fname, int line, void* mem)
 void
 debug_init(void)
 {
-    InitializeCriticalSection(&mem_lock);    
-    mem_heap = HeapCreate(HEAP_NO_SERIALIZE, 1024 * sizeof(mem_info_t), 0);
+    InitializeCriticalSection(&mem_lock);
+    
+    /* We guard the heap with our own locking as we need the critical section
+     * around it anyway. Hence HEAP_NO_SERIALIZE. */
+    mem_heap = HeapCreate(HEAP_NO_SERIALIZE, 1024 * 16 * sizeof(mem_info_t), 0);
     MC_ASSERT(mem_heap != NULL);
 }
 

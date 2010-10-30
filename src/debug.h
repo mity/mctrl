@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Mitas
+ * Copyright (c) 2009 - 2010 Martin Mitas
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,9 +45,7 @@
     #define MC_TRACE(...)                                                     \
         do {                                                                  \
             char mc_trace_buf_[512];                                          \
-            int mc_trace_n_;                                                  \
-            mc_trace_n_ = _snprintf(mc_trace_buf_, sizeof(mc_trace_buf_),     \
-                                    __VA_ARGS__);                             \
+            _snprintf(mc_trace_buf_, sizeof(mc_trace_buf_), __VA_ARGS__);     \
             OutputDebugStringA(mc_trace_buf_);                                \
         } while(0)
 #endif
