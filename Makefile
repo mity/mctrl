@@ -55,7 +55,7 @@ UNICODE = -DUNICODE -D_UNICODE
 
 CPPFLAGS += -DMCTRL_BUILD $(UNICODE) $(WINVER) $(INCLUDES)
 CFLAGS += -Wall
-LDFLAGS += -mwindows -shared -Wl,--kill-at
+LDFLAGS += -mwindows
 LIBS += -lcomctl32 -lole32 -loleaut32
 
 ifndef DEBUG
@@ -96,7 +96,8 @@ doc:
 	doxygen
 	
 clean:
-	$(RM) $(OBJECTS) 
+	$(RM) $(OBJECTS)
+	$(RM) $(OBJDIR/exports.def) 
 	$(RM) $(TARGET_LIB)
 	$(RM) $(TARGET)
 	
@@ -130,8 +131,10 @@ include Makefile.dep
 ###############
 
 $(TARGET) $(TARGET_LIB): $(OBJECTS)
-	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS)
-	$(DLLTOOL) --kill-at --output-lib $(TARGET_LIB) --dllname $(notdir $@) $^
+	$(LD) $(LDFLAGS) -mdll $^ -o $@.tmp $(LIBS) -Wl,--output-def,$(OBJDIR)/exports.def
+	$(RM) $@.tmp
+	$(LD) $(LDFLAGS) -mdll $^ -o $@ $(LIBS) -Wl,--kill-at
+	$(DLLTOOL) --kill-at --input-def $(OBJDIR)/exports.def --output-lib $(TARGET_LIB) --dllname $(notdir $@)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@
