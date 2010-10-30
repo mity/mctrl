@@ -50,8 +50,10 @@ cp -rf . $TMP/mCtrl-$VERSION
 (cd $TMP/mCtrl-$VERSION  &&  rm -f mCtrl*.zip)
 (cd $TMP/mCtrl-$VERSION  &&  rm -f build*.log)
 (cd $TMP/mCtrl-$VERSION  &&  make distclean >> /dev/null)
-find $TMP/mCtrl-$VERSION -type f -name \*.o -exec rm {} \;
-find $TMP/mCtrl-$VERSION -depth -type d -name .git -o -name .gitignore -exec rm -rf {} \;
+find $TMP/mCtrl-$VERSION/obj -type f -name \*.o -exec rm {} \;
+find $TMP/mCtrl-$VERSION/obj -type f -name \*.def -exec rm {} \;
+(cd $TMP/mCtrl-$VERSION  &&  rm -rf .git)
+find $TMP/mCtrl-$VERSION -type f -name .gitignore -exec rm -rf {} \;
 echo "Done."
 
 # Make mCtrl-$VERSION-src.zip:
