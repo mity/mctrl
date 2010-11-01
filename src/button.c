@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2009 Martin Mitas
+ * Copyright (c) 2008-2010 Martin Mitas
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,11 +45,8 @@ struct button_tag {
     HTHEME theme;
     DWORD style;
     DWORD ui_state;
+    UINT is_dropdown_pushed   : 1;
 };
-
-/* We override meaning of BS_GROUPBOX in button_t. BS_GROUPBOX does not have 
- * any meaning for us anyway. */
-#define IS_DROPDOWN_PUSHED    BS_GROUPBOX
 
 
 static HRGN 
@@ -434,8 +431,10 @@ button_paint_split(HWND win, button_t* button, HDC dc)
 static BOOL
 button_needs_fake_split(button_t* button)
 {
-    if(!(button->style & MC_BS_SPLITBUTTON))
+    if((button->style & BS_TYPEMASK) != MC_BS_SPLITBUTTON  &&
+       (button->style & BS_TYPEMASK) != MC_BS_DEFSPLITBUTTON) {
         return FALSE;
+    }
     
     /* Windows support split buttons naturally starting with Windows Vista,
      * if comctrl32.dll of version 6.0 or newer is used. So lets check the 
@@ -513,7 +512,8 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 BUTTON_TRACE("button_proc(WM_PAINT): painting icon button");
                 
                 /* This should be handled in the condition above... */
-                MC_ASSERT(!(button->style & MC_BS_SPLITBUTTON));  
+                MC_ASSERT((button->style & BS_TYPEMASK) != MC_BS_SPLITBUTTON);
+                MC_ASSERT((button->style & BS_TYPEMASK) != MC_BS_DEFSPLITBUTTON);
                 
                 icon = (HICON) SendMessage(win, BM_GETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) 0);
                 if(icon != NULL) {
@@ -533,7 +533,6 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             
         case WM_LBUTTONDOWN:
             if(button_needs_fake_split(button)) {
-                static DWORD last_unpush = 0;
                 int x = LOWORD(lp);
                 int y = HIWORD(lp);
                 RECT rect;
@@ -541,30 +540,33 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 SetFocus(win);
                 GetClientRect(win, &rect);
                 rect.left = rect.right - DROPDOWN_W;
+                
                 if(rect.left <= x  &&  x <= rect.right  &&
                    rect.top <= y  &&  y <= rect.bottom) {
-                    if(GetTickCount() - last_unpush > 100) {
-                        MC_NMBCDROPDOWN notify;
-                            
-                        button->style |= IS_DROPDOWN_PUSHED;
-                        InvalidateRect(win, &rect, TRUE);
-                            
-                        notify.hdr.hwndFrom = win;
-                        notify.hdr.idFrom = GetWindowLong(win, GWL_ID);
-                        notify.hdr.code = MC_BCN_DROPDOWN;
-                        CopyRect(&notify.rcButton, &rect);
-                        SendMessage(GetParent(win), WM_NOTIFY, 
-                                    notify.hdr.idFrom, (LPARAM)&notify);
-                    }
-
-                    button->style &= ~IS_DROPDOWN_PUSHED;
-                    last_unpush = GetTickCount();
+                    /* Handle the click in the drop-down part */
+                    MC_NMBCDROPDOWN notify;
+                        
+                    button->is_dropdown_pushed = 1;
+                    InvalidateRect(win, &rect, TRUE);
+                        
+                    notify.hdr.hwndFrom = win;
+                    notify.hdr.idFrom = GetWindowLong(win, GWL_ID);
+                    notify.hdr.code = MC_BCN_DROPDOWN;
+                    CopyRect(&notify.rcButton, &rect);
+                    SendMessage(GetParent(win), WM_NOTIFY, 
+                                notify.hdr.idFrom, (LPARAM)&notify);
+                    /* We unpush immediately after the parent handles the
+                     * notification. Usually it takes some time - parent 
+                     * typically shows some popup-menu or other stuff 
+                     * which includes a modal eventloop and/or mouse capture.
+                     */
+                    button->is_dropdown_pushed = 0;
                     InvalidateRect(win, NULL, TRUE);
                     return 0;
                 }
             }
             break;
-
+            
         case WM_LBUTTONDBLCLK:
             if(button_needs_fake_split(button)) {
                 int x = LOWORD(lp);
@@ -575,18 +577,9 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 rect.left = rect.right - DROPDOWN_W;
                 if(rect.left <= x  &&  x <= rect.right  &&
                    rect.top <= y  &&  y <= rect.bottom) {
-                    /* ignore the message */
+                    /* We ignore duble-click in the drop-down part. */
                     return 0;
                 }
-            }
-            break;
-
-        case BM_GETSTATE:
-            if(button_needs_fake_split(button)) {
-                DWORD s = CallWindowProc(orig_button_proc, win, msg, wp, lp);
-                if(button->style & IS_DROPDOWN_PUSHED)
-                    s |= MC_BST_DROPDOWNPUSHED;
-                return s;
             }
             break;
             
@@ -596,45 +589,63 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
              * it causes other problems. See the comment in WM_STYLECHANGING.
              */
             if(button_needs_fake_split(button)) {
-                if((button->style & MC_BS_DEFSPLITBUTTON) == 
-                                                  MC_BS_DEFSPLITBUTTON)
+                if((button->style & BS_TYPEMASK) == MC_BS_DEFSPLITBUTTON) {
+                    BUTTON_TRACE("button_proc(WM_GETDLGCODE): -> DLGC_DEFPUSHBUTTON");
                     return DLGC_BUTTON | DLGC_DEFPUSHBUTTON;
-                else
+                }
+                if((button->style & BS_TYPEMASK) == MC_BS_SPLITBUTTON) {
+                    BUTTON_TRACE("button_proc(WM_GETDLGCODE): -> DLGC_UNDEFPUSHBUTTON");
                     return DLGC_BUTTON | DLGC_UNDEFPUSHBUTTON;
+                }
+            }
+            break;
+            
+        case BM_SETSTATE:
+            if(button_needs_fake_split(button)) {
+                CallWindowProc(orig_button_proc, win, msg, wp, lp);
+                /* USER32.DLL does some painting in BM_SETSTATE. Repaint
+                 * the split button. */
+                InvalidateRect(win, NULL, TRUE);
+                return 0;
+            }
+            break;
+        
+        case BM_GETSTATE:
+            if(button_needs_fake_split(button)) {
+                DWORD s = CallWindowProc(orig_button_proc, win, msg, wp, lp);
+                if(button->is_dropdown_pushed)
+                    s |= MC_BST_DROPDOWNPUSHED;
+                return s;
+            }
+            break;
+            
+        case BM_SETSTYLE:
+            if(button_needs_fake_split(button)) {
+                BUTTON_TRACE("button_proc(BM_SETSTYLE): split style fixup");
+                wp &= ~(BS_TYPEMASK & ~BS_DEFPUSHBUTTON);
+                wp |= MC_BS_SPLITBUTTON;
+                CallWindowProc(orig_button_proc, win, msg, wp, lp);
+                button->style = GetWindowLong(win, GWL_STYLE);
+                return 0;
             }
             break;
 
         case WM_STYLECHANGING:
-        {
-            /* Damn, DialogBox() or IsDialogMessage() functions sometime like
-             * to change styles of controls in the dialog. It often changes 
-             * BS_PUSHBUTTON to BS_DEFPUSHBUTTON and vice versa when user 
-             * selects other button.
-             *
-             * Unfortunately those WinAPI funcitons don't know anything about 
-             * our split control, so they would change split button to a normal 
-             * push button (tested on Windows XP, other versions can differ).
-             *
-             * For now, we do this simple workaround: when anyone is 
-             * attempting to remove split button style, we cancel the change
-             * of the bits identifying the control as a split control.
-             * It solves the problem but it also has one obvious side-effect: 
-             * once created as a split button, the control cannot be changed 
-             * to a normal push button. Hopefully most people do not need this 
-             * anyway.
-             *
-             * FIXME: Any idea for better solution?
-             */
-            STYLESTRUCT* ss = (STYLESTRUCT*) lp;
-            if((ss->styleOld & MC_BS_SPLITBUTTON) == MC_BS_SPLITBUTTON)
-                ss->styleNew |= MC_BS_SPLITBUTTON;
+            if(button_needs_fake_split(button)) {
+                STYLESTRUCT* ss = (STYLESTRUCT*) lp;
+                if((ss->styleOld & BS_TYPEMASK) == MC_BS_SPLITBUTTON  ||
+                   (ss->styleOld & BS_TYPEMASK) == MC_BS_DEFSPLITBUTTON) {
+                    BUTTON_TRACE("button_proc(WM_STYLECHANGING): split style fixup");
+                    ss->styleNew &= ~(BS_TYPEMASK & ~BS_DEFPUSHBUTTON);
+                    ss->styleNew |= MC_BS_SPLITBUTTON;
+                }
+            }
             break;
-        }
 
         case WM_STYLECHANGED:
             if(wp == GWL_STYLE) {
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
-                button->style = ~IS_DROPDOWN_PUSHED & ss->styleNew;
+                button->style = ss->styleNew;
             }
             break;
             
@@ -667,8 +678,9 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 return -1;
             }
             button->theme = theme_OpenThemeData(win, button_tc);
-            button->style = GetWindowLong(win, GWL_STYLE) & ~IS_DROPDOWN_PUSHED;
+            button->style = GetWindowLong(win, GWL_STYLE);
             button->ui_state = SendMessage(win, WM_QUERYUISTATE, 0, 0);
+            button->is_dropdown_pushed = 0;
             SetWindowLongPtr(win, extra_offset, (LONG_PTR) button);
             return 0;
         
