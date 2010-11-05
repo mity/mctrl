@@ -431,9 +431,11 @@ button_paint_split(HWND win, button_t* button, HDC dc)
 static BOOL
 button_needs_fake_split(button_t* button)
 {
-    if((button->style & BS_TYPEMASK) != MC_BS_SPLITBUTTON  &&
-       (button->style & BS_TYPEMASK) != MC_BS_DEFSPLITBUTTON) {
-        return FALSE;
+    if(button != NULL) {
+        if((button->style & BS_TYPEMASK) != MC_BS_SPLITBUTTON  &&
+           (button->style & BS_TYPEMASK) != MC_BS_DEFSPLITBUTTON) {
+            return FALSE;
+        }
     }
     
     /* Windows support split buttons naturally starting with Windows Vista,
@@ -454,8 +456,10 @@ button_needs_fake_split(button_t* button)
      * supported well on Vista, so in this case we need to use our fake
      * implementation even on Vista. Windows 7 have fixed that.
      */
-    if((button->style & BS_ICON) && mc_win_version == MC_WIN_VISTA)
-        return TRUE;
+    if(button != NULL) {
+        if((button->style & BS_ICON) && mc_win_version == MC_WIN_VISTA)
+            return TRUE;
+    }
     
     return FALSE;
 }
@@ -463,11 +467,13 @@ button_needs_fake_split(button_t* button)
 static BOOL
 button_needs_fake_icon(button_t* button)
 {
-    if(!(button->style & BS_ICON)  ||  button->theme == NULL)
-        return FALSE;
+    if(button != NULL) {
+        if(!(button->style & BS_ICON)  ||  button->theme == NULL)
+            return FALSE;
+    }
         
     /* Windows XP do not support themed button with BS_ICON style. */
-    if(mc_win_version <= MC_WIN_VISTA)
+    if(mc_win_version < MC_WIN_VISTA)
         return TRUE;
     
     return FALSE;
@@ -710,8 +716,10 @@ button_init(void)
     orig_button_proc = wc.lpfnWndProc;
     extra_offset = wc.cbWndExtra;
     
-    /* Create our subclass */
-    wc.lpfnWndProc = button_proc;
+    /* Create our subclass. We only override the WNDPROC if we have something
+     * to offer... */
+    if(button_needs_fake_split(NULL) || button_needs_fake_icon(NULL))
+        wc.lpfnWndProc = button_proc;
     wc.cbWndExtra += sizeof(button_t*);
     wc.hInstance = mc_instance_exe;
     wc.lpszClassName = button_wc;
