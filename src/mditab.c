@@ -483,9 +483,6 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
     RECT contents;
     UINT flags;
 
-    if(!mditab->do_redraw)
-        return;
-
     rect = &mditab->items[index].rect;
 
     /* Draw tab background */
@@ -1351,18 +1348,19 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     
     switch(msg) {
         case WM_PAINT:
+            if(mditab->do_redraw) 
         case WM_PRINTCLIENT:
-        {
-            HDC dc = (HDC)wp;
-            PAINTSTRUCT ps;
-
-            if(wp == 0)
-                dc = BeginPaint(win, &ps);
-            mditab_paint(mditab, dc);
-            if(wp == 0)
-                EndPaint(win, &ps);
+            {
+                HDC dc = (HDC)wp;
+                PAINTSTRUCT ps;
+    
+                if(wp == 0)
+                    dc = BeginPaint(win, &ps);
+                mditab_paint(mditab, dc);
+                if(wp == 0)
+                    EndPaint(win, &ps);
+            }
             return 0;
-        }
 
         case MC_MTM_GETITEMCOUNT:
             return mditab->item_count;
