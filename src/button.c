@@ -716,11 +716,12 @@ button_init(void)
     orig_button_proc = wc.lpfnWndProc;
     extra_offset = wc.cbWndExtra;
     
-    /* Create our subclass. We only override the WNDPROC if we have something
-     * to offer... */
-    if(button_needs_fake_split(NULL) || button_needs_fake_icon(NULL))
+    /* Create our subclass. We only use our proc only when it might be needed
+     * for some button styles. */
+    if(button_needs_fake_split(NULL) || button_needs_fake_icon(NULL)) {
         wc.lpfnWndProc = button_proc;
-    wc.cbWndExtra += sizeof(button_t*);
+        wc.cbWndExtra += sizeof(button_t*);
+    }
     wc.hInstance = mc_instance_exe;
     wc.lpszClassName = button_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
