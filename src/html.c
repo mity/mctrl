@@ -799,7 +799,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             ret = html_goto_url(html, url);
             if(url != NULL)
                 SysFreeString(url);
-            return ret;
+            return (ret == 0 ? TRUE : FALSE);
         }
     
         case WM_SIZE:

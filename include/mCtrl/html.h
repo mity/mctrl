@@ -104,7 +104,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * Displays a contents specified by the given URL (unicode variant).
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c const @c WCHAR*) Pointer to URL string.
- * @return Zero on success, -1 on failure.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_HM_GOTOURLW        (WM_USER + 10)
 
@@ -112,7 +112,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * Displays a contents specified by the given URL (ANSI variant).
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c const @c char*) Pointer to URL string.
- * @return Zero on success, -1 on failure.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_HM_GOTOURLA        (WM_USER + 11)
 
