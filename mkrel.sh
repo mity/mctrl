@@ -69,7 +69,7 @@ if test `which i686-w64-mingw32-gcc`; then
     (cd $TMP/mCtrl-$VERSION-src && doxygen >> /dev/null 2>&1)
     i686-w64-mingw32-gcc -v > $CWD/build-x86.log 2>&1
     echo >> $CWD/build-x86.log
-    (cd $TMP/mCtrl-$VERSION-src && make PREFIX=i686-w64-mingw32- all examples >> $CWD/build-x86.log 2>&1)
+    (cd $TMP/mCtrl-$VERSION-src && make DEBUG=0 PREFIX=i686-w64-mingw32- all examples >> $CWD/build-x86.log 2>&1)
     if [ $? -ne 0 ]; then
         echo "Failed. See build-x86.log."
         exit 1
@@ -96,7 +96,7 @@ if test `which x86_64-w64-mingw32-gcc`; then
     (cd $TMP/mCtrl-$VERSION-src && doxygen >> /dev/null 2>&1)
     x86_64-w64-mingw32-gcc -v > $CWD/build-x86_64.log 2>&1
     echo >> $CWD/build-x86_64.log
-    (cd $TMP/mCtrl-$VERSION-src && make PREFIX=x86_64-w64-mingw32- all examples >> $CWD/build-x86_64.log 2>&1)
+    (cd $TMP/mCtrl-$VERSION-src && make DEBUG=0 PREFIX=x86_64-w64-mingw32- all examples >> $CWD/build-x86_64.log 2>&1)
     if [ $? -ne 0 ]; then
         echo "Failed. See build-x86_64.log."
         exit 1
