@@ -97,7 +97,7 @@ doc:
 	
 clean:
 	$(RM) $(OBJECTS)
-	$(RM) $(OBJDIR/exports.def) 
+	$(RM) $(OBJDIR/mCtrl.def) 
 	$(RM) $(TARGET_LIB)
 	$(RM) $(TARGET)
 	
@@ -131,10 +131,10 @@ include Makefile.dep
 ###############
 
 $(TARGET) $(TARGET_LIB): $(OBJECTS)
-	$(LD) $(LDFLAGS) -mdll $^ -o $@.tmp $(LIBS) -Wl,--output-def,$(OBJDIR)/exports.def
+	$(LD) $(LDFLAGS) -mdll $^ -o $@.tmp $(LIBS) -Wl,--output-def,$(OBJDIR)/mCtrl.def
 	$(RM) $@.tmp
 	$(LD) $(LDFLAGS) -mdll $^ -o $@ $(LIBS) -Wl,--kill-at
-	$(DLLTOOL) --kill-at --input-def $(OBJDIR)/exports.def --output-lib $(TARGET_LIB) --dllname $(notdir $@)
+	$(DLLTOOL) --kill-at --input-def $(OBJDIR)/mCtrl.def --output-lib $(TARGET_LIB) --dllname $(notdir $@)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@
