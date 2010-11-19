@@ -70,15 +70,16 @@ echo $MKZIP
 echo -n "Detecting lib.exe... "
 if test `which lib.exe 2>> /dev/null`; then
     LIBEXE="lib.exe"
+    echo "$LIBEXE"
 elif [ -x "/c/Program Files/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe" ]; then 
     LIBEXE="/c/Program Files/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe"
+    echo "$LIBEXE"
 elif [ -x "/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe" ]; then
     LIBEXE="/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe"
+    echo "$LIBEXE"
 else
-    "Failed: lib.exe not found in PATH."
-    exit 1
+    echo "not found."
 fi
-echo "$LIBEXE"
 
 
 #############################
@@ -171,8 +172,12 @@ else
 fi
 if [ x$HAVE_X86 != x ]; then
     echo -n "Create 32-bit MSVC import lib... "
-    (cd $TMP/mCtrl-$VERSION-src && "$LIBEXE" /machine:x86 /def:obj/mCtrl.def /out:lib/mCtrl.lib) >> /dev/null
-    echo "Done."
+    if [ -n "$LIBEXE" ]; then
+        (cd $TMP/mCtrl-$VERSION-src && "$LIBEXE" /machine:x86 /def:obj/mCtrl.def /out:lib/mCtrl.lib) >> /dev/null
+        echo "Done."
+    else
+        echo "Skipped: missing lib.exe"
+    fi
     
     echo -n "Pack 32-bit package... "
     rm -rf $TMP/mCtrl-$VERSION
@@ -213,8 +218,12 @@ else
 fi
 if [ x$HAVE_X64 != x ]; then
     echo -n "Create 64-bit MSVC import lib... "
-    (cd $TMP/mCtrl-$VERSION-src && "$LIBEXE" /machine:x64 /def:obj/mCtrl.def /out:lib/mCtrl.lib) >> /dev/null
-    echo "Done."
+    if [ -n "$LIBEXE" ]; then
+        (cd $TMP/mCtrl-$VERSION-src && "$LIBEXE" /machine:x64 /def:obj/mCtrl.def /out:lib/mCtrl.lib) >> /dev/null
+        echo "Done."
+    else
+        echo "Skipped: missing lib.exe"
+    fi
     
     rm -rf $TMP/mCtrl-$VERSION
     mkdir $TMP/mCtrl-$VERSION
