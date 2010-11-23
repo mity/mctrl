@@ -40,7 +40,7 @@ HIMAGELIST mc_bmp_glyphs;
  **************************/
 
 void* 
-mc_str_n(void* from_str, int from_type, int from_len, 
+mc_str_n(const void* from_str, int from_type, int from_len,
          int to_type, int* ptr_to_len)
 {
     int to_len;
@@ -116,10 +116,10 @@ mc_str_n(void* from_str, int from_type, int from_len,
 }
 
 void 
-mc_str_inbuf(void* from_str, int from_type, 
-             void* to_str, int to_type, int max_len)
+mc_str_inbuf(const void* from_str, int from_type,
+             void* to_str, int to_type, int to_str_bufsize)
 {
-    MC_ASSERT(max_len > 0);
+    MC_ASSERT(to_str_bufsize > 0);
     MC_ASSERT(from_type == MC_STRA  ||  from_type == MC_STRW);
     MC_ASSERT(from_type == MC_STRA  ||  from_type == MC_STRW);
 
@@ -128,15 +128,18 @@ mc_str_inbuf(void* from_str, int from_type,
 
     /* No conversion cases */
     if(from_type == to_type) {
-        if(from_type == MC_STRW)  /* W->W */            
-            wcsncpy((WCHAR*)to_str, (WCHAR*)from_str, max_len);
-        else                      /* A->A */
-            strncpy((char*)to_str, (char*)from_str, max_len);
+        if(from_type == MC_STRW) {  /* W->W */
+            wcsncpy((WCHAR*)to_str, (WCHAR*)from_str, to_str_bufsize);
+            ((WCHAR*)to_str)[to_str_bufsize-1] = L'\0';
+        } else {                    /* A->A */
+            strncpy((char*)to_str, (char*)from_str, to_str_bufsize);
+            ((char*)to_str)[to_str_bufsize-1] = '\0';
+        }
     } else {
         if(from_type == MC_STRA)  /* A->W */
-            MultiByteToWideChar(CP_ACP, 0, from_str, -1, to_str, max_len);
+            MultiByteToWideChar(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize);
         else                      /* W->A */
-            WideCharToMultiByte(CP_ACP, 0, from_str, -1, to_str, max_len, NULL, NULL);
+            WideCharToMultiByte(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize, NULL, NULL);
     }
 }
 

@@ -174,7 +174,7 @@ extern HIMAGELIST mc_bmp_glyphs;
  * depending on the type of the from_str and the requested new string. Returns
  * NULL on failure.
  */
-void* mc_str_n(void* from_str, int from_type, int from_len, 
+void* mc_str_n(const void* from_str, int from_type, int from_len,
                int to_type, int* ptr_to_len);
 
 /* Copies zero-terminated sring from_str to the buffer to_str. A conversion
@@ -185,8 +185,8 @@ void* mc_str_n(void* from_str, int from_type, int from_len,
  * Note that this function does not support MC_STRB on input nor output
  * (so far not needed).
  */
-void mc_str_inbuf(void* from_str, int from_type, 
-                  void* to_str, int to_type, int max_len);
+void mc_str_inbuf(const void* from_str, int from_type,
+                  void* to_str, int to_type, int to_str_bufsize);
 
 
 
