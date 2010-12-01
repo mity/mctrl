@@ -43,9 +43,9 @@ static WNDPROC orig_button_proc = NULL;
 typedef struct button_tag button_t;
 struct button_tag {
     HTHEME theme;
-    DWORD style;
+    DWORD style              : 31;
+    DWORD is_dropdown_pushed :  1;
     DWORD ui_state;
-    UINT is_dropdown_pushed   : 1;
 };
 
 

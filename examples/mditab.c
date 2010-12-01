@@ -71,7 +71,7 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_CREATE:
         {
             RECT rect;
-            mc_MT_ITEMWIDTH tw;
+            MC_MTITEMWIDTH tw;
             
             GetClientRect(win, &rect);
             

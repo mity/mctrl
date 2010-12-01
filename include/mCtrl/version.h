@@ -56,7 +56,7 @@ extern "C" {
  * @brief Structure describing @c MCTRL.DLL version.
  * @sa @ref mcVersion
  */
-typedef struct MC_VERSION_TAG {
+typedef struct MC_VERSION_tag {
     DWORD dwMajor;      /**< @brief Major version number. */
     DWORD dwMinor;      /**< @brief Minor version number. */
     DWORD dwRelease;    /**< @brief Release version number. */

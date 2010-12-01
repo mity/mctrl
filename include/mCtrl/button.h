@@ -242,7 +242,7 @@ typedef struct MC_NMBCDROPDOWN_tag {
  * @return You should return zero if you process the notification.
  * @sa MC_NMBCDROPDOWN
  */
-#define MC_BCN_DROPDOWN          (0xfffffb20U)
+#define MC_BCN_DROPDOWN          ((0U-1250U) + 0x0002)
 
 /*@}*/
 
