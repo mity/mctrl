@@ -38,6 +38,11 @@
  * provide preprocessor macros without the suffix, as an alias for the one
  * of the two depending whether @c UNICODE is defined or not.
  *
+ * In case of notifications sent by control to the application, the mCtrl
+ * also follows the Windows custom practice: Controls which may need to send
+ * a notification with string data send @c WM_NOTIFYFORMAT message to its 
+ * parent during creation and then respect the parent's desire.
+ *
  * This means you may use @c MCTRL.DLL easily in Unicode-enabled application
  * as well as in ANSI applications.
  *
