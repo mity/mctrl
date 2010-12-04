@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>HTML document</title>
+    </head>
+    <body>
+
+<h1>HTML Document</h1>
+
+<p>This basic HTML document lives as a resource embedded in the program.
+The HTML control is able to display such documents. It can be pointed with
+the URL <a href="res://ex_html.exe:1000">res://ex_html.exe/1000</a></p>
+
+<p>The document can use other resources as images or cascading style sheets
+as the image below demonstrates.</p>
+
+<img src="res://ex_html.exe/1001">
+
+<p>Of course it can also handle normal HTTP, HTTPS and other protocols:</p>
+<ul>
+    <li><b><a href="http://mctrl.sf.net/">http://mctrl.sf.net/</a></b>
+        - Of course the control supports HTTP and HTTPS protocols.</li>
+</ul>
+
+<p>Finally you can have links which are handled programatically by the
+application code. When you click on such link, the parent window of HTML
+control gets notification.</p>
+<ul>
+    <li><b><a href="app://SayHello">app://SayHello</a></b>
+    <li><b><a href="app://Some random text here">app://Some random text here</a></b>
+</ul>
+
+    </body>
+</html>

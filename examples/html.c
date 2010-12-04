@@ -33,6 +33,20 @@ static CALLBACK LRESULT
 win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     switch(msg) {
+        case WM_NOTIFY:
+            if(((NMHDR*)lp)->idFrom == 100 && ((NMHDR*)lp)->code == MC_HN_APPLINK) {
+                /* We have notification from the HTML control about that 
+                 * the user activated the application link. If it is the link
+                 * in our resource page, greet the user as the link URL 
+                 * suggested. Otherwise show URL of the link. */
+                MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) lp;
+                if(_tcscmp(nmhtmlurl->pszUrl, _T("app://SayHello")) == 0)
+                    MessageBox(win, _T("Hello World!"), _T("Hello World!"), MB_OK);
+                else
+                    MessageBox(win, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
+            }
+            return 0;
+        
         case WM_SIZE:
             if(wp == SIZE_RESTORED  ||  wp == SIZE_MAXIMIZED)
                 SetWindowPos(html, NULL, 0, 0, LOWORD(lp), HIWORD(lp), SWP_NOZORDER);
@@ -41,7 +55,7 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETFOCUS:
             SetFocus(html);
             return 0;
-        
+
         case WM_CREATE:
             /* Create html control */
             html = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_HTML, _T(""), 
@@ -88,7 +102,7 @@ WinMain(HINSTANCE instance, HINSTANCE instance_prev, LPSTR cmd_line, int cmd_sho
     ShowWindow(win, cmd_show);
 
     /* Go to some nice URL */
-    SendMessage(html, MC_HM_GOTOURL, 0, (LPARAM) _T("http://www.google.com"));
+    SendMessage(html, MC_HM_GOTOURL, 0, (LPARAM) _T("res://ex_html.exe/1000"));
     
     /* Message loop */
     while(GetMessage(&msg, NULL, 0, 0)) {
