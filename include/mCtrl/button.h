@@ -229,7 +229,7 @@ typedef struct MC_NMBCDROPDOWN_tag {
 /*@{*/
 
 /**
- * Notification fired when user clicks on the dropdown button. 
+ * @brief Notification fired when user clicks on the dropdown button.
  *
  * It is equivalent to standard @c BCN_DROPDOWN. It is passed via
  * the @c WM_NOTIFY message. 
@@ -239,7 +239,7 @@ typedef struct MC_NMBCDROPDOWN_tag {
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMBCDROPDOWN*) Data associated with 
  * the notification.
- * @return You should return zero if you process the notification.
+ * @return Application should return zero if it processes the notification.
  * @sa MC_NMBCDROPDOWN
  */
 #define MC_BCN_DROPDOWN          ((0U-1250U) + 0x0002)

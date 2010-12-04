@@ -136,7 +136,7 @@ void MCTRL_API mcHtml_Terminate(void);
 /*@{*/
 
 /**
- * Displays a contents specified by the given URL (unicode variant).
+ * @brief Displays a contents specified by the given URL (unicode variant).
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c const @c WCHAR*) Pointer to URL string.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -144,7 +144,7 @@ void MCTRL_API mcHtml_Terminate(void);
 #define MC_HM_GOTOURLW        (WM_USER + 10)
 
 /**
- * Displays a contents specified by the given URL (ANSI variant).
+ * @brief Displays a contents specified by the given URL (ANSI variant).
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c const @c char*) Pointer to URL string.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -199,8 +199,7 @@ typedef struct MC_NMHTMLURLA_tag {
 /*@{*/
 
 /**
- * Control sends this notification when the browser should navigates to
- * to URL with application (@c app:) protocol.
+ * @brief Fired when the browser should navigates to to URL with application protocol.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMHTMLURL*) Pointer to a structure specifying
  * details about the URL.
@@ -209,7 +208,7 @@ typedef struct MC_NMHTMLURLA_tag {
 #define MC_HN_APPLINK            ((0U-2000U) + 0x0001)
 
 /**
- * Control sends this notification when loading of a document is complete.
+ * @brief Fired when loading of a document is complete.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMHTMLURL*) Pointer to a structure specifying
  * details about the URL.

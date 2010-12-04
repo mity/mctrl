@@ -270,7 +270,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 /*@{*/
 
 /**
- * Gets count of tabs.
+ * @brief Gets count of tabs.
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@c int) Count of tabs.
@@ -278,7 +278,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_GETITEMCOUNT       (WM_USER + 100)
 
 /**
- * Gets imagelist.
+ * @brief Gets imagelist.
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@c HIMAGELIST) The image list, or @c NULL.
@@ -288,8 +288,9 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_GETIMAGELIST       (WM_USER + 101)
 
 /**
- * Sets imagelist. The tab items can refer to the images in the list
- * with @c MC_MTITEM::iImage.
+ * @brief Sets imagelist. 
+ *
+ * The tab items can refer to the images in the list with @c MC_MTITEM::iImage.
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c HIMAGELIST) The imagelist.
  * @return (@c HIMAGELIST) Old image list, or @c NULL.
@@ -299,10 +300,11 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_SETIMAGELIST       (WM_USER + 102)
 
 /**
- * Delete all tab items. The control sends @ref MC_MTN_DELETEALLITEMS 
- * notification. Depending on the return value from the notifications,
- * it may also send notification @ref MC_MTN_DELETEITEM for each tab being 
- * deleted.
+ * @brief Delete all tab items. 
+ *
+ * The control sends @ref MC_MTN_DELETEALLITEMS notification. 
+ * Depending on the return value from the notifications, it may also send 
+ * notification @ref MC_MTN_DELETEITEM for each tab being deleted.
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -312,7 +314,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_DELETEALLITEMS     (WM_USER + 103)
 
 /**
- * Inserts new tab into the tab control (unicode variant).
+ * @brief Inserts new tab into the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the new item.
  * @param[in] lParam (@ref MC_MTITEM*) Pointer to detailed data of the new 
  * tab.
@@ -321,7 +323,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_INSERTITEMW        (WM_USER + 105)
 
 /**
- * Inserts new tab into the tab control (ANSI variant).
+ * @brief Inserts new tab into the tab control (ANSI variant).
  * @param[in] wParam (@c int) Index of the new item.
  * @param[in] lParam (@ref MC_MTITEM*) Pointer to detailed data of the new 
  * tab.
@@ -340,7 +342,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #endif
 
 /**
- * Sets tab in the tab control (unicode variant).
+ * @brief Sets tab in the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the item.
  * @param[in] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the tab.
  * @return @c TRUE on success, @c FALSE otherwise.
@@ -348,7 +350,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_SETITEMW           (WM_USER + 107)
 
 /**
- * Sets tab in the tab control (ANSI variant).
+ * @brief Sets tab in the tab control (ANSI variant).
  * @param[in] wParam (@c int) Index of the item.
  * @param[in] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the tab.
  * @return @c TRUE on success, @c FALSE otherwise.
@@ -367,7 +369,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 
 
 /**
- * Gets tab data from the tab control (unicode variant).
+ * @brief Gets tab data from the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the item.
  * @param[in,out] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the 
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
@@ -376,7 +378,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_GETITEMW           (WM_USER + 109)
 
 /**
- * Gets tab data from the tab control (ANSI variant).
+ * @brief Gets tab data from the tab control (ANSI variant).
  * @param[in] wParam (@c int) Index of the item.
  * @param[in,out] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the 
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
@@ -395,7 +397,9 @@ typedef struct MC_MTHITTESTINFO_tag {
 #endif
 
 /**
- * Deletes the item. Sends @ref MC_MTN_DELETEITEM notification to parent window.
+ * @brief Deletes the item.
+ *
+ * Sends @ref MC_MTN_DELETEITEM notification to parent window.
  * @param[in] wParam (@c int) Index of tab to be deleted.
  * @param lParam Reserved, set to zero.
  * @return @c TRUE on success, @c FALSE otherwise.
@@ -403,7 +407,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_DELETEITEM         (WM_USER + 111)
 
 /**
- * Tests which tab (and its part) is placed on specified position.
+ * @brief Tests which tab (and its part) is placed on specified position.
  * @param wParam Reserved, set to zero.
  * @param[in,out] lParam (@ref MC_MTHITTESTINFO*) Pointer to a hit test 
  * structure. Set @ref MC_MTHITTESTINFO::pt on input.
@@ -412,7 +416,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_HITTEST            (WM_USER + 112)
 
 /**
- * Selects a tab.
+ * @brief Selects a tab.
  * @param[in] wParam (@c int) Index of the tab to select. 
  * @param lParam Reserved, set to zero.
  * @return (@c int) Index of previously selected tab, or @c -1.
@@ -420,7 +424,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_SETCURSEL          (WM_USER + 113)
 
 /** 
- * Gets indes of selected tab. 
+ * @brief Gets indes of selected tab. 
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@c int) Index of selected tab, or @c -1.
@@ -428,8 +432,10 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_GETCURSEL          (WM_USER + 114)
 
 /**
- * Asks to close item. It causes to send @c MC_MTN_CLOSEITEM notification
- * and depening on its return value it then can cause deleteing the item.
+ * @brief Asks to close item.
+ * 
+ * It causes to send @c MC_MTN_CLOSEITEM notification and depening on its 
+ * return value it then can cause deleteing the item.
  * @param[in] wParam (@c int) Index of the item to be closed.
  * @param lParam Reserved, set to zero.
  * @return @c TRUE on success, @c FALSE otherwise.
@@ -437,10 +443,11 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_CLOSEITEM          (WM_USER + 115)
 
 /**
- * Sets default and minimal width for each tab. If there is enough space,
- * all tabs have the default width. When there are too many widths, they are
- * made narrower so more tabs fit into the visible space area, but never
- * narrower then the minimal width.
+ * @brief Sets default and minimal width for each tab.
+ *
+ * If there is enough space, all tabs have the default width. When there are
+ * too many widths, they are made narrower so more tabs fit into the visible
+ * space area, but never narrower then the minimal width. 
  * @param wParam 
  * @param[in] lParam (@ref MC_MTITEMWIDTH*) Pointer to a structure specifying 
  * the default and minimal widths. When @c NULL is passed, the values are 
@@ -451,7 +458,7 @@ typedef struct MC_MTHITTESTINFO_tag {
 #define MC_MTM_SETITEMWIDTH       (WM_USER + 116)
 
 /**
- * Gets default and minimal width for each tab. 
+ * @brief Gets default and minimal width for each tab. 
  * @param wParam 
  * @param[out] lParam (@ref MC_MTITEMWIDTH*) Pointer to a structure where the 
  * current widths will be set.
@@ -510,43 +517,43 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 /*@{*/
 
 /**
- * Controls sends this notification when other tab has been selected.
+ * @brief Fired when other tab has been selected.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMMTSELCHANGE*) Pointer to a structure specifying
  * details about the selection change.
- * @return You should return zero , if you process the message.
+ * @return Application should return zero, if it processes the message.
  */
 #define MC_MTN_SELCHANGE          (0xfffffddb)
 
 /**
- * Control sends this notification when a tab is being deleted. When called
- * the item still exists.
+ * @brief Fired when a tab is being deleted.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMMTDELETEITEM*) Pointer to a structure 
  * specifying details about the item being deleted.
- * @return You should return zero if you process the notification.
+ * @return Application should return zero if it processes the notification.
  */
 #define MC_MTN_DELETEITEM         (0xfffffdd0)
 
 /**
- * Control sends this notification when it processes @c MC_MTM_DELETEALLITEMS
- * message or when it is being destroyed. Depending on the value returned
- * from the notification, calling @c MC_MTN_DELETEITEM notifications for
- * all the items can be supressed.
+ * @brief Fired when control processes @c MC_MTM_DELETEALLITEMS message or 
+ * when it is being destroyed. 
+ *
+ * Depending on the value returned from the notification, calling 
+ * @c MC_MTN_DELETEITEM notifications for all the items can be supressed.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@c NMHDR*)
- * @return You should return @c FALSE to receive subsequent 
+ * @return Application should return @c FALSE to receive subsequent
  * @ref MC_MTN_DELETEITEM for each item; or @c TRUE to supress sending them.
  */
 #define MC_MTN_DELETEALLITEMS     (0xfffffdcf)
 
 /**
- * Control sends this notification when user requests closing a tab item.
+ * @brief Fired when user requests closing a tab item.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMMTCLOSEITEM*) Pointer to a structure specifying
  * details about the item being closed.
- * @return You should return @c FALSE to remove the tab (the tab is then 
- * deleted and @ref MC_NMMTCLOSEITEM notification is sent); or @c TRUE
+ * @return Application should return @c FALSE to remove the tab (the tab is 
+ * then deleted and @ref MC_MTN_DELETEITEM notification is sent); or @c TRUE
  * to cancel the tab closure.
  */ 
 #define MC_MTN_CLOSEITEM          (0xfffffdce)
