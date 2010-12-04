@@ -33,8 +33,11 @@ extern "C" {
  * As the control name suggests, the control displays a HTML documents. In
  * fact the control embeds Internet Explorer in it, so it can display a
  * plethory of multimedia files, use javascript etc. The easiest way how to
- * show some HTML is to create the HTML control and send a message
- * @ref MC_HM_GOTOURL which takes target URL as its argument to the control.
+ * show some HTML is to specify URL of target document as control's window
+ * name. For example when created with @c CreateWindow(), use the 2nd argument
+ * as the URL. This allows easy use of the control in dialog templates.
+ *
+ * URL can also be set anytime later with message @ref MC_HM_GOTOURL.
  *
  * The control accepts any protocol understood by the Internet Explorer,
  * for example:
@@ -66,13 +69,17 @@ extern "C" {
  *
  * @section html_proto_app Application Protocol
  *
- * The control also implements a simple application protocol@app: which is
+ * The control implements a simple application protocol @c app: which is
  * intended for integration of HTML contents into your application logic.
  *
- * Whenever user clicks on a link with URL starting with the @c app:
- * the control sends notification @ref MC_HN_APPLINK to its parent which is
- * supposed to react programatically. The control itself does not interpret
- * application link URLs in any way.
+ * Whenever user clicks on a link with URL starting with the @c "app:"
+ * the control sends notification @ref MC_HN_APPLINK to its parent window
+ * which is supposed to react programatically. The control itself does not
+ * interpret application link URLs in any way.
+ *
+ * Note that for sake of easy use it's recommended the application URLs do
+ * not contain non-ASCII characters, spaces, and some other characters
+ * the browser can encode.
  *
  * @section html_gotchas Gotchas
  *
@@ -86,6 +93,12 @@ extern "C" {
  *
  * - Remember that the control is a wrapper of embedded MS Internet Explorer
  *   so exact behavior depends on the version of MS IE installed.
+ *
+ * - You make get URLs in notification slightly different from strings you
+ *   used to navigate the control. The IE sometimes added slash ('/') after
+ *   URLs having two slashes after protocol and of there is no slash after.
+ *   Furthermore IE can encode some special characters into their hexadecimal
+ *   representation (i.e. space ' ' becomes "%20").
  */
 
 

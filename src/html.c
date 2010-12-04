@@ -208,7 +208,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         {
             BSTR url = disp_params->rgvarg[5].pvarVal->bstrVal;
             VARIANT_BOOL* done = disp_params->rgvarg[0].pboolVal;
-            if(wcsncmp(url, L"app://", 6) == 0) {
+            if(wcsncmp(url, L"app:", 4) == 0) {
                 html_notify_url(html, MC_HN_APPLINK, url);
                 *done = VARIANT_TRUE;
             } else {
@@ -762,6 +762,42 @@ static IDocHostUIHandlerVtbl ui_handler_vtable = {
  *** Host window implementation ***
  **********************************/
 
+static BSTR
+html_bstr(const void* from_str, int from_type)
+{
+    WCHAR* str_w;
+    BSTR str_b;
+
+    if(from_str == NULL)
+        return NULL;
+
+    if(from_type == MC_STRW) {
+        str_w = (WCHAR*) from_str;
+        if(str_w[0] == L'\0')
+            return NULL;
+    } else {
+        char* str_a;
+        MC_ASSERT(from_type == MC_STRA);
+        str_a = (char*) from_str;
+        if(str_a[0] == '\0')
+            return NULL;
+        str_w = (WCHAR*) mc_str(str_a, from_type, MC_STRW);
+        if(MC_ERR(str_w == NULL)) {
+            MC_TRACE("html_bstr: mc_str() failed.");
+            return NULL;
+        }
+    }
+
+    str_b = SysAllocString(str_w);
+    if(MC_ERR(str_b == NULL))
+        MC_TRACE("html_bstr: SysAllocString() failed.");
+
+    if(from_type == MC_STRA)
+        free(str_w);
+
+    return str_b;
+}
+
 static void
 html_notify_url(html_t* html, UINT code, BSTR url)
 {
@@ -796,34 +832,52 @@ html_notify_format(html_t* html)
 }
 
 static int
-html_goto_url(html_t* html, BSTR url)
+html_goto_url(html_t* html, const void* url, BOOL unicode)
 {
     IWebBrowser2* browser_iface;
+    BSTR bstr_url;
     VARIANT var_url;
     HRESULT hr;
 
-    if(url == NULL || url[0] == L'\0')
-        url = url_blank;
+    if((unicode && url != NULL && ((WCHAR*)url)[0] != L'\0') ||
+       (!unicode && url != NULL && ((char*)url)[0] != '\0')) {
+        bstr_url = html_bstr(url, (unicode ? MC_STRW : MC_STRA));
+        if(MC_ERR(bstr_url == NULL)) {
+            MC_TRACE("html_goto_url: html_bstr() failed.");
+            goto err_bstr;
+        }
+    } else {
+        bstr_url = url_blank;
+    }
 
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                     &IID_IWebBrowser2, (void**)(void*)&browser_iface);
     if(MC_ERR(browser_iface == NULL)) {
         MC_TRACE("html_goto_url: IID_IWebBrowser2::QueryInterface() failed "
                  "[%lu]", (ULONG) hr);
-        return -1;
+        goto err_iface;
     }
 
     VariantInit(&var_url);
     var_url.vt = VT_BSTR;
-    var_url.bstrVal = url;
+    var_url.bstrVal = bstr_url;
     browser_iface->lpVtbl->Navigate2(browser_iface, &var_url, NULL, NULL, NULL, NULL);
     browser_iface->lpVtbl->Release(browser_iface);
     VariantClear(&var_url);
+
+    if(bstr_url != url_blank)
+        SysFreeString(bstr_url);
     return 0;
+
+err_iface:
+    if(bstr_url != url_blank)
+        SysFreeString(bstr_url);
+err_bstr:
+    return -1;
 }
 
 static html_t*
-html_create(HWND win)
+html_create(HWND win, CREATESTRUCT* cs)
 {
     html_t* html = NULL;
     IWebBrowser2* browser_iface = NULL;
@@ -920,6 +974,15 @@ html_create(HWND win)
 #endif
     browser_iface->lpVtbl->Release(browser_iface);
 
+    /* Goto specified URL if any */
+    if(cs->lpszName != NULL && cs->lpszName[0] != _T('\0')) {
+#ifdef UNICODE
+        html_goto_url(html, cs->lpszName, TRUE);
+#else
+        html_goto_url(html, cs->lpszName, FALSE);
+#endif
+    }
+
     /* Success */
     return html;
 
@@ -948,42 +1011,6 @@ html_destroy(html_t* html)
     OleUninitialize();
 }
 
-static BSTR
-html_bstr(void* from_str, int from_type)
-{
-    WCHAR* str_w;
-    BSTR str_b;
-
-    if(from_str == NULL)
-        return NULL;
-
-    if(from_type == MC_STRW) {
-        str_w = (WCHAR*) from_str;
-        if(str_w[0] == L'\0')
-            return NULL;
-    } else {
-        char* str_a;
-        MC_ASSERT(from_type == MC_STRA);
-        str_a = (char*) from_str;
-        if(str_a[0] == '\0')
-            return NULL;
-        str_w = (WCHAR*) mc_str(str_a, from_type, MC_STRW);
-        if(MC_ERR(str_w == NULL)) {
-            MC_TRACE("html_bstr: mc_str() failed.");
-            return NULL;
-        }
-    }
-
-    str_b = SysAllocString(str_w);
-    if(MC_ERR(str_b == NULL))
-        MC_TRACE("html_bstr: SysAllocString() failed.");
-
-    if(from_type == MC_STRA)
-        free(str_w);
-
-    return str_b;
-}
-
 static LRESULT CALLBACK
 html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -992,16 +1019,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     switch(msg) {
         case MC_HM_GOTOURLW:
         case MC_HM_GOTOURLA:
-        {
-            BSTR url;
-            int ret;
-
-            url = html_bstr((void*)lp, (msg == MC_HM_GOTOURLW ? MC_STRW : MC_STRA));
-            ret = html_goto_url(html, url);
-            if(url != NULL)
-                SysFreeString(url);
-            return (ret == 0 ? TRUE : FALSE);
-        }
+            return (html_goto_url(html, (const void*)lp, (msg == MC_HM_GOTOURLW)) == 0);
 
         case WM_SIZE:
         {
@@ -1029,8 +1047,16 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 html_notify_format(html);
             return (html->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
 
+        case WM_SETTEXT:
+            return FALSE;
+
+        case WM_GETTEXT:
+            if(wp > 0)
+                ((TCHAR*)lp)[0] = _T('\0');
+            return 0;
+
         case WM_CREATE:
-            html = html_create(win);
+            html = html_create(win, (CREATESTRUCT*)lp);
             if(MC_ERR(html == NULL)) {
                 MC_TRACE("html_proc(WM_CREATE): html_create() failed.");
                 return -1;

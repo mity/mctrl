@@ -17,7 +17,7 @@
  */
 
 /* This sample demonstrates basic usage of HTML control. */
- 
+
 #include <windows.h>
 #include <commctrl.h>
 #include <tchar.h>
@@ -40,13 +40,13 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                  * in our resource page, greet the user as the link URL 
                  * suggested. Otherwise show URL of the link. */
                 MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) lp;
-                if(_tcscmp(nmhtmlurl->pszUrl, _T("app://SayHello")) == 0)
+                if(_tcscmp(nmhtmlurl->pszUrl, _T("app:SayHello")) == 0)
                     MessageBox(win, _T("Hello World!"), _T("Hello World!"), MB_OK);
                 else
                     MessageBox(win, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
             }
             return 0;
-        
+
         case WM_SIZE:
             if(wp == SIZE_RESTORED  ||  wp == SIZE_MAXIMIZED)
                 SetWindowPos(html, NULL, 0, 0, LOWORD(lp), HIWORD(lp), SWP_NOZORDER);
@@ -58,11 +58,12 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_CREATE:
             /* Create html control */
-            html = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_HTML, _T(""), 
-                    WS_CHILD | WS_VISIBLE | WS_TABSTOP, 
+            html = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_HTML,
+                    _T("res://ex_html.exe/1000"),
+                    WS_CHILD | WS_VISIBLE | WS_TABSTOP,
                     0, 0, 0, 0, win, (HMENU) 100, inst, NULL);
             return 0;
-        
+
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
@@ -77,14 +78,14 @@ WinMain(HINSTANCE instance, HINSTANCE instance_prev, LPSTR cmd_line, int cmd_sho
     WNDCLASS wc = { 0 };
     HWND win;
     MSG msg;
-    
+
     mcHtml_Initialize();
-    
+
     /* Prevent linker from ignoring comctl32.dll */
     InitCommonControls();
 
     inst = instance;
-    
+
     /* Register main window class */
     wc.lpfnWndProc = win_proc;
     wc.hInstance = instance;
@@ -92,29 +93,26 @@ WinMain(HINSTANCE instance, HINSTANCE instance_prev, LPSTR cmd_line, int cmd_sho
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wc.lpszClassName = _T("main_window");
     RegisterClass(&wc);
-    
+
     /* Create main window */
     win = CreateWindow(
-        _T("main_window"), _T("mCtrl Example: HTML Control"), 
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
+        _T("main_window"), _T("mCtrl Example: HTML Control"),
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         NULL, NULL, instance, NULL
-    );  
+    );
     ShowWindow(win, cmd_show);
 
-    /* Go to some nice URL */
-    SendMessage(html, MC_HM_GOTOURL, 0, (LPARAM) _T("res://ex_html.exe/1000"));
-    
     /* Message loop */
     while(GetMessage(&msg, NULL, 0, 0)) {
         if(IsDialogMessage(win, &msg))
             continue;
-        
+
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    
+
     mcHtml_Terminate();
-    
+
     /* Return exit code of WM_QUIT */
     return (int)msg.wParam;
 }
