@@ -97,15 +97,15 @@ mc_str_n(const void* from_str, int from_type, int from_len,
             ((WCHAR*)to_str)[to_len] = L'\0';
         } else {   
             /* W->A */
-            to_len = WideCharToMultiByte(CP_ACP, WC_DEFAULTCHAR, 
-                                from_str, from_len, NULL, 0, NULL, NULL);
+            to_len = WideCharToMultiByte(CP_ACP, 0, from_str, from_len, 
+                                         NULL, 0, NULL, NULL);
             to_str = malloc(to_len + 1);
             if(MC_ERR(to_str == NULL)) {
                 MC_TRACE("mc_str_n: malloc() failed.");
                 return NULL;
             }
-            WideCharToMultiByte(CP_ACP, WC_DEFAULTCHAR, 
-                                from_str, from_len, to_str, to_len, NULL, NULL);
+            WideCharToMultiByte(CP_ACP, 0, from_str, from_len, 
+                                to_str, to_len, NULL, NULL);
             ((char*)to_str)[to_len] = '\0';
         }
 
