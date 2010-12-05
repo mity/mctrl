@@ -58,8 +58,7 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_CREATE:
             /* Create html control */
-            html = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_HTML,
-                    _T("res://ex_html.exe/1000"),
+            html = CreateWindow(MC_WC_HTML, _T("res://ex_html.exe/1000"),
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP,
                     0, 0, 0, 0, win, (HMENU) 100, inst, NULL);
             return 0;
