@@ -6,7 +6,7 @@
  * USER32.DLL and @c COMCTL32.DLL libraries. 
  *
  * Please check project homepage http://mctrl.sourceforge.net and 
- * https://sourceforge.net/projects/mctrlfor newer versions and more actual 
+ * https://sourceforge.net/projects/mctrl for newer versions and more actual 
  * information.
  *
  * 
@@ -36,7 +36,8 @@
  * 
  * @subsection toc_general General Design
  * - @ref page_intro
- * - @ref page_design_notes
+ * - @ref page_design
+ * - @ref page_build
  *
  * @subsection toc_controls Control Reference
  * - @ref mCtrl/button.h - Enhanced button control (window class @c MC_WC_BUTTON)

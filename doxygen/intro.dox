@@ -1,70 +1,61 @@
 /**
  * @page page_intro Introduction
  *
- * @section sec_features mCtrl Features
- * TODO
+ *
+ * @section sec_intro Introduction
+ * 
+ * mCtrl is a library providing set of additional user interface controls for
+ * Windows, intended to be complementary to standard controls from @c 
+ * USER32.DLL and @c COMCTL32.DLL.
  *
  *
  * @section sec_sysreq System Requirements and Compatibility Notes
  *
- * @c MCTRL.DLL addresses MS Windows 2000 and newer (i.e. MS Windows 2000, 
+ * @c MCTRL.DLL is aimed to MS Windows 2000 and newer (i.e. MS Windows 2000, 
  * MS Windows XP, MS Windows Server 2003, MS Windows Vista, MS Windows Server 
  * 2008 and MS Windows 7), both 32 and 64-bit versions.
  *
- * Unfortunatly for capacity and availability reasons, the mCtrl is regularly
- * tested on MS Windows XP (32-bit). MS Windows 2000 and Vista are tested only 
- * on sendom opportunity, as well as 64-bit builds on 64-bit systems.
+ *
+ * @section sec_features Features
+ *
+ * - API resembles the standard Windows controls. I.e. the API of controls
+ *   is based on sending messages via @c SendMessage().
+ * - mCtrl uses internally Unicode strings, but the API follows the Win32
+ *   Unicode/ANSI duality. I.e. if a message or structure uses strings, there
+ *   are usually two flavors of the message or structure. Unicode flavor 
+ *   uses the suffix "W", while ANSI uses suffix "A". Public headers offer
+ *   Unicode/ANSI resolution name which is defined to be one or other,
+ *   according to as the preprocessor macro @c UNICODE is defined.
+ * - Of course mCtrl attempots to provide consistent look and feel of the 
+ *   controls with standard Windows GUI controls. This includes support
+ *   for <a href="http://msdn.microsoft.com/en-us/library/ms997646.aspx">
+ *   XP theming</a>.
+ * - mCtrl does not use any user-visible strings, hence it is language and 
+ *   locale neutral.
+ *
+ * These topics are more closely covered in @ref page_design.
  *
  *
- * @section sec_debug Debug Level
- * 
- * @c MCTRL.DLL provides some debugging facilities which can be turned on or 
- * off. The debugging level is controlled with preprocessor macro DEBUG during
- * building of @c MCTRL.DLL.
+ * @section sec_using Using mCtrl
  *
- * Value 0 means the debugging is disabled ("Release" version). This is 
- * expected to be used with the final release of the application.
+ * Using mCtrl is as easy as of any other library. Include the relevant
+ * public headers (in the downloaded packages under <tt>include/mCtrl</tt>.
  *
- * Value 1 enables the "Debug" build. This implies several points:
- * - @c MCTRL.DLL disables compiler optizations and keeps debugging 
- * information in resulted @c MCTRL.DLL binary (at least when built with mingw
- * using the @c MAKEFILE included in mCtrl source package.)
- * - @c Traces are enabled when something interesting happens or if any 
- * failure is detected. The traces are outputted with @c OutputDebugString
- * so you can catch them with any reasonable debugger for Windows 
- * (debugger in MS Visual Studio or gdb are fine) or with application
- * DebugView (http://technet.microsoft.com/en-us/sysinternals/bb896647.aspx).
+ * Within mCtrl, each GUI control has its own header file.
  *
- * This @c MCTRL.DLL variant is recommanded as first step if your application
- * based on @c MCTRL.DLL does not do what it should. It can be very well used
- * during application development, switching to the release @c MCTRL.DLL only
- * in release-candidate stage of your deveoplment cycle.
- * 
- * The traces can give you a valuable information what's going wrong and that
- * can often directly point to a bug in your application or in mCtrl. 
+ * Note that to minimize the chance of filename clashes you should instruct
+ * your C compiler to search for include files to <tt>include</tt> directory
+ * and then specify the mCtrl subdirectory within the include directoives.
  *
- * Value 2 enables everyting what value 1 does and additionally enables
- * tracking memory allocation and releases performed inside of @c MCTRL.DLL.
- * It can help the classical memory management bugs like memory leaks, multiple
- * freeing of the same memory block, buffer overruns or underruns etc.
+ * @code
+ * #include <mCtrl/some_header.h>
+ * @endcode
  *
- * This is especially usuful when debugging @c MCTRL.DLL, but it can also
- * be used to check that there are no leaks in your application caused by
- * calling some function from @c MCTRL.DLL allocating some resource which is
- * not paired with corresponding releasing function. Typical example is that
- * your application can call some initialization function 
- * (e.g. mcMditab_Initialize()) but not corresponding function 
- * (e.g. mcMditab_Terminate()).
+ * And link with the appropriate import library. Since version 0.7.0 the 
+ * prebuilt mCtrl packages provide two import libraries, both of them
+ * are in @c lib subdirectory of the prebuilt mCtrl packages:
+ * - @c libmctrl.a intended for gcc-based toolchains (e.g. mingw).
+ * - @c mCtrl.lib intended for MS Visual Studio and Microsofrt C compiler.
  *
- * However it is not intended for general use: it has higher memory and CPU
- * consumtion, and tracing is much more verbous about the memory management,
- * making the resulted log much longer.
- *
- * When refering to "degbug build" of @c MCTRL.DLL without specifying 
- * the debug level, DEBUG=1 is usually assumed.
- *
- * Some extra debugging traces can also be turned on for some mCtrl
- * modules by defining additional preprocessor macros, but these are intended
- * only for mCtrl own development and bug hunting, so these are not covered 
- * here.
+ * Of course you have then distribute your applications with @c MCTRL.DLL.
  */

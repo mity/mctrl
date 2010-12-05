@@ -1,5 +1,5 @@
 /** 
- * @page page_design_notes Design Notes
+ * @page page_design Design Notes
  *
  * @section sec_error_handling About Error Handling
  * 
@@ -17,8 +17,8 @@
  * invalid combination of multiple parameters; or when calling any function 
  * without having the particular mCtrl module initialized), mCtrl uses very 
  * pragmatic approach: Such error conditions are only checked if it is 
- * reasdonably easy to do so. Some more checks can be enabled if you use 
- * DEBUG build of mCtrl (see @ref sec_debug).
+ * reasonably easy to do so. Some more checks can be enabled if you use 
+ * debug build of mCtrl (see @ref sec_debug).
  *
  *
  * @section sec_strings About Strings
@@ -54,12 +54,14 @@
  *
  * I.e. you can call the same @c MCTRL.DLL concurrently from multiple threads.
  *
+ * <!--
  * However remeber that access to data visible externally through @c MCTRL.DLL
  * interface is not synchronized: If you have such data (e.g. instance of 
  * document, see @ref mcDOC created with mcDoc_Create()), and then want to 
  * manipulate with the data concurrently from multiple threads, @c MCTRL.DLL 
  * does not synchronize for you: It's your application developer's 
  * responsibility to do so in order to avoid race conditions.
+ * -->
  *
  * Also note that some mCtrl modules may include yet another limitations.
  * Any such limitations are described in documentation of such the particular 
@@ -95,11 +97,10 @@
  * the termination function. The module is really uninitialized only after
  * the counter drops back down to zero.
  *
- * @attention
- * Note that if you are using @c MCTRL.DLL from your dynamic library, you may 
- * not call the initialization and termination functions in context of 
- * @c DllMain(). Its severly limited what can be done safely in the @c DllMain
- * context. Even if it would be safe for some modules currently there is no 
- * guaranty that future version of mCtrl won't use anything problematic in 
- * this regard.
+ * @attention Note that if you are using @c MCTRL.DLL from your dynamic 
+ * library, you may not call the initialization and termination functions 
+ * in context of @c DllMain(). Windows severly limits what can be done safely 
+ * in the @c DllMain context. Even if it would be safe for some modules 
+ * currently there is no guaranty that future version of mCtrl won't use 
+ * anything problematic in this regard.
  */
