@@ -29,8 +29,11 @@
  *********************************/
 
 #ifdef _MSC_VER
-	/* Disable warning C4996 ("This function or variable may be unsafe.") */
+	/* Disable warning C4996: This function or variable may be unsafe. */
 	#pragma warning( disable : 4996 )
+	
+	/* Disble warning C4018: '>' : signed/unsigned mismatch */
+	#pragma warning( disable : 4018 )
 
 	/* MSVC does not understand inline when building as pure C (not C++) */
 	#ifndef __cplusplus

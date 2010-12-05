@@ -1082,8 +1082,8 @@ mditab_set_item_width(HWND win, MC_MTITEMWIDTH* tw)
     mditab_t* mditab = (mditab_t*) GetWindowLongPtr(win, 0);
 
     if(tw != NULL) {
-        def_w = tw->dwDefWidth;
-        min_w = tw->dwMinWidth;
+        def_w = (USHORT)tw->dwDefWidth;
+        min_w = (USHORT)tw->dwMinWidth;
     } else {
         def_w = DEFAULT_ITEM_DEF_WIDTH;
         min_w = DEFAULT_ITEM_MIN_WIDTH;

@@ -431,7 +431,7 @@ inplace_site_ex_OnPosRectChange(IOleInPlaceSiteEx* self, const RECT* rect)
 }
 
 static HRESULT STDMETHODCALLTYPE
-inplace_site_ex_OnInPlaceActivateEx(IOleInPlaceSiteEx* self, WINBOOL* no_redraw, DWORD flags)
+inplace_site_ex_OnInPlaceActivateEx(IOleInPlaceSiteEx* self, BOOL* no_redraw, DWORD flags)
 {
     HTML_TRACE("inplace_site_OnInPlaceActivateEx(): Stub [S_OK]");
     *no_redraw = TRUE;
@@ -439,7 +439,7 @@ inplace_site_ex_OnInPlaceActivateEx(IOleInPlaceSiteEx* self, WINBOOL* no_redraw,
 }
 
 static HRESULT STDMETHODCALLTYPE
-inplace_site_ex_OnInPlaceDeactivateEx(IOleInPlaceSiteEx* self, WINBOOL no_redraw)
+inplace_site_ex_OnInPlaceDeactivateEx(IOleInPlaceSiteEx* self, BOOL no_redraw)
 {
     HTML_TRACE("inplace_site_OnInPlaceDeactivateEx(%d): Stub [S_OK]", no_redraw);
     return S_OK;
