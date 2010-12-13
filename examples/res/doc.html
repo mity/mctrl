@@ -1,53 +1,63 @@
 <html>
     <head>
         <title>HTML document</title>
+        <link href="1001" rel="stylesheet" type="text/css">
     </head>
     <body>
 
 <h1>HTML Document</h1>
 
+<div class="img">
+<img src="res://ex_html.exe/1002" title="absolute URL &quot;res://ex_html.exe/1002&quot;">
+<img src="1002" title="relative URL &quot;1002&quot;">
+</div>
+
 <p>This basic HTML document lives as a resource embedded in the program.
 The HTML control is able to display such documents. It can be pointed with
-the URL <a href="res://ex_html.exe/1000">res://ex_html.exe/1000</a></p>
+the URL <a href="res://ex_html.exe/1000">res://ex_html.exe/1000</a>.</p>
 
 <p>The ex_html.exe determines name of the module (*.exe or *.dll) where the
-resource lives and 1000 is ID of the HTML resource in it. Note you can use 
+resource lives and 1000 is ID of the HTML resource in it. Note you can use
 both numeric and string resource IDs.</p>
 
 <p>The document can use other resources as images or cascading style sheets
-as the two images below demonstrates. Note that one of them is referred
+as the two images on the right demonstrate. One of them is referred
 with absolute URL while the second one uses relative URL.</p>
-
-<img src="res://ex_html.exe/1001" title="absolute URL &quot;res://ex_html.exe/1001&quot;">
-<img src="1001" title="relative URL &quot;1001&quot;">
 
 <p>Of course it can also handle normal HTTP, HTTPS and other protocols:</p>
 <ul>
-    <li><b><a href="http://mctrl.sf.net/">http://mctrl.sf.net/</a></b>
-    <li><b><a href="https://sourceforge.net/">https://sourceforge.net/</a></b>
+    <li><a href="http://mctrl.sf.net/">http://mctrl.sf.net/</a>
+    <li><a href="https://sourceforge.net/">https://sourceforge.net/</a>
 </ul>
 
 <p>Finally you can have links which are handled programatically by the
 application code. When you click on such link, the parent window of HTML
 control gets notification.</p>
 <ul>
-    <li><b><a href="app:SayHello">app:SayHello</a></b>
+    <li><a href="app:SayHello">app:SayHello</a>
 </ul>
 
 <p>However note that IE sometimes changes the URL as used to navigate and
 how it looks in the notification. You can see on the following links
 to see the difference. IE can encode some special characters or add slash
-after the original URL. 
+after the original URL.
 
 <ul>
-    <li><b><a href="app:boo far">app:boo far</a></b> - URL with space. IE will encode the space into hexadecimal representation.</li>
-    <li><b><a href="app://boo">app://boo</a></b> - URL with two slashes after the protocol and no slash in the &quot;path&quot; after. IE will add slash.</li>
+    <li><a href="app:boo far">app:boo far</a> - URL with space. IE
+    will encode the space into hexadecimal representation.</li>
+    <li><a href="app://boo">app://boo</a> - URL with two slashes after
+    the protocol and no slash in the &quot;path&quot; after. IE will add slash.</li>
 </ul>
 
-<p>It's recommanded you avoid such &quot;bad&quot; URL patterns in the 
-application URLs. Otherwice your application might need more complex 
+<p>It's recommanded you avoid such &quot;bad&quot; URL patterns in the
+application URLs. Otherwice your application might need more complex
 URL matching in code handling the MC_HN_APPLINK notifications then simple
 string comparisions.</p>
+
+<h2>Dynamic contents</h2>
+
+<div id="dynamic">Contents of this tag will be replaced by the example code in 
+runtime.</div>
 
     </body>
 </html>

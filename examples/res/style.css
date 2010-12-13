@@ -1,0 +1,19 @@
+
+BODY {
+    margin: 2em;
+    font-family: sans-serif;
+}
+
+A {
+    font-weight: bold;
+}
+
+.img {
+    float: right;
+}
+
+.big {
+    font-weight: bold;
+    font-size: 300%;
+    text-align: center;
+}

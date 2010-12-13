@@ -24,8 +24,35 @@
 
 #include <mCtrl/html.h>
 
+
+/* The initial URL */
+#define INITIAL_URL   _T("res://ex_html.exe/1000")
+
+
 static HINSTANCE inst;
 static HWND html;
+
+
+static void
+set_dynamic_contents(void)
+{
+    static int counter = 1;
+    TCHAR buffer[512];
+    
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR), 
+               _T("<p>This paragraph is generated dynamically by the application "
+                  "and injected via message <tt>MC_HM_SETTAGCONTENTS</tt>. To "
+                  "prove that the following number is incremented anytime this "
+                  "page is <a href=\"1000\">reloaded</a> or "
+                  "<a href=\"app:set_dynamic\">this app link is clicked</a>:</p>"
+                  "<div class=\"big\">%d</div>"), 
+                  counter);
+    /* Our control has the <p id="dynamic"> on it. */
+    SendMessage(html, MC_HM_SETTAGCONTENTS, 
+                (WPARAM)_T("dynamic"), 
+                (LPARAM)buffer);
+    counter++;
+}
 
 
 /* Main window procedure */
@@ -35,15 +62,27 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     switch(msg) {
         case WM_NOTIFY:
             if(((NMHDR*)lp)->idFrom == 100 && ((NMHDR*)lp)->code == MC_HN_APPLINK) {
-                /* We have notification from the HTML control about that 
-                 * the user activated the application link. If it is the link
-                 * in our resource page, greet the user as the link URL 
-                 * suggested. Otherwise show URL of the link. */
+                /* We recieved notification from the HTML control that the user
+                 * activated the application link. If it is the link in our 
+                 * resource page, greet the user as the link URL suggested. 
+                 * Otherwise show URL of the link. */
                 MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) lp;
                 if(_tcscmp(nmhtmlurl->pszUrl, _T("app:SayHello")) == 0)
                     MessageBox(win, _T("Hello World!"), _T("Hello World!"), MB_OK);
+                else if(_tcscmp(nmhtmlurl->pszUrl, _T("app:set_dynamic")) == 0)
+                    set_dynamic_contents();
                 else
                     MessageBox(win, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
+            }
+            if(((NMHDR*)lp)->idFrom == 100 && ((NMHDR*)lp)->code == MC_HN_DOCUMENTCOMPLETE) {
+                /* We recieved notification from the HTML control that the 
+                 * document is completely loaded. If it is the initial URL,
+                 * we use this chance to modify the page dynamically to 
+                 * demonstrate this feature. */
+                MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) lp;
+                
+                if(_tcscmp(nmhtmlurl->pszUrl, INITIAL_URL) == 0)
+                    set_dynamic_contents();
             }
             return 0;
 

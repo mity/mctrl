@@ -27,7 +27,6 @@
  */
 
 /* TODO:
- *  - In-memory HTML documents?
  *  - Notifications for context menus so app could customize the menu
  *    or provide its own. (The meny may need to depend o the object clicked.
  *    e.g. if it is image or something diffferent).
@@ -39,6 +38,7 @@
 
 #include <exdisp.h>    /* IWebBrowser2 */
 #include <exdispid.h>  /* DISP_xxxx constants */
+#include <mshtml.h>    /* IHTMLDocument3, IHTMLElement */
 #include <mshtmhst.h>  /* IDocHostUIHandler */
 
 
@@ -131,6 +131,23 @@ html_QueryInterface(html_t* html, REFIID riid, void** obj)
     return E_NOINTERFACE;
 }
 
+static IWebBrowser2*
+html_browser_iface(html_t* html)
+{
+    IWebBrowser2* browser_iface;
+    HRESULT hr;
+    
+    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+                    &IID_IWebBrowser2, (void**)&browser_iface);
+    if(MC_ERR(hr != S_OK || browser_iface == NULL)) {
+        MC_TRACE("html_browser_iface: QueryInterface(IID_IWebBrowser2) failed "
+                 "[%lu]", (ULONG) hr);
+        return NULL;
+    }
+    
+    return browser_iface;
+}
+
 
 
 /********************************
@@ -217,14 +234,40 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
             break;
         }
 
+#if 0
+        /* Unfortunately, IE does not send DISPID_DOCUMENTCOMPLETE
+         * when refreshing the page (e.g. from context menu). So we workaround
+         * via DISPID_PROGRESSCHANGE below. */
         case DISPID_DOCUMENTCOMPLETE:
         {
             BSTR url = disp_params->rgvarg[0].pvarVal->bstrVal;
             html_notify_url(html, MC_HN_DOCUMENTCOMPLETE, url);
             break;
         }
+#endif
+
+        case DISPID_PROGRESSCHANGE:
+        {
+            long progress = disp_params->rgvarg[0].lVal;
+            long progress_max = disp_params->rgvarg[1].lVal;
+            if(progress < 0  ||  progress_max < 0) {
+                IWebBrowser2* browser_iface = html_browser_iface(html);
+                if(browser_iface != NULL) {
+                    HRESULT hr;
+                    BSTR url = NULL;
+                    
+                    hr = browser_iface->lpVtbl->get_LocationURL(browser_iface, &url);
+                    if(hr == S_OK && url != NULL) {
+                        html_notify_url(html, MC_HN_DOCUMENTCOMPLETE, url);
+                        SysFreeString(url);
+                    }
+                }
+            }
+            break;
+        }
 
         default:
+            HTML_TRACE("dispatch_Invoke: disp %d", disp_id);
             return DISP_E_MEMBERNOTFOUND;
     }
 
@@ -837,10 +880,10 @@ html_goto_url(html_t* html, const void* url, BOOL unicode)
     IWebBrowser2* browser_iface;
     BSTR bstr_url;
     VARIANT var_url;
-    HRESULT hr;
+    int res = -1;
 
-    if((unicode && url != NULL && ((WCHAR*)url)[0] != L'\0') ||
-       (!unicode && url != NULL && ((char*)url)[0] != '\0')) {
+    if(url != NULL  &&  ((unicode && ((WCHAR*)url)[0] != L'\0') ||
+                         (!unicode && ((char*)url)[0] != '\0'))) {
         bstr_url = html_bstr(url, (unicode ? MC_STRW : MC_STRA));
         if(MC_ERR(bstr_url == NULL)) {
             MC_TRACE("html_goto_url: html_bstr() failed.");
@@ -850,13 +893,9 @@ html_goto_url(html_t* html, const void* url, BOOL unicode)
         bstr_url = url_blank;
     }
 
-    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
-                    &IID_IWebBrowser2, (void**)(void*)&browser_iface);
-    if(MC_ERR(browser_iface == NULL)) {
-        MC_TRACE("html_goto_url: IID_IWebBrowser2::QueryInterface() failed "
-                 "[%lu]", (ULONG) hr);
+    browser_iface = html_browser_iface(html);
+    if(MC_ERR(browser_iface == NULL))
         goto err_iface;
-    }
 
     VariantInit(&var_url);
     var_url.vt = VT_BSTR;
@@ -865,15 +904,94 @@ html_goto_url(html_t* html, const void* url, BOOL unicode)
     browser_iface->lpVtbl->Release(browser_iface);
     VariantClear(&var_url);
 
-    if(bstr_url != url_blank)
-        SysFreeString(bstr_url);
-    return 0;
+    res = 0;
 
 err_iface:
     if(bstr_url != url_blank)
         SysFreeString(bstr_url);
 err_bstr:
-    return -1;
+    return res;
+}
+
+static int
+html_set_element_contents(html_t* html, const void* id, const void* contents, 
+                          BOOL unicode)
+{
+    BSTR bstr_id;
+    BSTR bstr_contents;
+    IWebBrowser2* browser_iface;
+    IDispatch* dispatch_iface;
+    IHTMLDocument3* doc_iface;
+    IHTMLElement* elem_iface;
+    HRESULT hr;
+    int res = -1;
+    
+    if(MC_ERR(id == NULL  ||  (unicode && ((WCHAR*)id)[0] == L'\0')  ||  
+                              (!unicode && ((char*)id)[0] == '\0'))) {
+       MC_TRACE("html_set_element_contents: Emty element ID.");
+       goto err_id;
+    }
+    bstr_id = html_bstr(id, (unicode ? MC_STRW : MC_STRA));
+    if(MC_ERR(bstr_id == NULL)) {
+        MC_TRACE("html_set_element_contents: html_bstr(id) failed.");
+        goto err_id;
+    }
+    
+    if(contents == NULL)
+        contents = (unicode ? (void*)L"" : (void*)"");
+    bstr_contents = html_bstr(contents, (unicode ? MC_STRW : MC_STRA));
+    if(MC_ERR(bstr_contents == NULL)) {
+        MC_TRACE("html_set_element_contents: html_bstr(contents) failed");
+        goto err_contents;
+    }
+    
+    browser_iface = html_browser_iface(html);
+    if(MC_ERR(browser_iface == NULL)) {
+        MC_TRACE("html_set_element_contents: html_browser_iface() failed");
+        goto err_browser;
+    }
+    
+    hr = browser_iface->lpVtbl->get_Document(browser_iface, &dispatch_iface);
+    if(MC_ERR(hr != S_OK || dispatch_iface == NULL)) {
+        MC_TRACE("html_set_element_contents: get_Document() failed [%ld]", hr);
+        goto err_dispatch;
+    }
+    
+    hr = dispatch_iface->lpVtbl->QueryInterface(dispatch_iface, 
+                                    &IID_IHTMLDocument3, (void**)&doc_iface);
+    if(MC_ERR(hr != S_OK || doc_iface == NULL)) {
+        MC_TRACE("html_set_element_contents: QueryInterface(IID_IHTMLDocument3) failed [%ld]", hr);
+        goto err_doc;
+    }
+    
+    hr = doc_iface->lpVtbl->getElementById(doc_iface, bstr_id, &elem_iface);
+    if(MC_ERR(hr != S_OK || elem_iface == NULL)) {
+        MC_TRACE("html_set_element_contents: getElementById() failed [%ld]", hr);
+        goto err_elem;
+    }
+    
+    hr = elem_iface->lpVtbl->put_innerHTML(elem_iface, bstr_contents);
+    if(hr != S_OK) {
+        MC_TRACE("html_set_element_contents: put_innerHTML() failed [%ld]", hr);
+        goto err_inner_html;
+    }
+    
+    res = 0;
+    
+err_inner_html:
+    elem_iface->lpVtbl->Release(elem_iface);
+err_elem:
+    doc_iface->lpVtbl->Release(doc_iface);
+err_doc:
+    dispatch_iface->lpVtbl->Release(dispatch_iface);
+err_dispatch:
+    browser_iface->lpVtbl->Release(browser_iface);
+err_browser:
+    SysFreeString(bstr_contents);
+err_contents:
+    SysFreeString(bstr_id);
+err_id:
+    return res;
 }
 
 static html_t*
@@ -939,7 +1057,7 @@ html_create(HWND win, CREATESTRUCT* cs)
         goto err_DoVerb;
     }
 
-    /* Send DIID_DWebBrowserEvents2 to our IDispatch */
+    /* Send events of DIID_DWebBrowserEvents2 to our IDispatch */
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                 &IID_IConnectionPointContainer, (void**)&conn_point_container);
     if(MC_ERR(hr != S_OK)) {
@@ -1019,8 +1137,19 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     switch(msg) {
         case MC_HM_GOTOURLW:
         case MC_HM_GOTOURLA:
-            return (html_goto_url(html, (const void*)lp, (msg == MC_HM_GOTOURLW)) == 0);
+        {
+            int res = html_goto_url(html, (const void*)lp, (msg == MC_HM_GOTOURLW));
+            return (res == 0 ? TRUE : FALSE);
+        }
 
+        case MC_HM_SETTAGCONTENTSW:
+        case MC_HM_SETTAGCONTENTSA:
+        {
+            int res = html_set_element_contents(html, (void*)wp, (void*)lp, 
+                                                (msg == MC_HM_SETTAGCONTENTSW));
+            return (res == 0 ? TRUE : FALSE);
+        }
+        
         case WM_SIZE:
         {
             IWebBrowser2* browser_iface;

@@ -23,4 +23,5 @@
 
 /* Html resources */
 1000 HTML res/doc.html
-1001 HTML res/image.png
+1001 HTML res/style.css
+1002 HTML res/image.png
