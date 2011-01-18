@@ -40,6 +40,15 @@
                     exit(EXIT_FAILURE);                                       \
             }                                                                 \
         } while(0)
+        
+    /* Compile-time assertion */
+    #ifdef __GNUC__
+        #define MC_STATIC_ASSERT(condition)                                   \
+            extern int __attribute__((unused)) mCtrl_Static_Assertion_Failed[(condition) ? 1 : -1]
+    #else
+        #define MC_STATIC_ASSERT(condition)                                   \
+            extern int mCtrl_Static_Assertion_Failed[(condition) ? 1 : -1]
+    #endif
 
     /* Logging */
     #define MC_TRACE(...)                                                     \
@@ -53,10 +62,13 @@
 
 /* Fallback to no-op macros */
 #ifndef MC_ASSERT
-    #define MC_ASSERT(condition)        do { } while(0)
+    #define MC_ASSERT(condition)         do { } while(0)
+#endif
+#ifndef MC_STATIC_ASSERT
+    #define MC_STATIC_ASSERT(condition)  /* nothing */
 #endif
 #ifndef MC_TRACE
-    #define MC_TRACE(...)               do { } while(0)
+    #define MC_TRACE(...)                do { } while(0)
 #endif
 
 
