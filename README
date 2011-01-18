@@ -12,8 +12,8 @@ Interface of the library is very similar to other controls of Win32API,
 including the standard and common controls (buttons, edit boxes, combo boxes 
 etc.). 
 
-mCtrl is covered with the GNU General Public License. See file COPYING 
-for more info. 
+mCtrl is covered with the GNU Lesser General Public License 2.1 or
+(at your option) any later version. See file COPYING.lib for more info.
 
 
 [2] Getting mCtrl
