@@ -29,7 +29,7 @@ extern "C" {
 /** 
  * @file
  * This is helper header included by all the other public mCtrl headers. 
- * You should don't need to include this header file directly.
+ * You shouldn't need to include this header file directly.
  */
 
 
