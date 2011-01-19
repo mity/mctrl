@@ -29,11 +29,8 @@
  *********************************/
 
 #ifdef _MSC_VER
-	/* Disable warning C4996: This function or variable may be unsafe. */
+	/* Disable warning C4996 ("This function or variable may be unsafe.") */
 	#pragma warning( disable : 4996 )
-	
-	/* Disble warning C4018: '>' : signed/unsigned mismatch */
-	#pragma warning( disable : 4018 )
 
 	/* MSVC does not understand inline when building as pure C (not C++) */
 	#ifndef __cplusplus
@@ -61,6 +58,64 @@
 			#define SetWindowLongPtrW(win,ix,val)  SetWindowLongW(win,ix,(LONG)val)
 		#endif
 	#endif
+#endif
+
+
+/*******************
+ *** <stdint.h>  ***
+ *******************/
+
+/* Windows SDK/Visual Studio was missing <stdint.h> for a long time, so
+ * lets have few types defined here. */
+
+#ifdef _MSC_VER
+    typedef __int8               int8_t;
+    typedef unsigned __int8     uint8_t;
+    typedef __int16              int16_t;
+    typedef unsigned __int16    uint16_t;
+    typedef __int32              int32_t;
+    typedef unsigned __int32    uint32_t;
+    typedef __int64              int64_t;
+    typedef unsigned __int64    uint64_t;
+
+    #ifndef INT8_MIN
+        #define INT8_MIN       (-0x7f - 1)
+    #endif
+    #ifndef INT16_MIN
+        #define INT16_MIN      (-0x7fff - 1)
+    #endif
+    #ifndef INT32_MIN
+        #define INT32_MIN      (-0x7fffffff - 1)
+    #endif
+    #ifndef INT64_MIN
+        #define INT64_MIN      (-0x7fffffffffffffff - 1)
+    #endif
+    #ifndef INT8_MAX
+        #define INT8_MAX       (0x7f)
+    #endif
+    #ifndef INT16_MAX
+        #define INT16_MAX      (0x7fff)
+    #endif
+    #ifndef INT32_MAX
+        #define INT32_MAX      (0x7fffffff)
+    #endif
+    #ifndef INT64_MAX
+        #define INT64_MAX      (0x7fffffffffffffff)
+    #endif
+    #ifndef UINT8_MAX
+        #define UINT8_MAX      (0xff)
+    #endif
+    #ifndef UINT16_MAX
+        #define UINT16_MAX     (0xffff)
+    #endif
+    #ifndef UINT32_MAX
+        #define UINT32_MAX     (0xffffffff)
+    #endif
+    #ifndef UINT64_MAX
+        #define UINT64_MAX     (0xffffffffffffffff)
+    #endif
+#else
+    #include <stdint.h>
 #endif
 
 
@@ -110,7 +165,7 @@
  * from mingw-w64 project which seems to be more complete.
  * 
  * These are placed in the com/ subdirectory. The below are hacks
- * hiding incompatibilities between headeres mingw-w64 and mingw.
+ * hiding incompatibilities between headeres from mingw-w64 and mingw.
  */
 
 #if defined __GNUC__  &&  !defined SHANDLE_PTR

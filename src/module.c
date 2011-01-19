@@ -130,25 +130,35 @@ module_fini_modules(module_t** modules, int n)
 /*******************************
  *** The module declarations ***
  *******************************/
-   
+
+/* Private modules */   
+
 #include "misc.h"
-#include "theme.h"
-#include "button.h"
-#include "html.h"
-#include "mditab.h"
-   
 DEFINE_MODULE(mc)
+
+#include "theme.h"
 DEFINE_MODULE(theme)
+
+
+/* Public modules */
+
+#include "button.h"
 DEFINE_MODULE(button)
-DEFINE_MODULE(html)
-DEFINE_MODULE(mditab)
-
-/* Dependecies for public modules */
 static module_t* mod_button_deps[] = { &mod_mc, &mod_theme, &mod_button };
-static module_t* mod_html_deps[] =   { &mod_mc, &mod_theme, &mod_html };
-static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };
-
-/* Public modules interfaces */
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
+
+#include "grid.h"
+DEFINE_MODULE(grid)
+static module_t* mod_grid_deps[] =   { &mod_mc, &mod_theme, &mod_grid };
+DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
+
+#include "html.h"
+DEFINE_MODULE(html)
+static module_t* mod_html_deps[] =   { &mod_mc, &mod_theme, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
+
+#include "mditab.h"
+DEFINE_MODULE(mditab)
+static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
+

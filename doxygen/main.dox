@@ -38,9 +38,12 @@
  *
  * @subsection toc_controls Control Reference
  * - @ref mCtrl/button.h - Enhanced button control (window class @c MC_WC_BUTTON)
+ * - @ref mCtrl/grid.h - Grid control (window class @c MC_WC_GRID)
  * - @ref mCtrl/html.h - HTML control (window class @c MC_WC_HTML)
  * - @ref mCtrl/mditab.h - MDI tab control (window class @c MC_WC_MDITAB)
  *
  * @subsection toc_misc Miscalenous Functions
- * - @ref mCtrl/version.h - Retrieving mCtrl version.
+ * - @ref mCtrl/table.h - Table (data model for the grid control)
+ * - @ref mCtrl/value.h - Value (polymorphic data)
+ * - @ref mCtrl/version.h - Retrieving mCtrl version
  */
