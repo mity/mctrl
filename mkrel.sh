@@ -47,8 +47,6 @@ echo "$VERSION"
 # Detect a zip tool #
 #####################
 
-# -mx9
-
 echo -n "Detecting zip archiver... "
 if test `which 7za 2>> /dev/null`; then
     MKZIP="7za a -r -mx9"
@@ -125,7 +123,7 @@ mv $TMP/mCtrl-$VERSION $TMP/mCtrl-$VERSION-src
 
 echo -n "Generating doc package... "
 if test `which doxygen 2>> /dev/null`; then
-    (cd $TMP/mCtrl-$VERSION-src && doxygen > $CWD/build-doc.log 2>&1)
+    (cd $TMP/mCtrl-$VERSION-src && ( cat Doxyfile ; echo "PROJECT_NUMBER=$VERSION" ) | doxygen - > $CWD/build-doc.log 2>&1)
     if [ $? -ne 0 ]; then
         echo "Failed: see build-doc.log."
         exit 1
