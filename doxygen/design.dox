@@ -50,18 +50,14 @@
  * @section sec_multithreading About Multithreading
  * 
  * mCtrl is designed to be multithreading friendly. In general, all functions
- * are reentrant. 
+ * are reentrant. I.e. you can call the same @c MCTRL.DLL function concurrently
+ * from multiple threads.
  *
- * I.e. you can call the same @c MCTRL.DLL concurrently from multiple threads.
- *
- * <!--
  * However remeber that access to data visible externally through @c MCTRL.DLL
- * interface is not synchronized: If you have such data (e.g. instance of 
- * document, see @ref mcDOC created with mcDoc_Create()), and then want to 
- * manipulate with the data concurrently from multiple threads, @c MCTRL.DLL 
- * does not synchronize for you: It's your application developer's 
- * responsibility to do so in order to avoid race conditions.
- * -->
+ * interface is not synchronized: If you have such data (e.g. @ref MC_VALUE or
+ * @ref MC_TABLE and then want to manipulate with the data concurrently from
+ * multiple threads, @c MCTRL.DLL does not synchronize for you: It's
+ * application developer's to do so in order to avoid race conditions.
  *
  * Also note that some mCtrl modules may include yet another limitations.
  * Any such limitations are described in documentation of such the particular 
