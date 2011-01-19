@@ -9,6 +9,7 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#include <stdio.h>
 #include <tchar.h>
 
 #include <mCtrl/html.h>
