@@ -140,6 +140,39 @@ typedef struct MC_GCELL_tag {
 } MC_GCELL;
 
 /**
+ * @anchor MC_GGF_xxxx
+ * @name MC_GGEOMETRY::fMask Bits
+ * @memberof MC_GGEOMETRY
+ */
+/*@{*/
+/** @brief @ref MC_GGEOMETRY::wColumnHeaderHeight is valid. */
+#define MC_GGF_COLUMNHEADERHEIGHT     (1 << 0)
+/** @brief @ref MC_GGEOMETRY::wRowHeaderWidth is valid. */
+#define MC_GGF_ROWHEADERWIDTH         (1 << 1)
+/** @brief @ref MC_GGEOMETRY::wColumnWidth is valid. */
+#define MC_GGF_COLUMNWIDTH            (1 << 2)
+/** @brief @ref MC_GGEOMETRY::wRowHeight is valid. */
+#define MC_GGF_ROWHEIGHT              (1 << 3)
+/*@}*/
+
+/**
+ * @brief Structure describing inner geometry of the grid.
+ * @sa @ref MC_GM_SETGEOMETRY @ref MC_GM_GETGEOMETRY
+ */
+typedef struct MC_GGEOMETRY_tag {
+    /** @brief Bitmask specifying what other members are valid. */
+    DWORD fMask;
+    /** @brief Height of column header cells. */
+    WORD wColumnHeaderHeight;
+    /** @brief Width of row header cells. */
+    WORD wRowHeaderWidth;
+    /** @brief Width of regular contents cells. */
+    WORD wColumnWidth;
+    /** @brief Height of regular contents cells. */
+    WORD wRowHeight;
+} MC_GGEOMETRY;
+
+/**
  * @name Control Messages
  */
 /*@{*/
@@ -212,6 +245,16 @@ typedef struct MC_GCELL_tag {
 #define MC_GM_CLEAR               (WM_USER + 109)
 
 /**
+ * @brief Sets a table cell.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param lParam[in] (@ref MC_GCELL*) Pointer to structure describing
+ * the cell.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ */
+#define MC_GM_SETCELL             (WM_USER + 110)
+
+/**
  * @brief Gets a table cell.
  *
  * Caller has to fill @c MC_GCELL::wCol and @c MC_GCELL::wRow before sending
@@ -225,14 +268,24 @@ typedef struct MC_GCELL_tag {
 #define MC_GM_GETCELL             (WM_USER + 111)
 
 /**
- * @brief Sets a table cell.
+ * @brief Sets geometry of the grid.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam[in] (@ref MC_GCELL*) Pointer to structure describing
- * the cell.
+ * @param lParam[in] (@ref MC_GGEOMETRY*) Pointer to structure describing
+ * the geometry. Only fields specified by the member @c fMask are set.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETCELL             (WM_USER + 110)
+#define MC_GM_SETGEOMETRY         (WM_USER + 112)
+
+/**
+ * @brief Sets geometry of the grid.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param lParam[in,out] (@ref MC_GGEOMETRY*) Pointer to structure describing
+ * the geometry. Only fields specified by the member @c fMask are retrieved.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ */
+#define MC_GM_GETGEOMETRY         (WM_USER + 113)
 
 /*@}*/
 

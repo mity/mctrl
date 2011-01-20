@@ -498,8 +498,56 @@ grid_set_table(grid_t* grid, table_t* table)
     
     grid->table = table;
     
-    grid_setup_scrollbars(grid);
     InvalidateRect(grid->win, NULL, TRUE);
+    grid_setup_scrollbars(grid);
+    return 0;
+}
+
+#define GRID_GGF_SUPPORTED_MASK                                         \
+        (MC_GGF_COLUMNHEADERHEIGHT | MC_GGF_ROWHEADERWIDTH |            \
+         MC_GGF_COLUMNWIDTH | MC_GGF_ROWHEIGHT)
+
+static int
+grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom)
+{
+    if(MC_ERR((geom->fMask & ~GRID_GGF_SUPPORTED_MASK) != 0)) {
+        MC_TRACE("grid_set_geometry: fMask has some unsupported bit(s)");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(geom->fMask & MC_GGF_COLUMNHEADERHEIGHT)
+        grid->header_width = geom->wColumnHeaderHeight;
+    if(geom->fMask & MC_GGF_ROWHEADERWIDTH)
+        grid->header_height = geom->wRowHeaderWidth;
+    if(geom->fMask & MC_GGF_COLUMNWIDTH)
+        grid->cell_width = geom->wColumnWidth;
+    if(geom->fMask & MC_GGF_ROWHEIGHT)
+        grid->cell_height = geom->wRowHeight;
+
+    InvalidateRect(grid->win, NULL, TRUE);
+    grid_setup_scrollbars(grid);
+    return 0;
+}
+
+static int
+grid_get_geometry(grid_t* grid, MC_GGEOMETRY* geom)
+{
+    if(MC_ERR((geom->fMask & ~GRID_GGF_SUPPORTED_MASK) != 0)) {
+        MC_TRACE("grid_get_geometry: fMask has some unsupported bit(s)");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(geom->fMask & MC_GGF_COLUMNHEADERHEIGHT)
+        geom->wColumnHeaderHeight = grid->header_height;
+    if(geom->fMask & MC_GGF_ROWHEADERWIDTH)
+        geom->wRowHeaderWidth = grid->header_width;
+    if(geom->fMask & MC_GGF_COLUMNWIDTH)
+        geom->wColumnWidth = grid->cell_width;
+    if(geom->fMask & MC_GGF_ROWHEIGHT)
+        geom->wRowHeight = grid->cell_height;
+
     return 0;
 }
 
@@ -633,13 +681,6 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_GM_CLEAR:
             mcTable_Clear(grid->table);
             return 0;
-        
-        case MC_GM_GETCELL:
-        {
-            MC_GCELL* cell = (MC_GCELL*) lp;
-            return mcTable_GetCell(grid->table, cell->wCol, cell->wRow,
-                                   &cell->hType, &cell->hValue);
-        }
 
         case MC_GM_SETCELL:
         {
@@ -647,6 +688,19 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return mcTable_SetCell(grid->table, cell->wCol, cell->wRow,
                                                 cell->hType, cell->hValue);
         }
+
+        case MC_GM_GETCELL:
+        {
+            MC_GCELL* cell = (MC_GCELL*) lp;
+            return mcTable_GetCell(grid->table, cell->wCol, cell->wRow,
+                                   &cell->hType, &cell->hValue);
+        }
+
+        case MC_GM_SETGEOMETRY:
+            return (grid_set_geometry(grid, (MC_GGEOMETRY*)lp) == 0 ? TRUE : FALSE);
+
+        case MC_GM_GETGEOMETRY:
+            return (grid_get_geometry(grid, (MC_GGEOMETRY*)lp) == 0 ? TRUE : FALSE);
 
         case WM_VSCROLL:
         case WM_HSCROLL:
