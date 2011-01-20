@@ -5,6 +5,7 @@
  * sources. If you want to just use @c MCTRL.DLL, you can likely just 
  * use prebuilt packages available for download on project homepage.
  *
+ * @par
  * This information is usefull for you if you want to hack @c MCTRL.DLL
  * internals or contribute to the project.
  *
@@ -26,10 +27,7 @@
  *
  * The mingw-w64 provides both native toolchain for Windows and also 
  * crosscompiling for Linux and other systems. The instructions below assume
- * your are building on Windows.
- *
- * Here are broief instructions how to build the project under mingw-w64
- * (both 32bit and 64-bit):
+ * your are building on Windows:
  *
  * -# Download the following packages (or their more recent versions if available)
  *    from https://sourceforge.net/projects/mingw-w64/files:
@@ -38,13 +36,14 @@
  *    -# External binary packages (Win64 hosted) / MSYS (32-bit) / MSYS-20101010.zip
  * -# Install MSYS:
  *    -# Unzip MSYS-20101010.zip. Further we assume you placed the unzipped 
- *       files into <tt>C:\\msys</tt>.
+ *       files into <tt>C:\\msys</tt>. Note there <b>must not</b> be any space
+ *       in the path.
  *    -# Add <tt>C:\\msys\\bin</tt> into your environment variable @c PATH.
- * -# Install minge-w64 toolchain for building 32bit binaries:
+ * -# Install mingw-w64 toolchain for building 32-bit binaries:
  *    -# Unzip mingw-w32-1.0-bin_i686-mingw_20101129.zip.
  *       Further we assume you placed the unzipped files into <tt>C:\\mingw32</tt>.
  *    -# Add <tt>C:\\mingw32\\bin</tt> into your environment variable @c PATH.
- * -# Install minge-w64 toolchain for building 64bit binaries:
+ * -# Install mingw-w64 toolchain for building 64-bit binaries:
  *    -# Unzip mingw-w64-1.0-bin_i686-mingw_20101129.zip.
  *       Further we assume you placed the unzipped files into <tt>C:\\mingw64</tt>.
  *    -# Add <tt>C:\\mingw64\\bin</tt> into your environment variable @c PATH.
@@ -54,10 +53,10 @@
  *    -# Launch <tt>C:\\msys\\msys.bat</tt>
  *    -# Type the following command in the MSYS prompt <tt>cd /c/prj/mctrl/</tt>
  * -# Now type one of the two following commands to build mCtrl. The first 
- *    command build 32bit version of mCtrl, second one 64bit version.
- *    Please note that both build into same directories.
+ *    command performs 32-bit build, second one 64-bit build. Please note that
+ *    both builds drop the files into same subdirectories.
  *    -# <tt>make PREFIX=i686-w64-mingw32- all examples</tt>
- *    -# <tt>make PREFIX=i686-w64-mingw64- all examples</tt>
+ *    -# <tt>make PREFIX=x86_64-w64-mingw32- all examples</tt>
  *
  *
  * @section sec_msvc Building with MS Visual Studio
@@ -69,7 +68,7 @@
  * problems.
  *
  * The project files reside in mCtrl\\contrib\\VS2005 and mCtrl\\contrib\\VS2010
- * respectivelly. Follow information in <tt>mCtrl\\contrib\\VS2005\\README.txt</tt>
+ * respectively. Follow information in <tt>mCtrl\\contrib\\VS2005\\README.txt</tt>
  * or <tt>mCtrl\\contrib\\VS2010\\README.txt</tt>.
  *
  * @attention Please note that using @c MCTRL.DLL built with MS Visual Studio
@@ -84,9 +83,9 @@
  * macro @c DEBUG, when building @c MCTRL.DLL from sources.
  *
  * When build with mingw-w64 it can be for examaple done like this:
- * - <tt>>make DEBUG=1 PREFIX=i686-w64-mingw32- all examples</tt>
+ * - <tt>make DEBUG=1 PREFIX=i686-w64-mingw32- all examples</tt>
  *
- * Value 0 means the debugging is disabled ("Release" version). This is 
+ * Value 0 means the debugging is disabled ("Release" version). This is the
  * default. It is expected this release build will be used within the final
  * release of your applications. This is also how the default prebuilt
  * packages are made.
@@ -109,7 +108,7 @@
  * It can help the classical memory management bugs like memory leaks, multiple
  * freeing of the same memory block, buffer overruns or underruns etc.
  *
- * This is especially usuful when debugging @c MCTRL.DLL, but it can also
+ * This is especially useful when debugging @c MCTRL.DLL, but it can also
  * be used to check that there are no leaks in your application caused by
  * calling some function from @c MCTRL.DLL allocating some resource which is
  * not paired with corresponding releasing function. Typical example is that
@@ -121,7 +120,7 @@
  * consumtion, and tracing is much more verbous about the memory management,
  * making the resulted log much longer.
  *
- * When refering to "degbug build" of @c MCTRL.DLL without specifying 
+ * When refering to "debug build" of @c MCTRL.DLL without specifying 
  * the debug level, DEBUG=1 is usually assumed.
  *
  * Some extra debugging traces can also be turned on for some mCtrl
