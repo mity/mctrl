@@ -126,7 +126,7 @@ table_free_contents(table_contents_t* contents, table_region_t* region,
                     continue;
             }
             
-            t->free(&contents->values[row * contents->col_count + col]);
+            t->free(contents->values[row * contents->col_count + col]);
         }
     }
 }
