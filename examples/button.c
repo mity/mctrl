@@ -43,7 +43,7 @@ static HWND button_split2;
 
 
 /* Main dialog procedure */
-static CALLBACK BOOL
+static CALLBACK INT_PTR
 dlg_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     switch(msg) {
