@@ -111,8 +111,8 @@ extern "C" {
  * @c <mCtrl/button.h>, while the standard identifiers in @c <commctrl.h> 
  * are defined only if <tt>_WIN32_WINNT >= 0x0600</tt>.
  *
- * @attention that @c MC_WC_BUTTON implements only subset of styles and 
- * messages for split buttons offered on Window Vista.
+ * @attention Remember that @c MC_WC_BUTTON implements only subset of styles
+ * and messages for split buttons offered by @c COMCTL32.DLL version 6.0.
  *
  * If the Windows support split button in a natural way (Vista or newer), 
  * the @c MC_WC_BUTTON just simply passes all messages down to the original 
