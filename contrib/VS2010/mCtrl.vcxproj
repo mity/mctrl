@@ -84,6 +84,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\button.c" />
+    <ClCompile Include="..\..\src\compat.c" />
     <ClCompile Include="..\..\src\debug.c" />
     <ClCompile Include="..\..\src\grid.c" />
     <ClCompile Include="..\..\src\guid.c" />

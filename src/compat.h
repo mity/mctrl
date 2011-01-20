@@ -173,4 +173,19 @@
 #endif
 
 
+
+/***************************
+ *** Win2K compatibility ***
+ ***************************/
+
+/* MSVCRT.DLL on Windows 2000 lacks some symbols we use, so lets use our
+ * own implementation. */
+
+int64_t compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base);
+uint64_t compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base);
+
+#define _wcstoi64 compat_wcstoi64
+#define _wcstoui64 compat_wcstoui64
+
+
 #endif  /* MC_COMPAT_H */
