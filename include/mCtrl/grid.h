@@ -125,8 +125,8 @@ void MCTRL_API mcGrid_Terminate(void);
 /*@}*/
 
 /**
- * @brief Structure for manipulating with the tab item (unicode variant).
- * @sa @ref MC_MTM_INSERTITEM @ref MC_MTM_DELETEITEM @ref MC_MTM_SETITEM @ref MC_MTM_GETITEM
+ * @brief Structure for setting and getting cell of the table.
+ * @sa @ref MC_GM_SETCELL @ref MC_GM_GETCELL
  */
 typedef struct MC_GCELL_tag {
     /** @brief Column index */
