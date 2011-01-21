@@ -147,6 +147,10 @@ typedef struct MC_GCELL_tag {
 #define MC_GGF_COLUMNWIDTH            (1 << 2)
 /** @brief @ref MC_GGEOMETRY::wRowHeight is valid. */
 #define MC_GGF_ROWHEIGHT              (1 << 3)
+/** @brief @ref MC_GGEOMETRY::wPaddingHorz is valid. */
+#define MC_GGF_PADDINGHORZ            (1 << 4)
+/** @brief @ref MC_GGEOMETRY::wPaddingVert is valid. */
+#define MC_GGF_PADDINGVERT            (1 << 5)
 /*@}*/
 
 /**
@@ -164,6 +168,10 @@ typedef struct MC_GGEOMETRY_tag {
     WORD wColumnWidth;
     /** @brief Height of regular contents cells. */
     WORD wRowHeight;
+    /** @brief Horizontal padding in cells. */
+    WORD wPaddingHorz;
+    /** @brief Vertical padding in cells. */
+    WORD wPaddingVert;
 } MC_GGEOMETRY;
 
 /**

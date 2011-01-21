@@ -56,7 +56,8 @@ struct grid_tag {
     WORD header_height;
     WORD cell_width;
     WORD cell_height;
-    WORD cell_padding;
+    WORD cell_padding_horz;
+    WORD cell_padding_vert;
     int scroll_x;
     int scroll_y;
 };
@@ -292,12 +293,16 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     }
     
     /* Paint grid cells */
-    rect.top = headerh + row0 * grid->cell_height - grid->scroll_y + grid->cell_padding;
+    rect.top = headerh + row0 * grid->cell_height - grid->scroll_y + grid->cell_padding_vert;
     for(row = row0; row < row1; row++) {
-        rect.left = headerw + col0 * grid->cell_width - grid->scroll_x + grid->cell_padding;
+        rect.left = headerw + col0 * grid->cell_width - grid->scroll_x + grid->cell_padding_horz;
         for(col = col0; col < col1; col++) {
-            rect.right = rect.left + grid->cell_width - 2*grid->cell_padding - 1;  /* -1 for grid line */
-            rect.bottom = rect.top + grid->cell_height - 2*grid->cell_padding - 1;
+            rect.right = rect.left + grid->cell_width - 2*grid->cell_padding_horz;
+            rect.bottom = rect.top + grid->cell_height - 2*grid->cell_padding_vert;
+            if(!(grid->style & MC_GS_NOGRIDLINES)) {
+                rect.right--;
+                rect.bottom--;
+            }
             
             IntersectClipRect(dc, MC_MAX(headerw, rect.left), MC_MAX(headerh, rect.top),
                                   rect.right, rect.bottom);
@@ -505,7 +510,8 @@ grid_set_table(grid_t* grid, table_t* table)
 
 #define GRID_GGF_SUPPORTED_MASK                                         \
         (MC_GGF_COLUMNHEADERHEIGHT | MC_GGF_ROWHEADERWIDTH |            \
-         MC_GGF_COLUMNWIDTH | MC_GGF_ROWHEIGHT)
+         MC_GGF_COLUMNWIDTH | MC_GGF_ROWHEIGHT |                        \
+         MC_GGF_PADDINGHORZ | MC_GGF_PADDINGVERT)
 
 static int
 grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom)
@@ -524,6 +530,10 @@ grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom)
         grid->cell_width = geom->wColumnWidth;
     if(geom->fMask & MC_GGF_ROWHEIGHT)
         grid->cell_height = geom->wRowHeight;
+    if(geom->fMask & MC_GGF_PADDINGHORZ)
+        grid->cell_padding_horz = geom->wPaddingHorz;
+    if(geom->fMask & MC_GGF_PADDINGVERT)
+        grid->cell_padding_vert = geom->wPaddingVert;
 
     InvalidateRect(grid->win, NULL, TRUE);
     grid_setup_scrollbars(grid);
@@ -547,6 +557,10 @@ grid_get_geometry(grid_t* grid, MC_GGEOMETRY* geom)
         geom->wColumnWidth = grid->cell_width;
     if(geom->fMask & MC_GGF_ROWHEIGHT)
         geom->wRowHeight = grid->cell_height;
+    if(geom->fMask & MC_GGF_PADDINGHORZ)
+        geom->wPaddingHorz = grid->cell_padding_horz;
+    if(geom->fMask & MC_GGF_PADDINGVERT)
+        geom->wPaddingVert = grid->cell_padding_vert;
 
     return 0;
 }
@@ -603,7 +617,8 @@ grid_create(HWND win, CREATESTRUCT* cs)
     grid->header_height = 19;
     grid->cell_width = 64;
     grid->cell_height = 19;
-    grid->cell_padding = 2;
+    grid->cell_padding_horz = 2;
+    grid->cell_padding_vert = 2;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
     
