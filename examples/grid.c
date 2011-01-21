@@ -10,6 +10,7 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <tchar.h>
+#include <stdio.h>
 
 #include <mCtrl/grid.h>
 
@@ -20,10 +21,27 @@ static HWND grid;
 static void
 load_grid(void)
 {
+    MC_GGEOMETRY geom;
     MC_GCELL cell;
     
     SendMessage(grid, MC_GM_RESIZE, MAKEWPARAM(8, 16), 0);
+
+    /* Make space for row headers larger for custom headers */
+    geom.fMask = MC_GGF_ROWHEADERWIDTH;
+    geom.wRowHeaderWidth = 48;
+    SendMessage(grid, MC_GM_SETGEOMETRY, 0, (LPARAM)&geom);
     
+    /* Setup first column which serves as row headers */
+    cell.wCol = 0;
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_STRING);
+    for(cell.wRow = 0; cell.wRow < 16; cell.wRow++) {
+        TCHAR buffer[32];
+        _sntprintf(buffer, 32, _T("Row %d"), (int)cell.wRow+1);
+        mcValue_CreateFromString(&cell.hValue, buffer);
+        SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    }
+    
+    /* Setup few other cells */
     cell.wCol = 1;
     cell.wRow = 0;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_IMMSTRING);
@@ -84,7 +102,7 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             /* Create grid control */
             grid = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_GRID, _T(""), 
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP |
-                    MC_GS_COLUMNHEADERALPHABETIC | MC_GS_ROWHEADERNUMBERED, 
+                    MC_GS_COLUMNHEADERALPHABETIC | MC_GS_ROWHEADERCUSTOM,
                     0, 0, 0, 0, win, (HMENU) 100, inst, NULL);
             load_grid();
             return 0;
