@@ -113,10 +113,10 @@ grid_calc_layout(grid_t* grid, grid_layout_t* layout)
     col_count = table_col_count(grid->table);
     row_count = table_row_count(grid->table);
     
-    layout->display_col_headers = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK));
-    layout->display_row_headers = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK));
-    layout->display_col0 = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK) == MC_GS_COLUMNHEADERCUSTOM) ? 1 : 0;
-    layout->display_row0 = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) == MC_GS_ROWHEADERCUSTOM) ? 1 : 0;
+    layout->display_col_headers = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK) != MC_GS_COLUMNHEADERNONE);
+    layout->display_row_headers = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) != MC_GS_ROWHEADERNONE);
+    layout->display_col0 = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) == MC_GS_ROWHEADERCUSTOM) ? 1 : 0;
+    layout->display_row0 = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK) == MC_GS_COLUMNHEADERCUSTOM) ? 1 : 0;
     layout->display_col_count = col_count - layout->display_col0;
     layout->display_row_count = row_count - layout->display_row0;
 }
@@ -142,10 +142,10 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     
     /* Calculate range of cells in dirty rect 
      * ([col0,row0] inclusive; [col1,row1] exclusive) */
-    col0 = layout.display_col0 + (grid->scroll_x + MC_MAX(0, dirty->left - headerw)) / grid->cell_width;
-    row0 = layout.display_row0 + (grid->scroll_y + MC_MAX(0, dirty->top - headerh)) / grid->cell_height;
-    col1 = layout.display_col0 + MC_MIN(layout.display_col_count, (grid->scroll_x + dirty->right - headerw) / grid->cell_width + 1);
-    row1 = layout.display_row0 + MC_MIN(layout.display_row_count, (grid->scroll_y + dirty->bottom - headerh) / grid->cell_height + 1);
+    col0 = (grid->scroll_x + MC_MAX(0, dirty->left - headerw)) / grid->cell_width;
+    row0 = (grid->scroll_y + MC_MAX(0, dirty->top - headerh)) / grid->cell_height;
+    col1 = MC_MIN(layout.display_col_count, (grid->scroll_x + dirty->right - headerw) / grid->cell_width + 1);
+    row1 = MC_MIN(layout.display_row_count, (grid->scroll_y + dirty->bottom - headerh) / grid->cell_height + 1);
     
     GRID_TRACE("grid_paint: cell region [%d, %d] - [%d, %d]", col0, row0, col1, row1);
     
@@ -199,7 +199,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
             switch(grid->style & MC_GS_COLUMNHEADERMASK) {
                 case MC_GS_COLUMNHEADERNUMBERED:
-                    _stprintf(buffer, _T("%d"), col+1);
+                    _stprintf(buffer, _T("%d"), col + 1);
                     DrawText(dc, buffer, -1, &rect, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
                     break;
                 case MC_GS_COLUMNHEADERALPHABETIC:
@@ -208,7 +208,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                     break;
                 case MC_GS_COLUMNHEADERCUSTOM:
                     cell_dc_state = SaveDC(dc);
-                    table_paint_cell(grid->table, col, 0, dc, &rect);
+                    table_paint_cell(grid->table, col + layout.display_col0, 0, dc, &rect);
                     RestoreDC(dc, cell_dc_state);
                     break;
             }
@@ -253,7 +253,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                     break;
                 case MC_GS_ROWHEADERCUSTOM:
                     cell_dc_state = SaveDC(dc);
-                    table_paint_cell(grid->table, 0, row, dc, &rect);
+                    table_paint_cell(grid->table, 0, row + layout.display_row0, dc, &rect);
                     RestoreDC(dc, cell_dc_state);
                     break;
             }
@@ -274,18 +274,20 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         pen = CreatePen(PS_SOLID, 0, RGB(223,223,223));
         old_pen = SelectObject(dc, pen);
         
+        x = headerw + (col0+1) * grid->cell_width - grid->scroll_x - 1;
         y = headerh + row1 * grid->cell_height - grid->scroll_y - 1;
         for(col = col0; col < col1; col++) {
-            x = headerw + (col+1) * grid->cell_width - grid->scroll_x - 1;
             MoveToEx(dc, x, headerh, NULL);
             LineTo(dc, x, y);
+            x += grid->cell_width;
         }
         
         x = headerw + col1 * grid->cell_width - grid->scroll_x - 1;
+        y = headerh + (row0+1) * grid->cell_height - grid->scroll_y - 1;
         for(row = row0; row < row1; row++) {
-            y = headerh + (row+1) * grid->cell_height - grid->scroll_y - 1;
             MoveToEx(dc, headerw, y, NULL);
             LineTo(dc, x, y);
+            y += grid->cell_height;
         }
         
         SelectObject(dc, old_pen);
@@ -294,9 +296,9 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     
     /* Paint grid cells */
     rect.top = headerh + row0 * grid->cell_height - grid->scroll_y + grid->cell_padding_vert;
-    for(row = row0; row < row1; row++) {
+    for(row = layout.display_row0 + row0; row < layout.display_row0 + row1; row++) {
         rect.left = headerw + col0 * grid->cell_width - grid->scroll_x + grid->cell_padding_horz;
-        for(col = col0; col < col1; col++) {
+        for(col = layout.display_col0 + col0; col < layout.display_col0 + col1; col++) {
             rect.right = rect.left + grid->cell_width - 2*grid->cell_padding_horz;
             rect.bottom = rect.top + grid->cell_height - 2*grid->cell_padding_vert;
             if(!(grid->style & MC_GS_NOGRIDLINES)) {
@@ -523,9 +525,9 @@ grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom)
     }
 
     if(geom->fMask & MC_GGF_COLUMNHEADERHEIGHT)
-        grid->header_width = geom->wColumnHeaderHeight;
+        grid->header_height = geom->wColumnHeaderHeight;
     if(geom->fMask & MC_GGF_ROWHEADERWIDTH)
-        grid->header_height = geom->wRowHeaderWidth;
+        grid->header_width = geom->wRowHeaderWidth;
     if(geom->fMask & MC_GGF_COLUMNWIDTH)
         grid->cell_width = geom->wColumnWidth;
     if(geom->fMask & MC_GGF_ROWHEIGHT)
