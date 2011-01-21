@@ -168,23 +168,6 @@ typedef void* MC_VALUE;
 #define MC_VALUETYPE_ID_COLORREF         9
 /*@}*/
 
-#ifdef UNICODE
-    /**
-     * @brief Unicode-resolution alias.
-     * @sa @ref MC_VALUETYPE_ID_STRINGW @ref MC_VALUETYPE_ID_STRINGA
-     */
-    #define MC_VALUETYPE_ID_STRING        MC_VALUETYPE_ID_STRINGW
-    /**
-     * @brief Unicode-resolution alias.
-     * @sa @ref MC_VALUETYPE_ID_IMMSTRINGW @ref MC_VALUETYPE_ID_IMMSTRINGA
-     */
-    #define MC_VALUETYPE_ID_IMMSTRING     MC_VALUETYPE_ID_IMMSTRINGW
-#else
-    #define MC_VALUETYPE_ID_STRING        MC_VALUETYPE_ID_STRINGA
-    #define MC_VALUETYPE_ID_IMMSTRING     MC_VALUETYPE_ID_IMMSTRINGA
-#endif
-
-
 
 /**
  * @brief Retrieve Handle of a value type implemented in mCtrl.
@@ -274,22 +257,6 @@ BOOL MCTRL_API mcValue_CreateFromColorref(MC_VALUE* phValue, COLORREF crColor);
 
 /*@}*/
 
-#ifdef UNICODE
-    /**
-     * @brief Unicode-resolution alias.
-     * @sa @ref mcValue_CreateFromStringW @ref mcValue_CreateFromStringA
-     */
-    #define mcValue_CreateFromString      mcValue_CreateFromStringW
-    /**
-     * @brief Unicode-resolution alias.
-     * @sa @ref mcValue_CreateFromImmStringW @ref mcValue_CreateFromImmStringA
-     */
-    #define mcValue_CreateFromImmString   mcValue_CreateFromImmStringW
-#else
-    #define mcValue_CreateFromString      mcValue_CreateFromStringA
-    #define mcValue_CreateFromImmString   mcValue_CreateFromImmStringA
-#endif
-
 
 /**
  * @name Getter Functions
@@ -361,22 +328,6 @@ COLORREF MCTRL_API mcValue_GetColorref(const MC_VALUE hValue);
 
 /*@}*/
 
-#ifdef UNICODE
-    /**
-     * @brief Unicode-resolution alias.
-     * @sa @ref mcValue_GetStringW @ref mcValue_GetStringA
-     */
-    #define mcValue_GetString             mcValue_GetStringW
-    /**
-     * @brief Unicode-resolution alias.
-     * @sa @ref mcValue_GetImmStringW @ref mcValue_GetImmStringA
-     */
-    #define mcValue_GetImmString          mcValue_GetImmStringW
-#else
-    #define mcValue_GetString             mcValue_GetStringA
-    #define mcValue_GetImmString          mcValue_GetImmStringA
-#endif
-
 
 /**
  * @name Other Value Functions
@@ -398,6 +349,36 @@ BOOL MCTRL_API mcValue_Duplicate(MC_VALUETYPE hType, MC_VALUE* phDest, const MC_
  * @param[in] hValue The value.
  */
 void MCTRL_API mcValue_Destroy(MC_VALUETYPE hType, MC_VALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+#ifdef UNICODE
+    /** @brief Unicode-resolution alias. @sa MC_VALUETYPE_ID_STRINGW MC_VALUETYPE_ID_STRINGA */
+    #define MC_VALUETYPE_ID_STRING        MC_VALUETYPE_ID_STRINGW
+    /** @brief Unicode-resolution alias. @sa MC_VALUETYPE_ID_IMMSTRINGW MC_VALUETYPE_ID_IMMSTRINGA */
+    #define MC_VALUETYPE_ID_IMMSTRING     MC_VALUETYPE_ID_IMMSTRINGW
+    /** @brief Unicode-resolution alias. @sa mcValue_CreateFromStringW mcValue_CreateFromStringA */
+    #define mcValue_CreateFromString      mcValue_CreateFromStringW
+    /** @brief Unicode-resolution alias. @sa mcValue_CreateFromImmStringW mcValue_CreateFromImmStringA */
+    #define mcValue_CreateFromImmString   mcValue_CreateFromImmStringW
+    /** @brief Unicode-resolution alias. @sa mcValue_GetStringW mcValue_GetStringA */
+    #define mcValue_GetString             mcValue_GetStringW
+    /** @brief Unicode-resolution alias. @sa mcValue_GetImmStringW mcValue_GetImmStringA */
+    #define mcValue_GetImmString          mcValue_GetImmStringW
+#else
+    #define MC_VALUETYPE_ID_STRING        MC_VALUETYPE_ID_STRINGA
+    #define MC_VALUETYPE_ID_IMMSTRING     MC_VALUETYPE_ID_IMMSTRINGA
+    #define mcValue_CreateFromString      mcValue_CreateFromStringA
+    #define mcValue_CreateFromImmString   mcValue_CreateFromImmStringA
+    #define mcValue_GetString             mcValue_GetStringA
+    #define mcValue_GetImmString          mcValue_GetImmStringA
+#endif
 
 /*@}*/
 

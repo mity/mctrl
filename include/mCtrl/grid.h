@@ -84,12 +84,6 @@ void MCTRL_API mcGrid_Terminate(void);
 #define MC_WC_GRIDW            L"mCtrl.grid"
 /** @brief Window class name (ANSI variant). */
 #define MC_WC_GRIDA             "mCtrl.grid"
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. */
-    #define MC_WC_GRID          MC_WC_GRIDW
-#else
-    #define MC_WC_GRID          MC_WC_GRIDA
-#endif
 /*@}*/
 
 
@@ -126,7 +120,7 @@ void MCTRL_API mcGrid_Terminate(void);
 
 /**
  * @brief Structure for setting and getting cell of the table.
- * @sa @ref MC_GM_SETCELL @ref MC_GM_GETCELL
+ * @sa MC_GM_SETCELL MC_GM_GETCELL
  */
 typedef struct MC_GCELL_tag {
     /** @brief Column index */
@@ -157,7 +151,7 @@ typedef struct MC_GCELL_tag {
 
 /**
  * @brief Structure describing inner geometry of the grid.
- * @sa @ref MC_GM_SETGEOMETRY @ref MC_GM_GETGEOMETRY
+ * @sa MC_GM_SETGEOMETRY MC_GM_GETGEOMETRY
  */
 typedef struct MC_GGEOMETRY_tag {
     /** @brief Bitmask specifying what other members are valid. */
@@ -286,6 +280,21 @@ typedef struct MC_GGEOMETRY_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_GM_GETGEOMETRY         (WM_USER + 113)
+
+/*@}*/
+
+
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+#ifdef UNICODE
+    /** @brief Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
+    #define MC_WC_GRID          MC_WC_GRIDW
+#else
+    #define MC_WC_GRID          MC_WC_GRIDA
+#endif
 
 /*@}*/
 

@@ -103,15 +103,6 @@ void MCTRL_API mcMditab_Terminate(void);
 #define MC_WC_MDITABW        L"mCtrl.mditab"  
 /** @brief Window class name (ANSI variant). */
 #define MC_WC_MDITABA         "mCtrl.mditab"  
-#ifdef UNICODE
-    /** 
-     * @brief Unicode-resolution alias. 
-     * @sa @ref MC_WC_MDITABW @ref MC_WC_MDITABA
-     */
-    #define MC_WC_MDITAB     MC_WC_MDITABW
-#else
-    #define MC_WC_MDITAB     MC_WC_MDITABA
-#endif
 /*@}*/
 
 
@@ -173,7 +164,7 @@ void MCTRL_API mcMditab_Terminate(void);
 
 /**
  * @brief Structure for manipulating with the tab item (unicode variant).
- * @sa @ref MC_MTM_INSERTITEM @ref MC_MTM_DELETEITEM @ref MC_MTM_SETITEM @ref MC_MTM_GETITEM
+ * @sa MC_MTM_INSERTITEM MC_MTM_SETITEM MC_MTM_GETITEM
  */
 typedef struct MC_MTITEMW_tag {
     /** @brief Bit mask indicating which members of the structure are valid. */
@@ -190,7 +181,7 @@ typedef struct MC_MTITEMW_tag {
 
 /**
  * @brief Structure for manipulating with the tab item (ANSI variant).
- * @sa @ref MC_MTM_INSERTITEM @ref MC_MTM_DELETEITEM @ref MC_MTM_SETITEM @ref MC_MTM_GETITEM
+ * @sa MC_MTM_INSERTITEM MC_MTM_SETITEM MC_MTM_GETITEM
  */
 typedef struct MC_MTITEMA_tag {
     /** @brief Bit mask indicating which members of the structure are valid. */
@@ -204,18 +195,6 @@ typedef struct MC_MTITEMA_tag {
     /** @brief User data. */
     LPARAM lParam;
 } MC_MTITEMA;
-
-
-#ifdef UNICODE
-    /** 
-     * @brief Unicode-resolution alias. 
-     * @sa @ref MC_MTITEMW @ref MC_MTITEMA
-     */
-    #define MC_MTITEM          MC_MTITEMW
-#else
-    #define MC_MTITEM          MC_MTITEMA
-#endif
-
 
 /**
  * @brief Structure for messages @ref MC_MTM_SETITEMWIDTH and @ref MC_MTM_GETITEMWIDTH.
@@ -331,16 +310,6 @@ typedef struct MC_MTHITTESTINFO_tag {
  */
 #define MC_MTM_INSERTITEMA        (WM_USER + 106)
 
-#ifdef UNICODE
-    /** 
-     * @brief Unicode-resolution alias. 
-     * @sa @ref MC_MTM_INSERTITEMW @ref MC_MTM_INSERTITEMA
-     */
-    #define MC_MTM_INSERTITEM     MC_MTM_INSERTITEMW
-#else
-    #define MC_MTM_INSERTITEM     MC_MTM_INSERTITEMA
-#endif
-
 /**
  * @brief Sets tab in the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the item.
@@ -356,17 +325,6 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @return @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_SETITEMA           (WM_USER + 108)
-
-#ifdef UNICODE
-    /** 
-     * @brief Unicode-resolution alias. 
-     * @sa @ref MC_MTM_SETITEMW @ref MC_MTM_SETITEMA
-     */
-    #define MC_MTM_SETITEM        MC_MTM_SETITEMW
-#else
-    #define MC_MTM_SETITEM        MC_MTM_SETITEMA
-#endif
-
 
 /**
  * @brief Gets tab data from the tab control (unicode variant).
@@ -385,16 +343,6 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @return @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_GETITEMA           (WM_USER + 110)
-
-#ifdef UNICODE
-    /** 
-     * @brief Unicode-resolution alias. 
-     * @sa @ref MC_MTM_GETITEMW @ref MC_MTM_GETITEMA
-     */
-    #define MC_MTM_GETITEM        MC_MTM_GETITEMW
-#else
-    #define MC_MTM_GETITEM        MC_MTM_GETITEMA
-#endif
 
 /**
  * @brief Deletes the item.
@@ -557,6 +505,33 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * to cancel the tab closure.
  */ 
 #define MC_MTN_CLOSEITEM          (0xfffffdce)
+
+/*@}*/
+
+
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+#ifdef UNICODE
+    /** @brief Unicode-resolution alias. @sa MC_WC_MDITABW MC_WC_MDITABA */
+    #define MC_WC_MDITAB          MC_WC_MDITABW
+    /** @brief Unicode-resolution alias. @sa MC_MTITEMW MC_MTITEMA */
+    #define MC_MTITEM             MC_MTITEMW
+    /** @brief Unicode-resolution alias. @sa MC_MTM_INSERTITEMW MC_MTM_INSERTITEMA */
+    #define MC_MTM_INSERTITEM     MC_MTM_INSERTITEMW
+    /** @brief Unicode-resolution alias. @sa MC_MTM_SETITEMW MC_MTM_SETITEMA */
+    #define MC_MTM_SETITEM        MC_MTM_SETITEMW
+    /** @brief Unicode-resolution alias. @sa MC_MTM_GETITEMW MC_MTM_GETITEMA */
+    #define MC_MTM_GETITEM        MC_MTM_GETITEMW
+#else
+    #define MC_WC_MDITAB          MC_WC_MDITABA
+    #define MC_MTITEM             MC_MTITEMA
+    #define MC_MTM_INSERTITEM     MC_MTM_INSERTITEMA
+    #define MC_MTM_SETITEM        MC_MTM_SETITEMA
+    #define MC_MTM_GETITEM        MC_MTM_GETITEMA
+#endif
 
 /*@}*/
 

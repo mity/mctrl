@@ -160,12 +160,6 @@ void MCTRL_API mcHtml_Terminate(void);
 #define MC_WC_HTMLW            L"mCtrl.html"
 /** @brief Window class name (ANSI variant). */
 #define MC_WC_HTMLA             "mCtrl.html"
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. */
-    #define MC_WC_HTML          MC_WC_HTMLW
-#else
-    #define MC_WC_HTML          MC_WC_HTMLA
-#endif
 /*@}*/
 
 
@@ -199,15 +193,6 @@ void MCTRL_API mcHtml_Terminate(void);
  */
 #define MC_HM_GOTOURLA        (WM_USER + 11)
 
-
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. */
-    #define MC_HM_GOTOURL     MC_HM_GOTOURLW
-#else
-    #define MC_HM_GOTOURL     MC_HM_GOTOURLA
-#endif
-
-
 /**
  * @brief Set contents of the HTML tag with given attribute @c "id" (Unicode variant).
  * @param[in] wParam (@c const @c WCHAR*) ID of the tag.
@@ -226,19 +211,12 @@ void MCTRL_API mcHtml_Terminate(void);
  */
 #define MC_HM_SETTAGCONTENTSA (WM_USER + 13)
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. */
-    #define MC_HM_SETTAGCONTENTS     MC_HM_SETTAGCONTENTSW
-#else
-    #define MC_HM_SETTAGCONTENTS     MC_HM_SETTAGCONTENTSA
-#endif
-
 /*@}*/
 
 
 /**
  * @brief Structure used for some HTML control notifications (unicode variant).
- * @sa @ref MC_HN_APPLINK @ref MC_HN_DOCUMENTCOMPLETE
+ * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLW_tag {
     /** @brief Common notification structure header. */
@@ -249,7 +227,7 @@ typedef struct MC_NMHTMLURLW_tag {
 
 /**
  * @brief Structure used for some HTML control notifications (ANSI variant).
- * @sa @ref MC_HN_APPLINK @ref MC_HN_DOCUMENTCOMPLETE
+ * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLA_tag {
     /** @brief Common notification structure header. */
@@ -257,15 +235,6 @@ typedef struct MC_NMHTMLURLA_tag {
     /** @brief String representation of @c app: protocol URL. */
     LPCSTR pszUrl;
 } MC_NMHTMLURLA;
-
-
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. */
-    #define MC_NMHTMLURL         MC_NMHTMLURLW
-#else
-    #define MC_NMHTMLURL         MC_NMHTMLURLA
-#endif
-
 
 
 /**
@@ -290,6 +259,30 @@ typedef struct MC_NMHTMLURLA_tag {
  * @return Application should return zero if it processes the notification.
  */
 #define MC_HN_DOCUMENTCOMPLETE   ((0U-2000U) + 0x0002)
+
+/*@}*/
+
+
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+#ifdef UNICODE
+    /** @brief Unicode-resolution alias. @sa MC_WC_HTMLW MC_WC_HTMLA */
+    #define MC_WC_HTML             MC_WC_HTMLW
+    /** @brief Unicode-resolution alias. @sa MC_HM_GOTOURLW MC_HM_GOTOURLA */
+    #define MC_HM_GOTOURL          MC_HM_GOTOURLW
+    /** @brief Unicode-resolution alias. @sa MC_HM_SETTAGCONTENTSW MC_HM_SETTAGCONTENTSA*/
+    #define MC_HM_SETTAGCONTENTS   MC_HM_SETTAGCONTENTSW
+    /** @brief Unicode-resolution alias. @sa MC_NMHTMLURLW MC_NMHTMLURLA */
+    #define MC_NMHTMLURL           MC_NMHTMLURLW
+#else
+    #define MC_WC_HTML             MC_WC_HTMLA
+    #define MC_HM_GOTOURL          MC_HM_GOTOURLA
+    #define MC_HM_SETTAGCONTENTS   MC_HM_SETTAGCONTENTSA
+    #define MC_NMHTMLURL           MC_NMHTMLURLA
+#endif
 
 /*@}*/
 

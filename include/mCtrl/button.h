@@ -152,15 +152,6 @@ void MCTRL_API mcButton_Terminate(void);
 #define MC_WC_BUTTONW          L"mCtrl.button"
 /** @brief Window class name (ANSI variant). */
 #define MC_WC_BUTTONA           "mCtrl.button"
-#ifdef UNICODE
-    /** 
-     * @brief Unicode-resolution alias. 
-     * @sa @ref MC_WC_MDITABW @ref MC_WC_MDITABA
-     */
-    #define MC_WC_BUTTON        MC_WC_BUTTONW
-#else
-    #define MC_WC_BUTTON        MC_WC_BUTTONA
-#endif
 /*@}*/
 
 
@@ -243,6 +234,21 @@ typedef struct MC_NMBCDROPDOWN_tag {
  * @sa MC_NMBCDROPDOWN
  */
 #define MC_BCN_DROPDOWN          ((0U-1250U) + 0x0002)
+
+/*@}*/
+
+
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+#ifdef UNICODE
+    /** @brief Unicode-resolution alias. @sa MC_WC_MDITABW MC_WC_MDITABA */
+    #define MC_WC_BUTTON        MC_WC_BUTTONW
+#else
+    #define MC_WC_BUTTON        MC_WC_BUTTONA
+#endif
 
 /*@}*/
 
