@@ -20,71 +20,68 @@ mCtrl is covered with the GNU Lesser General Public License 2.1 or
 =================
 
 You can always get latest version, and most actual information on project 
-homepage:
+webpages:
+    - http://mctrl.sourceforge.net
+    - http://sourceforge.net/projects/mctrl
 
-    http://mctrl.sourceforge.net
-    http://sourceforge.net/projects/mctrl
+There are usually four packages for each release version available:
+    - mCtrl-x.y.z-doc.zip     ... documentation (HTML)
+    - mCtrl-x.y.z-src.zip     ... sources
+    - mCtrl-x.y.z-x86.zip     ... prebuilt 32-bit binaries
+    - mCtrl-x.y.z-x86_64.zip  ... prebuilt 64-bit binaries
 
-Source package, documentation as well as pre-built x86 and x86_64 binaries 
-can be downloaded from there.
+
+[3] Using mCtrl
+===============
+
+If you have a pre-built package (either 32-bit or 64-bit), using mCtrl is as
+easy as using any other DLL.
+
+Header files are located in 'include\mCtrl' directory. You should instruct
+your C/C++ compiler to search for header files in the 'include' directory and
+use the 'mCtrl' in your preprocessor #include directives, e.g.: 
+    #include <mCtrl/version.h>
+
+Import libraries are under the 'lib' subdirectory:
+    - libmCtrl.a for gcc-based toolchains (e.g. mingw, mingw-w64)
+    - mCtrl.lib for MSVC
+
+And finally deploy your application with the MCTRL.DLL which is located
+in the 'bin' subdirectory.
+
+Note that documentation is not bundled within the prebuilt packages. 
+You jave to download a separate package, or you can find the documentation
+online:
+    http://mctrl.sourceforge.net/doc.php
 
 
-[3] Building mCtrl
-==================
+[4] Compiling mCtrl from sources
+================================
 
-Note: If you want just to use mCtrl in your application, you might prefer to 
-get prebuilt mCtrl binary from the project homepage, rather then building
-it from the sources.
+Disclaimer: If you want to just use MCTRL.DLL you should probably stick with
+prebuilt package.
 
-[3.1] Building with mingw
--------------------------
-
-Note: With mingw project you can build only 32-bit binaries.
-
-You will need gcc toolchain, Win32API headers and bash environment (e.g. msys)
-and GNU make. You can download all of these from mingw project home on 
-sourceforge:  
-    http://sourceforge.net/projects/mingw/
-
-In bash, go into the mCtrl root directory and build the project with GNU make.
-    $ cd /c/projects/mctrl-0.6.0
+Primary development platform for mCtrl project is mingw-w64
+(see http://sourceforge.net/projects/mingw-w64/) and MSYS. Assuming you have
+setup the environment, and have the mCtrl sources then the build is as easy
+as running 'make' from the root directory:
     $ make
     
-[3.2] Building with mingw-w64
------------------------------
+It is possible to use PREFIX if the gcc toolchain was compiled as a
+cross-compiler. For example:
+    $ make PREFIX=i686-w64-mingw32-
 
-You will need gcc toolchain (or perhaps two, if you want build 32bit and 64bit
-binaries). You can download them from sourceforge:
-    http://sourceforge.net/projects/mingw-w64/
+More details and information about buiding within other environment (e.g.
+MS VisualStudio) can be found in documentation.
 
-Unlike mingw project, toolchains from mingw-w64 already contains all Win32API
-headers and libraries.
-    
-Furthermore you need bash environment and GNU make (you can reuse msys and 
-make from mingw project, get it from http://sourceforge.net/projects/mingw/).
 
-Then, before we start the building you may need to add bin directory of the 
-gcc toolchain in your path:
-    $ export PATH=/c/mingw-w64/bin/
-(Assuming you unzipped the gcc toolchain to that path)
+[5] Bugs
+========
 
-Then to build just use GNU make with proper prefix of the gcc toolchain:
-    $ cd /c/projects/mctrl-0.6.0
-    $ make PREFIX=i686-w64-mingw32-            # targeting 32 bits
-    $ make PREFIX=x86_64-w64-mingw32-          # targeting 64 bits
+If you encounter any bug, please be so kind and report it. We cannot fix bugs
+we do not know about. The bug tracker can be found here:
+    http://sourceforge.net/tracker/?group_id=286433&atid=1213775
 
-[3.3] Other toolchains
-----------------------
-
-You should be able to build mCtrl with any reasonable C toolchain or in 
-an IDE (e.g. MS Visual Studio) with some effort, if you create a project file
-or makefile or what the toolchain expects. Of course the primary target of 
-the project shall be a DLL.
-
-Just be sure that: 
- - The project contains all sources *.c and *.rc files under src/ subdirectory.
- - Predefine UNICODE=1, _UNICODE=1 for preprocessor.
- - The include path includes the include/ subdirectory and current directory.
- - Link with all required Win32 libraries (as of mCtrl 0.6.0 COMCTL32.LIB, 
-   OLE32.LIB, OLEAUT32.LIB are required).
+Please be so kind and try to verify the bug you want to report is not already
+registered. If it is, check it (and potantially add new details about it).
 
