@@ -77,6 +77,12 @@ load_grid(void)
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_INT32);
     mcValue_CreateFromInt32(&cell.hValue, 42);
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+
+    cell.wCol = 6;
+    cell.wRow = 14;
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_HICON);
+    mcValue_CreateFromHIcon(&cell.hValue, LoadImage(inst, MAKEINTRESOURCE(100), IMAGE_ICON, 0, 0, LR_SHARED));
+    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 }
 
 
