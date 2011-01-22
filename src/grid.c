@@ -620,7 +620,7 @@ grid_create(HWND win, CREATESTRUCT* cs)
     grid->cell_width = 64;
     grid->cell_height = 19;
     grid->cell_padding_horz = 2;
-    grid->cell_padding_vert = 2;
+    grid->cell_padding_vert = 1;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
     
