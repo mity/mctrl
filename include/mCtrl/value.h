@@ -92,6 +92,7 @@ extern "C" {
  * <tr><td>@ref MC_VALUETYPE_ID_IMMSTRINGW</td><td>@ref mcValue_CreateFromImmStringW()</td><td>@ref mcValue_GetImmStringW()</td><td>Unicode immutable string</td></tr>
  * <tr><td>@ref MC_VALUETYPE_ID_IMMSTRINGA</td><td>@ref mcValue_CreateFromImmStringA()</td><td>@ref mcValue_GetImmStringA()</td><td>ANSI immutable string</td></tr>
  * <tr><td>@ref MC_VALUETYPE_ID_COLORREF</td><td>@ref mcValue_CreateFromColorref()</td><td>@ref mcValue_GetColorref()</td><td>Color RGB triplet</td></tr>
+ * <tr><td>@ref MC_VALUETYPE_ID_HICON</td><td>@ref mcValue_CreateFromHIcon()</td><td>@ref mcValue_GetHIcon()</td><td>Icon handle</td></tr>
  * </table>
  *
  *
@@ -164,8 +165,10 @@ typedef void* MC_VALUE;
 #define MC_VALUETYPE_ID_IMMSTRINGW       7
 /** @brief ID for immutable ANSI string value type. */
 #define MC_VALUETYPE_ID_IMMSTRINGA       8
-/** @brief ID for colro RGB triplet. */
+/** @brief ID for color RGB triplet. */
 #define MC_VALUETYPE_ID_COLORREF         9
+/** @brief ID for icon handle (@c HICON). */
+#define MC_VALUETYPE_ID_HICON           10
 /*@}*/
 
 
@@ -255,6 +258,14 @@ BOOL MCTRL_API mcValue_CreateFromImmStringA(MC_VALUE* phValue, LPCSTR lpStr);
  */
 BOOL MCTRL_API mcValue_CreateFromColorref(MC_VALUE* phValue, COLORREF crColor);
 
+/**
+ * @brief Create a value holding a handle to icon (@c HICON).
+ * @param[out] phValue Filled with new value handle.
+ * @param[in] hIcon The icon handle.
+ * @return @c TRUE on success, @c FALSE on failure.
+ */
+BOOL MCTRL_API mcValue_CreateFromHIcon(MC_VALUE* phValue, HICON hIcon);
+
 /*@}*/
 
 
@@ -325,6 +336,13 @@ LPCSTR MCTRL_API mcValue_GetImmStringA(const MC_VALUE hValue);
  * @return The color RGB triplet.
  */
 COLORREF MCTRL_API mcValue_GetColorref(const MC_VALUE hValue);
+
+/**
+ * @brief Getter for icon handle.
+ * @param[in] hValue The value. It must be of type @ref MC_VALUETYPE_ID_HICON.
+ * @return The icon handle.
+ */
+HICON MCTRL_API mcValue_GetHIcon(const MC_VALUE hValue);
 
 /*@}*/
 

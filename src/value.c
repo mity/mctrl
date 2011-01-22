@@ -867,6 +867,39 @@ static const struct value_type_tag colorref_type = {
 const value_type_t* VALUE_TYPE_COLORREF = &colorref_type;
 
 
+/*********************************
+ *** HICON type implementation ***
+ *********************************/
+
+void
+value_set_hicon(value_t* v, HICON icon)
+{
+    *v = (value_t)icon;
+}
+
+HICON
+value_get_hicon(const value_t v)
+{
+    return (HICON)v;
+}
+
+static void
+hicon_paint(const value_t v, HDC dc, RECT* rect)
+{
+    DrawIconEx(dc, rect->left, rect->top, (HICON)v, 0, 0, 0, NULL, DI_NORMAL);
+}
+
+static const struct value_type_tag hicon_type = {
+    scalar_free,
+    scalar_copy,
+    NULL,
+    NULL,
+    NULL,
+    hicon_paint
+};
+
+const value_type_t* VALUE_TYPE_HICON = &hicon_type;
+
 
 /**************************
  *** Exported functions ***
@@ -885,6 +918,7 @@ mcValueType_GetBuiltin(int id)
         case MC_VALUETYPE_ID_IMMSTRINGW: return VALUE_TYPE_IMMSTRING_W;
         case MC_VALUETYPE_ID_IMMSTRINGA: return VALUE_TYPE_IMMSTRING_A;
         case MC_VALUETYPE_ID_COLORREF:   return VALUE_TYPE_COLORREF;
+        case MC_VALUETYPE_ID_HICON:      return VALUE_TYPE_HICON;
     }
     
     MC_TRACE("mcValueType_GetBuiltin: id %d unknown", id);
@@ -954,6 +988,13 @@ mcValue_CreateFromColorref(MC_VALUE* phValue, COLORREF crColor)
     return TRUE;
 }
 
+BOOL MCTRL_API
+mcValue_CreateFromHIcon(MC_VALUE* phValue, HICON hIcon)
+{
+    value_set_hicon((value_t*) phValue, hIcon);
+    return TRUE;
+}
+
 
 INT MCTRL_API
 mcValue_GetInt32(const MC_VALUE hValue)
@@ -1007,6 +1048,12 @@ COLORREF MCTRL_API
 mcValue_GetColorref(const MC_VALUE hValue)
 {
     return value_get_colorref((value_t)hValue);
+}
+
+HICON MCTRL_API
+mcValue_GetHIcon(const MC_VALUE hValue)
+{
+    return value_get_hicon((value_t)hValue);
 }
 
 

@@ -45,6 +45,7 @@ extern const value_type_t* VALUE_TYPE_STRING_A;
 extern const value_type_t* VALUE_TYPE_IMMSTRING_W;
 extern const value_type_t* VALUE_TYPE_IMMSTRING_A;
 extern const value_type_t* VALUE_TYPE_COLORREF;
+extern const value_type_t* VALUE_TYPE_HICON;
 
 #ifdef UNICODE
     #define VALUE_TYPE_STRING             VALUE_TYPE_STRING_W
@@ -81,6 +82,9 @@ void value_set_immstring_a(value_t* v, const char* str);
  
 void value_set_colorref(value_t* v, COLORREF cref);
 COLORREF value_get_colorref(const value_t v);
+
+void value_set_hicon(value_t* v, HICON icon);
+HICON value_get_hicon(const value_t v);
 
 
 #ifdef UNICODE
