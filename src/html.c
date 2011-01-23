@@ -225,6 +225,8 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         {
             BSTR url = disp_params->rgvarg[5].pvarVal->bstrVal;
             VARIANT_BOOL* done = disp_params->rgvarg[0].pboolVal;
+            HTML_TRACE("dispatch_Invoke: DISPID_BEFORENAVIGATE2(%S)", url);
+
             if(wcsncmp(url, L"app:", 4) == 0) {
                 html_notify_url(html, MC_HN_APPLINK, url);
                 *done = VARIANT_TRUE;
@@ -241,6 +243,8 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         case DISPID_DOCUMENTCOMPLETE:
         {
             BSTR url = disp_params->rgvarg[0].pvarVal->bstrVal;
+            HTML_TRACE("dispatch_Invoke: DISPID_DOCUMENTCOMPLETE(%S)", url);
+
             html_notify_url(html, MC_HN_DOCUMENTCOMPLETE, url);
             break;
         }
@@ -250,6 +254,9 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         {
             long progress = disp_params->rgvarg[0].lVal;
             long progress_max = disp_params->rgvarg[1].lVal;
+            HTML_TRACE("dispatch_Invoke: DISPID_PROGRESSCHANGE(%ld, %ld)",
+                       progress, progress_max);
+
             if(progress < 0  ||  progress_max < 0) {
                 IWebBrowser2* browser_iface = html_browser_iface(html);
                 if(browser_iface != NULL) {
@@ -267,7 +274,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         }
 
         default:
-            HTML_TRACE("dispatch_Invoke: disp %d", disp_id);
+            HTML_TRACE("dispatch_Invoke: disp_id %d", disp_id);
             return DISP_E_MEMBERNOTFOUND;
     }
 
