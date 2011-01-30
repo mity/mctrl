@@ -443,45 +443,45 @@ table_uninstall_view(table_t* table, void* view)
  *** Exported functions ***
  **************************/
 
-MC_TABLE MCTRL_API
-mcTable_Create(WORD wColumnCount, WORD wRowCount, MC_VALUETYPE hType, DWORD dwFlags)
+MC_HTABLE MCTRL_API
+mcTable_Create(WORD wColumnCount, WORD wRowCount, MC_HVALUETYPE hType, DWORD dwFlags)
 {
     if(MC_ERR(dwFlags != 0)) {
         SetLastError(ERROR_INVALID_PARAMETER);
         return NULL;
     }
     
-    return (MC_TABLE) table_create(wColumnCount, wRowCount, (value_type_t*)hType);
+    return (MC_HTABLE) table_create(wColumnCount, wRowCount, (value_type_t*)hType);
 }
 
 void MCTRL_API
-mcTable_AddRef(MC_TABLE hTable)
+mcTable_AddRef(MC_HTABLE hTable)
 {
     if(hTable)
         table_ref((table_t*)hTable);
 }
 
 void MCTRL_API
-mcTable_Release(MC_TABLE hTable)
+mcTable_Release(MC_HTABLE hTable)
 {
     if(hTable)
         table_unref((table_t*)hTable);
 }
 
 WORD MCTRL_API
-mcTable_ColumnCount(MC_TABLE hTable)
+mcTable_ColumnCount(MC_HTABLE hTable)
 {
     return (hTable ? table_col_count((table_t*)hTable) : 0);
 }
 
 WORD MCTRL_API
-mcTable_RowCount(MC_TABLE hTable)
+mcTable_RowCount(MC_HTABLE hTable)
 {
     return (hTable ? table_row_count((table_t*)hTable) : 0);
 }
 
 BOOL MCTRL_API
-mcTable_Resize(MC_TABLE hTable, WORD wColumnCount, WORD wRowCount)
+mcTable_Resize(MC_HTABLE hTable, WORD wColumnCount, WORD wRowCount)
 {
     if(MC_ERR(hTable == NULL)) {
         MC_TRACE("mcTable_Resize: hTable == NULL");
@@ -494,15 +494,15 @@ mcTable_Resize(MC_TABLE hTable, WORD wColumnCount, WORD wRowCount)
 }
 
 void MCTRL_API
-mcTable_Clear(MC_TABLE hTable)
+mcTable_Clear(MC_HTABLE hTable)
 {
     if(hTable)
         table_clear((table_t*)hTable);
 }
 
 BOOL MCTRL_API
-mcTable_SetCell(MC_TABLE hTable, WORD wCol, WORD wRow,
-                MC_VALUETYPE hType, MC_VALUE hValue)
+mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
+                MC_HVALUETYPE hType, MC_HVALUE hValue)
 {
     table_t* table = (table_t*) hTable;
 
@@ -529,8 +529,8 @@ mcTable_SetCell(MC_TABLE hTable, WORD wCol, WORD wRow,
 }
 
 BOOL MCTRL_API
-mcTable_GetCell(MC_TABLE hTable, WORD wCol, WORD wRow, 
-                MC_VALUETYPE* phType, MC_VALUE* phValue)
+mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, 
+                MC_HVALUETYPE* phType, MC_HVALUE* phValue)
 {
     table_t* table = (table_t*) hTable;
     value_type_t* type;

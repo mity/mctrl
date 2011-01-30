@@ -128,9 +128,9 @@ typedef struct MC_GCELL_tag {
     /** @brief Row index */
     WORD wRow;
     /** @brief Handle of value type */
-    MC_VALUETYPE hType;
+    MC_HVALUETYPE hType;
     /** @brief Handle of the value */
-    MC_VALUE hValue;
+    MC_HVALUE hValue;
 } MC_GCELL;
 
 /**

@@ -31,7 +31,7 @@ extern "C" {
  * @file
  * @brief Table (data model for grid control)
  *
- * The table is actually a container which manages set of values (@ref MC_VALUE)
+ * The table is actually a container which manages set of values (@ref MC_HVALUE)
  * in two-dimensional matrix. It serves as a back-end for the grid control
  * (@ref MC_WC_GRID).
  *
@@ -41,9 +41,9 @@ extern "C" {
  *
  * @section sec_grid_homo Homogenous tables
  *
- * Homogenous tables can hold only values of the same type (@ref MC_VALUETYPE),
+ * Homogenous tables can hold only values of the same type (@ref MC_HVALUETYPE),
  * specified during creation of the table. Homogenous table is less memory
- * consuming, as it just holds @ref MC_VALUE handle for each cell.
+ * consuming, as it just holds @ref MC_HVALUE handle for each cell.
  *
  * However it severly limits flexibility of the table. Any attempt to cet any
  * cell of the table to other type then specified will fail.
@@ -61,7 +61,7 @@ extern "C" {
  * When @c NULL is used as the value type during table creation, then a
  * heterogenous table is created.
  * 
- * Heterogenous table holds pair of @ref MC_VALUETYPE and @ref MC_VALUE for
+ * Heterogenous table holds pair of @ref MC_HVALUETYPE and @ref MC_HVALUE for
  * each cell. Initially the table is empty (both the handles of each cell are
  * @c NULL).
  *
@@ -74,7 +74,7 @@ extern "C" {
 /**
  * @brief Opaque table handle.
  */
-typedef void* MC_TABLE;
+typedef void* MC_HTABLE;
 
 
 /**
@@ -89,15 +89,15 @@ typedef void* MC_TABLE;
  * @param dwFlags Reserved, set to zero.
  * @return Handle of the new table or @c NULL on failure.
  */
-MC_TABLE MCTRL_API mcTable_Create(WORD wColumnCount, WORD wRowCount,
-                                  MC_VALUETYPE hType, DWORD dwFlags);
+MC_HTABLE MCTRL_API mcTable_Create(WORD wColumnCount, WORD wRowCount,
+                                   MC_HVALUETYPE hType, DWORD dwFlags);
 
 /**
  * @brief Increment reference counter of the table.
  *
  * @param[in] hTable The table.
  */
-void MCTRL_API mcTable_AddRef(MC_TABLE hTable);
+void MCTRL_API mcTable_AddRef(MC_HTABLE hTable);
 
 /**
  * @brief Decrement reference counter of the table.
@@ -107,7 +107,7 @@ void MCTRL_API mcTable_AddRef(MC_TABLE hTable);
  *
  * @param[in] hTable The table.
  */
-void MCTRL_API mcTable_Release(MC_TABLE hTable);
+void MCTRL_API mcTable_Release(MC_HTABLE hTable);
 
 /**
  * @brief Retrieve count of table columns.
@@ -115,7 +115,7 @@ void MCTRL_API mcTable_Release(MC_TABLE hTable);
  * @param[in] hTable The table.
  * @return The count.
  */
-WORD MCTRL_API mcTable_ColumnCount(MC_TABLE hTable);
+WORD MCTRL_API mcTable_ColumnCount(MC_HTABLE hTable);
 
 /**
  * @brief Retrieve count of table rows.
@@ -123,7 +123,7 @@ WORD MCTRL_API mcTable_ColumnCount(MC_TABLE hTable);
  * @param[in] hTable The table.
  * @return The count.
  */
-WORD MCTRL_API mcTable_RowCount(MC_TABLE hTable);
+WORD MCTRL_API mcTable_RowCount(MC_HTABLE hTable);
 
 /**
  * @brief Resize the table.
@@ -138,7 +138,7 @@ WORD MCTRL_API mcTable_RowCount(MC_TABLE hTable);
  * @param[in] wRowCount Row count.
  * @return @c TRUE on success, @c FALSE otherwise.
  */
-BOOL MCTRL_API mcTable_Resize(MC_TABLE hTable, WORD wColumnCount, WORD wRowCount);
+BOOL MCTRL_API mcTable_Resize(MC_HTABLE hTable, WORD wColumnCount, WORD wRowCount);
 
 /**
  * @brief Clear the table.
@@ -149,7 +149,7 @@ BOOL MCTRL_API mcTable_Resize(MC_TABLE hTable, WORD wColumnCount, WORD wRowCount
  *
  * @param[in] hTable The table.
  */
-void MCTRL_API mcTable_Clear(MC_TABLE hTable);
+void MCTRL_API mcTable_Clear(MC_HTABLE hTable);
 
 /**
  * @brief Set contents of a cell.
@@ -170,8 +170,8 @@ void MCTRL_API mcTable_Clear(MC_TABLE hTable);
  * @param[in] value The value.
  * @return @c TRUE on success, @c FALSE otherwise. 
  */
-BOOL MCTRL_API mcTable_SetCell(MC_TABLE hTable, WORD wCol, WORD wRow, 
-                               MC_VALUETYPE type, MC_VALUE value);
+BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, 
+                               MC_HVALUETYPE type, MC_HVALUE value);
 
 /**
  * @brief Get contents of a cell.
@@ -187,8 +187,8 @@ BOOL MCTRL_API mcTable_SetCell(MC_TABLE hTable, WORD wCol, WORD wRow,
  * @param[out] phValue Value handle is filled here.
  * @return @c TRUE on success, @c FALSE otherwise. 
  */
-BOOL MCTRL_API mcTable_GetCell(MC_TABLE hTable, WORD wCol, WORD wRow, 
-                               MC_VALUETYPE* phType, MC_VALUE* phValue);
+BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, 
+                               MC_HVALUETYPE* phType, MC_HVALUE* phValue);
 
 
 #ifdef __cplusplus

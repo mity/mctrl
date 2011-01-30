@@ -33,7 +33,7 @@ load_grid(void)
     
     /* Setup first column which serves as row headers */
     cell.wCol = 0;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_STRING);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_STRING);
     for(cell.wRow = 0; cell.wRow < 16; cell.wRow++) {
         TCHAR buffer[32];
         _sntprintf(buffer, 32, _T("Row %d"), (int)cell.wRow+1);
@@ -44,43 +44,43 @@ load_grid(void)
     /* Setup few other cells */
     cell.wCol = 1;
     cell.wRow = 0;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_IMMSTRING);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_IMMSTRING);
     mcValue_CreateFromImmString(&cell.hValue, _T("imm string"));
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 1;
     cell.wRow = 1;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_STRING);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_STRING);
     mcValue_CreateFromString(&cell.hValue, _T("string"));
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 1;
     cell.wRow = 2;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_COLORREF);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
     mcValue_CreateFromColorref(&cell.hValue, RGB(200,0,0));
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 2;
     cell.wRow = 2;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_COLORREF);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
     mcValue_CreateFromColorref(&cell.hValue, RGB(0,200,0));
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 3;
     cell.wRow = 2;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_COLORREF);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
     mcValue_CreateFromColorref(&cell.hValue, RGB(0,0,200));
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 1;
     cell.wRow = 3;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_INT32);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_INT32);
     mcValue_CreateFromInt32(&cell.hValue, 42);
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 6;
     cell.wRow = 14;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPE_ID_HICON);
+    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_HICON);
     mcValue_CreateFromHIcon(&cell.hValue, LoadImage(inst, MAKEINTRESOURCE(100), IMAGE_ICON, 0, 0, LR_SHARED));
     SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 }

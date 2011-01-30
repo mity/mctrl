@@ -905,20 +905,20 @@ const value_type_t* VALUE_TYPE_HICON = &hicon_type;
  *** Exported functions ***
  **************************/
 
-MC_VALUETYPE MCTRL_API
+MC_HVALUETYPE MCTRL_API
 mcValueType_GetBuiltin(int id)
 {
     switch(id) {
-        case MC_VALUETYPE_ID_INT32:      return VALUE_TYPE_INT32;
-        case MC_VALUETYPE_ID_UINT32:     return VALUE_TYPE_UINT32;
-        case MC_VALUETYPE_ID_INT64:      return VALUE_TYPE_INT64;
-        case MC_VALUETYPE_ID_UINT64:     return VALUE_TYPE_UINT64;
-        case MC_VALUETYPE_ID_STRINGW:    return VALUE_TYPE_STRING_W;
-        case MC_VALUETYPE_ID_STRINGA:    return VALUE_TYPE_STRING_A;
-        case MC_VALUETYPE_ID_IMMSTRINGW: return VALUE_TYPE_IMMSTRING_W;
-        case MC_VALUETYPE_ID_IMMSTRINGA: return VALUE_TYPE_IMMSTRING_A;
-        case MC_VALUETYPE_ID_COLORREF:   return VALUE_TYPE_COLORREF;
-        case MC_VALUETYPE_ID_HICON:      return VALUE_TYPE_HICON;
+        case MC_VALUETYPEID_INT32:      return VALUE_TYPE_INT32;
+        case MC_VALUETYPEID_UINT32:     return VALUE_TYPE_UINT32;
+        case MC_VALUETYPEID_INT64:      return VALUE_TYPE_INT64;
+        case MC_VALUETYPEID_UINT64:     return VALUE_TYPE_UINT64;
+        case MC_VALUETYPEID_STRINGW:    return VALUE_TYPE_STRING_W;
+        case MC_VALUETYPEID_STRINGA:    return VALUE_TYPE_STRING_A;
+        case MC_VALUETYPEID_IMMSTRINGW: return VALUE_TYPE_IMMSTRING_W;
+        case MC_VALUETYPEID_IMMSTRINGA: return VALUE_TYPE_IMMSTRING_A;
+        case MC_VALUETYPEID_COLORREF:   return VALUE_TYPE_COLORREF;
+        case MC_VALUETYPEID_HICON:      return VALUE_TYPE_HICON;
     }
     
     MC_TRACE("mcValueType_GetBuiltin: id %d unknown", id);
@@ -928,68 +928,68 @@ mcValueType_GetBuiltin(int id)
 
 
 BOOL MCTRL_API
-mcValue_CreateFromInt32(MC_VALUE* phValue, INT iValue)
+mcValue_CreateFromInt32(MC_HVALUE* phValue, INT iValue)
 {
     value_set_int32((value_t*) phValue, (int32_t) iValue);
     return TRUE;
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromUInt32(MC_VALUE* phValue, UINT uValue)
+mcValue_CreateFromUInt32(MC_HVALUE* phValue, UINT uValue)
 {
     value_set_uint32((value_t*) phValue, (uint32_t) uValue);
     return TRUE;
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromInt64(MC_VALUE* phValue, INT64 i64Value)
+mcValue_CreateFromInt64(MC_HVALUE* phValue, INT64 i64Value)
 {
     value_set_int64((value_t*) phValue, (int64_t) i64Value);
     return TRUE;
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromUInt64(MC_VALUE* phValue, UINT64 u64Value)
+mcValue_CreateFromUInt64(MC_HVALUE* phValue, UINT64 u64Value)
 {
     value_set_uint64((value_t*) phValue, (uint64_t) u64Value);
     return TRUE;
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromStringW(MC_VALUE* phValue, LPCWSTR lpStr)
+mcValue_CreateFromStringW(MC_HVALUE* phValue, LPCWSTR lpStr)
 {
     return (value_set_string_w((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromStringA(MC_VALUE* phValue, LPCSTR lpStr)
+mcValue_CreateFromStringA(MC_HVALUE* phValue, LPCSTR lpStr)
 {
     return (value_set_string_a((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromImmStringW(MC_VALUE* phValue, LPCWSTR lpStr)
+mcValue_CreateFromImmStringW(MC_HVALUE* phValue, LPCWSTR lpStr)
 {
     value_set_immstring_w((value_t*) phValue, lpStr);
     return TRUE;
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromImmStringA(MC_VALUE* phValue, LPCSTR lpStr)
+mcValue_CreateFromImmStringA(MC_HVALUE* phValue, LPCSTR lpStr)
 {
     value_set_immstring_a((value_t*) phValue, lpStr);
     return TRUE;
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromColorref(MC_VALUE* phValue, COLORREF crColor)
+mcValue_CreateFromColorref(MC_HVALUE* phValue, COLORREF crColor)
 {
     value_set_colorref((value_t*) phValue, crColor);
     return TRUE;
 }
 
 BOOL MCTRL_API
-mcValue_CreateFromHIcon(MC_VALUE* phValue, HICON hIcon)
+mcValue_CreateFromHIcon(MC_HVALUE* phValue, HICON hIcon)
 {
     value_set_hicon((value_t*) phValue, hIcon);
     return TRUE;
@@ -997,68 +997,68 @@ mcValue_CreateFromHIcon(MC_VALUE* phValue, HICON hIcon)
 
 
 INT MCTRL_API
-mcValue_GetInt32(const MC_VALUE hValue)
+mcValue_GetInt32(const MC_HVALUE hValue)
 {
     return (INT) value_get_int32((value_t)hValue);
 }
 
 UINT MCTRL_API
-mcValue_GetUInt32(const MC_VALUE hValue)
+mcValue_GetUInt32(const MC_HVALUE hValue)
 {
     return (UINT) value_get_uint32((value_t)hValue);
 }
 
 INT64 MCTRL_API
-mcValue_GetInt64(const MC_VALUE hValue)
+mcValue_GetInt64(const MC_HVALUE hValue)
 {
     return (INT64) value_get_int64((value_t)hValue);
 }
 
 UINT64 MCTRL_API
-mcValue_GetUInt64(const MC_VALUE hValue)
+mcValue_GetUInt64(const MC_HVALUE hValue)
 {
     return (UINT64) value_get_uint64((value_t)hValue);
 }
 
 LPCWSTR MCTRL_API
-mcValue_GetStringW(const MC_VALUE hValue)
+mcValue_GetStringW(const MC_HVALUE hValue)
 {
     return value_get_string_w((value_t)hValue);
 }
 
 LPCSTR MCTRL_API
-mcValue_GetStringA(const MC_VALUE hValue)
+mcValue_GetStringA(const MC_HVALUE hValue)
 {
     return value_get_string_a((value_t)hValue);
 }
 
 LPCWSTR MCTRL_API
-mcValue_GetImmStringW(const MC_VALUE hValue)
+mcValue_GetImmStringW(const MC_HVALUE hValue)
 {
     return value_get_immstring_w((value_t)hValue);
 }
 
 LPCSTR MCTRL_API
-mcValue_GetImmStringA(const MC_VALUE hValue)
+mcValue_GetImmStringA(const MC_HVALUE hValue)
 {
     return value_get_immstring_a((value_t)hValue);
 }
 
 COLORREF MCTRL_API
-mcValue_GetColorref(const MC_VALUE hValue)
+mcValue_GetColorref(const MC_HVALUE hValue)
 {
     return value_get_colorref((value_t)hValue);
 }
 
 HICON MCTRL_API
-mcValue_GetHIcon(const MC_VALUE hValue)
+mcValue_GetHIcon(const MC_HVALUE hValue)
 {
     return value_get_hicon((value_t)hValue);
 }
 
 
 BOOL MCTRL_API
-mcValue_Duplicate(MC_VALUETYPE hType, MC_VALUE* phDest, const MC_VALUE hSrc)
+mcValue_Duplicate(MC_HVALUETYPE hType, MC_HVALUE* phDest, const MC_HVALUE hSrc)
 {
     if(MC_ERR(hType == NULL)) {
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -1070,7 +1070,7 @@ mcValue_Duplicate(MC_VALUETYPE hType, MC_VALUE* phDest, const MC_VALUE hSrc)
 }
 
 void MCTRL_API
-mcValue_Destroy(MC_VALUETYPE hType, MC_VALUE hValue)
+mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue)
 {
     if(hType != NULL)
         ((value_type_t*)hType)->free((value_t)hValue);
