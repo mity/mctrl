@@ -55,7 +55,7 @@ elif test `which 7z 2>> /dev/null`; then
 elif test `which zip 2>> /dev/null`; then
     MKZIP="zip -r"
 else
-    echo "Failed: no one found in PATH."
+    echo "not found."
     exit 1
 fi
 echo $MKZIP
