@@ -10,16 +10,6 @@
  * internals or contribute to the project.
  *
  *
- * @section sec_mingw Building with Mingw
- *
- * Originally <a href="http://www.mingw.org">mingw</a> was the primary 
- * development platform. However building 64bit binaries was never supported
- * within mingw and therefore, the project is now developped under mingw-w64.
- * 
- * Building with mingw may or may not work. Either way it is now considered
- * obsolete and not supported by mCtrl project.
- *
- *
  * @section sec_mingw64 Building with Mingw-w64
  *
  * <a href="http://mingw-w64.sourceforge.net/">Mingw-w64</a> is currently 
@@ -57,6 +47,17 @@
  *    both builds drop the files into same subdirectories.
  *    -# <tt>make PREFIX=i686-w64-mingw32- all examples</tt>
  *    -# <tt>make PREFIX=x86_64-w64-mingw32- all examples</tt>
+ *
+ *
+ * @section sec_mingw Building with Mingw
+ *
+ * Originally <a href="http://www.mingw.org">mingw</a> was the primary
+ * development platform. However building 64bit binaries was never supported
+ * within mingw and therefore, the project is now developped under mingw-w64.
+ * Bulding in mingw is now considered obsolete and not supported by mCtrl
+ * project. It may or may not work. Just try.
+ *
+ * (If you do it anyway and fix it, simple-enough patches are welcome.)
  *
  *
  * @section sec_msvc Building with MS Visual Studio
