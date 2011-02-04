@@ -390,8 +390,8 @@ void MCTRL_API mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue);
     /** @brief Unicode-resolution alias. @sa mcValue_GetImmStringW mcValue_GetImmStringA */
     #define mcValue_GetImmString          mcValue_GetImmStringW
 #else
-    #define MC_VALUETYPEID_STRING        MC_VALUETYPEID_STRINGA
-    #define MC_VALUETYPEID_IMMSTRING     MC_VALUETYPEID_IMMSTRINGA
+    #define MC_VALUETYPEID_STRING         MC_VALUETYPEID_STRINGA
+    #define MC_VALUETYPEID_IMMSTRING      MC_VALUETYPEID_IMMSTRINGA
     #define mcValue_CreateFromString      mcValue_CreateFromStringA
     #define mcValue_CreateFromImmString   mcValue_CreateFromImmStringA
     #define mcValue_GetString             mcValue_GetStringA
