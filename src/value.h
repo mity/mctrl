@@ -25,6 +25,19 @@
 
 typedef void* value_t;
 
+
+/* Flags for value_type_t::paint().
+ * (We define them to match public table cell flags) */
+#define VALUE_PF_NATURAL              0x00000000
+#define VALUE_PF_LEFT                 0x00000001
+#define VALUE_PF_CENTER               0x00000003
+#define VALUE_PF_RIGHT                0x00000002
+#define VALUE_PF_VNATURAL             0x00000000
+#define VALUE_PF_TOP                  0x00000004
+#define VALUE_PF_VCENTER              0x0000000c
+#define VALUE_PF_BOTTOM               0x00000008
+
+
 typedef struct value_type_tag value_type_t;
 struct value_type_tag {
     void   (*free)(value_t);
@@ -32,7 +45,7 @@ struct value_type_tag {
     int    (*cmp)(const value_t, const value_t);
     int    (*from_string)(value_t*, const TCHAR*);
     size_t (*to_string)(const value_t, TCHAR*, size_t);
-    void   (*paint)(const value_t, HDC, RECT*);
+    void   (*paint)(const value_t, HDC, RECT*, DWORD);
 };
 
 

@@ -22,7 +22,7 @@
 
 
 /* Uncomment this to have more verbous traces about MC_GRID control. */
-#define GRID_DEBUG     1
+/*#define GRID_DEBUG     1*/
 
 #ifdef GRID_DEBUG
     #define GRID_TRACE         MC_TRACE
@@ -483,7 +483,7 @@ grid_set_table(grid_t* grid, table_t* table)
     if(table != NULL) {
         table_ref(table);
     } else if(!(grid->style & MC_GS_NOTABLECREATE)) {
-        table = table_create(0, 0, NULL);
+        table = table_create(0, 0, NULL, 0);
         if(MC_ERR(table == NULL)) {
             MC_TRACE("grid_set_table: table_create() failed.");
             return -1;
@@ -605,7 +605,7 @@ grid_create(HWND win, CREATESTRUCT* cs)
     grid->theme = theme_OpenThemeData(win, grid_tc);
     grid->font = NULL;
     if(!(cs->style & MC_GS_NOTABLECREATE)) {
-        grid->table = table_create(0, 0, NULL);
+        grid->table = table_create(0, 0, NULL, 0);
         if(MC_ERR(grid->table == NULL)) {
             MC_TRACE("grid_create: table_create() failed.");
             goto err_table_create;
@@ -615,7 +615,7 @@ grid_create(HWND win, CREATESTRUCT* cs)
     }
     grid->style = cs->style;
     grid->do_redraw = 1;
-    grid->header_width = 32;
+    grid->header_width = 32;  /* TODO -- derive initial metrics values from font size */
     grid->header_height = 19;
     grid->cell_width = 64;
     grid->cell_height = 19;

@@ -37,7 +37,22 @@ extern "C" {
  *
  * When the table is created with the function @ref mcTable_Create(), the
  * caller determines whether the table shall be @b homogenous or @b
- * heterogenous.
+ * heterogenous, and optionally also what other attributes the table won't
+ * store.
+ *
+ * Using homogenous table and/or setting one or more of those flags can be
+ * used to save some memory if you know your application never sets certain
+ * attributes of table cells.
+ *
+ * If application sets some of such flags (e.g. @c MC_TF_NOCELLFOREGROUND) and
+ * later it attempts to set he corresponding attribute of the cell (e.g. 
+ * foreground color), the behavior is undefined (setting of some attributes
+ * is silantly ignored, or the operation as a whole can fail but application
+ * should not rely on exact behavior).
+ *
+ * If appplication attemps to insert a value of another type into a homogenous
+ * table expecting other value type, the operation fails.
+ *
  *
  * @section sec_grid_homo Homogenous tables
  *
@@ -55,6 +70,7 @@ extern "C" {
  * generally be considered empty: All the values (for each cell) are just
  * set to @c NULL. It depends on particular value type how this value is
  * interpreted.
+ *
  *
  * @section sec_grid_hetero Heterogenous tables
  *
@@ -78,6 +94,20 @@ typedef void* MC_HTABLE;
 
 
 /**
+ * @anchor MC_TF_xxxx
+ * @name Table Flags
+ * @sa mcTable_Create()
+ */
+/*@{*/
+/** @brief If set, the table does not store foreground colors for each cell. */
+#define MC_TF_NOCELLFOREGROUND      0x00000001
+/** @brief If set, the table does not store background colors for each cell. */
+#define MC_TF_NOCELLBACKGROUND      0x00000002
+/** @brief If set, the table does not store flags for each cell. */
+#define MC_TF_NOCELLFLAGS           0x00000004
+/*@}*/
+
+/**
  * @brief Create new table.
  *
  * The table is initially empty and has its reference counter set to 1.
@@ -86,7 +116,7 @@ typedef void* MC_HTABLE;
  * @param[in] wRowCount Row count.
  * @param[in] hType Type of all cells for homogenous table, or @c NULL for
  * heterogenous table.
- * @param dwFlags Reserved, set to zero.
+ * @param[in] dwFlags Table flags. See @ref MC_TF_xxxx.
  * @return Handle of the new table or @c NULL on failure.
  */
 MC_HTABLE MCTRL_API mcTable_Create(WORD wColumnCount, WORD wRowCount,
@@ -169,6 +199,8 @@ void MCTRL_API mcTable_Clear(MC_HTABLE hTable);
  * type used during table creation.
  * @param[in] value The value.
  * @return @c TRUE on success, @c FALSE otherwise. 
+ *
+ * @sa mcTable_SetCellEx
  */
 BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, 
                                MC_HVALUETYPE type, MC_HVALUE value);
@@ -189,6 +221,106 @@ BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
  */
 BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, 
                                MC_HVALUETYPE* phType, MC_HVALUE* phValue);
+
+/**
+ * @anchor MC_TCM_xxxx
+ * @name MC_TABLECELL::fMask Bits
+ * @memberof MC_TABLECELL
+ */
+/*@{*/
+/** @brief Set if @ref MC_TABLECELL::hType and @ref MC_TABLECELL::hValue are valid. */
+#define MC_TCM_VALUE                0x00000001
+/** @brief Set if @ref MC_TABLECELL::crForeground is valid. */
+#define MC_TCM_FOREGROUND           0x00000002
+/** @brief Set if @ref MC_TABLECELL::crBackground is valid. */
+#define MC_TCM_BACKGROUND           0x00000004
+/** @brief Set if @ref MC_TABLECELL::dwFlags is valid. */
+#define MC_TCM_FLAGS                0x00000008
+/*@}*/
+
+/**
+ * @anchor MC_TCF_xxxx
+ * @name MC_TABLECELL::dwFlags Bits
+ * @memberof MC_TABLECELL
+ */
+/*@{*/
+/** @brief Paint the cell value aligned horizontally as default for the value type. */
+#define MC_TCF_ALIGNDEFAULT         0x00000000
+/** @brief Paint the cell value aligned horizontally to left. */
+#define MC_TCF_ALIGNLEFT            0x00000001
+/** @brief Paint the cell value aligned horizontally to center. */
+#define MC_TCF_ALIGNCENTER          0x00000003
+/** @brief Paint the cell value aligned horizontally to right. */
+#define MC_TCF_ALIGNRIGHT           0x00000002
+/** @brief Paint the cell value aligned vertically as normal for the value type. */
+#define MC_TCF_ALIGNVDEFAULT        0x00000000
+/** @brief Paint the cell value aligned vertically to top. */
+#define MC_TCF_ALIGNTOP             0x00000004
+/** @brief Paint the cell value aligned vertically to center. */
+#define MC_TCF_ALIGNVCENTER         0x0000000C
+/** @brief Paint the cell value aligned vertically to bottom. */
+#define MC_TCF_ALIGNBOTTOM          0x00000008
+/*@}*/
+
+/**
+ * @brief Structure describing a table cell.
+ *
+ * Note that only members corresponding to the set bits of the @c fMask
+ * are considered valid. (@c fMask itself is always valid of course.)
+ *
+ * @sa mcTable_SetCellEx mcTable_GetCellEx
+ */
+typedef struct MC_TABLECELL_tag {
+    /** @brief Bitmask specifying what other members are valid. See @ref MC_TCM_xxxx. */
+    DWORD fMask;
+    /** @brief Handle of value type. */
+    MC_HVALUETYPE hType;
+    /** @brief Handle of value. */
+    MC_HVALUE hValue;
+    /** @brief Foreground color. It's up to the value type if it respects it. */
+    COLORREF crForeground;
+    /** @brief Background color. */
+    COLORREF crBackground;
+    /** @brief Cell flags. See @ref MC_TCF_xxxx. */
+    DWORD dwFlags;
+} MC_TABLECELL;
+
+
+/**
+ * @brief Set contents of a cell.
+ *
+ * If @c pCell->fMask includes the bit @c MC_TCM_VALUE, then
+ * (in case of success) the table takes responsibility for the value.
+ * I.e. when the table is later deallocated, or if the particular cell is later
+ * reset, the value is then destroyed.
+ *
+ * @param[in] hTable The table.
+ * @param[in] wCol Column index.
+ * @param[in] wRow Row index.
+ * @param[in] pCell Specifies attributes of the cell to set.
+ * @return @c TRUE on success, @c FALSE otherwise.
+ *
+ * @sa mcTable_SetCell
+ */
+BOOL MCTRL_API mcTable_SetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow,
+                                 MC_TABLECELL* pCell);
+
+/**
+ * @brief Get contents of a cell.
+ *
+ * Before calling this function, the member @c pCell->fMask must specify what
+ * members of the structure to retrieve.
+ *
+ * @param[in] hTable The table.
+ * @param[in] wCol Column index.
+ * @param[in] wRow Row index.
+ * @param[out] pCell Specifies retrieved attributes of the cell.
+ * @return @c TRUE on success, @c FALSE otherwise.
+ *
+ * @sa mcTable_GetCell
+ */
+BOOL MCTRL_API mcTable_GetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow,
+                                 MC_TABLECELL* pCell);
 
 
 #ifdef __cplusplus

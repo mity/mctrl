@@ -44,6 +44,25 @@ extern "C" {
 #endif
 
 
+/**
+ * @name Color Constants
+ */
+/*@{*/
+/**
+ * @brief No color.
+ * @details This is exactly the same as @c CLR_NONE from @c <commctrl.h>
+ * and applications can use these two macros interchangeably.
+ */
+#define MC_CLR_NONE         ((COLORREF)0xffffffffL)
+/**
+ * @brief Default color.
+ * @details This is exactly the same as @c CLR_DEFAULT from @c <commctrl.h>.
+ * and applications can use these two macros interchangeably.
+ */
+#define MC_CLR_DEFAULT      ((COLORREF)0xff000000L)
+/*@}*/
+
+
 #ifdef __cplusplus
 }  /* extern "C" */
 #endif

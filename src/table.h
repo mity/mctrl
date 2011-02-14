@@ -39,7 +39,8 @@ struct table_region_tag {
 };
 
 
-table_t* table_create(WORD col_count, WORD row_count, value_type_t* cell_type);
+table_t* table_create(WORD col_count, WORD row_count,
+                      value_type_t* cell_type, DWORD mask);
 
 void table_ref(table_t* table);
 void table_unref(table_t* table);
@@ -52,8 +53,9 @@ void table_paint_cell(const table_t* table, WORD col, WORD row, HDC dc, RECT* re
 int table_resize(table_t* table, WORD col_count, WORD row_count);
 void table_clear(table_t* table);
 
-const value_t table_get_value(const table_t* table, WORD col, WORD row, value_type_t** type);
-void table_set_value(table_t* table, WORD col, WORD row, value_type_t* type, const value_t value);
+void table_get_cell(const table_t* table, WORD col, WORD row, MC_TABLECELL* cell);
+void table_set_cell(table_t* table, WORD col, WORD row, MC_TABLECELL* cell);
+
 
 /* table_region_t is passed to the refresh function as the detail where 
  * the change happened. On some more substantial changes (e.g. resize) it may

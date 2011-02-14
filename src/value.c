@@ -123,7 +123,7 @@ int32_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-int32_paint(const value_t v, HDC dc, RECT* rect)
+int32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
     int old_bkmode;
@@ -221,7 +221,7 @@ uint32_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-uint32_paint(const value_t v, HDC dc, RECT* rect)
+uint32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
     int old_bkmode;
@@ -352,7 +352,7 @@ int64_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-int64_paint(const value_t v, HDC dc, RECT* rect)
+int64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[24];
     int old_bkmode;
@@ -481,7 +481,7 @@ uint64_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-uint64_paint(const value_t v, HDC dc, RECT* rect)
+uint64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[24];
     int old_bkmode;
@@ -601,7 +601,7 @@ str_to_string_w(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-str_paint_w(const value_t v, HDC dc, RECT* rect)
+str_paint_w(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
     COLORREF old_color;
@@ -713,7 +713,7 @@ str_to_string_a(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-str_paint_a(const value_t v, HDC dc, RECT* rect)
+str_paint_a(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
     COLORREF old_color;
@@ -837,7 +837,7 @@ colorref_to_string(const value_t v, WCHAR* buffer, size_t bufsize)
 }
 
 static void
-colorref_paint(const value_t v, HDC dc, RECT* rect)
+colorref_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     COLORREF clr = (COLORREF)(uintptr_t) v;
     HBRUSH brush;
@@ -884,7 +884,7 @@ value_get_hicon(const value_t v)
 }
 
 static void
-hicon_paint(const value_t v, HDC dc, RECT* rect)
+hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     DrawIconEx(dc, rect->left, rect->top, (HICON)v, 0, 0, 0, NULL, DI_NORMAL);
 }

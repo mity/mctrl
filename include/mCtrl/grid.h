@@ -134,31 +134,41 @@ typedef struct MC_GCELL_tag {
 } MC_GCELL;
 
 /**
- * @anchor MC_GGF_xxxx
+ * @anchor MC_GGM_xxxx
  * @name MC_GGEOMETRY::fMask Bits
  * @memberof MC_GGEOMETRY
  */
 /*@{*/
-/** @brief @ref MC_GGEOMETRY::wColumnHeaderHeight is valid. */
-#define MC_GGF_COLUMNHEADERHEIGHT     (1 << 0)
-/** @brief @ref MC_GGEOMETRY::wRowHeaderWidth is valid. */
-#define MC_GGF_ROWHEADERWIDTH         (1 << 1)
-/** @brief @ref MC_GGEOMETRY::wColumnWidth is valid. */
-#define MC_GGF_COLUMNWIDTH            (1 << 2)
-/** @brief @ref MC_GGEOMETRY::wRowHeight is valid. */
-#define MC_GGF_ROWHEIGHT              (1 << 3)
-/** @brief @ref MC_GGEOMETRY::wPaddingHorz is valid. */
-#define MC_GGF_PADDINGHORZ            (1 << 4)
-/** @brief @ref MC_GGEOMETRY::wPaddingVert is valid. */
-#define MC_GGF_PADDINGVERT            (1 << 5)
+/** @brief Set if @ref MC_GGEOMETRY::wColumnHeaderHeight is valid. */
+#define MC_GGM_COLUMNHEADERHEIGHT     (1 << 0)
+/** @brief Set if @ref MC_GGEOMETRY::wRowHeaderWidth is valid. */
+#define MC_GGM_ROWHEADERWIDTH         (1 << 1)
+/** @brief Set if @ref MC_GGEOMETRY::wColumnWidth is valid. */
+#define MC_GGM_COLUMNWIDTH            (1 << 2)
+/** @brief Set if @ref MC_GGEOMETRY::wRowHeight is valid. */
+#define MC_GGM_ROWHEIGHT              (1 << 3)
+/** @brief Set if @ref MC_GGEOMETRY::wPaddingHorz is valid. */
+#define MC_GGM_PADDINGHORZ            (1 << 4)
+/** @brief Set if @ref MC_GGEOMETRY::wPaddingVert is valid. */
+#define MC_GGM_PADDINGVERT            (1 << 5)
 /*@}*/
+
+#ifndef DOXYGEN  /* prevent documentation of these */
+    /* Deprecated: Use @ref MC_GGM_xxxx instead in new code. */
+    #define MC_GGF_COLUMNHEADERHEIGHT     MC_GGM_COLUMNHEADERHEIGHT
+    #define MC_GGF_ROWHEADERWIDTH         MC_GGM_ROWHEADERWIDTH
+    #define MC_GGF_COLUMNWIDTH            MC_GGM_COLUMNWIDTH
+    #define MC_GGF_ROWHEIGHT              MC_GGM_ROWHEIGHT
+    #define MC_GGF_PADDINGHORZ            MC_GGM_PADDINGHORZ
+    #define MC_GGF_PADDINGVERT            MC_GGM_PADDINGVERT
+#endif
 
 /**
  * @brief Structure describing inner geometry of the grid.
  * @sa MC_GM_SETGEOMETRY MC_GM_GETGEOMETRY
  */
 typedef struct MC_GGEOMETRY_tag {
-    /** @brief Bitmask specifying what other members are valid. */
+    /** @brief Bitmask specifying what other members are valid. See @ref MC_GGM_xxxx. */
     DWORD fMask;
     /** @brief Height of column header cells. */
     WORD wColumnHeaderHeight;
