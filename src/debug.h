@@ -25,6 +25,15 @@
     #include <stdlib.h>
     #include <stdio.h>  /* _snprintf() */
 
+    /* Compile-time assertion */
+    #ifdef __GNUC__
+        #define MC_STATIC_ASSERT(condition)                                   \
+            extern int __attribute__((unused)) mCtrl_Static_Assertion_Failed[(condition) ? 1 : -1]
+    #else
+        #define MC_STATIC_ASSERT(condition)                                   \
+            extern int mCtrl_Static_Assertion_Failed[(condition) ? 1 : -1]
+    #endif
+
     /* Assertion */
     #define MC_ASSERT(condition)                                              \
         do {                                                                  \
@@ -40,15 +49,9 @@
                     exit(EXIT_FAILURE);                                       \
             }                                                                 \
         } while(0)
-        
-    /* Compile-time assertion */
-    #ifdef __GNUC__
-        #define MC_STATIC_ASSERT(condition)                                   \
-            extern int __attribute__((unused)) mCtrl_Static_Assertion_Failed[(condition) ? 1 : -1]
-    #else
-        #define MC_STATIC_ASSERT(condition)                                   \
-            extern int mCtrl_Static_Assertion_Failed[(condition) ? 1 : -1]
-    #endif
+
+    /* Unreachable branch */
+    #define MC_UNREACHABLE               do { MC_ASSERT(FALSE); } while(0)
 
     /* Logging */
     #define MC_TRACE(...)                                                     \
@@ -62,13 +65,27 @@
 
 /* Fallback to no-op macros */
 #ifndef MC_ASSERT
-    #define MC_ASSERT(condition)         do { } while(0)
+    #ifdef _MSC_VER
+        #include <intrin.h>
+        #define MC_ASSERT(condition)     do { __assume(condition); } while(0)
+    #else
+        #define MC_ASSERT(condition)     do { } while(0)
+    #endif
 #endif
 #ifndef MC_STATIC_ASSERT
     #define MC_STATIC_ASSERT(condition)  /* nothing */
 #endif
 #ifndef MC_TRACE
     #define MC_TRACE(...)                do { } while(0)
+#endif
+#ifndef MC_UNREACHABLE
+    #if defined __GNUC__
+        #define MC_UNREACHABLE           __builtin_unreachable();
+    #elif defined _MSC_VER
+        #define MC_UNREACHABLE           __assume(0);
+    #else
+        #define MC_UNREACHABLE           do { } while(0)
+    #endif
 #endif
 
 
