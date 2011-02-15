@@ -47,7 +47,7 @@ ifeq ($(filter $(PREFIX), x86_64-w64-mingw32- i686-w64-mingw32-),)
     # When PREFIX is set to x86_64-w64-mingw32- or i686-w64-mingw32-, 
     # it can be probably assumed we build with toolchain from mingw-w64 and
     # this workaround is not needed.
-    INCLUDES += -I$(SRCDIR)/com
+    INCLUDES += -isystem $(SRCDIR)/com
 endif
 
 WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0501 -DWINVER=_WIN32_WINNT
@@ -140,6 +140,6 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.rc
-	$(WINDRES) $(filter-out -DUNICODE -D_UNICODE, $(CPPFLAGS)) -I$(SRCDIR) $< $@
+	$(WINDRES) $(filter-out -DUNICODE -D_UNICODE, $(subst -isystem,-I,$(CPPFLAGS))) -I$(SRCDIR) $< $@
 
 

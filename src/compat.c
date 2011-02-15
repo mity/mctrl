@@ -5,23 +5,25 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #include <windows.h>
+#include <ctype.h>
 #include <errno.h>
 #include "compat.h"
+#include "misc.h"
 
 
-/* compat_wcstoi64() and compat_wcstoui64() were adapted from 
+/* compat_wcstoi64() and compat_wcstoui64() were adapted from
  * MSVCRT__wcstoi64_l() and MSVCRT__wcstoui64_l respectivally,
  * both found in wine-1.3.11/dlls/msvcrt/wcs.c */
 
@@ -66,7 +68,7 @@ compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base)
     }
 
     while(*nptr) {
-        char cur = tolowerW(*nptr);
+        wchar_t cur = tolowerW(*nptr);
         int v;
 
         if(isdigitW(cur)) {
@@ -74,9 +76,9 @@ compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base)
                 break;
             v = cur-'0';
         } else {
-            if(cur<'a' || cur>='a'+base-10)
+            if(cur<L'a' || cur>=L'a'+base-10)
                 break;
-            v = cur-'a'+10;
+            v = cur-L'a'+10;
         }
 
         if(negative)
@@ -133,17 +135,17 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
     }
 
     while(*nptr) {
-        char cur = tolowerW(*nptr);
+        wchar_t cur = tolowerW(*nptr);
         int v;
 
-        if(isdigit(cur)) {
+        if(isdigitW(cur)) {
             if(cur >= '0'+base)
                 break;
             v = *nptr-'0';
         } else {
-            if(cur<'a' || cur>='a'+base-10)
+            if(cur<L'a' || cur>=L'a'+base-10)
                 break;
-            v = cur-'a'+10;
+            v = cur-L'a'+10;
         }
 
         nptr++;
@@ -163,3 +165,13 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
 
 
 
+#ifdef COMPAT_NEED_STOSD
+void
+compat_stosd(unsigned long* dst, unsigned long val, size_t n)
+{
+    size_t i;
+
+    for(i = 0; i < n; i++)
+        dst[i] = val;
+}
+#endif  /* COMPAT_NEED_STOSD */

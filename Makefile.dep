@@ -6,7 +6,8 @@
 obj/button.o: src/button.c src/button.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/button.h include/mCtrl/defs.h \
  src/theme.h src/theme_fn.h
-obj/compat.o: src/compat.c src/compat.h
+obj/compat.o: src/compat.c src/compat.h src/misc.h src/debug.h src/resource.h \
+ src/version.h
 obj/debug.o: src/debug.c src/debug.h src/misc.h src/compat.h src/resource.h \
  src/version.h
 obj/grid.o: src/grid.c src/grid.h src/misc.h src/compat.h src/debug.h \

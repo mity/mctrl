@@ -24,11 +24,28 @@
  * and toolchains. */
 
 
+/**********************************
+ *** Detect toolchain/compiler  ***
+ **********************************/
+
+#if defined __MINGW64_VERSION_MAJOR && defined __MINGW64_VERSION_MINOR
+    /* This does not say if we built for 32 or 64 bits. It just distinguishes
+     * between http://mingw.org and http://mingw-w64.sf.net */
+    #define MC_TOOLCHAIN_MINGW64    1
+#elif defined __MINGW32__
+    #define MC_TOOLCHAIN_MINGW      1
+#elif defined _MSC_VER
+    #define MC_TOOLCHAIN_MSVC       1
+#else
+    #define MC_TOOLCHAIN_OTHER      1
+#endif
+
+
 /*********************************
  *** MSVC Compatibility hacks  ***
  *********************************/
 
-#ifdef _MSC_VER
+#if defined MC_TOOLCHAIN_MSVC
 	/* Disable warning C4996 ("This function or variable may be unsafe.") */
 	#pragma warning( disable : 4996 )
 
@@ -65,10 +82,11 @@
  *** <stdint.h>  ***
  *******************/
 
-/* Windows SDK/Visual Studio was missing <stdint.h> for a long time, so
- * lets have few types defined here. */
-
-#ifdef _MSC_VER
+#if defined MC_TOOLCHAIN_MINGW || defined MC_TOOLCHAIN_MINGW64
+    #include <stdint.h>
+#else
+    /* Windows SDK/Visual Studio was missing <stdint.h> for a long time, so
+     * lets have few types defined here and not rely on it. */
     typedef __int8               int8_t;
     typedef unsigned __int8     uint8_t;
     typedef __int16              int16_t;
@@ -114,8 +132,6 @@
     #ifndef UINT64_MAX
         #define UINT64_MAX     (0xffffffffffffffff)
     #endif
-#else
-    #include <stdint.h>
 #endif
 
 
@@ -127,32 +143,38 @@
  * However as we cannot use preprocessor to detect if enums or their members
  * are missing, we always #define it here. */
 
-#ifndef BST_HOT
-    #define BST_HOT      0x0200
-#endif
+#if defined MC_TOOLCHAIN_MINGW
+    #ifndef BS_TYPEMASK
+        #define BS_TYPEMASK     0x0000000fL
+    #endif
 
-#ifndef DT_HIDEPREFIX
-    #define DT_HIDEPREFIX 0x00100000
-#endif
+    #ifndef BST_HOT
+        #define BST_HOT         0x0200
+    #endif
 
-#ifndef UISF_HIDEFOCUS
-    #define UISF_HIDEFOCUS  0x1
-#endif
+    #ifndef DT_HIDEPREFIX
+        #define DT_HIDEPREFIX   0x00100000
+    #endif
 
-#ifndef UISF_HIDEACCEL
-    #define UISF_HIDEACCEL  0x2
-#endif
+    #ifndef UISF_HIDEFOCUS
+        #define UISF_HIDEFOCUS  0x1
+    #endif
 
-#ifndef UIS_SET
-    #define UIS_SET 1
-#endif
+    #ifndef UISF_HIDEACCEL
+        #define UISF_HIDEACCEL  0x2
+    #endif
 
-#ifndef UIS_CLEAR
-    #define UIS_CLEAR 2
-#endif
+    #ifndef UIS_SET
+        #define UIS_SET         1
+    #endif
 
-#ifndef UIS_INITIALIZE
-    #define UIS_INITIALIZE 3
+    #ifndef UIS_CLEAR
+        #define UIS_CLEAR       2
+    #endif
+
+    #ifndef UIS_INITIALIZE
+        #define UIS_INITIALIZE  3
+    #endif
 #endif
 
 
@@ -168,15 +190,15 @@
  * hiding incompatibilities between headeres from mingw-w64 and mingw.
  */
 
-#if defined __GNUC__  &&  !defined SHANDLE_PTR
+#if defined MC_TOOLCHAIN_MINGW
     #define SHANDLE_PTR HANDLE_PTR
+    #define __MINGW_EXTENSION
 #endif
 
 
-
-/***************************
- *** Win2K compatibility ***
- ***************************/
+/******************************
+ *** _wcstoi64 an relatives ***
+ ******************************/
 
 /* MSVCRT.DLL on Windows 2000 lacks some symbols we use, so lets use our
  * own implementation. */
@@ -186,6 +208,42 @@ uint64_t compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base);
 
 #define _wcstoi64 compat_wcstoi64
 #define _wcstoui64 compat_wcstoui64
+
+/* mingw does not declare them in <ctype.h> and <tchar.h> */
+#if defined MC_TOOLCHAIN_MINGW
+    #include <tchar.h>
+    #ifndef _tcstoui64
+        #ifdef UNICODE
+            #define _tcstoui64 _wcstoui64
+        #else
+            #define _tcstoui64 _strtoui64
+        #endif
+    #endif
+
+    #ifndef _tcstoi64
+        #ifdef UNICODE
+            #define _tcstoi64 _wcstoi64
+        #else
+            #define _tcstoi64 _strtoi64
+        #endif
+    #endif
+#endif
+
+
+/*****************
+ *** Intrinsic ***
+ *****************/
+
+/* <intrin.h> is only somewhere, so we have implement the functions we want to
+ * use ourselfs. */
+
+#if defined MC_TOOLCHAIN_MSVC  ||  defined MC_TOOLCHAIN_MINGW64
+    #include <intrin.h>
+#else
+    #define COMPAT_NEED_STOSD      1
+    void compat_stosd(unsigned long* dst, unsigned long val, size_t n);
+    #define __stosd compat_stosd
+#endif
 
 
 #endif  /* MC_COMPAT_H */
