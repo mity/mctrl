@@ -21,7 +21,7 @@
 #include "table.h"
 
 
-/* Uncomment this to have more verbous traces about MC_GRID control. */
+/* Uncomment this to have more verbose traces about MC_GRID control. */
 /*#define GRID_DEBUG     1*/
 
 #ifdef GRID_DEBUG

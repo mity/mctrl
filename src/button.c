@@ -20,7 +20,7 @@
 #include "theme.h"
 
 
-/* Uncomment this to have more verbous traces about MC_BUTTON control. */
+/* Uncomment this to have more verbose traces about MC_BUTTON control. */
 /*#define BUTTON_DEBUG     1*/
 
 #ifdef BUTTON_DEBUG

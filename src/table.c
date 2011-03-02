@@ -19,7 +19,7 @@
 #include "table.h"
 
 
-/* Uncomment this to have more verbous traces from this module. */
+/* Uncomment this to have more verbose traces from this module. */
 /*#define TABLE_DEBUG     1*/
 
 #ifdef TABLE_DEBUG

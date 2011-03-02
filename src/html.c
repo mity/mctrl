@@ -28,8 +28,8 @@
 
 /* TODO:
  *  - Notifications for context menus so app could customize the menu
- *    or provide its own. (The meny may need to depend o the object clicked.
- *    e.g. if it is image or something diffferent).
+ *    or provide its own. (App may want provide different menus depending
+ *    on the object clicked. E.g. normal link versus image etc.).
  *  - Notification for status text.
  */
 
@@ -42,7 +42,7 @@
 #include <mshtmhst.h>  /* IDocHostUIHandler */
 
 
-/* Uncomment this to have more verbous traces about MC_HTML control. */
+/* Uncomment this to have more verbose traces about MC_HTML control. */
 /*#define HTML_DEBUG     1*/
 
 #ifdef HTML_DEBUG
@@ -935,7 +935,7 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     
     if(MC_ERR(id == NULL  ||  (unicode && ((WCHAR*)id)[0] == L'\0')  ||  
                               (!unicode && ((char*)id)[0] == '\0'))) {
-       MC_TRACE("html_set_element_contents: Emty element ID.");
+       MC_TRACE("html_set_element_contents: Empty element ID.");
        goto err_id;
     }
     bstr_id = html_bstr(id, (unicode ? MC_STRW : MC_STRA));
@@ -1012,10 +1012,9 @@ html_create(HWND win, CREATESTRUCT* cs)
     RECT rect;
     HRESULT hr;
 
-    /* Initialize OLE. It would be more logical to perform this in html_init()
-     * but accroding to MSDN, OleInitialize() must not be called from context
-     * of DllMain(). Also, calling it here can avoid the OLE machinery
-     * initialization for applications not using MC_HTML control. */
+    /* Initialize OLE. It is here and not in html_init() because it has to
+     * be performed in the thread where OLE shall be used (i.e. where
+     * the event runloop the control belons to is running). */
     hr = OleInitialize(NULL);
     if(MC_ERR(hr != S_OK && hr != S_FALSE)) {
         MC_TRACE("html_create: OleInitialize() failed [%lu]", (ULONG)hr);
