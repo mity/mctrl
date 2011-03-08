@@ -246,6 +246,37 @@ mc_init_common_controls(DWORD icc)
     }
 }
 
+void
+mc_icon_size(HICON icon, SIZE* size)
+{
+    ICONINFO ii;
+    BITMAP bmp;
+    
+    if(icon == NULL) {
+        size->cx = 0;
+        size->cy = 0;
+        return;
+    }
+    
+    GetIconInfo(icon, &ii);
+    
+    /* In cases the HICON is monochromatic both the icon and its mask are
+     * stored in the hbmMask member (upper half is the icon, the lower half
+     * is the mask). */
+    if(ii.hbmColor) {
+        GetObject(ii.hbmColor, sizeof(BITMAP), &bmp);
+        size->cx = bmp.bmWidth;
+        size->cy = bmp.bmHeight;
+        DeleteObject(ii.hbmColor);
+    } else {
+        GetObject(ii.hbmMask, sizeof(BITMAP), &bmp);
+        size->cx = bmp.bmWidth / 2;
+        size->cy = bmp.bmHeight;
+    }
+    DeleteObject(ii.hbmMask);
+}
+
+
 int
 mc_init(void)
 {

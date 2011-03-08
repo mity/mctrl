@@ -197,6 +197,10 @@ void mc_str_inbuf(const void* from_str, int from_type,
 /* Convenient wrapper of InitCommonControls/InitCommonControlsEx. */
 void mc_init_common_controls(DWORD icc);
 
+/* Detect icon size */
+void mc_icon_size(HICON icon, SIZE* size);
+
+
 int mc_init(void);
 void mc_fini(void);
 

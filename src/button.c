@@ -65,21 +65,6 @@ get_clip(HDC dc)
     return rgn;
 }
 
-static void
-icon_size(HICON icon, SIZE* icon_size)
-{
-    ICONINFO ii;
-    BITMAP bm;
-    
-    GetIconInfo(icon, &ii);
-    GetObject(ii.hbmColor, sizeof(BITMAP), &bm);
-    icon_size->cx = bm.bmWidth;
-    icon_size->cy = bm.bmHeight;
-    DeleteObject(ii.hbmColor);
-    DeleteObject(ii.hbmMask);
-}
-
-
 static HBRUSH 
 button_send_ctlcolorbtn(HWND win, HDC dc)
 {
@@ -157,7 +142,7 @@ button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
     }
     
     /* Draw the contents (i.e. the icon) */
-    icon_size(icon, &size);
+    mc_icon_size(icon, &size);
     flags = DST_ICON;
     if(!IsWindowEnabled(win))
         flags |= DSS_DISABLED;
@@ -358,7 +343,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
             SIZE size;
             UINT flags;
                 
-            icon_size(icon, &size);
+            mc_icon_size(icon, &size);
 
             flags = DST_ICON;
             if(!IsWindowEnabled(win))
