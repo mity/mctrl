@@ -388,16 +388,19 @@ table_paint_cell(const table_t* table, WORD col, WORD row, HDC dc, RECT* rect)
     value_type_t* type;
     DWORD flags = 0;
 
-    if(TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents))
+    if(TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents)) {
         type = table->contents.type;
-    else
+        MC_ASSERT(type != NULL);
+    } else {
         type = table->contents.types[index];
+        if(type == NULL)
+            return;
+    }
 
     if(table->contents.mask & TABLE_CONTENTS_FLAGS)
-        flags |= table->contents.flags[index] & 0xf;  /* alignement */
+        flags |= table->contents.flags[index] & 0xf;  /* alignment */
 
-    if(type != NULL)
-        type->paint(value, dc, rect, flags);
+    type->paint(value, dc, rect, flags);
 }
 
 int

@@ -19,6 +19,29 @@
 #include "value.h"
 
 
+static UINT
+draw_text_format(DWORD flags, UINT defaults)
+{
+    UINT format = 0;
+
+    switch(flags & VALUE_PF_ALIGNMASKHORZ) {
+        case VALUE_PF_ALIGNLEFT:   format |= DT_LEFT; break;
+        case VALUE_PF_ALIGNCENTER: format |= DT_CENTER; break;
+        case VALUE_PF_ALIGNRIGHT:  format |= DT_RIGHT; break;
+        default:                   format |= defaults & (DT_LEFT | DT_CENTER | DT_RIGHT); break;
+    }
+    
+    switch(flags & VALUE_PF_ALIGNMASKVERT) {
+        case VALUE_PF_ALIGNTOP:     format |= DT_TOP; break;
+        case VALUE_PF_ALIGNVCENTER: format |= DT_VCENTER; break;
+        case VALUE_PF_ALIGNBOTTOM:  format |= DT_BOTTOM; break;
+        default:                    format |= defaults & (DT_TOP | DT_VCENTER | DT_BOTTOM); break;
+    }
+    
+    return format;
+}
+
+
 /************************
  *** Reusable methods ***
  ************************/
@@ -133,7 +156,8 @@ int32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawText(dc, buffer, -1, rect, 0);
+    DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+             draw_text_format(flags, DT_RIGHT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
@@ -231,7 +255,8 @@ uint32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawText(dc, buffer, -1, rect, 0);
+    DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+             draw_text_format(flags, DT_RIGHT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
@@ -362,7 +387,8 @@ int64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawText(dc, buffer, -1, rect, 0);
+    DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+             draw_text_format(flags, DT_RIGHT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
@@ -491,7 +517,8 @@ uint64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawText(dc, buffer, -1, rect, 0);
+    DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+             draw_text_format(flags, DT_RIGHT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
@@ -611,7 +638,8 @@ str_paint_w(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawTextW(dc, value_get_string_w(v), -1, rect, 0);
+    DrawTextW(dc, value_get_string_w(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+              draw_text_format(flags, DT_LEFT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
@@ -723,7 +751,8 @@ str_paint_a(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawTextA(dc, value_get_string_a(v), -1, rect, 0);
+    DrawTextA(dc, value_get_string_a(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+              draw_text_format(flags, DT_LEFT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
@@ -886,7 +915,28 @@ value_get_hicon(const value_t v)
 static void
 hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
-    DrawIconEx(dc, rect->left, rect->top, (HICON)v, 0, 0, 0, NULL, DI_NORMAL);
+    HICON icon = (HICON)v;
+    SIZE icon_size;
+    int x, y;
+    
+    if(icon == NULL)
+        return;
+    
+    mc_icon_size(icon, &icon_size);
+    switch(flags & VALUE_PF_ALIGNMASKHORZ) {
+        case VALUE_PF_ALIGNLEFT:    x = rect->left; break;
+        case VALUE_PF_ALIGNDEFAULT:
+        case VALUE_PF_ALIGNCENTER:  x = (rect->left + rect->right - icon_size.cx) / 2; break;
+        case VALUE_PF_ALIGNRIGHT:   x = rect->right - icon_size.cx; break;
+    }
+    switch(flags & VALUE_PF_ALIGNMASKVERT) {
+        case VALUE_PF_ALIGNTOP:      y = rect->top; break;
+        case VALUE_PF_ALIGNVDEFAULT:
+        case VALUE_PF_ALIGNVCENTER:  y = (rect->top + rect->bottom - icon_size.cy) / 2; break;
+        case VALUE_PF_ALIGNBOTTOM:   y = rect->bottom - icon_size.cy; break;
+    }
+    
+    DrawIconEx(dc, x, y, icon, 0, 0, 0, NULL, DI_NORMAL);
 }
 
 static const struct value_type_tag hicon_type = {

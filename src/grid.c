@@ -207,10 +207,17 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                              -1, &rect, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
                     break;
                 case MC_GS_COLUMNHEADERCUSTOM:
+                {
+                    RECT r;
+                    r.left = rect.left + grid->cell_padding_horz;
+                    r.right = rect.right - 2 * grid->cell_padding_horz - 1;
+                    r.top = rect.top + grid->cell_padding_vert;
+                    r.bottom = rect.bottom - 2 * grid->cell_padding_vert - 1;
                     cell_dc_state = SaveDC(dc);
-                    table_paint_cell(grid->table, col + layout.display_col0, 0, dc, &rect);
-                    RestoreDC(dc, cell_dc_state);
+                    table_paint_cell(grid->table, col + layout.display_col0, 0, dc, &r);
+                    RestoreDC(dc, cell_dc_state);                    
                     break;
+                }
             }
             
             rect.left += grid->cell_width;
@@ -252,10 +259,17 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                              -1, &rect, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
                     break;
                 case MC_GS_ROWHEADERCUSTOM:
+                {
+                    RECT r;
+                    r.left = rect.left + grid->cell_padding_horz;
+                    r.right = rect.right - 2 * grid->cell_padding_horz - 1;
+                    r.top = rect.top + grid->cell_padding_vert;
+                    r.bottom = rect.bottom - 2 * grid->cell_padding_vert - 1;
                     cell_dc_state = SaveDC(dc);
-                    table_paint_cell(grid->table, 0, row + layout.display_row0, dc, &rect);
+                    table_paint_cell(grid->table, 0, row + layout.display_row0, dc, &r);
                     RestoreDC(dc, cell_dc_state);
                     break;
+                }
             }
             
             rect.top += grid->cell_height;
@@ -299,12 +313,8 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     for(row = layout.display_row0 + row0; row < layout.display_row0 + row1; row++) {
         rect.left = headerw + col0 * grid->cell_width - grid->scroll_x + grid->cell_padding_horz;
         for(col = layout.display_col0 + col0; col < layout.display_col0 + col1; col++) {
-            rect.right = rect.left + grid->cell_width - 2*grid->cell_padding_horz;
-            rect.bottom = rect.top + grid->cell_height - 2*grid->cell_padding_vert;
-            if(!(grid->style & MC_GS_NOGRIDLINES)) {
-                rect.right--;
-                rect.bottom--;
-            }
+            rect.right = rect.left + grid->cell_width - 2*grid->cell_padding_horz - 1;
+            rect.bottom = rect.top + grid->cell_height - 2*grid->cell_padding_vert - 1;
             
             IntersectClipRect(dc, MC_MAX(headerw, rect.left), MC_MAX(headerh, rect.top),
                                   rect.right, rect.bottom);

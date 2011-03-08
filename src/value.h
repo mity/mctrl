@@ -28,14 +28,18 @@ typedef void* value_t;
 
 /* Flags for value_type_t::paint().
  * (We define them to match public table cell flags) */
-#define VALUE_PF_NATURAL              0x00000000
-#define VALUE_PF_LEFT                 0x00000001
-#define VALUE_PF_CENTER               0x00000003
-#define VALUE_PF_RIGHT                0x00000002
-#define VALUE_PF_VNATURAL             0x00000000
-#define VALUE_PF_TOP                  0x00000004
-#define VALUE_PF_VCENTER              0x0000000c
-#define VALUE_PF_BOTTOM               0x00000008
+#define VALUE_PF_ALIGNDEFAULT              0x00000000
+#define VALUE_PF_ALIGNLEFT                 0x00000001
+#define VALUE_PF_ALIGNCENTER               0x00000003
+#define VALUE_PF_ALIGNRIGHT                0x00000002
+#define VALUE_PF_ALIGNVDEFAULT             0x00000000
+#define VALUE_PF_ALIGNTOP                  0x00000004
+#define VALUE_PF_ALIGNVCENTER              0x0000000c
+#define VALUE_PF_ALIGNBOTTOM               0x00000008
+
+#define VALUE_PF_ALIGNMASKHORZ             0x00000003
+#define VALUE_PF_ALIGNMASKVERT             0x0000000c
+#define VALUE_PF_ALIGNMASK                 0x0000000f
 
 
 typedef struct value_type_tag value_type_t;
