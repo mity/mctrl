@@ -363,7 +363,7 @@ static IOleClientSiteVtbl client_site_vtable = {
 
 
 /******************************************
- *** IOleInPlaceSiteEx(Ex) implementation ***
+ *** IOleInPlaceSiteEx() implementation ***
  ******************************************/
 
 static HRESULT STDMETHODCALLTYPE
@@ -1014,7 +1014,7 @@ html_create(HWND win, CREATESTRUCT* cs)
 
     /* Initialize OLE. It is here and not in html_init() because it has to
      * be performed in the thread where OLE shall be used (i.e. where
-     * the event runloop the control belons to is running). */
+     * the message loop controlling the window is running). */
     hr = OleInitialize(NULL);
     if(MC_ERR(hr != S_OK && hr != S_FALSE)) {
         MC_TRACE("html_create: OleInitialize() failed [%lu]", (ULONG)hr);
