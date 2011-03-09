@@ -73,9 +73,10 @@
  * or <tt>mCtrl\\contrib\\VS2010\\README.txt</tt>.
  *
  * @attention Please note that using @c MCTRL.DLL built with MS Visual Studio
- * has one unfortunate drawback: The @c MCTRL.DLL then depends on the C runtime
- * library of the particular MSVC version (e.g. @c MSVCRT100.DLL) which then
- * has to be distributed along with your application.
+ * has one unfortunate drawback: It forces the C runtime distributed along with
+ * the visual studio, so either it is linked statically (and then MCTRL.DLL
+ * is larger) or the resulted MCTRL.DLL depends on msvcr100.dll (or other
+ * version depending on VS version).
  *
  *
  * @section sec_debug Debug Level

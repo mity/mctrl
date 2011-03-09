@@ -50,6 +50,7 @@
       <PreprocessorDefinitions>DEBUG=1;MCTRL_BUILD;UNICODE;_UNICODE;_WIN32_IE=0x0501;_WIN32_WINNT=0x0501;-DWINVER=_WIN32_WINNT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
       <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -70,6 +71,7 @@
       <PreprocessorDefinitions>MCTRL_BUILD;UNICODE;_UNICODE;_WIN32_IE=0x0501;_WIN32_WINNT=0x0501;-DWINVER=_WIN32_WINNT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
       <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
