@@ -1,87 +1,127 @@
 
-                              ============
-                                 README
-                              ============
+                      ====================================
+                              mCtrl Project Readme
+                         <http://mctrl.sourcefoget.net>
+                      ====================================
 
 
-[1] What is mCtrl
-=================
+What is mCtrl
+=============
 
-mCtrl is a library providing set of user interface controls for Win32API.
-Interface of the library is very similar to other controls of Win32API, 
-including the standard and common controls (buttons, edit boxes, combo boxes 
-etc.). 
+mCtrl is C library providing set of additional user interface controls for
+MS Windows, intended to be complementary to standard Win32API controls from
+USER32.DLL and COMCTL32.DLL.
+
+API of the library is designed to be similar to the the Win32API. I.e. after
+widnow class of particular control is registered with some initialization
+function, the control can be normally created with the Win32API's
+CreateWindow() or CreateWindowEx() functions and controlled with SendMessage().
+
+At the moment these controls are available:
+
+ * BUTTON provides some emulation for older Windows version (e.g. split
+   buttons).
+
+ * GRID allows you to easily present large quantity of data in tabular and
+   well-arranged way.
+
+ * HTML embeds power of web browser into your application.
+
+ * MDI TAB is modern replacement for MDI (multiple document interface). These
+   days, almost all users are familiar with using tabs when they have multiple
+   documents opened in a single application window, as almost all web browsers
+   provide this feature.
+
+
+License
+=======
 
 mCtrl is covered with the GNU Lesser General Public License 2.1 or
 (at your option) any later version. See file COPYING.lib for more info.
 
+In brief, this generally means that:
 
-[2] Getting mCtrl
-=================
+ * Any program or library, even commercial covered with any proprietary
+   license, is allowed to link against the mCtrl's import libraries and
+   distribute MCTRL.DLL along with the program.
 
-You can always get latest version, and most actual information on project 
+ * You can modify code of MCTRL.DLL only if the modifications are licensed
+   also under the terms of the LGPL 2.1 (or any later version); or under
+   the terms of GPL 2 (or any later version). LGPL allows this kind of
+   relicensing from LGPL to GPL.
+
+
+Getting mCtrl
+=============
+
+You can always get latest version, and most actual information on the project
 webpages:
-    - http://mctrl.sourceforge.net
-    - http://sourceforge.net/projects/mctrl
+    * http://mctrl.sourceforge.net
+    * http://sourceforge.net/projects/mctrl
 
 There are usually four packages for each release version available:
-    - mCtrl-x.y.z-doc.zip     ... documentation (HTML)
-    - mCtrl-x.y.z-src.zip     ... sources
-    - mCtrl-x.y.z-x86.zip     ... prebuilt 32-bit binaries
-    - mCtrl-x.y.z-x86_64.zip  ... prebuilt 64-bit binaries
+    * mCtrl-x.y.z-doc.zip    ... documentation (HTML)
+    * mCtrl-x.y.z-src.zip    ... sources
+    * mCtrl-x.y.z-x86.zip    ... prebuilt 32-bit binaries
+    * mCtrl-x.y.z-x86_64.zip ... prebuilt 64-bit binaries
 
 
-[3] Using mCtrl
-===============
+Using mCtrl
+===========
 
 If you have a pre-built package (either 32-bit or 64-bit), using mCtrl is as
 easy as using any other DLL.
 
 Header files are located in 'include\mCtrl' directory. You should instruct
 your C/C++ compiler to search for header files in the 'include' directory and
-use the 'mCtrl' in your preprocessor #include directives, e.g.: 
+use the 'mCtrl' in your preprocessor #include directives, e.g.:
+
     #include <mCtrl/version.h>
 
 Import libraries are under the 'lib' subdirectory:
-    - libmCtrl.a for gcc-based toolchains (e.g. mingw, mingw-w64)
-    - mCtrl.lib for MSVC
+    * libmCtrl.a for gcc-based toolchains (e.g. mingw, mingw-w64)
+    * mCtrl.lib for MSVC
 
 And finally deploy your application with the MCTRL.DLL which is located
 in the 'bin' subdirectory.
 
-Note that documentation is not bundled within the prebuilt packages. 
-You jave to download a separate package, or you can find the documentation
+Note that documentation is not bundled within the prebuilt packages.
+You have to download a separate package, or you can find the documentation
 online:
+
     http://mctrl.sourceforge.net/doc.php
 
 
-[4] Compiling mCtrl from sources
-================================
+Building mCtrl from Sources
+===========================
 
 Disclaimer: If you want to just use MCTRL.DLL you should probably stick with
-prebuilt package.
+prebuilt packages.
 
 Primary development platform for mCtrl project is mingw-w64
-(see http://sourceforge.net/projects/mingw-w64/) and MSYS. Assuming you have
-setup the environment, and have the mCtrl sources then the build is as easy
-as running 'make' from the root directory:
+(see http://sf.net/projects/mingw-w64/) and MSYS. Assuming you have setup
+the environment, and have the mCtrl sources then the build should as easy as
+running 'make' from the root directory:
+
     $ make
-    
-It is possible to use PREFIX if the gcc toolchain was compiled as a
-cross-compiler. For example:
+
+It is possible to use variable PREFIX if the gcc toolchain was compiled as
+a cross-compiler. For example:
+
     $ make PREFIX=i686-w64-mingw32-
 
 More details and information about buiding within other environment (e.g.
 MS VisualStudio) can be found in documentation.
 
 
-[5] Bugs
-========
+Reporting Bugs
+==============
 
 If you encounter any bug, please be so kind and report it. We cannot fix bugs
 we do not know about. The bug tracker can be found here:
+
     http://sourceforge.net/tracker/?group_id=286433&atid=1213775
 
-Please be so kind and try to verify the bug you want to report is not already
-registered. If it is, check it (and potantially add new details about it).
+Please try to verify the bug you want to report is not already registered.
+If it is, check it and add any new details.
 
