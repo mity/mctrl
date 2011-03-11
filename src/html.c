@@ -21,11 +21,6 @@
  *    http://www.codeproject.com/KB/COM/cwebpage.aspx
  */
 
-/* BUGS:
- *  - [tab] and [shift]+[tab] do not change focus to another link or
- *    form element, as IE or any normal Windows dialog does.
- */
-
 /* TODO:
  *  - Notifications for context menus so app could customize the menu
  *    or provide its own. (App may want provide different menus depending
@@ -59,6 +54,7 @@ static const TCHAR html_wc[] = MC_WC_HTML;
 
 
 static BSTR url_blank = NULL;
+static TCHAR ie_prop[] = _T("mctrl.html.handle");
 
 
 /* Main control structure */
@@ -67,6 +63,9 @@ struct html_tag {
     HWND win;
     DWORD style                 : 31;
     DWORD unicode_notifications :  1;
+
+    HWND ie_win;
+    WNDPROC ie_proc;
 
     /* Pointer to the COM-object representing the embedded Internet Explorer */
     IOleObject* browser_obj;
@@ -362,9 +361,9 @@ static IOleClientSiteVtbl client_site_vtable = {
 
 
 
-/******************************************
- *** IOleInPlaceSiteEx() implementation ***
- ******************************************/
+/****************************************
+ *** IOleInPlaceSiteEx implementation ***
+ ****************************************/
 
 static HRESULT STDMETHODCALLTYPE
 inplace_site_ex_QueryInterface(IOleInPlaceSiteEx* self, REFIID riid, void** obj)
@@ -601,7 +600,7 @@ inplace_frame_RemoveMenus(IOleInPlaceFrame* self, HMENU menu_shared)
 static HRESULT STDMETHODCALLTYPE
 inplace_frame_SetStatusText(IOleInPlaceFrame* self, LPCOLESTR status_text)
 {
-    /*HTML_TRACE("inplace_frame_SetStatusText: Stub [S_OK]: '%ls'", status_text);*/
+    HTML_TRACE("inplace_frame_SetStatusText: Stub [S_OK]: '%ls'", status_text);
     return S_OK;
 }
 
@@ -739,8 +738,8 @@ ui_handler_ResizeBorder(IDocHostUIHandler* self, const RECT* rect,
 static HRESULT STDMETHODCALLTYPE
 ui_handler_TranslateAccelerator(IDocHostUIHandler* self, MSG* msg, const GUID* guid, DWORD cmd_id)
 {
-    HTML_TRACE("ui_handler_TranslateAccelerator: Stub [E_NOTIMPL]");
-    return E_NOTIMPL;
+    HTML_TRACE("ui_handler_TranslateAccelerator: Stub [S_FALSE]");
+    return S_FALSE;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -1001,6 +1000,41 @@ err_id:
     return res;
 }
 
+static void
+html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
+{
+    MSG message;
+    IWebBrowser2* browser_iface;
+    IOleInPlaceActiveObject* active_iface;
+    HRESULT hr;
+
+    /* Setup the message structure */
+    message.hwnd = html->ie_win;
+    message.message = msg;
+    message.wParam = wp;
+    message.lParam = lp;
+    message.time = GetMessageTime();
+    message.pt.x = LOWORD(GetMessagePos());
+    message.pt.y = HIWORD(GetMessagePos());
+
+    /* ->TranslateAccelerator() */
+    browser_iface = html_browser_iface(html);
+    if(MC_ERR(browser_iface == NULL))
+        goto err_browser;
+    hr = browser_iface->lpVtbl->QueryInterface(browser_iface,
+                        &IID_IOleInPlaceActiveObject, (void**)&active_iface);
+    if(MC_ERR(hr != S_OK))
+        goto err_active;
+    active_iface->lpVtbl->TranslateAccelerator(active_iface, &message);
+
+    /* Cleanup */
+    active_iface->lpVtbl->Release(active_iface);
+err_active:
+    browser_iface->lpVtbl->Release(browser_iface);
+err_browser:
+    ; /* noop */
+}
+
 static html_t*
 html_create(HWND win, CREATESTRUCT* cs)
 {
@@ -1036,6 +1070,13 @@ html_create(HWND win, CREATESTRUCT* cs)
     html->inplace_frame.lpVtbl = &inplace_frame_vtable;
     html->ui_handler.lpVtbl = &ui_handler_vtable;
     html_notify_format(html);
+
+    /* Unsubclass IE window */
+    if(html->ie_win != NULL) {
+        SetWindowLongPtr(html->ie_win, GWLP_WNDPROC, (LONG_PTR)html->ie_proc);
+        RemoveProp(html->ie_win, ie_prop);
+        html->ie_win = NULL;
+    }
 
     /* Create browser object */
     hr = CoCreateInstance(&CLSID_WebBrowser, NULL, CLSCTX_INPROC,
@@ -1135,10 +1176,81 @@ html_destroy(html_t* html)
     OleUninitialize();
 }
 
+
+static LRESULT CALLBACK
+html_ie_subclass_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
+{
+    html_t* html;
+    LRESULT ret;
+
+    html = (html_t*) GetProp(win, ie_prop);
+
+    if(WM_KEYFIRST <= msg && msg <= WM_KEYLAST)
+        html_key_msg(html, msg, wp, lp);
+
+    if(msg == WM_GETDLGCODE)
+        return DLGC_WANTCHARS | DLGC_WANTTAB | DLGC_WANTARROWS;
+
+    ret = CallWindowProc(html->ie_proc, win, msg, wp, lp);
+
+    if(msg == WM_DESTROY) {
+        SetWindowLongPtr(win, GWLP_WNDPROC, (LONG_PTR)html->ie_proc);
+        RemoveProp(win, ie_prop);
+        html->ie_win = NULL;
+    }
+
+    return ret;
+}
+
+static HWND
+html_find_ie_window(HWND win)
+{
+    static const TCHAR ie_wc[] = _T("Internet Explorer_Server");
+    HWND w;
+
+    w = FindWindowEx(win, NULL, ie_wc, NULL);
+    if(w != NULL)
+        return w;
+
+    win = GetWindow(win, GW_CHILD);
+    while(win != NULL) {
+        w = html_find_ie_window(win);
+        if(w != NULL)
+            return w;
+
+        win = GetWindow(win, GW_HWNDNEXT);
+    }
+
+    return NULL;
+}
+
+
 static LRESULT CALLBACK
 html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     html_t* html = (html_t*) GetWindowLongPtr(win, 0);
+
+    if(html != NULL  &&  html->ie_win == NULL) {
+        /* Let's try to subclass IE window. This is very dirty hack,
+         * which allows us to forward keyboard messages properly to
+         * IOleInPlaceActiveObject::TranslateAccelerator().
+         *
+         * Normally this should be done from main app. loop but we do not
+         * have it under control in the DLL. */
+        html->ie_win = html_find_ie_window(win);
+        if(html->ie_win != NULL) {
+            HTML_TRACE("html_proc: Subclassing MSIE.");
+            html->ie_proc = (WNDPROC) SetWindowLongPtr(html->ie_win,
+                            GWLP_WNDPROC, (LONG_PTR) html_ie_subclass_proc);
+            SetProp(html->ie_win, ie_prop, (HANDLE) html);
+
+            if(GetFocus() == win) {
+                SetFocus(html->ie_win);
+                SendMessage(html->ie_win, WM_LBUTTONDOWN, 0, 0);
+                SendMessage(html->ie_win, WM_LBUTTONUP, 0, 0);
+            }
+        }
+    }
 
     switch(msg) {
         case MC_HM_GOTOURLW:
@@ -1182,6 +1294,17 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 html_notify_format(html);
             return (html->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
 
+        case WM_SETFOCUS:
+            if(html->ie_win) {
+                SetFocus(html->ie_win);
+                SendMessage(html->ie_win, WM_LBUTTONDOWN, 0, 0);
+                SendMessage(html->ie_win, WM_LBUTTONUP, 0, 0);
+            }
+            return 0;
+
+        case WM_GETDLGCODE:
+            return DLGC_WANTCHARS | DLGC_WANTTAB | DLGC_WANTARROWS;
+
         case WM_SETTEXT:
             return FALSE;
 
@@ -1202,6 +1325,13 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_DESTROY:
             html_destroy(html);
             return 0;
+    }
+
+    /* Forward keystrokes to the IE */
+    if(WM_KEYFIRST <= msg  &&  msg <= WM_KEYLAST) {
+        if(html->ie_win)
+            SendMessage(html->ie_win, msg, wp, lp);
+        return 0;
     }
 
     return DefWindowProc(win, msg, wp, lp);
