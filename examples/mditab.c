@@ -13,47 +13,48 @@
 #include <stdio.h>
 
 #include <mCtrl/mditab.h>
+#include "mditab.h"
 
 
-static HINSTANCE inst;
-static HIMAGELIST img_list;  /* Few cute images for the tabs */
-static HWND mditab;          /* MDITAB control */
-static HWND btn_new;         /* Button for creating new tabs */
+static HINSTANCE hInst;
+static HIMAGELIST hImgList;  /* Few cute images for the tabs */
+
+static HWND hwndMdiTab;      /* The MDITAB control */
+static HWND hwndBtn;         /* A button for creating new tabs */
 
 
 /* Adds new tab */
 static void
-add_tab(void)
+AddNewTab(void)
 {
-    static UINT counter = 0;
+    static UINT uCounter = 0;
     int i, n;
     TCHAR buffer[32];
     MC_MTITEM item = {MC_MTIF_TEXT | MC_MTIF_IMAGE, buffer, 0, 0, 0};
     
     /* Setup tab icon and label */
-    counter++;
-    item.iImage = counter % 11; /* we have 11 icons in the image list */
-    _sntprintf(buffer, 32, _T("Tab %u"), counter);
+    uCounter++;
+    item.iImage = uCounter % 11; /* we have 11 icons in the image list */
+    _sntprintf(buffer, 32, _T("Tab %u"), uCounter);
     
     /* Add the new tab as last tab */
-    n = SendMessage(mditab, MC_MTM_GETITEMCOUNT, 0, 0);
-    i = SendMessage(mditab, MC_MTM_INSERTITEM, (WPARAM) n, (LPARAM) &item);
+    n = SendMessage(hwndMdiTab, MC_MTM_GETITEMCOUNT, 0, 0);
+    i = SendMessage(hwndMdiTab, MC_MTM_INSERTITEM, (WPARAM) n, (LPARAM) &item);
     
     /* Activate the new tab */
-    SendMessage(mditab, MC_MTM_SETCURSEL, (WPARAM) i, 0);
+    SendMessage(hwndMdiTab, MC_MTM_SETCURSEL, (WPARAM) i, 0);
 }
 
 
 /* Main window procedure */
 static CALLBACK LRESULT
-win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
+WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    switch(msg) {
+    switch(uMsg) {
         case WM_COMMAND:
-            if(LOWORD(wp) == 101) {
-                /* We are here after the user has clicked the helper button
-                 * to add new tab */
-                add_tab();
+            /* Handle clicks to the button: create new tab. */
+            if(LOWORD(wParam) == IDC_BUTTON_NEW) {
+                AddNewTab();
             }
             break;
         
@@ -62,46 +63,47 @@ win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             RECT rect;
             MC_MTITEMWIDTH tw;
             
-            GetClientRect(win, &rect);
+            GetClientRect(hWnd, &rect);
             
             /* Create mditab child window  */
-            mditab = CreateWindow(MC_WC_MDITAB, _T(""),
+            hwndMdiTab = CreateWindow(MC_WC_MDITAB, _T(""),
                 WS_CHILD | WS_VISIBLE | MC_MTS_CLOSEONMCLICK, 
-                0, 0, rect.right, 30, win, (HMENU) 100, inst, NULL);
+                0, 0, rect.right, 30, hWnd, (HMENU) IDL_IMGLIST, hInst, NULL);
                 
             /* Set an imagelist */
-            SendMessage(mditab, MC_MTM_SETIMAGELIST, 0, (LPARAM) img_list);
+            SendMessage(hwndMdiTab, MC_MTM_SETIMAGELIST, 0, (LPARAM) hImgList);
             
             /* Change minimal tab width */
-            SendMessage(mditab, MC_MTM_GETITEMWIDTH, 0, (LPARAM) &tw);
+            SendMessage(hwndMdiTab, MC_MTM_GETITEMWIDTH, 0, (LPARAM) &tw);
             tw.dwMinWidth += 30;
-            SendMessage(mditab, MC_MTM_SETITEMWIDTH, 0, (LPARAM) &tw);
+            SendMessage(hwndMdiTab, MC_MTM_SETITEMWIDTH, 0, (LPARAM) &tw);
                 
             /* Create button for creating new tabs */
-            btn_new = CreateWindow(_T("BUTTON"), _T("New tab"),
+            hwndBtn = CreateWindow(_T("BUTTON"), _T("New tab"),
                 WS_CHILD | WS_VISIBLE, 10, 250, 80, 24, 
-                win, (HMENU) 101, inst, NULL);
+                hWnd, (HMENU) IDC_BUTTON_NEW, hInst, NULL);
             return 0;
         }
         
         case WM_SETFONT:
-            SendMessage(mditab, WM_SETFONT, wp, lp);
-            SendMessage(btn_new, WM_SETFONT, wp, lp);
+            SendMessage(hwndMdiTab, WM_SETFONT, wParam, lParam);
+            SendMessage(hwndBtn, WM_SETFONT, wParam, lParam);
             return 0;
             
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
     }
-    return DefWindowProc(win, msg, wp, lp);
+
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 
 int APIENTRY
-WinMain(HINSTANCE instance, HINSTANCE instance_prev, LPSTR cmd_line, int cmd_show)
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     WNDCLASS wc = { 0 };
-    HWND win;
+    HWND hWnd;
     MSG msg;
     
     mcMditab_Initialize();
@@ -109,35 +111,32 @@ WinMain(HINSTANCE instance, HINSTANCE instance_prev, LPSTR cmd_line, int cmd_sho
     /* Prevent linker from ignoring comctl32.dll */
     InitCommonControls();
 
-    inst = instance;
+    hInst = hInstance;
     
     /* Register main window class */
     wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = win_proc;
-    wc.hInstance = instance;
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = hInst;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = _T("main_window");
     RegisterClass(&wc);
     
     /* Load image list */
-    img_list = ImageList_LoadImage(instance, MAKEINTRESOURCE(100), 16, 1, 
-                            RGB(255,0,255), IMAGE_BITMAP, LR_CREATEDIBSECTION);
+    hImgList = ImageList_LoadImage(hInst, MAKEINTRESOURCE(IDL_IMGLIST),
+                    16, 1, RGB(255,0,255), IMAGE_BITMAP, LR_CREATEDIBSECTION);
     
     /* Create main window */
-    win = CreateWindow(
-            _T("main_window"), _T("mCtrl Example: MDITAB Control"), 
+    hWnd = CreateWindow(_T("main_window"), _T("mCtrl Example: MDITAB Control"), 
             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, 
-            CW_USEDEFAULT, CW_USEDEFAULT, 500, 310, 
-            NULL, NULL, instance, NULL
-    );
-    SendMessage(win, WM_SETFONT, (WPARAM) GetStockObject(DEFAULT_GUI_FONT), 
+            CW_USEDEFAULT, CW_USEDEFAULT, 500, 310, NULL, NULL, hInst, NULL);
+    SendMessage(hWnd, WM_SETFONT, (WPARAM) GetStockObject(DEFAULT_GUI_FONT), 
             MAKELPARAM(TRUE, 0));
-    ShowWindow(win, cmd_show);
+    ShowWindow(hWnd, nCmdShow);
     
     /* Message loop */
     while(GetMessage(&msg, NULL, 0, 0)) {
-        if(IsDialogMessage(win, &msg))
+        if(IsDialogMessage(hWnd, &msg))
             continue;
         
         TranslateMessage(&msg);

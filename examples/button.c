@@ -7,101 +7,94 @@
 
 /* This sample demonstrates basic usage of BUTTON control. */
 
-#include <windows.h>
 #include <tchar.h>
+#include <windows.h>
 #include <mCtrl/button.h>
+#include "button.h"
 
 
-static HINSTANCE inst;
-static HMENU menu;
+static HINSTANCE hInst;
+static HMENU hMenu;
 
 
 /* Creates a popup menu, to be shown when user clicks on drop-down part
  * of the split buttons */
 static void
-create_menu(void)
+CreateSplitMenu(void)
 {
-    MENUITEMINFO mii;
+    MENUITEMINFO mii = {0};
 
-    menu = CreatePopupMenu();
+    hMenu = CreatePopupMenu();
     
     mii.cbSize = sizeof(MENUITEMINFO);
     mii.fMask = MIIM_TYPE;
     mii.fType = MFT_STRING;
     mii.dwTypeData = _T("item 1");
-    InsertMenuItem(menu, 0, TRUE, &mii);
+    InsertMenuItem(hMenu, 0, TRUE, &mii);
 
     mii.dwTypeData = _T("item 2");
-    InsertMenuItem(menu, 1, TRUE, &mii);
+    InsertMenuItem(hMenu, 1, TRUE, &mii);
 }
-
-
-static HWND button_icon1;
-static HWND button_icon2;
-static HWND button_split1;
-static HWND button_split2;
 
 
 /* Main dialog procedure */
 static CALLBACK INT_PTR
-dlg_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
+DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    switch(msg) {
+    switch(uMsg) {
         case WM_NOTIFY:
         {
-            /* React when user clicks on drop-down of a split button. */
-            MC_NMBCDROPDOWN* notify = (MC_NMBCDROPDOWN*)lp;
-            if((notify->hdr.idFrom == 102  ||  notify->hdr.idFrom == 103)  &&
-                notify->hdr.code == MC_BCN_DROPDOWN) {
-                ClientToScreen(notify->hdr.hwndFrom, ((POINT*) &notify->rcButton)+1);
-                TrackPopupMenu(menu, TPM_RIGHTALIGN | TPM_LEFTBUTTON, 
-                        notify->rcButton.right, notify->rcButton.bottom, 0, win, NULL);
+            /* React when user clicks on a drop-down part of any of the two
+             * split buttons. We just show a simple menu (which does nothing).
+             */
+            MC_NMBCDROPDOWN* nm = (MC_NMBCDROPDOWN*)lParam;
+            if((nm->hdr.idFrom == ID_BUTTON_SPLIT_1 || nm->hdr.idFrom == ID_BUTTON_SPLIT_2)  &&
+               nm->hdr.code == MC_BCN_DROPDOWN)
+            {
+                ClientToScreen(nm->hdr.hwndFrom, ((POINT*) &nm->rcButton)+1);
+                TrackPopupMenu(hMenu, TPM_RIGHTALIGN | TPM_LEFTBUTTON, 
+                               nm->rcButton.right, nm->rcButton.bottom, 0, hwndDlg, NULL);
             }
             break;
         }
             
         case WM_COMMAND:
         {
-            /* React when user clicks on button 
-             * (for split buttons, only the main part of the control) */
-            const TCHAR* msg = NULL;
-            switch(LOWORD(wp)) {
-                case 100: 
-                    msg = _T("The upper BS_ICON button has been clicked."); 
+            /* React when user clicks on button (for split buttons, only the
+             * main part of the control as drop-down is handled in WM_NOTIFY)
+             */
+            const TCHAR* lpStr = NULL;
+            switch(LOWORD(wParam)) {
+                case ID_BUTTON_ICON_1: 
+                    lpStr = _T("The upper BS_ICON button has been clicked."); 
                     break;
-                case 101: 
-                    msg = _T("The lower BS_ICON button has been clicked.");
+                case ID_BUTTON_ICON_2: 
+                    lpStr = _T("The lower BS_ICON button has been clicked.");
                     break;
-                case 102: 
-                    msg = _T("The text split button has been clicked.");
+                case ID_BUTTON_SPLIT_1: 
+                    lpStr = _T("The text split button has been clicked.");
                     break;
-                case 103: 
-                    msg = _T("The icon split button has been clicked.");
+                case ID_BUTTON_SPLIT_2: 
+                    lpStr = _T("The icon split button has been clicked.");
                     break;
             }
-            if(msg)
-                MessageBox(win, msg, _T("mCtrl Sample"), MB_OK);
+            if(lpStr)
+                MessageBox(hwndDlg, lpStr, _T("mCtrl Sample"), MB_OK);
             break;
         }       
         
         case WM_INITDIALOG:
-            /* Get handles of the child controls */
-            button_icon1 = GetDlgItem(win, 100);
-            button_icon2 = GetDlgItem(win, 101);
-            button_split1 = GetDlgItem(win, 102);
-            button_split2 = GetDlgItem(win, 103);
-
-            /* Set some icon of the icon buttons. */
-            SendMessage(button_icon1, BM_SETIMAGE, IMAGE_ICON, 
+            /* Setup icons for the buttons with BS%ICON style. */
+            SendDlgItemMessage(hwndDlg, ID_BUTTON_ICON_1, BM_SETIMAGE, IMAGE_ICON, 
                     (LPARAM)LoadIcon(NULL, IDI_QUESTION));
-            SendMessage(button_icon2, BM_SETIMAGE, IMAGE_ICON, 
+            SendDlgItemMessage(hwndDlg, ID_BUTTON_ICON_2, BM_SETIMAGE, IMAGE_ICON, 
                     (LPARAM)LoadIcon(NULL, IDI_QUESTION));
-            SendMessage(button_split2, BM_SETIMAGE, IMAGE_ICON, 
-                    (LPARAM)LoadIcon(NULL, IDI_QUESTION ));
+            SendDlgItemMessage(hwndDlg, ID_BUTTON_SPLIT_2, BM_SETIMAGE, IMAGE_ICON, 
+                    (LPARAM)LoadIcon(NULL, IDI_QUESTION));
             return TRUE;
         
-        case WM_CLOSE:  
-            EndDialog(win, 0);
+        case WM_CLOSE:
+            EndDialog(hwndDlg, 0);
             break;
             
         default:
@@ -113,15 +106,15 @@ dlg_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
 
 int APIENTRY
-WinMain(HINSTANCE instance, HINSTANCE instance_prev, LPSTR cmd_line, int cmd_show)
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    inst = instance;
-    create_menu();
+    hInst = hInstance;
+    CreateSplitMenu();
     
     /* Initialize mCtrl control */
     mcButton_Initialize();
     
     /* Load and show a dialog. */
-    DialogBox(inst, MAKEINTRESOURCE(1000), NULL, dlg_proc);
+    DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, DlgProc);
     return 0;
 }

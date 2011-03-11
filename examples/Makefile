@@ -52,9 +52,9 @@ $(BINDIR)/ex_mditab.exe: $(OBJDIR)/mditab.o $(OBJDIR)/mditab_rc.o
 $(BINDIR)/ex_%.exe: 
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c $(wildcard $(SRCDIR)/%.h)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@
 
-$(OBJDIR)/%_rc.o: $(SRCDIR)/%.rc $(wildcard res/*)
+$(OBJDIR)/%_rc.o: $(SRCDIR)/%.rc $(wildcard res/*) $(wildcard $(SRCDIR)/%.h)
 	$(WINDRES) $(filter-out -DUNICODE -D_UNICODE -DUNICODE=1 -D_UNICODE=1, $(CPPFLAGS)) $< $@
 

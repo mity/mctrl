@@ -19,41 +19,42 @@
 
 
 int APIENTRY
-WinMain(HINSTANCE instance, HINSTANCE instance_prev, 
-        LPSTR cmd_line, int cmd_show)
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    HMODULE dll;
-    DLLGETVERSIONPROC fn_DllGetVersion;
+    HMODULE hDll;
+    DLLGETVERSIONPROC fnDllGetVersion;
     DLLVERSIONINFO vi;
     TCHAR buffer[64];
     
     /* Load mCtrl.dll */
-    dll = LoadLibrary(_T("mCtrl.dll"));
-    if(dll == NULL) {
+    hDll = LoadLibrary(_T("mCtrl.dll"));
+    if(hDll == NULL) {
         MessageBox(NULL, _T("Cannot load mCtrl.dll library."), 
-                _T("mCtrl Sample: DllGetVersion"), MB_OK | MB_ICONERROR);
+                   _T("mCtrl Sample: DllGetVersion"), MB_OK | MB_ICONERROR);
         return 1;
     }
     
     /* Get DllGetVersion function address */
-    fn_DllGetVersion = (DLLGETVERSIONPROC) GetProcAddress(dll, "DllGetVersion");
-    if(fn_DllGetVersion == NULL) {
+    fnDllGetVersion = (DLLGETVERSIONPROC) GetProcAddress(hDll, "DllGetVersion");
+    if(fnDllGetVersion == NULL) {
         MessageBox(NULL, _T("Cannot get DllGetVersion function."), 
-                _T("mCtrl Sample: DllGetVersion"), MB_OK | MB_ICONERROR);
+                   _T("mCtrl Sample: DllGetVersion"), MB_OK | MB_ICONERROR);
         return 1;
     }
     
     /* Call the function to get the version */
     vi.cbSize = sizeof(DLLVERSIONINFO);
-    if(fn_DllGetVersion(&vi) != S_OK) {
+    if(fnDllGetVersion(&vi) != S_OK) {
         MessageBox(NULL, _T("DllGetVersion failed."), _T("Error"), 
-                MB_OK | MB_ICONERROR);
+                   MB_OK | MB_ICONERROR);
         return 1;
     }
     
     /* Show the results */
     _sntprintf(buffer, 64, _T("Detected mCtrl.dll version %u.%u.%u"), 
-                vi.dwMajorVersion, vi.dwMinorVersion, vi.dwBuildNumber);
+               vi.dwMajorVersion, vi.dwMinorVersion, vi.dwBuildNumber);
     MessageBox(NULL, buffer, _T("mCtrl Sample: DllGetVersion"), MB_OK);
+    
+    FreeLibrary(hDll);
     return 0;
 }

@@ -6,9 +6,10 @@
  */
 
 #include <windows.h>
+#include "mditab.h"
 
-/* Manifest enabling XP theme on Win XP */
+/* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
 /* Image list */
-100 BITMAP res/img_list.bmp
+IDL_IMGLIST BITMAP res/img_list.bmp

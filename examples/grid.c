@@ -13,200 +13,210 @@
 #include <stdio.h>
 
 #include <mCtrl/grid.h>
-
-static HINSTANCE inst;
-static HWND grid;
+#include "grid.h"
 
 
+static HINSTANCE hInst;
+static HWND hwndGrid;
+
+
+/* Loads some values into the table. Some cells are filled via grid control,
+ * some are set directly through table model API after we get a pointer to
+ * the table from the grid control. */
 static void
-load_grid(void)
+LoadGrid(void)
 {
     MC_GGEOMETRY geom;
     MC_GCELL cell;
+    MC_HTABLE hTable;
+    MC_TABLECELL tc;
     
-    SendMessage(grid, MC_GM_RESIZE, MAKEWPARAM(8, 16), 0);
+    /* Set size of the table to 8 columns and 16 rows. */
+    SendMessage(hwndGrid, MC_GM_RESIZE, MAKEWPARAM(8, 16), 0);
 
-    /* Make space for row headers larger for custom headers */
+    /* We use custom row headers so we need more space there. */
     geom.fMask = MC_GGF_ROWHEADERWIDTH;
     geom.wRowHeaderWidth = 48;
-    SendMessage(grid, MC_GM_SETGEOMETRY, 0, (LPARAM)&geom);
+    SendMessage(hwndGrid, MC_GM_SETGEOMETRY, 0, (LPARAM)&geom);
     
-    /* Setup first column which serves as row headers */
+    /* Setup first column which serves as row headers. */
     cell.wCol = 0;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_STRING);
     for(cell.wRow = 0; cell.wRow < 16; cell.wRow++) {
         TCHAR buffer[32];
         _sntprintf(buffer, 32, _T("Row %d"), (int)cell.wRow+1);
         mcValue_CreateFromString(&cell.hValue, buffer);
-        SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+        SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
     }
     
-    /* Setup few cells */
+    /* Setup few cells and show that the table can contain various kinds
+     * of data. */
     cell.wCol = 1;
     cell.wRow = 0;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_IMMSTRING);
     mcValue_CreateFromImmString(&cell.hValue, _T("imm string"));
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 1;
     cell.wRow = 1;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_STRING);
     mcValue_CreateFromString(&cell.hValue, _T("string"));
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 1;
     cell.wRow = 2;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
     mcValue_CreateFromColorref(&cell.hValue, RGB(200,0,0));
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 2;
     cell.wRow = 2;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
     mcValue_CreateFromColorref(&cell.hValue, RGB(0,200,0));
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 3;
     cell.wRow = 2;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
     mcValue_CreateFromColorref(&cell.hValue, RGB(0,0,200));
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 1;
     cell.wRow = 3;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_INT32);
     mcValue_CreateFromInt32(&cell.hValue, 42);
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 1;
     cell.wRow = 4;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_IMMSTRING);
     mcValue_CreateFromImmString(&cell.hValue, _T("This is very long string which does not fit in the cell."));
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
 
     cell.wCol = 6;
     cell.wRow = 14;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_HICON);
-    mcValue_CreateFromHIcon(&cell.hValue, LoadImage(inst, MAKEINTRESOURCE(100), IMAGE_ICON, 0, 0, LR_SHARED));
-    SendMessage(grid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    mcValue_CreateFromHIcon(&cell.hValue, LoadImage(hInst, MAKEINTRESOURCE(IDI_BEAR), IMAGE_ICON, 0, 0, LR_SHARED));
+    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
     
-    /* We can also use API of the table presented by the control directly. */
-    MC_HTABLE table;
-    MC_TABLECELL tc;
-    
-    table = (MC_HTABLE)SendMessage(grid, MC_GM_GETTABLE, 0, 0);
+    /* We can also use API of the table presented by the control directly.
+     * first we need a handle of the grid's table. */
+    hTable = (MC_HTABLE)SendMessage(hwndGrid, MC_GM_GETTABLE, 0, 0);
     
     tc.fMask = MC_TCM_VALUE | MC_TCM_FLAGS;    
     tc.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_IMMSTRING);
     
     mcValue_CreateFromImmString(&tc.hValue, _T("top left"));
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNTOP;
-    mcTable_SetCellEx(table, 4, 6, &tc);
+    mcTable_SetCellEx(hTable, 4, 6, &tc);
 
     mcValue_CreateFromImmString(&tc.hValue, _T("top"));
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNTOP;
-    mcTable_SetCellEx(table, 5, 6, &tc);
+    mcTable_SetCellEx(hTable, 5, 6, &tc);
 
     mcValue_CreateFromImmString(&tc.hValue, _T("top right"));
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNTOP;
-    mcTable_SetCellEx(table, 6, 6, &tc);
+    mcTable_SetCellEx(hTable, 6, 6, &tc);
     
     mcValue_CreateFromImmString(&tc.hValue, _T("left"));
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNVCENTER;
-    mcTable_SetCellEx(table, 4, 7, &tc);
+    mcTable_SetCellEx(hTable, 4, 7, &tc);
     
     mcValue_CreateFromImmString(&tc.hValue, _T("center"));
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNVCENTER;
-    mcTable_SetCellEx(table, 5, 7, &tc);
+    mcTable_SetCellEx(hTable, 5, 7, &tc);
 
     mcValue_CreateFromImmString(&tc.hValue, _T("right"));
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNVCENTER;
-    mcTable_SetCellEx(table, 6, 7, &tc);
+    mcTable_SetCellEx(hTable, 6, 7, &tc);
     
     mcValue_CreateFromImmString(&tc.hValue, _T("bottom left"));
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNBOTTOM;
-    mcTable_SetCellEx(table, 4, 8, &tc);
+    mcTable_SetCellEx(hTable, 4, 8, &tc);
     
     mcValue_CreateFromImmString(&tc.hValue, _T("bottom"));
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNBOTTOM;
-    mcTable_SetCellEx(table, 5, 8, &tc);
+    mcTable_SetCellEx(hTable, 5, 8, &tc);
     
     mcValue_CreateFromImmString(&tc.hValue, _T("bottom right"));
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNBOTTOM;
-    mcTable_SetCellEx(table, 6, 8, &tc);
+    mcTable_SetCellEx(hTable, 6, 8, &tc);
 }
 
 
 /* Main window procedure */
 static CALLBACK LRESULT
-win_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
+win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    switch(msg) {
+    switch(uMsg) {
         case WM_SIZE:
-            if(wp == SIZE_RESTORED  ||  wp == SIZE_MAXIMIZED)
-                SetWindowPos(grid, NULL, 5, 5, LOWORD(lp)-10, HIWORD(lp)-10, SWP_NOZORDER);
+            /* Resize the grid control so it takes all space of the top
+             * level window */
+            if(wParam == SIZE_RESTORED  ||  wParam == SIZE_MAXIMIZED)
+                SetWindowPos(hwndGrid, NULL, 5, 5, LOWORD(lParam)-10, HIWORD(lParam)-10, SWP_NOZORDER);
             return 0;
 
         case WM_SETFOCUS:
-            SetFocus(grid);
+            SetFocus(hwndGrid);
             return 0;
             
         case WM_SETFONT:
-            SendMessage(grid, WM_SETFONT, wp, lp);
+            SendMessage(hwndGrid, WM_SETFONT, wParam, lParam);
             return 0;
             
         case WM_CREATE:
-            /* Create grid control */
-            grid = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_GRID, _T(""), 
+            /* Create grid control and fill it with some data */
+            hwndGrid = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_GRID, _T(""), 
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP |
                     MC_GS_COLUMNHEADERALPHABETIC | MC_GS_ROWHEADERCUSTOM,
-                    0, 0, 0, 0, win, (HMENU) 100, inst, NULL);
-            load_grid();
+                    0, 0, 0, 0, hwnd, (HMENU) IDC_GRID, hInst, NULL);
+            LoadGrid();
             return 0;
         
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
     }
-    return DefWindowProc(win, msg, wp, lp);
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 
 int APIENTRY
-WinMain(HINSTANCE instance, HINSTANCE instance_prev, LPSTR cmd_line, int cmd_show)
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     WNDCLASS wc = { 0 };
-    HWND win;
+    HWND hwndMain;
     MSG msg;
     
+    hInst = hInstance;
+
+    /* Register grid window class */
     mcGrid_Initialize();
     
-    /* Prevent linker from ignoring comctl32.dll */
+    /* Prevent linker from ignoring comctl32.dll. */
     InitCommonControls();
 
-    inst = instance;
-    
     /* Register main window class */
     wc.lpfnWndProc = win_proc;
-    wc.hInstance = instance;
+    wc.hInstance = hInst;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = _T("main_window");
     RegisterClass(&wc);
     
     /* Create main window */
-    win = CreateWindow(
+    hwndMain = CreateWindow(
         _T("main_window"), _T("mCtrl Example: Grid Control"), 
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
-        NULL, NULL, instance, NULL
+        NULL, NULL, hInst, NULL
     );
-    SendMessage(win, WM_SETFONT, (WPARAM) GetStockObject(DEFAULT_GUI_FONT), 
+    SendMessage(hwndMain, WM_SETFONT, (WPARAM) GetStockObject(DEFAULT_GUI_FONT), 
             MAKELPARAM(TRUE, 0));
-    ShowWindow(win, cmd_show);
+    ShowWindow(hwndMain, nCmdShow);
 
     /* Message loop */
     while(GetMessage(&msg, NULL, 0, 0)) {
-        if(IsDialogMessage(win, &msg))
+        if(IsDialogMessage(hwndMain, &msg))
             continue;
         
         TranslateMessage(&msg);

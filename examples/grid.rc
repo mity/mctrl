@@ -6,8 +6,10 @@
  */
 
 #include <windows.h>
+#include "grid.h"
 
 /* Manifest enabling XP theme on Win XP */
 1 RT_MANIFEST res/manifest.xml
 
-100 ICON res/bear.ico
+/* Some icon we show in one of the grid cells */
+IDI_BEAR ICON res/bear.ico
