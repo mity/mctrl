@@ -531,7 +531,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
     mditab_calc_contents_rect(&contents, rect);
 
     /* Draw tab icon */
-    if(mditab->img_list != NULL) {
+    if(mditab->img_list != NULL && mditab->items[index].img >= 0) {
         int ico_w, ico_h;
         RECT rect_ico;
 
@@ -540,7 +540,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
         mditab_calc_ico_rect(&rect_ico, &contents, ico_w, ico_h);
 
         /* Do the draw */
-        if(mditab->theme  &&  mditab->items[index].img >= 0) {
+        if(mditab->theme) {
             theme_DrawThemeIcon(mditab->theme, dc, TABP_TOPTABITEM, TTIS_NORMAL,
                            &rect_ico, mditab->img_list, mditab->items[index].img);
         } else {
