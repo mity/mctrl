@@ -820,8 +820,7 @@ static BOOL
 mditab_delete_item(mditab_t* mditab, int index)
 {
     mditab_item_t* items;
-    BOOL need_scroll;
-
+  
     if(index < 0  ||  index >= mditab->item_count) {
         MC_TRACE("mditab_delete_item: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -881,7 +880,6 @@ mditab_delete_item(mditab_t* mditab, int index)
         mditab->item_first_visible = 0;
 
     /* Refresh */
-    need_scroll = mditab->need_scroll;
     mditab_layout(mditab);
     InvalidateRect(mditab->win, NULL, TRUE);
 
