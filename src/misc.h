@@ -66,17 +66,6 @@
     #define MC_OFFSETOF(type, member)   ((size_t) &((type*)0)->member)
 #endif
 
-/* Aligning to upper boundary */
-#define MC_ALIGN(ptr_or_size_or_offset, boundary)                        \
-            (((LONG_PTR)(ptr_or_size_or_offset) + (boundary) - 1) -      \
-             (((LONG_PTR)(ptr_or_size_or_offset) + (boundary) - 1) % boundary))
-#define MC_ALIGN_WORD(ptr_or_size_or_offset)                             \
-            MC_ALIGN(ptr_or_size_or_offset, sizeof(WORD))
-#define MC_ALIGN_DWORD(ptr_or_size_or_offset)                            \
-            MC_ALIGN(ptr_or_size_or_offset, sizeof(DWORD))
-#define MC_ALIGN_PTR(ptr_or_size_or_offset)                              \
-            MC_ALIGN(ptr_or_size_or_offset, sizeof(void*))
-
 /* Pointer to container structure */
 #define MC_CONTAINEROF(ptr, type, member)                                \
             ((type*)((BYTE*)(ptr) - MC_OFFSETOF(type, member)))
@@ -181,9 +170,6 @@ void* mc_str_n(const void* from_str, int from_type, int from_len,
  * can be applied during the copying depending on teh type of the from_str
  * and the requested new string. Only up-to max_len-1 characters is copied.
  * The resulted string is always zero-terminated.
- *
- * Note that this function does not support MC_STRB on input nor output
- * (so far not needed).
  */
 void mc_str_inbuf(const void* from_str, int from_type,
                   void* to_str, int to_type, int to_str_bufsize);
