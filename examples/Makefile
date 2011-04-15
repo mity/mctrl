@@ -17,7 +17,11 @@ CFLAGS = -Wall
 LDFLAGS = -mwindows -L../lib
 LIBS = -lmCtrl -lcomctl32
 
-EXAMPLES = $(addprefix $(BINDIR)/ex_, button.exe dllgetversion.exe grid.exe html.exe mditab.exe)
+EXAMPLES = $(BINDIR)/ex_button.exe          \
+           $(BINDIR)/ex_dllgetversion.exe   \
+           $(BINDIR)/ex_grid.exe            \
+           $(BINDIR)/ex_html.exe            \
+           $(BINDIR)/ex_mditab.exe
 
 C_SOURCES = $(wildcard $(SRCDIR)/*.c)
 RC_SOURCES = $(wildcard $(SRCDIR)/*.rc)
@@ -38,18 +42,18 @@ clean:
 # Dependencies #
 ################
 
-$(BINDIR)/ex_button.exe: $(OBJDIR)/button.o $(OBJDIR)/button_rc.o
-$(BINDIR)/ex_dllgetversion.exe: $(OBJDIR)/dllgetversion.o $(OBJDIR)/manifest_rc.o
-$(BINDIR)/ex_grid.exe: $(OBJDIR)/grid.o $(OBJDIR)/grid_rc.o
-$(BINDIR)/ex_html.exe: $(OBJDIR)/html.o $(OBJDIR)/html_rc.o
-$(BINDIR)/ex_mditab.exe: $(OBJDIR)/mditab.o $(OBJDIR)/mditab_rc.o
+$(BINDIR)/ex_button.exe: $(OBJDIR)/ex_button.o $(OBJDIR)/ex_button_rc.o
+$(BINDIR)/ex_dllgetversion.exe: $(OBJDIR)/ex_dllgetversion.o $(OBJDIR)/ex_manifest_rc.o
+$(BINDIR)/ex_grid.exe: $(OBJDIR)/ex_grid.o $(OBJDIR)/ex_grid_rc.o
+$(BINDIR)/ex_html.exe: $(OBJDIR)/ex_html.o $(OBJDIR)/ex_html_rc.o
+$(BINDIR)/ex_mditab.exe: $(OBJDIR)/ex_mditab.o $(OBJDIR)/ex_mditab_rc.o
 
 
 #################
 # Generic rules #
 #################
 
-$(BINDIR)/ex_%.exe: 
+$(BINDIR)/%.exe: 
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(wildcard $(SRCDIR)/%.h)

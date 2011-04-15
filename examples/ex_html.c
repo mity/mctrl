@@ -51,7 +51,7 @@ GenerateDynamicContents(void)
 
 
 /* Main window procedure */
-static CALLBACK LRESULT
+static LRESULT CALLBACK
 WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {

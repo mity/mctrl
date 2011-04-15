@@ -155,7 +155,7 @@ table_contents_init_region(table_contents_t* contents, table_region_t* region)
     WORD row;
 
     /* __stosd() intrinsic is intended for 32-bit */
-    MC_STATIC_ASSERT(sizeof(COLORREF) == sizeof(DWORD));
+    MC_ASSERT(sizeof(COLORREF) == sizeof(DWORD));
 
     /* Case 0: empty region */
     if(region->col1 - region->col0 == 0 || region->row1 - region->row0 == 0)

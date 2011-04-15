@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 #include <mCtrl/mditab.h>
-#include "mditab.h"
+#include "ex_mditab.h"
 
 
 static HINSTANCE hInst;
@@ -47,7 +47,7 @@ AddNewTab(void)
 
 
 /* Main window procedure */
-static CALLBACK LRESULT
+static LRESULT CALLBACK
 WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {

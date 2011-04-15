@@ -7,7 +7,7 @@
 
 #include <windows.h>
 #include <mCtrl/button.h>
-#include "button.h"
+#include "ex_button.h"
 
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
@@ -19,12 +19,15 @@ EXSTYLE WS_EX_DLGMODALFRAME
 CAPTION "mCtrl Sample: BUTTON Control"
 FONT 8, "MS Shell Dlg"
 BEGIN
-    CONTROL "On left, you can see two buttons with BS_ICON style. The upper one is the standard with class BUTTON as implemented in comctl32.dll. The second button is mCtrl control MC_WC_BUTTON. If you have Windows XP (and havn't disabled theming), you can see that the buttons look differently (unless you have disabled the styling) because on Windows XP, COMCTL32.DLL does not support themed BS_ICON for some reason.", -1, "STATIC", 0, 50, 5, 240, 116
     CONTROL "", ID_BUTTON_ICON_1, "BUTTON", WS_TABSTOP | BS_ICON, 5, 5, 35, 35
     CONTROL "", ID_BUTTON_ICON_2, MC_WC_BUTTON, WS_TABSTOP | BS_ICON, 5, 45, 35, 35
-    CONTROL "Microsoft introduced split buttons on Windows Vista's comctl32.dll. Some applications implement their own custom control which provide this funcitonality for compatibility with older Windows versions. But having each application to reinvent wheel is just bad idea. So here is the split button for you.", -1, "STATIC", 0, 80, 90, 210, 116
+    CONTROL "On left, you can see two buttons with BS_ICON style. The upper one is the standard button (window class 'BUTTON'). If you are running on Windows XP and don't have visual styles disabled you can see its style does not match rest of the window.", -1, "STATIC", 0, 50, 5, 240, 35
+    CONTROL "The lower button is mCtrl's MC_WC_BUTTON which provides the look and feel consistent with rest of the Windows.", -1, "STATIC", 0, 50, 45, 240, 35
+    
     CONTROL "&Split button", ID_BUTTON_SPLIT_1, MC_WC_BUTTON, WS_TABSTOP | MC_BS_SPLITBUTTON, 5, 90, 70, 25
     CONTROL "", ID_BUTTON_SPLIT_2, MC_WC_BUTTON, WS_TABSTOP | BS_ICON | MC_BS_SPLITBUTTON, 5, 120, 70, 35
+    CONTROL "Microsoft introduced split buttons on Windows Vista's comctl32.dll version 6.0. Some applications implement their own custom control which provide this funcitonality for compatibility with older Windows versions.", -1, "STATIC", 0, 80, 90, 210, 40
+    CONTROL "But having each application to reinvent wheel is just bad idea. So mCtrl provides a split button for you.", -1, "STATIC", 0, 80, 130, 210, 20
 END
 
 

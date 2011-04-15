@@ -6,10 +6,10 @@
  */
 
 #include <windows.h>
-#include "grid.h"
+#include "ex_mditab.h"
 
-/* Manifest enabling XP theme on Win XP */
+/* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
-/* Some icon we show in one of the grid cells */
-IDI_BEAR ICON res/bear.ico
+/* Image list */
+IDL_IMGLIST BITMAP res/img_list.bmp

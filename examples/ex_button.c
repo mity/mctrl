@@ -10,7 +10,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <mCtrl/button.h>
-#include "button.h"
+#include "ex_button.h"
 
 
 static HINSTANCE hInst;
@@ -36,10 +36,9 @@ CreateSplitMenu(void)
     InsertMenuItem(hMenu, 1, TRUE, &mii);
 }
 
-
 /* Main dialog procedure */
-static CALLBACK INT_PTR
-DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK
+myproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {
         case WM_NOTIFY:
@@ -115,6 +114,6 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     mcButton_Initialize();
     
     /* Load and show a dialog. */
-    DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, DlgProc);
+    DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, myproc);
     return 0;
 }

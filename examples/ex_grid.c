@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 #include <mCtrl/grid.h>
-#include "grid.h"
+#include "ex_grid.h"
 
 
 static HINSTANCE hInst;
@@ -145,7 +145,7 @@ LoadGrid(void)
 
 
 /* Main window procedure */
-static CALLBACK LRESULT
+static LRESULT CALLBACK
 win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {

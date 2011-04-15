@@ -96,9 +96,10 @@ int32_cmp(const value_t v1, const value_t v2)
 static int
 int32_from_string(value_t* v, const TCHAR* str)
 {
-    MC_STATIC_ASSERT(sizeof(long) == sizeof(int32_t));
     int32_t i;
     TCHAR* end;
+
+    MC_ASSERT(sizeof(long) == sizeof(int32_t));
 
     /* _tcstol() accepts leading whitespaces, we do not */
     if(MC_ERR(_istspace(str[0])))
@@ -205,9 +206,10 @@ uint32_cmp(const value_t v1, const value_t v2)
 static int
 uint32_from_string(value_t* v, const TCHAR* str)
 {
-    MC_STATIC_ASSERT(sizeof(unsigned long) == sizeof(uint32_t));
     uint32_t u;
     WCHAR* end;
+
+    MC_ASSERT(sizeof(unsigned long) == sizeof(uint32_t));
 
     /* _tcstoul() accepts leading whitespaces, we do not */
     if(MC_ERR(_istspace(str[0])))
