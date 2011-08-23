@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -34,7 +34,7 @@
 #define MC_GS_COLUMNHEADERMASK                                             \
             (MC_GS_COLUMNHEADERNONE | MC_GS_COLUMNHEADERNUMBERED |         \
              MC_GS_COLUMNHEADERALPHABETIC | MC_GS_COLUMNHEADERCUSTOM)
-             
+
 #define MC_GS_ROWHEADERMASK                                                \
             (MC_GS_ROWHEADERNONE | MC_GS_ROWHEADERNUMBERED |               \
              MC_GS_ROWHEADERALPHABETIC | MC_GS_ROWHEADERCUSTOM)
@@ -68,24 +68,24 @@ grid_num_to_alpha(TCHAR buffer[16], WORD num)
     static const int digit_count = _T('Z') - _T('A');
     TCHAR* ptr;
     WORD digit;
-    
+
     num++;
     buffer[15] = _T('\0');
     ptr = &buffer[15];
 
     while(num > 0) {
         ptr--;
-        
+
         digit = num % digit_count;
         if(digit == 0) {
             digit = digit_count;
             num -= digit_count;
         }
-        
+
         *ptr = _T('A')-1 + digit;
         num /= digit_count;
     }
-    
+
     return ptr;
 }
 
@@ -104,15 +104,15 @@ grid_calc_layout(grid_t* grid, grid_layout_t* layout)
 {
     WORD col_count;
     WORD row_count;
-    
+
     if(!grid->table) {
         memset(layout, 0, sizeof(grid_layout_t));
         return;
     }
-    
+
     col_count = table_col_count(grid->table);
     row_count = table_row_count(grid->table);
-    
+
     layout->display_col_headers = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK) != MC_GS_COLUMNHEADERNONE);
     layout->display_row_headers = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) != MC_GS_ROWHEADERNONE);
     layout->display_col0 = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) == MC_GS_ROWHEADERCUSTOM) ? 1 : 0;
@@ -132,25 +132,25 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     RECT rect;
     HRGN clip;
     int old_dc_state, cell_dc_state;
-    
-    GRID_TRACE("grid_paint(%d, %d, %d, %d)", 
+
+    GRID_TRACE("grid_paint(%d, %d, %d, %d)",
                dirty->left, dirty->top, dirty->right, dirty->bottom);
 
     grid_calc_layout(grid, &layout);
     headerw = (layout.display_row_headers ? grid->header_width : 0);
     headerh = (layout.display_col_headers ? grid->header_height : 0);
-    
-    /* Calculate range of cells in dirty rect 
+
+    /* Calculate range of cells in dirty rect
      * ([col0,row0] inclusive; [col1,row1] exclusive) */
     col0 = (grid->scroll_x + MC_MAX(0, dirty->left - headerw)) / grid->cell_width;
     row0 = (grid->scroll_y + MC_MAX(0, dirty->top - headerh)) / grid->cell_height;
     col1 = MC_MIN(layout.display_col_count, (grid->scroll_x + dirty->right - headerw) / grid->cell_width + 1);
     row1 = MC_MIN(layout.display_row_count, (grid->scroll_y + dirty->bottom - headerh) / grid->cell_height + 1);
-    
+
     GRID_TRACE("grid_paint: cell region [%d, %d] - [%d, %d]", col0, row0, col1, row1);
-    
+
     old_dc_state = SaveDC(dc);
-    
+
     SelectObject(dc, grid->font);
     SetBkMode(dc, TRANSPARENT);
     SetTextColor(dc, RGB(0,0,0));
@@ -161,14 +161,14 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         DeleteObject(clip);
         clip = NULL;
     }
-    
+
     /* Paint "dead" top left cell */
     if(headerw > 0 && headerh > 0 && dirty->left <= headerw && dirty->top <= headerh) {
         rect.left = 0;
         rect.top = 0;
         rect.right = headerw;
         rect.bottom = headerh;
-        
+
         if(grid->theme) {
             theme_DrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
                                       HIS_NORMAL, &rect, NULL);
@@ -180,7 +180,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     /* Paint column headers */
     if(headerh > 0 && dirty->top <= headerh) {
         TCHAR buffer[16];
-        
+
         rect.left = headerw + col0 * grid->cell_width - grid->scroll_x;
         rect.top = 0;
         rect.right = rect.left + grid->cell_width;
@@ -215,27 +215,27 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                     r.bottom = rect.bottom - 2 * grid->cell_padding_vert - 1;
                     cell_dc_state = SaveDC(dc);
                     table_paint_cell(grid->table, col + layout.display_col0, 0, dc, &r);
-                    RestoreDC(dc, cell_dc_state);                    
+                    RestoreDC(dc, cell_dc_state);
                     break;
                 }
             }
-            
+
             rect.left += grid->cell_width;
             rect.right += grid->cell_width;
-            
+
             SelectClipRgn(dc, clip);
         }
     }
-    
+
     /* Paint row headers */
     if(headerw > 0 && dirty->left <= headerw) {
         TCHAR buffer[16];
-        
+
         rect.left = 0;
         rect.top = headerh + row0 * grid->cell_height - grid->scroll_y;
         rect.right = headerw;
         rect.bottom = rect.top + grid->cell_height;
-        
+
         for(row = row0; row < row1; row++) {
             IntersectClipRect(dc, rect.left, MC_MAX(headerh, rect.top),
                                   rect.right, rect.bottom);
@@ -271,23 +271,23 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                     break;
                 }
             }
-            
+
             rect.top += grid->cell_height;
             rect.bottom += grid->cell_height;
-            
+
             SelectClipRgn(dc, clip);
         }
     }
-    
+
     /* Paint grid lines */
     if(!(grid->style & MC_GS_NOGRIDLINES)) {
         int x;
         int y;
         HPEN pen, old_pen;
-        
+
         pen = CreatePen(PS_SOLID, 0, RGB(223,223,223));
         old_pen = SelectObject(dc, pen);
-        
+
         x = headerw + (col0+1) * grid->cell_width - grid->scroll_x - 1;
         y = headerh + row1 * grid->cell_height - grid->scroll_y - 1;
         for(col = col0; col < col1; col++) {
@@ -295,7 +295,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
             LineTo(dc, x, y);
             x += grid->cell_width;
         }
-        
+
         x = headerw + col1 * grid->cell_width - grid->scroll_x - 1;
         y = headerh + (row0+1) * grid->cell_height - grid->scroll_y - 1;
         for(row = row0; row < row1; row++) {
@@ -303,11 +303,11 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
             LineTo(dc, x, y);
             y += grid->cell_height;
         }
-        
+
         SelectObject(dc, old_pen);
         DeleteObject(pen);
     }
-    
+
     /* Paint grid cells */
     rect.top = headerh + row0 * grid->cell_height - grid->scroll_y + grid->cell_padding_vert;
     for(row = layout.display_row0 + row0; row < layout.display_row0 + row1; row++) {
@@ -315,19 +315,19 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         for(col = layout.display_col0 + col0; col < layout.display_col0 + col1; col++) {
             rect.right = rect.left + grid->cell_width - 2*grid->cell_padding_horz - 1;
             rect.bottom = rect.top + grid->cell_height - 2*grid->cell_padding_vert - 1;
-            
+
             IntersectClipRect(dc, MC_MAX(headerw, rect.left), MC_MAX(headerh, rect.top),
                                   rect.right, rect.bottom);
             cell_dc_state = SaveDC(dc);
             table_paint_cell(grid->table, col, row, dc, &rect);
             RestoreDC(dc, cell_dc_state);
             SelectClipRgn(dc, clip);
-            
+
             rect.left += grid->cell_width;
         }
         rect.top += grid->cell_height;
     }
-    
+
     RestoreDC(dc, old_dc_state);
 }
 
@@ -339,12 +339,12 @@ grid_refresh(void* view, void* detail)
     grid_layout_t layout;
     WORD headerw, headerh;
     RECT rect;
-    
+
     if(region == NULL) {
         InvalidateRect(grid->win, NULL, TRUE);
         return;
     }
-    
+
     grid_calc_layout(grid, &layout);
     headerw = (layout.display_row_headers ? grid->header_width : 0);
     headerh = (layout.display_col_headers ? grid->header_height : 0);
@@ -356,10 +356,10 @@ grid_refresh(void* view, void* detail)
         rect.right = headerw;
         rect.bottom = rect.top + (region->row1 - region->row0) * grid->cell_height;
         InvalidateRect(grid->win, &rect, TRUE);
-        
+
         region->col0 = layout.display_col0;
     }
-    
+
     /* Refresh affected column header */
     if(region->row0 < layout.display_row0) {
         rect.left = headerw + MC_MAX(0, (region->col0 - layout.display_col0) * grid->cell_width - grid->scroll_x);
@@ -370,7 +370,7 @@ grid_refresh(void* view, void* detail)
 
         region->row0 = layout.display_row0;
     }
-    
+
     /* Refresh affected contents */
     rect.left = headerw + MC_MAX(0, (region->col0 - layout.display_col0) * grid->cell_width - grid->scroll_x);
     rect.top = headerh + MC_MAX(0, (region->row0 - layout.display_row0) * grid->cell_height - grid->scroll_y);
@@ -388,20 +388,20 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
     WORD headerw, headerh;
     int old_scroll_x = grid->scroll_x;
     int old_scroll_y = grid->scroll_y;
-    
+
     grid_calc_layout(grid, &layout);
     headerw = (layout.display_row_headers ? grid->header_width : 0);
     headerh = (layout.display_col_headers ? grid->header_height : 0);
     GetClientRect(grid->win, &rect);
-    
+
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
-    
+
     if(vertical) {
         GetScrollInfo(grid->win, SB_VERT, &si);
         switch(opcode) {
             case SB_BOTTOM:        grid->scroll_y = si.nMax; break;
-            case SB_LINEUP:        grid->scroll_y -= 4; break; 
+            case SB_LINEUP:        grid->scroll_y -= 4; break;
             case SB_LINEDOWN:      grid->scroll_y += 4; break;
             case SB_PAGEUP:        grid->scroll_y -= si.nPage; break;
             case SB_PAGEDOWN:      grid->scroll_y += si.nPage; break;
@@ -422,7 +422,7 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
         GetScrollInfo(grid->win, SB_HORZ, &si);
         switch(opcode) {
             case SB_BOTTOM:        grid->scroll_x = si.nMax; break;
-            case SB_LINELEFT:      grid->scroll_x -= 1; break; 
+            case SB_LINELEFT:      grid->scroll_x -= 1; break;
             case SB_LINERIGHT:     grid->scroll_x += 1; break;
             case SB_PAGELEFT:      grid->scroll_x -= si.nPage; break;
             case SB_PAGERIGHT:     grid->scroll_x += si.nPage; break;
@@ -437,7 +437,7 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
             grid->scroll_x = si.nMin;
         if(old_scroll_x == grid->scroll_x)
             return;
-        
+
         SetScrollPos(grid->win, SB_HORZ, grid->scroll_x, TRUE);
     }
 
@@ -446,7 +446,7 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
     else
         rect.left = headerw;
 
-    ScrollWindowEx(grid->win, old_scroll_x - grid->scroll_x, 
+    ScrollWindowEx(grid->win, old_scroll_x - grid->scroll_x,
                    old_scroll_y - grid->scroll_y, &rect, &rect, NULL, NULL,
                    SW_ERASE | SW_INVALIDATE);
 }
@@ -458,21 +458,21 @@ grid_setup_scrollbars(grid_t* grid)
     RECT rect;
     SCROLLINFO si;
     WORD headerw, headerh;
-    
+
     grid_calc_layout(grid, &layout);
     headerw = (layout.display_row_headers ? grid->header_width : 0);
     headerh = (layout.display_col_headers ? grid->header_height : 0);
     GetClientRect(grid->win, &rect);
-    
+
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE;
     si.nMin = 0;
-    
+
     /* Setup horizontal scrollbar */
     si.nMax = layout.display_col_count * grid->cell_width;
     si.nPage = rect.right - rect.left - headerw;
     grid->scroll_x = SetScrollInfo(grid->win, SB_HORZ, &si, TRUE);
-    
+
     /* Fixup for Win2000 - appearance of horizontal toolbar sometimes
      * breaks calculation of vertical scrollbar properties and last row
      * can be "hidden" behind the horizontal scrollbar */
@@ -489,7 +489,7 @@ grid_set_table(grid_t* grid, table_t* table)
 {
     if(table != NULL  &&  table == grid->table)
         return 0;
-        
+
     if(table != NULL) {
         table_ref(table);
     } else if(!(grid->style & MC_GS_NOTABLECREATE)) {
@@ -498,8 +498,8 @@ grid_set_table(grid_t* grid, table_t* table)
             MC_TRACE("grid_set_table: table_create() failed.");
             return -1;
         }
-    }    
-    
+    }
+
     if(table != NULL) {
         if(MC_ERR(table_install_view(table, grid, grid_refresh)) != 0) {
             MC_TRACE("grid_set_table: table_install_view() failed.");
@@ -507,14 +507,14 @@ grid_set_table(grid_t* grid, table_t* table)
             return -1;
         }
     }
-    
+
     if(grid->table != NULL) {
         table_uninstall_view(grid->table, grid);
         table_unref(grid->table);
     }
-    
+
     grid->table = table;
-    
+
     InvalidateRect(grid->win, NULL, TRUE);
     grid_setup_scrollbars(grid);
     return 0;
@@ -581,11 +581,11 @@ static void
 grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
 {
     grid->style = ss->styleNew;
-    
+
     /* Some styles (e.g. when column/row headers) may need to setup
      * scrollbars */
     grid_setup_scrollbars(grid);
-    
+
     InvalidateRect(grid->win, NULL, TRUE);
 }
 
@@ -595,7 +595,7 @@ grid_theme_changed(grid_t* grid)
     if(grid->theme)
         theme_CloseThemeData(grid->theme);
     grid->theme = theme_OpenThemeData(grid->win, grid_tc);
-    
+
     grid_setup_scrollbars(grid);
     InvalidateRect(grid->win, NULL, TRUE);
 }
@@ -604,25 +604,17 @@ static LRESULT
 grid_create(HWND win, CREATESTRUCT* cs)
 {
     grid_t* grid;
-    
+
     grid = (grid_t*) malloc(sizeof(grid_t));
     if(MC_ERR(grid == NULL)) {
         MC_TRACE("grid_create: malloc() failed.");
-        goto err_malloc;
+        return -1;
     }
-    
+
     grid->win = win;
     grid->theme = theme_OpenThemeData(win, grid_tc);
     grid->font = NULL;
-    if(!(cs->style & MC_GS_NOTABLECREATE)) {
-        grid->table = table_create(0, 0, NULL, 0);
-        if(MC_ERR(grid->table == NULL)) {
-            MC_TRACE("grid_create: table_create() failed.");
-            goto err_table_create;
-        }
-    } else {
-        grid->table = NULL;
-    }
+    grid->table = NULL;
     grid->style = cs->style;
     grid->do_redraw = 1;
     grid->header_width = 32;  /* TODO -- derive initial metrics values from font size */
@@ -633,24 +625,15 @@ grid_create(HWND win, CREATESTRUCT* cs)
     grid->cell_padding_vert = 1;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
-    
-    if(MC_ERR(table_install_view(grid->table, grid, grid_refresh) != 0)) {
-        MC_TRACE("grid_create: table_install_view() failed.");
-        goto err_install_view;
-    }
-    
-    /* Success */
     SetWindowLongPtr(win, 0, (LONG_PTR)grid);
-    grid_setup_scrollbars(grid);    
-    return 0;
 
-    /* Error path */
-err_install_view:
-    table_unref(grid->table);
-err_table_create:
-    free(grid);
-err_malloc:
-    return -1;
+    if(MC_ERR(grid_set_table(grid, NULL) != 0)) {
+        MC_TRACE("grid_create: grid_set_table() failed.");
+        free(grid);
+        return -1;
+    }
+
+    return 0;
 }
 
 static void
@@ -667,7 +650,7 @@ static LRESULT CALLBACK
 grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     grid_t* grid = (grid_t*) GetWindowLongPtr(win, 0);
-    
+
     switch(msg) {
         case WM_PAINT:
             if(grid->do_redraw)
@@ -675,7 +658,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             {
                 HDC dc = (HDC)wp;
                 PAINTSTRUCT ps;
-    
+
                 if(wp == 0)
                     dc = BeginPaint(win, &ps);
                 else
@@ -683,13 +666,13 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 grid_paint(grid, dc, &ps.rcPaint);
                 if(wp == 0)
                     EndPaint(win, &ps);
-            }       
+            }
             return 0;
-            
+
         case WM_SETREDRAW:
             grid->do_redraw = (wp ? 1 : 0);
             return 0;
-            
+
         case MC_GM_GETTABLE:
             return (LRESULT) grid->table;
 
@@ -701,10 +684,10 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_GM_GETROWCOUNT:
             return mcTable_RowCount(grid->table);
-        
+
         case MC_GM_RESIZE:
             return mcTable_Resize(grid->table, LOWORD(wp), HIWORD(wp));
-            
+
         case MC_GM_CLEAR:
             mcTable_Clear(grid->table);
             return 0;
@@ -757,17 +740,17 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_CREATE:
             return grid_create(win, (CREATESTRUCT*)lp);
-        
+
         case WM_DESTROY:
             grid_destroy(grid);
             return 0;
     }
-    
+
     return DefWindowProc(win, msg, wp, lp);
 }
 
 
-int 
+int
 grid_init(void)
 {
     WNDCLASS wc = { 0 };
@@ -787,7 +770,7 @@ grid_init(void)
     return 0;
 }
 
-void 
+void
 grid_fini(void)
 {
     UnregisterClass(grid_wc, mc_instance_exe);
