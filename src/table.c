@@ -286,7 +286,7 @@ table_contents_move_region(table_contents_t* contents_from, table_region_t* regi
  ****************************/
 
 struct table_tag {
-    DWORD refs;
+    LONG refs;
     table_contents_t contents;
     view_list_t vlist;
 };
@@ -343,15 +343,16 @@ void
 table_ref(table_t* table)
 {
     TABLE_TRACE("table_ref(%p): %u -> %u", table, table->refs, table->refs+1);
-    table->refs++;
+
+    InterlockedIncrement(&table->refs);
 }
 
 void
 table_unref(table_t* table)
 {
     TABLE_TRACE("table_unref(%p): %u -> %u", table, table->refs, table->refs-1);
-    table->refs--;
-    if(table->refs == 0) {
+
+    if(InterlockedDecrement(&table->refs) == 0) {
         table_region_t region;
 
         TABLE_TRACE("table_unref(%p): Freeing", table);
