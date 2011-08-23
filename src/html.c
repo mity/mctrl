@@ -1324,6 +1324,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_DESTROY:
             html_destroy(html);
+            SetWindowLongPtr(win, 0, (LONG_PTR)NULL);
             return 0;
     }
 
