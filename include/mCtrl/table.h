@@ -225,7 +225,6 @@ BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
 /**
  * @anchor MC_TCM_xxxx
  * @name MC_TABLECELL::fMask Bits
- * @memberof MC_TABLECELL
  */
 /*@{*/
 /** @brief Set if @ref MC_TABLECELL::hType and @ref MC_TABLECELL::hValue are valid. */
@@ -241,7 +240,6 @@ BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
 /**
  * @anchor MC_TCF_xxxx
  * @name MC_TABLECELL::dwFlags Bits
- * @memberof MC_TABLECELL
  */
 /*@{*/
 /** @brief Paint the cell value aligned horizontally as default for the value type. */

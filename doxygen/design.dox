@@ -54,9 +54,9 @@
  * from multiple threads.
  *
  * However remeber that access to data visible externally through @c MCTRL.DLL
- * interface is not synchronized: If you have such data (e.g. @ref MC_VALUE or
- * @ref MC_TABLE and then want to manipulate with the data concurrently from
- * multiple threads, @c MCTRL.DLL does not synchronize for you: It's
+ * interface is not synchronized: If you have such data (e.g. @ref MC_HVALUE
+ * or @ref MC_HTABLE and then want to manipulate with the data concurrently
+ * from multiple threads, @c MCTRL.DLL does not synchronize for you: It's
  * application developer's to do so in order to avoid race conditions.
  *
  * Also note that some mCtrl modules may include yet another limitations.

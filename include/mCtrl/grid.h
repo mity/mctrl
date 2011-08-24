@@ -33,12 +33,12 @@ extern "C" {
  * @brief Grid control (@c MC_WC_GRID).
  *
  * The grid control provides user interface for presentation of table data
- * model (see @c MC_TABLE).
+ * model (see @c MC_HTABLE).
  *
  * Actually all messages manipulating with contents of the table exist just
  * for convenience: they just call corresponding function manipulating with
- * the underlying @c MC_TABLE. Thus the table can be resized, its contents can
- * be changed and so on without use of the @c MC_TABLE API.
+ * the underlying @c MC_HTABLE. Thus the table can be resized, its contents can
+ * be changed and so on without use of the @c MC_HTABLE API.
  *
  * By default, the control creates an empty heterogenous table during
  * its creation. You can avoid that by the style @c MC_GS_NOTABLECREATE.
@@ -104,7 +104,7 @@ void MCTRL_API mcGrid_Terminate(void);
 #define MC_GS_COLUMNHEADERNUMBERED   (0x00001000L)
 /** @brief Columns have alphabetical headers (i.e. "A", "B", "C" etc.) */
 #define MC_GS_COLUMNHEADERALPHABETIC (0x00002000L)
-/** @brief First row is interpreted as column headers. */
+/** @brief First table row is interpreted as column headers. */
 #define MC_GS_COLUMNHEADERCUSTOM     (0x00003000L)
 
 /** @brief Rows have no header. This is default. */
@@ -113,7 +113,7 @@ void MCTRL_API mcGrid_Terminate(void);
 #define MC_GS_ROWHEADERNUMBERED      (0x00004000L)
 /** @brief Rows have alphabetical headers (i.e. "A", "B", "C" etc.) */
 #define MC_GS_ROWHEADERALPHABETIC    (0x00008000L)
-/** @brief First columns is interpreted as row headers. */
+/** @brief First table column is interpreted as row headers. */
 #define MC_GS_ROWHEADERCUSTOM        (0x0000C000L)
 
 /*@}*/
@@ -136,7 +136,6 @@ typedef struct MC_GCELL_tag {
 /**
  * @anchor MC_GGM_xxxx
  * @name MC_GGEOMETRY::fMask Bits
- * @memberof MC_GGEOMETRY
  */
 /*@{*/
 /** @brief Set if @ref MC_GGEOMETRY::wColumnHeaderHeight is valid. */
@@ -200,7 +199,7 @@ typedef struct MC_GGEOMETRY_tag {
  * 
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
- * @return (&ref MC_TABLE) Handle of the table, or @c NULL.
+ * @return (@ref MC_HTABLE) Handle of the table, or @c NULL.
  */
 #define MC_GM_GETTABLE            (WM_USER + 100)
 
@@ -214,7 +213,7 @@ typedef struct MC_GGEOMETRY_tag {
  * count set to one), unless the control has style @ref MC_GS_NOTABLECREATE.
  *
  * @param wParam Reserved, set to zero.
- * @param[in] lParam (@ref MC_TABLE) Handle of the table, or @c NULL.
+ * @param[in] lParam (@ref MC_HTABLE) Handle of the table, or @c NULL.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_GM_SETTABLE            (WM_USER + 101)

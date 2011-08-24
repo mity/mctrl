@@ -150,8 +150,6 @@ void MCTRL_API mcMditab_Terminate(void);
 /** 
  * @anchor MC_MTIF_xxxx
  * @name MC_MTITEM::dwMask Bits
- * @memberof MC_MTITEMW
- * @memberof MC_MTITEMA
  */
 /*@{*/
 /** @brief @ref MC_MTITEMW::pszText or @ref MC_MTITEMA::pszText is valid. */
