@@ -3,16 +3,16 @@
  *
  *
  * @section sec_intro Introduction
- * 
+ *
  * mCtrl is a library providing set of additional user interface controls for
- * Windows, intended to be complementary to standard controls from @c 
+ * Windows, intended to be complementary to standard controls from @c
  * USER32.DLL and @c COMCTL32.DLL.
  *
  *
  * @section sec_sysreq System Requirements and Compatibility Notes
  *
- * @c MCTRL.DLL is aimed to MS Windows 2000 and newer (i.e. MS Windows 2000, 
- * MS Windows XP, MS Windows Server 2003, MS Windows Vista, MS Windows Server 
+ * @c MCTRL.DLL is aimed to MS Windows 2000 and newer (i.e. MS Windows 2000,
+ * MS Windows XP, MS Windows Server 2003, MS Windows Vista, MS Windows Server
  * 2008 and MS Windows 7), both 32 and 64-bit versions.
  *
  *
@@ -22,15 +22,16 @@
  *   is based on sending messages via @c SendMessage().
  * - mCtrl uses internally Unicode strings, but the API follows the Win32
  *   Unicode/ANSI duality. I.e. if a message or structure uses strings, there
- *   are usually two flavors of the message or structure. Unicode flavor 
+ *   are usually two flavors of the message or structure. Unicode flavor
  *   uses the suffix "W", while ANSI uses suffix "A". Public headers offer
  *   Unicode/ANSI resolution name which is defined to be one or other,
  *   according to as the preprocessor macro @c UNICODE is defined.
- * - Of course mCtrl attempots to provide consistent look and feel of the 
+ * - Of course mCtrl attempots to provide consistent look and feel of the
  *   controls with standard Windows GUI controls. This includes support
- *   for <a href="http://msdn.microsoft.com/en-us/library/ms997646.aspx">
- *   XP theming</a>.
- * - mCtrl does not use any user-visible strings, hence it is language and 
+ *   for XP theming, also known as
+ *   <a href="http://msdn.microsoft.com/en-us/library/bb773187%28v=vs.85%29.aspx">
+ *   Visual Styles</a>.
+ * - mCtrl does not use any user-visible strings, hence it is language and
  *   locale neutral.
  *
  * These topics are more closely covered in @ref page_design.
@@ -51,7 +52,7 @@
  * #include <mCtrl/some_header.h>
  * @endcode
  *
- * And link with the appropriate import library. Since version 0.7.0 the 
+ * And link with the appropriate import library. Since version 0.7.0 the
  * prebuilt mCtrl packages provide two import libraries, both of them
  * are in @c lib subdirectory of the prebuilt mCtrl packages:
  * - @c libmctrl.a intended for gcc-based toolchains (e.g. mingw).
