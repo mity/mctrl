@@ -578,15 +578,13 @@ grid_get_geometry(grid_t* grid, MC_GGEOMETRY* geom)
 }
 
 static void
-grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
+grid_style_changed(grid_t* grid, int style_type, STYLESTRUCT* ss)
 {
-    grid->style = ss->styleNew;
+    if(style_type == GWL_STYLE)
+        grid->style = ss->styleNew;
 
-    /* Some styles (e.g. when column/row headers) may need to setup
-     * scrollbars */
     grid_setup_scrollbars(grid);
-
-    InvalidateRect(grid->win, NULL, TRUE);
+    RedrawWindow(grid->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
 }
 
 static void
@@ -731,7 +729,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_STYLECHANGED:
-            grid_style_changed(grid, (STYLESTRUCT*) lp);
+            grid_style_changed(grid, wp, (STYLESTRUCT*) lp);
             return 0;
 
         case WM_THEMECHANGED:

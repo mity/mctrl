@@ -1283,10 +1283,10 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_STYLECHANGED:
-            if(wp == GWL_STYLE) {
-                STYLESTRUCT* ss = (STYLESTRUCT*) lp;
-                html->style = ss->styleNew;
-            }
+            if(wp == GWL_STYLE)
+                html->style = ((STYLESTRUCT*)lp)->styleNew;
+            RedrawWindow(win, NULL, NULL,
+                         RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
             return 0;
 
         case WM_NOTIFYFORMAT:

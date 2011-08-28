@@ -1257,11 +1257,13 @@ mditab_change_focus(mditab_t* mditab)
 }
 
 static void
-mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
+mditab_style_changed(mditab_t* mditab, int style_type, STYLESTRUCT* ss)
 {
-    mditab->style = ss->styleNew;
+    if(style_type == GWL_STYLE)
+        mditab->style = ss->styleNew;
+    
     mditab_layout(mditab);
-    InvalidateRect(mditab->win, NULL, TRUE);
+    RedrawWindow(mditab->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
 }
 
 static void
@@ -1477,7 +1479,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_WANTARROWS;
 
         case WM_STYLECHANGED:
-            mditab_style_changed(mditab, (STYLESTRUCT*) lp);
+            mditab_style_changed(mditab, wp, (STYLESTRUCT*) lp);
             return 0;
 
         case WM_THEMECHANGED:
