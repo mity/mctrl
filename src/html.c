@@ -1189,7 +1189,7 @@ html_ie_subclass_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         html_key_msg(html, msg, wp, lp);
 
     if(msg == WM_GETDLGCODE)
-        return DLGC_WANTCHARS | DLGC_WANTTAB | DLGC_WANTARROWS;
+        return DLGC_WANTALLKEYS;
 
     ret = CallWindowProc(html->ie_proc, win, msg, wp, lp);
 
@@ -1303,7 +1303,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_GETDLGCODE:
-            return DLGC_WANTCHARS | DLGC_WANTTAB | DLGC_WANTARROWS;
+            return DLGC_WANTALLKEYS;
 
         case WM_SETTEXT:
             return FALSE;
