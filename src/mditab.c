@@ -1093,6 +1093,7 @@ mditab_set_item_width(HWND win, MC_MTITEMWIDTH* tw)
     if(def_w != mditab->item_def_width  ||  min_w != mditab->item_min_width) {
         mditab->item_def_width = def_w;
         mditab->item_min_width = min_w;
+        mditab_layout(mditab);
         InvalidateRect(win, NULL, TRUE);
     }
     return TRUE;
