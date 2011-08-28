@@ -259,7 +259,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @brief Sets a table cell.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam[in] (@ref MC_GCELL*) Pointer to structure describing
+ * @param[in] lParam (@ref MC_GCELL*) Pointer to structure describing
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
