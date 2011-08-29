@@ -151,7 +151,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
     old_dc_state = SaveDC(dc);
 
-    SelectObject(dc, grid->font);
+    SelectObject(dc, grid->font ? grid->font : GetStockObject(SYSTEM_FONT));
     SetBkMode(dc, TRANSPARENT);
     SetTextColor(dc, RGB(0,0,0));
     SelectObject(dc, GetStockObject(BLACK_PEN));

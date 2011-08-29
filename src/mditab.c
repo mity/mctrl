@@ -554,7 +554,6 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
 
     /* Draw text */
     SetBkMode(dc, TRANSPARENT);
-    SelectObject(dc, mditab->font);
     flags = 0;
     if(mditab->ui_state & UISF_HIDEACCEL)
         flags |= DT_HIDEPREFIX;
@@ -579,7 +578,7 @@ mditab_paint(mditab_t* mditab, HDC dc)
     int old_bk_mode;
     COLORREF old_text_color;
 
-    old_font = SelectObject(dc, mditab->font);
+    old_font = SelectObject(dc, mditab->font ? mditab->font : GetStockObject(SYSTEM_FONT));
     old_bk_mode = GetBkMode(dc);
     old_text_color = GetTextColor(dc);
 

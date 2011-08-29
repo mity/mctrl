@@ -97,7 +97,7 @@ button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
     int state;
     SIZE size;
     UINT flags;
-    HFONT old_font;
+    HFONT font, old_font;
     int old_bk_mode;
     COLORREF old_text_color;
     HRGN old_clip;
@@ -108,7 +108,11 @@ button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
     
     GetClientRect(win, &rect);
     
-    old_font = SelectObject(dc, (HFONT)SendMessage(win, WM_GETFONT, 0, 0));
+    font = (HFONT)SendMessage(win, WM_GETFONT, 0, 0);
+    if(font == NULL)
+        font = GetStockObject(SYSTEM_FONT);
+    
+    old_font = SelectObject(dc, font);
     old_bk_mode = GetBkMode(dc);
     old_text_color = GetTextColor(dc);
     old_clip = get_clip(dc);
@@ -163,7 +167,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     RECT rect_left, rect_right;
     int state_left, state_right;
     int text_offset = 0;
-    HFONT old_font;
+    HFONT font, old_font;
     int old_bk_mode;
     COLORREF old_text_color;
     HRGN old_clip;
@@ -173,7 +177,11 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     glyph = ImageList_GetIcon(mc_bmp_glyphs, MC_BMP_GLYPH_MORE_OPTIONS, ILD_TRANSPARENT);
     GetClientRect(win, &rect);
 
-    old_font = SelectObject(dc, (HFONT)SendMessage(win, WM_GETFONT, 0, 0));
+    font = (HFONT)SendMessage(win, WM_GETFONT, 0, 0);
+    if(font == NULL)
+        font = GetStockObject(SYSTEM_FONT);
+
+    old_font = SelectObject(dc, font);
     old_bk_mode = GetBkMode(dc);
     old_text_color = GetTextColor(dc);
     old_clip = get_clip(dc);
