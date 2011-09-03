@@ -62,21 +62,14 @@
  *
  * @section sec_msvc Building with MS Visual Studio
  *
- * mCtrl provides also project files for MS Visual Studio 2005 and 2010.
+ * mCtrl provides also solution and project files for MS Visual Studio 2010.
  *
  * As the MSVC is not main development platform for the project, the project
  * files can be slightly outdated but it should not be hard to fix any 
  * problems.
  *
- * The project files reside in mCtrl\\contrib\\VS2005 and mCtrl\\contrib\\VS2010
- * respectively. Follow information in <tt>mCtrl\\contrib\\VS2005\\README.txt</tt>
- * or <tt>mCtrl\\contrib\\VS2010\\README.txt</tt>.
- *
- * @attention Please note that using @c MCTRL.DLL built with MS Visual Studio
- * has one unfortunate drawback: It forces the C runtime distributed along with
- * the visual studio, so either it is linked statically (and then MCTRL.DLL
- * is larger) or the resulted MCTRL.DLL depends on msvcr100.dll (or other
- * version depending on VS version).
+ * The files reside in mCtrl\\contrib\\VS2010 respectively. Follow information
+ * in <tt>mCtrl\\contrib\\VS2010\\README.txt</tt>.
  *
  *
  * @section sec_debug Debug Level

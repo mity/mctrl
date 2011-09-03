@@ -1,9 +1,0 @@
-EXPORTS
-    DllGetVersion
-    mcButton_Initialize
-    mcButton_Terminate
-    mcHtml_Initialize
-    mcHtml_Terminate
-    mcMditab_Initialize
-    mcMditab_Terminate
-    mcVersion
