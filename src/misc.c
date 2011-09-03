@@ -364,3 +364,11 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
 
     return TRUE;
 }
+
+
+/* Include the main header file as we actually never do thete elsewhere.
+ * This at least verifies there is no compilation problem with it,
+ * e.g. some idendifier clash between some of the public headers etc. */
+#include "mctrl.h"
+
+
