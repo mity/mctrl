@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -29,8 +29,6 @@
  **********************************/
 
 #if defined __MINGW64_VERSION_MAJOR && defined __MINGW64_VERSION_MINOR
-    /* This does not say if we built for 32 or 64 bits. It just distinguishes
-     * between http://mingw.org and http://mingw-w64.sf.net */
     #define MC_TOOLCHAIN_MINGW64    1
 #elif defined __MINGW32__
     #define MC_TOOLCHAIN_MINGW      1
@@ -42,39 +40,39 @@
 
 
 /*********************************
- *** MSVC Compatibility hacks  ***
+ *** MSVC compatibility hacks  ***
  *********************************/
 
 #if defined MC_TOOLCHAIN_MSVC
-	/* Disable warning C4996 ("This function or variable may be unsafe.") */
-	#pragma warning( disable : 4996 )
+    /* Disable warning C4996 ("This function or variable may be unsafe.") */
+    #pragma warning( disable : 4996 )
 
-	/* MSVC does not understand inline when building as pure C (not C++) */
-	#ifndef __cplusplus
-		#define inline
-	#endif
+    /* MSVC does not understand inline when building as pure C (not C++) */
+    #ifndef __cplusplus
+        #define inline
+    #endif
 
-	/* MS platform SDK #defines [GS]etWindowLongPtr as plain [GS]etWindowLong for 
-	 * x86 builds, without any casting, hence causing lots of compiler 
-	 * warnings C4312. Lets workaround it. */
-	#ifndef _WIN64
-		#ifdef GetWindowLongPtrA
-			#undef GetWindowLongPtrA
-			#define GetWindowLongPtrA(win,ix)  (intptr_t)GetWindowLongA(win,ix)
-		#endif
-		#ifdef GetWindowLongPtrW
-			#undef GetWindowLongPtrW
-			#define GetWindowLongPtrW(win,ix)  (intptr_t)GetWindowLongW(win,ix)
-		#endif
-		#ifdef SetWindowLongPtrA
-			#undef SetWindowLongPtrA
-			#define SetWindowLongPtrA(win,ix,val)  SetWindowLongA(win,ix,(LONG)val)
-		#endif
-		#ifdef SetWindowLongPtrW
-			#undef SetWindowLongPtrW
-			#define SetWindowLongPtrW(win,ix,val)  SetWindowLongW(win,ix,(LONG)val)
-		#endif
-	#endif
+    /* MS platform SDK #defines [GS]etWindowLongPtr as plain [GS]etWindowLong
+     * for x86 builds, without any casting, hence causing lots of compiler
+     * warnings C4312. Lets workaround it. */
+    #ifndef _WIN64
+        #ifdef GetWindowLongPtrA
+            #undef GetWindowLongPtrA
+            #define GetWindowLongPtrA(win,ix)  (intptr_t)GetWindowLongA(win,ix)
+        #endif
+        #ifdef GetWindowLongPtrW
+            #undef GetWindowLongPtrW
+            #define GetWindowLongPtrW(win,ix)  (intptr_t)GetWindowLongW(win,ix)
+        #endif
+        #ifdef SetWindowLongPtrA
+            #undef SetWindowLongPtrA
+            #define SetWindowLongPtrA(win,ix,val)  SetWindowLongA(win,ix,(LONG)val)
+        #endif
+        #ifdef SetWindowLongPtrW
+            #undef SetWindowLongPtrW
+            #define SetWindowLongPtrW(win,ix,val)  SetWindowLongW(win,ix,(LONG)val)
+        #endif
+    #endif
 #endif
 
 
@@ -138,7 +136,7 @@
 /******************************************
  *** Missing constants in mingw headers ***
  ******************************************/
- 
+
 /* Some of them should be constants from enumeration, other are just #defines.
  * However as we cannot use preprocessor to detect if enums or their members
  * are missing, we always #define it here. */
@@ -182,12 +180,12 @@
  *** Hack for broken COM headers in mingw ***
  ********************************************/
 
-/* There is a lot of COM interfaces missing in the w32api package (as of 
- * version 3.13) of mingw project. Hence we use copy of those headers 
+/* There is a lot of COM interfaces missing in the w32api package (as of
+ * version 3.13) of mingw project. Hence we use copy of those headers
  * from mingw-w64 project which seems to be more complete.
- * 
+ *
  * These are placed in the com/ subdirectory. The below are hacks
- * hiding incompatibilities between headeres from mingw-w64 and mingw.
+ * hiding incompatibilities between headers from mingw-w64 and mingw.
  */
 
 #if defined MC_TOOLCHAIN_MINGW
@@ -196,18 +194,21 @@
 #endif
 
 
-/******************************
- *** _wcstoi64 an relatives ***
- ******************************/
+/************************************
+ *** _wcstoi64() and _wcstoui64() ***
+ ************************************/
 
-/* MSVCRT.DLL on Windows 2000 lacks some symbols we use, so lets use our
- * own implementation. */
+/* MSVCRT.DLL on Windows 2000 lacks these symbols, so we have to provide our
+ * own implementations for 32bit version of MCTRL.DLL. */
+#ifndef _WIN64
+    #define COMPAT_NEED_WCSTOI64   1
+    int64_t compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base);
+    #define _wcstoi64 compat_wcstoi64
 
-int64_t compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base);
-uint64_t compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base);
-
-#define _wcstoi64 compat_wcstoi64
-#define _wcstoui64 compat_wcstoui64
+    #define COMPAT_NEED_WCSTOUI64  1
+    uint64_t compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base);
+    #define _wcstoui64 compat_wcstoui64
+#endif
 
 /* mingw does not declare them in <ctype.h> and <tchar.h> */
 #if defined MC_TOOLCHAIN_MINGW

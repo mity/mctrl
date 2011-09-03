@@ -27,27 +27,25 @@
  * MSVCRT__wcstoi64_l() and MSVCRT__wcstoui64_l respectivally,
  * both found in wine-1.3.11/dlls/msvcrt/wcs.c */
 
-
-#define MSVCRT_CHECK_PMT(cond)    (cond)
-
+#ifdef tolowerW
+    #undef tolowerW
+#endif
 #define tolowerW(c)    ((wchar_t)(intptr_t)CharLowerW((LPWSTR)(intptr_t)(int)(c)))
-#define isspaceW       iswspace
-#define isdigitW       iswdigit
 
 
+#ifdef COMPAT_NEED_WCSTOI64
 int64_t
 compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base)
 {
     BOOL negative = FALSE;
     int64_t ret = 0;
 
-    if (!MSVCRT_CHECK_PMT(nptr != NULL) || !MSVCRT_CHECK_PMT(base == 0 || base >= 2) ||
-        !MSVCRT_CHECK_PMT(base <= 36)) {
+    if(nptr == NULL || (base < 2 && base != 0) || base > 36) {
         errno = EINVAL;
         return 0;
     }
 
-    while(isspaceW(*nptr)) nptr++;
+    while(iswspace(*nptr)) nptr++;
 
     if(*nptr == '-') {
         negative = TRUE;
@@ -71,7 +69,7 @@ compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base)
         wchar_t cur = tolowerW(*nptr);
         int v;
 
-        if(isdigitW(cur)) {
+        if(iswdigit(cur)) {
             if(cur >= '0'+base)
                 break;
             v = cur-'0';
@@ -101,20 +99,22 @@ compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base)
 
     return ret;
 }
+#endif  /* COMPAT_NEED_WCSTOI64 */
 
+
+#ifdef COMPAT_NEED_WCSTOUI64
 uint64_t
 compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
 {
     BOOL negative = FALSE;
     uint64_t ret = 0;
 
-    if (!MSVCRT_CHECK_PMT(nptr != NULL) || !MSVCRT_CHECK_PMT(base == 0 || base >= 2) ||
-        !MSVCRT_CHECK_PMT(base <= 36)) {
+    if(nptr == NULL || (base < 2 && base != 0) || base > 36) {
         errno = EINVAL;
         return 0;
     }
 
-    while(isspaceW(*nptr)) nptr++;
+    while(iswspace(*nptr)) nptr++;
 
     if(*nptr == '-') {
         negative = TRUE;
@@ -138,7 +138,7 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
         wchar_t cur = tolowerW(*nptr);
         int v;
 
-        if(isdigitW(cur)) {
+        if(iswdigit(cur)) {
             if(cur >= '0'+base)
                 break;
             v = *nptr-'0';
@@ -162,7 +162,7 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
 
     return negative ? -ret : ret;
 }
-
+#endif  /* COMPAT_NEED_WCSTOUI64 */
 
 
 #ifdef COMPAT_NEED_STOSD
