@@ -51,9 +51,8 @@ ifeq ($(filter $(PREFIX), x86_64-w64-mingw32- i686-w64-mingw32-),)
 endif
 
 WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0501 -DWINVER=_WIN32_WINNT
-UNICODE = -DUNICODE -D_UNICODE
 
-CPPFLAGS += -DMCTRL_BUILD $(UNICODE) $(WINVER) $(INCLUDES)
+CPPFLAGS += -DMCTRL_BUILD $(WINVER) $(INCLUDES)
 CFLAGS += -Wall
 LDFLAGS += -mwindows
 LIBS += -lcomctl32 -lole32 -loleaut32
@@ -67,6 +66,13 @@ ifneq ($(DEBUG),0)
 else
 	CFLAGS += -O3
 	LDFLAGS += -s
+endif
+
+ifndef DISABLE_UNICODE
+    CPPFLAGS_UNICODE = -DUNICODE=1 -D_UNICODE=1
+    CPPFLAGS += $(CPPFLAGS_UNICODE)
+    CFLAGS += -municode
+    LDFLAGS += -municode
 endif
 
 PUBLIC_HEADERS = $(wildcard $(INCDIR)/*.h $(INCDIR)/mCtrl/*.h)
@@ -140,6 +146,6 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.rc
-	$(WINDRES) $(filter-out -DUNICODE -D_UNICODE, $(subst -isystem,-I,$(CPPFLAGS))) -I$(SRCDIR) $< $@
+	$(WINDRES) $(filter-out $(CPPFLAGS_UNICODE), $(subst -isystem,-I,$(CPPFLAGS))) -I$(SRCDIR) $< $@
 
 
