@@ -402,11 +402,11 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         if(button->ui_state & UISF_HIDEACCEL)
             flags |= DT_HIDEPREFIX;
         
-        n = GetWindowText(win, buffer, 256);
+        n = SendMessage(win, WM_GETTEXT, MC_ARRAY_SIZE(buffer), (LPARAM)buffer);
         
         if(button->theme) {
             theme_DrawThemeText(button->theme, dc, BP_PUSHBUTTON, 
-                        state_left, buffer, -1, flags, 0, &rect_left);
+                        state_left, buffer, n, flags, 0, &rect_left);
         } else {
             SetBkMode(dc, TRANSPARENT);
             SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
