@@ -598,19 +598,19 @@ grid_theme_changed(grid_t* grid)
     InvalidateRect(grid->win, NULL, TRUE);
 }
 
-static LRESULT
-grid_create(HWND win, CREATESTRUCT* cs)
+static grid_t*
+grid_nccreate(HWND win, CREATESTRUCT* cs)
 {
     grid_t* grid;
 
     grid = (grid_t*) malloc(sizeof(grid_t));
     if(MC_ERR(grid == NULL)) {
         MC_TRACE("grid_create: malloc() failed.");
-        return -1;
+        return NULL;
     }
 
     grid->win = win;
-    grid->theme = theme_OpenThemeData(win, grid_tc);
+    grid->theme = NULL;
     grid->font = NULL;
     grid->table = NULL;
     grid->style = cs->style;
@@ -623,24 +623,40 @@ grid_create(HWND win, CREATESTRUCT* cs)
     grid->cell_padding_vert = 1;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
-    SetWindowLongPtr(win, 0, (LONG_PTR)grid);
+    return grid;
+}
+
+static int
+grid_create(grid_t* grid)
+{
+    grid->theme = theme_OpenThemeData(grid->win, grid_tc);
 
     if(MC_ERR(grid_set_table(grid, NULL) != 0)) {
         MC_TRACE("grid_create: grid_set_table() failed.");
-        free(grid);
         return -1;
     }
-
+    
     return 0;
 }
 
 static void
 grid_destroy(grid_t* grid)
 {
-    if(grid->theme)
+    if(grid->theme) {
         theme_CloseThemeData(grid->theme);
-    table_uninstall_view(grid->table, grid);
-    table_unref(grid->table);
+        grid->theme = NULL;
+    }
+    
+    if(grid->table) {
+        table_uninstall_view(grid->table, grid);
+        table_unref(grid->table);
+        grid->table = NULL;
+    }
+}
+
+static inline void
+grid_ncdestroy(grid_t* grid)
+{
     free(grid);
 }
 
@@ -736,11 +752,23 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             grid_theme_changed(grid);
             return 0;
 
+        case WM_NCCREATE:
+            grid = grid_nccreate(win, (CREATESTRUCT*)lp);
+            if(MC_ERR(grid == NULL))
+                return FALSE;                
+            SetWindowLongPtr(win, 0, (LONG_PTR)grid);
+            return TRUE;
+
         case WM_CREATE:
-            return grid_create(win, (CREATESTRUCT*)lp);
+            return (grid_create(grid) == 0 ? 0 : -1);
 
         case WM_DESTROY:
             grid_destroy(grid);
+            return 0;
+        
+        case WM_NCDESTROY:
+            if(grid)
+                grid_ncdestroy(grid);
             return 0;
     }
 

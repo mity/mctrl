@@ -43,9 +43,10 @@ static WNDPROC orig_button_proc = NULL;
 typedef struct button_tag button_t;
 struct button_tag {
     HTHEME theme;
-    DWORD style              : 31;
+    DWORD style              : 29;
     DWORD is_dropdown_pushed :  1;
-    DWORD ui_state;
+    DWORD hide_accel         :  1;
+    DWORD hide_focus         :  1;
 };
 
 
@@ -118,7 +119,7 @@ button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
     old_clip = get_clip(dc);
     
     /* Draw background */
-    if(!IsWindowEnabled(win)) {
+    if(button->style & WS_DISABLED) {
         state = PBS_DISABLED;
     } else {
         LRESULT s = SendMessage(win, BM_GETSTATE, 0, 0);
@@ -141,14 +142,14 @@ button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
     
     /* Draw focus rectangle */
     if(SendMessage(win, BM_GETSTATE, 0, 0) & BST_FOCUS) {
-        if(!(button->ui_state & UISF_HIDEFOCUS))
+        if(!button->hide_focus)
             DrawFocusRect(dc, &content);
     }
     
     /* Draw the contents (i.e. the icon) */
     mc_icon_size(icon, &size);
     flags = DST_ICON;
-    if(!IsWindowEnabled(win))
+    if(button->style & WS_DISABLED)
         flags |= DSS_DISABLED;
     DrawState(dc, NULL, NULL, (LPARAM) icon, 0, (rect.right + rect.left - size.cx) / 2, 
               (rect.bottom + rect.top - size.cy) / 2, size.cx, size.cy, flags);
@@ -206,7 +207,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         RECT tmp;
 
         /* Determine styles for left and right parts */
-        if(!IsWindowEnabled(win)) {
+        if(button->style & WS_DISABLED) {
             state_left = state_right = PBS_DISABLED;
         } else {
             LRESULT state;
@@ -268,7 +269,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         rect_right.left = tmp.left;
     } else {
         /* Determine styles for left and right parts */
-        if(!IsWindowEnabled(win)) {
+        if(button->style & WS_DISABLED) {
             state_left = state_right = DFCS_INACTIVE;
         } else {
             LRESULT s = SendMessage(win, BM_GETSTATE, 0, 0);
@@ -315,7 +316,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     }
 
     /* Draw focus rectangle. */
-    if((SendMessage(win, BM_GETSTATE, 0, 0) & BST_FOCUS) && !(button->ui_state & UISF_HIDEFOCUS)) {
+    if((SendMessage(win, BM_GETSTATE, 0, 0) & BST_FOCUS) && !button->hide_focus) {
         SelectClipRgn(dc, NULL);
         if(button->theme) {
             SetRect(&rect, rect_left.left, rect_left.top, 
@@ -354,7 +355,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
             mc_icon_size(icon, &size);
 
             flags = DST_ICON;
-            if(!IsWindowEnabled(win))
+            if(button->style & WS_DISABLED)
                 flags |= DSS_DISABLED;
     
             DrawState(dc, NULL, NULL, (LPARAM) icon, 0, 
@@ -399,7 +400,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         else
             flags |= DT_SINGLELINE;
             
-        if(button->ui_state & UISF_HIDEACCEL)
+        if(button->hide_accel)
             flags |= DT_HIDEPREFIX;
         
         n = SendMessage(win, WM_GETTEXT, MC_ARRAY_SIZE(buffer), (LPARAM)buffer);
@@ -419,6 +420,31 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     SetBkMode(dc, old_bk_mode);
     SetTextColor(dc, old_text_color);
     SelectObject(dc, old_clip);
+}
+
+static void
+button_update_ui_state(button_t* button, WORD action, WORD flags)
+{
+    switch(action) {
+        case UIS_CLEAR:
+            if(flags & UISF_HIDEFOCUS)
+                button->hide_focus = 0;
+            if(flags & UISF_HIDEACCEL)
+                button->hide_accel = 0;
+            break;
+                    
+        case UIS_SET:
+            if(flags & UISF_HIDEFOCUS)
+                button->hide_focus = 1;
+            if(flags & UISF_HIDEACCEL)
+                button->hide_accel = 1;
+            break;
+            
+        case UIS_INITIALIZE:
+            button->hide_focus = (flags & UISF_HIDEFOCUS) ? 1 : 0;
+            button->hide_accel = (flags & UISF_HIDEACCEL) ? 1 : 0;
+            break;            
+    }   
 }
 
 static BOOL
@@ -656,37 +682,54 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
             
         case WM_UPDATEUISTATE:
-            switch(LOWORD(wp)) {
-                case UIS_CLEAR:       button->ui_state &= ~HIWORD(wp); break;
-                case UIS_SET:         button->ui_state |= HIWORD(wp); break;
-                case UIS_INITIALIZE:  button->ui_state = HIWORD(wp); break;
-            }            
+            button_update_ui_state(button, LOWORD(wp), HIWORD(wp));
             InvalidateRect(win, NULL, FALSE);
             break;
             
-        case WM_CREATE:
+        case WM_NCCREATE:
+            if(MC_ERR(!CallWindowProc(orig_button_proc, win, WM_NCCREATE, wp, lp))) {
+                MC_TRACE("button_proc(WM_NCCREATE): orig_button_proc() failed "
+                         "[%lu]", GetLastError());
+                return FALSE;
+            }
             button = (button_t*) malloc(sizeof(button_t));
             if(MC_ERR(button == NULL)) {
                 MC_TRACE("button_proc(WM_CREATE): malloc() failed.");
-                return -1;
+                return FALSE;
             }
-            if(CallWindowProc(orig_button_proc, win, msg, wp, lp) != 0) {
+            button->theme = NULL;
+            button->style = ((CREATESTRUCT*)lp)->style;
+            button->is_dropdown_pushed = 0;
+            button->hide_focus = 0;
+            button->hide_accel = 0;
+            SetWindowLongPtr(win, extra_offset, (LONG_PTR) button);
+            return TRUE;
+
+        case WM_CREATE:
+            if(MC_ERR(CallWindowProc(orig_button_proc, win, WM_CREATE, wp, lp) != 0)) {
                 MC_TRACE("button_proc(WM_CREATE): orig_button_proc() failed "
                          "[%lu]", GetLastError());
-                free(button);
                 return -1;
             }
             button->theme = theme_OpenThemeData(win, button_tc);
-            button->style = GetWindowLong(win, GWL_STYLE);
-            button->ui_state = SendMessage(win, WM_QUERYUISTATE, 0, 0);
-            button->is_dropdown_pushed = 0;
-            SetWindowLongPtr(win, extra_offset, (LONG_PTR) button);
+            
+            {
+                WORD ui_state = SendMessage(win, WM_QUERYUISTATE, 0, 0);
+                button->hide_focus = (ui_state & UISF_HIDEFOCUS) ? 1 : 0;
+                button->hide_accel = (ui_state & UISF_HIDEACCEL) ? 1 : 0;
+            }
             return 0;
         
         case WM_DESTROY:
-            if(button->theme)
+            if(button->theme) {
                 theme_CloseThemeData(button->theme);
-            free(button);
+                button->theme = NULL;
+            }
+            break;            
+        
+        case WM_NCDESTROY:
+            if(button)
+                free(button);
             break;
     }
 

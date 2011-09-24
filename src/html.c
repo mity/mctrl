@@ -61,11 +61,11 @@ static TCHAR ie_prop[] = _T("mctrl.html.handle");
 typedef struct html_tag html_t;
 struct html_tag {
     HWND win;
-    DWORD style                 : 31;
-    DWORD unicode_notifications :  1;
-
     HWND ie_win;
     WNDPROC ie_proc;
+    DWORD style                 : 30;
+    DWORD ole_initialized       :  1;
+    DWORD unicode_notifications :  1;
 
     /* Pointer to the COM-object representing the embedded Internet Explorer */
     IOleObject* browser_obj;
@@ -138,7 +138,7 @@ html_browser_iface(html_t* html)
     
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                     &IID_IWebBrowser2, (void**)&browser_iface);
-    if(MC_ERR(hr != S_OK || browser_iface == NULL)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_browser_iface: QueryInterface(IID_IWebBrowser2) failed "
                  "[%lu]", (ULONG) hr);
         return NULL;
@@ -958,20 +958,20 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     }
     
     hr = browser_iface->lpVtbl->get_Document(browser_iface, &dispatch_iface);
-    if(MC_ERR(hr != S_OK || dispatch_iface == NULL)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_set_element_contents: get_Document() failed [%ld]", hr);
         goto err_dispatch;
     }
     
     hr = dispatch_iface->lpVtbl->QueryInterface(dispatch_iface, 
                                     &IID_IHTMLDocument3, (void**)&doc_iface);
-    if(MC_ERR(hr != S_OK || doc_iface == NULL)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_set_element_contents: QueryInterface(IID_IHTMLDocument3) failed [%ld]", hr);
         goto err_doc;
     }
     
     hr = doc_iface->lpVtbl->getElementById(doc_iface, bstr_id, &elem_iface);
-    if(MC_ERR(hr != S_OK || elem_iface == NULL)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_set_element_contents: getElementById() failed [%ld]", hr);
         goto err_elem;
     }
@@ -1023,7 +1023,7 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
         goto err_browser;
     hr = browser_iface->lpVtbl->QueryInterface(browser_iface,
                         &IID_IOleInPlaceActiveObject, (void**)&active_iface);
-    if(MC_ERR(hr != S_OK))
+    if(MC_ERR(FAILED(hr)))
         goto err_active;
     active_iface->lpVtbl->TranslateAccelerator(active_iface, &message);
 
@@ -1036,9 +1036,35 @@ err_browser:
 }
 
 static html_t*
-html_create(HWND win, CREATESTRUCT* cs)
+html_nccreate(HWND win, CREATESTRUCT* cs)
 {
     html_t* html = NULL;
+
+    /* Allocate and setup the html_t structure */
+    html = (html_t*) malloc(sizeof(html_t));
+    if(MC_ERR(html == NULL)) {
+        MC_TRACE("html_nccreate: malloc() failed.");
+        return NULL;
+    }
+    memset(html, 0, sizeof(html_t));
+    
+    html->win = win;
+    html->style = cs->style;
+    html->dispatch.lpVtbl = &dispatch_vtable;
+    html->client_site.lpVtbl = &client_site_vtable;
+    html->inplace_site_ex.lpVtbl = &inplace_site_ex_vtable;
+    html->inplace_frame.lpVtbl = &inplace_frame_vtable;
+    html->ui_handler.lpVtbl = &ui_handler_vtable;
+
+    /* Ask parent if it expects Unicode or ANSI noitifications */
+    html_notify_format(html);
+
+    return html;
+}
+
+static int
+html_create(html_t* html, CREATESTRUCT* cs)
+{
     IWebBrowser2* browser_iface = NULL;
     IConnectionPointContainer* conn_point_container;
     IConnectionPoint* conn_point;
@@ -1050,75 +1076,54 @@ html_create(HWND win, CREATESTRUCT* cs)
      * be performed in the thread where OLE shall be used (i.e. where
      * the message loop controlling the window is running). */
     hr = OleInitialize(NULL);
-    if(MC_ERR(hr != S_OK && hr != S_FALSE)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: OleInitialize() failed [%lu]", (ULONG)hr);
-        goto err_OleInitialize;
+        return -1;
     }
-
-    /* Allocate and setup the html_t structure */
-    html = (html_t*) malloc(sizeof(html_t));
-    if(MC_ERR(html == NULL)) {
-        MC_TRACE("html_create: malloc() failed.");
-        goto err_malloc;
-    }
-    html->win = win;
-    html->style = GetWindowLong(win, GWL_STYLE);
-    html->browser_obj = NULL;
-    html->dispatch.lpVtbl = &dispatch_vtable;
-    html->client_site.lpVtbl = &client_site_vtable;
-    html->inplace_site_ex.lpVtbl = &inplace_site_ex_vtable;
-    html->inplace_frame.lpVtbl = &inplace_frame_vtable;
-    html->ui_handler.lpVtbl = &ui_handler_vtable;
-    html_notify_format(html);
-
-    /* Unsubclass IE window */
-    if(html->ie_win != NULL) {
-        SetWindowLongPtr(html->ie_win, GWLP_WNDPROC, (LONG_PTR)html->ie_proc);
-        RemoveProp(html->ie_win, ie_prop);
-        html->ie_win = NULL;
-    }
+    
+    html->ole_initialized = 1;
 
     /* Create browser object */
     hr = CoCreateInstance(&CLSID_WebBrowser, NULL, CLSCTX_INPROC,
             &IID_IOleObject, (void**)&html->browser_obj);
-    if(MC_ERR(html->browser_obj == NULL)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: CoCreateInstance(CLSID_WebBrowser) failed "
                  "[%lu]", (ULONG)hr);
-        goto err_CoCreateInstance;
+        return -1;
     }
 
     /* Embed the browser object into our host window */
     hr = html->browser_obj->lpVtbl->SetClientSite(html->browser_obj,
                 &html->client_site);
-    if(MC_ERR(hr != S_OK)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: IOleObject::SetClientSite() failed [%lu]",
                  (ULONG)hr);
-        goto err_SetClientSite;
+        return -1;
     }
-    GetClientRect(win, &rect);
+    GetClientRect(html->win, &rect);
     hr = html->browser_obj->lpVtbl->DoVerb(html->browser_obj, OLEIVERB_INPLACEACTIVATE,
-                            NULL, &html->client_site, 0, win, &rect);
-    if(MC_ERR(hr != S_OK)) {
+                            NULL, &html->client_site, 0, html->win, &rect);
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: IOleObject::DoVerb(OLEIVERB_INPLACEACTIVATE) "
                  "failed [%lu]", (ULONG)hr);
-        goto err_DoVerb;
+        return -1;
     }
 
     /* Send events of DIID_DWebBrowserEvents2 to our IDispatch */
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                 &IID_IConnectionPointContainer, (void**)&conn_point_container);
-    if(MC_ERR(hr != S_OK)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: QueryInterface(IID_IConnectionPointContainer) failed "
                  "[%lu]", (ULONG)hr);
-        goto err_QueryCPCInterface;
+        return -1;
     }
     hr = conn_point_container->lpVtbl->FindConnectionPoint(conn_point_container,
                 &DIID_DWebBrowserEvents2, &conn_point);
     conn_point_container->lpVtbl->Release(conn_point_container);
-    if(MC_ERR(hr != S_OK)) {
+    if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: FindConnectionPoint(DIID_DWebBrowserEvents2) failed "
                  "[%lu]", (ULONG)hr);
-        goto err_FindConnPoint;
+        return -1;
     }
     conn_point->lpVtbl->Advise(conn_point, (IUnknown*)&html->client_site, &cookie);
     conn_point->lpVtbl->Release(conn_point);
@@ -1129,7 +1134,7 @@ html_create(HWND win, CREATESTRUCT* cs)
     if(MC_ERR(browser_iface == NULL)) {
         MC_TRACE("html_create: QueryInterface(IID_IWebBrowser2) failed "
                  "[%lu]", (ULONG)hr);
-        goto err_QueryBrowserInterface;
+        return -1;
     }
     browser_iface->lpVtbl->put_Left(browser_iface, 0);
     browser_iface->lpVtbl->put_Top(browser_iface, 0);
@@ -1148,32 +1153,35 @@ html_create(HWND win, CREATESTRUCT* cs)
 #endif
     }
 
-    /* Success */
-    return html;
-
-    /* Error unwinding */
-err_QueryBrowserInterface:
-err_FindConnPoint:
-err_QueryCPCInterface:
-err_DoVerb:
-err_SetClientSite:
-    html->browser_obj->lpVtbl->Close(html->browser_obj, OLECLOSE_NOSAVE);
-    html->browser_obj->lpVtbl->Release(html->browser_obj);
-err_CoCreateInstance:
-    free(html);
-err_malloc:
-    OleUninitialize();
-err_OleInitialize:
-    return NULL;
+    return 0;
 }
 
 static void
 html_destroy(html_t* html)
 {
-    html->browser_obj->lpVtbl->Close(html->browser_obj, OLECLOSE_NOSAVE);
-    html->browser_obj->lpVtbl->Release(html->browser_obj);
+    /* Unsubclass IE window */
+    if(html->ie_win != NULL) {
+        SetWindowLongPtr(html->ie_win, GWLP_WNDPROC, (LONG_PTR)html->ie_proc);
+        RemoveProp(html->ie_win, ie_prop);
+        html->ie_win = NULL;
+    }
+
+    if(html->browser_obj != NULL) {
+        html->browser_obj->lpVtbl->Close(html->browser_obj, OLECLOSE_NOSAVE);
+        html->browser_obj->lpVtbl->Release(html->browser_obj);
+        html->browser_obj = NULL;
+    }
+    
+    if(html->ole_initialized) {
+        OleUninitialize();
+        html->ole_initialized = 0;
+    }
+}
+
+static inline void
+html_ncdestroy(html_t* html)
+{
     free(html);
-    OleUninitialize();
 }
 
 
@@ -1313,18 +1321,23 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 ((TCHAR*)lp)[0] = _T('\0');
             return 0;
 
-        case WM_CREATE:
-            html = html_create(win, (CREATESTRUCT*)lp);
-            if(MC_ERR(html == NULL)) {
-                MC_TRACE("html_proc(WM_CREATE): html_create() failed.");
-                return -1;
-            }
+        case WM_NCCREATE:
+            html = html_nccreate(win, (CREATESTRUCT*)lp);
+            if(MC_ERR(html == NULL))
+                return FALSE;
             SetWindowLongPtr(win, 0, (LONG_PTR)html);
-            return 0;
+            return TRUE;
 
+        case WM_CREATE:
+            return (html_create(html, (CREATESTRUCT*)lp) == 0 ? 0 : -1);
+        
         case WM_DESTROY:
             html_destroy(html);
-            SetWindowLongPtr(win, 0, (LONG_PTR)NULL);
+            return 0;
+
+        case WM_NCDESTROY:
+            if(html)
+                html_ncdestroy(html);
             return 0;
     }
 
