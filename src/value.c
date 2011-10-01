@@ -137,7 +137,7 @@ int32_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
         return n+1;
     } else {
         n = 2;  /* +2 for '-' and '\0' */
-        for(limit = -10; limit > 1000000000; limit *= 10) {
+        for(limit = -10; limit > -1000000000; limit *= 10) {
             n++;
             if(i > limit)
                 return n;
@@ -369,7 +369,7 @@ int64_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
         return n+1;
     } else {
         n = 2;  /* +2 for '-' and '\0' */
-        for(limit = -10; limit > 1000000000000000000; limit *= 10) {
+        for(limit = -10; limit > -1000000000000000000; limit *= 10) {
             n++;
             if(i64 > limit)
                 return n;
