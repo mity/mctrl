@@ -110,7 +110,7 @@ if which x86_64-w64-mingw32-gcc; then
     echo "Done." >&3
     HAVE_X86_64=yes
 else
-    echo "Skipped: x86_64-w64-mingw32-gcc not not found in PATH." >&3
+    echo "Skipped: x86_64-w64-mingw32-gcc not found in PATH." >&3
 fi
 
 if [ x$HAVE_X86_64 != x ]; then
@@ -146,7 +146,7 @@ if which i686-w64-mingw32-gcc; then
     echo "Done." >&3
     HAVE_X86=yes
 else
-    echo "Skipped: i686-w64-mingw32-gcc not not found in PATH." >&3
+    echo "Skipped: i686-w64-mingw32-gcc not found in PATH." >&3
 fi
 
 if [ x$HAVE_X86 != x ]; then
