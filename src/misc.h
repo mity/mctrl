@@ -40,7 +40,6 @@
 /* Mininum and maximum et al. */
 #define MC_MIN(a,b)            ((a) < (b) ? (a) : (b))
 #define MC_MAX(a,b)            ((a) > (b) ? (a) : (b))
-#define MC_MID(a,b,c)          MC_MIN((a), MC_MAX((b), (c)))
 #define MC_ABS(a)              ((a) >= 0 ? (a) : -(a))
 
 /* Specifier for variable-sized array (last member in structures) */
