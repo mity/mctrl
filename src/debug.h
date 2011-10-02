@@ -68,9 +68,9 @@
 #endif
 #ifndef MC_UNREACHABLE
     #if defined __GNUC__
-        #define MC_UNREACHABLE           __builtin_unreachable();
+        #define MC_UNREACHABLE           __builtin_unreachable()
     #elif defined _MSC_VER
-        #define MC_UNREACHABLE           __assume(0);
+        #define MC_UNREACHABLE           __assume(0)
     #else
         #define MC_UNREACHABLE           do { } while(0)
     #endif
