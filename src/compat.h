@@ -47,9 +47,10 @@
     /* Disable warning C4996 ("This function or variable may be unsafe.") */
     #pragma warning( disable : 4996 )
 
-    /* MSVC does not understand inline when building as pure C (not C++) */
+    /* MSVC does not understand inline when building as pure C (not C++).
+     * However it understands __inline */
     #ifndef __cplusplus
-        #define inline
+        #define inline __inline
     #endif
 
     /* MS platform SDK #defines [GS]etWindowLongPtr as plain [GS]etWindowLong
@@ -58,19 +59,19 @@
     #ifndef _WIN64
         #ifdef GetWindowLongPtrA
             #undef GetWindowLongPtrA
-            #define GetWindowLongPtrA(win,ix)  (intptr_t)GetWindowLongA(win,ix)
+            #define GetWindowLongPtrA(win,ix)      ((intptr_t)GetWindowLongA((win),(ix)))
         #endif
         #ifdef GetWindowLongPtrW
             #undef GetWindowLongPtrW
-            #define GetWindowLongPtrW(win,ix)  (intptr_t)GetWindowLongW(win,ix)
+            #define GetWindowLongPtrW(win,ix)      ((intptr_t)GetWindowLongW((win),(ix)))
         #endif
         #ifdef SetWindowLongPtrA
             #undef SetWindowLongPtrA
-            #define SetWindowLongPtrA(win,ix,val)  SetWindowLongA(win,ix,(LONG)val)
+            #define SetWindowLongPtrA(win,ix,val)  SetWindowLongA((win),(ix),(LONG)(val))
         #endif
         #ifdef SetWindowLongPtrW
             #undef SetWindowLongPtrW
-            #define SetWindowLongPtrW(win,ix,val)  SetWindowLongW(win,ix,(LONG)val)
+            #define SetWindowLongPtrW(win,ix,val)  SetWindowLongW((win),(ix),(LONG)(val))
         #endif
     #endif
 #endif
