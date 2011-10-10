@@ -41,9 +41,14 @@
  * - @ref mCtrl/grid.h - Grid control (window class @c MC_WC_GRID)
  * - @ref mCtrl/html.h - HTML control (window class @c MC_WC_HTML)
  * - @ref mCtrl/mditab.h - MDI tab control (window class @c MC_WC_MDITAB)
+ * - @ref mCtrl/propview.h - Property list view (window class @c MC_WC_PROPVIEW)
  *
- * @subsection toc_misc Miscalenous Functions
+ * @subsection toc_data Control Data Models
+ * - @ref mCtrl/propset.h - Property set (data model for the property view control)
  * - @ref mCtrl/table.h - Table (data model for the grid control)
  * - @ref mCtrl/value.h - Value (polymorphic data)
+ *
+ * @subsection toc_misc Miscalenous
+ * - @ref mCtrl/defs.h - Miscalenous macros and constants
  * - @ref mCtrl/version.h - Retrieving mCtrl version
  */

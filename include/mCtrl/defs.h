@@ -28,8 +28,11 @@ extern "C" {
 
 /** 
  * @file
- * This is helper header included by all the other public mCtrl headers. 
- * You shouldn't need to include this header file directly.
+ * @brief Helper shared stuff
+ *
+ * This helper header file provides some macro definitions shared by other
+ * public mCtrl headers. They all include this header so you shouldn't need
+ * to include this header file directly.
  */
 
 
@@ -45,21 +48,30 @@ extern "C" {
 
 
 /**
- * @name Color Constants
+ * @name Common Constants
  */
 /*@{*/
 /**
  * @brief No color.
- * @details This is exactly the same as @c CLR_NONE from @c <commctrl.h>
- * and applications can use these two macros interchangeably.
+ * @details This is defined to have the same  value and meaning as the constant
+ * @c CLR_NONE from @c <commctrl.h> and applications can use these two macros
+ * interchangeably.
  */
 #define MC_CLR_NONE         ((COLORREF)0xffffffffL)
 /**
  * @brief Default color.
- * @details This is exactly the same as @c CLR_DEFAULT from @c <commctrl.h>.
- * and applications can use these two macros interchangeably.
+ * @details This is defined to have the same value and meaning as the constant
+ * @c CLR_DEFAULT from @c <commctrl.h> and applications can use these two
+ * macros interchangeably.
  */
 #define MC_CLR_DEFAULT      ((COLORREF)0xff000000L)
+/**
+ * @brief Index of no group.
+ * @details This is defined to have the same value and meaning as the constant
+ * @c I_GROUPIDNONE from @c <commctrl.h> and applications can use these two
+ * macros interchangeably.
+ */
+#define MC_I_GROUPIDNONE    (-2)
 /*@}*/
 
 

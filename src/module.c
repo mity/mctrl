@@ -136,6 +136,9 @@ module_fini_modules(module_t** modules, int n)
 #include "misc.h"
 DEFINE_MODULE(mc)
 
+#include "embedit.h"
+DEFINE_MODULE(embedit)
+
 #include "theme.h"
 DEFINE_MODULE(theme)
 
@@ -149,7 +152,7 @@ DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
 
 #include "grid.h"
 DEFINE_MODULE(grid)
-static module_t* mod_grid_deps[] =   { &mod_mc, &mod_theme, &mod_grid };
+static module_t* mod_grid_deps[] =   { &mod_mc, &mod_embedit, &mod_theme, &mod_grid };
 DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 
 #include "html.h"
@@ -162,3 +165,7 @@ DEFINE_MODULE(mditab)
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
+#include "propview.h"
+DEFINE_MODULE(propview)
+static module_t* mod_propview_deps[] = { &mod_mc, &mod_embedit, &mod_theme, &mod_propview };
+DEFINE_PUBLIC_IFACE(propview, PropView, mod_propview_deps)

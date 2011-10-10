@@ -69,6 +69,7 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             hwndMdiTab = CreateWindow(MC_WC_MDITAB, _T(""),
                 WS_CHILD | WS_VISIBLE | MC_MTS_CLOSEONMCLICK, 
                 0, 0, rect.right, 30, hWnd, (HMENU) IDL_IMGLIST, hInst, NULL);
+            SetWindowLong(hwndMdiTab, GWL_STYLE, GetWindowLong(hwndMdiTab, GWL_STYLE) | WS_BORDER);
                 
             /* Set an imagelist */
             SendMessage(hwndMdiTab, MC_MTM_SETIMAGELIST, 0, (LPARAM) hImgList);

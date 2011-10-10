@@ -10,6 +10,10 @@ obj/compat.o: src/compat.c src/compat.h src/misc.h src/debug.h src/resource.h \
  src/version.h
 obj/debug.o: src/debug.c src/debug.h src/misc.h src/compat.h src/resource.h \
  src/version.h
+obj/dsa.o: src/dsa.c src/dsa.h src/misc.h src/compat.h src/debug.h \
+ src/resource.h src/version.h
+obj/embedit.o: src/embedit.c src/embedit.h src/misc.h src/compat.h \
+ src/debug.h src/resource.h src/version.h
 obj/grid.o: src/grid.c src/grid.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/grid.h include/mCtrl/defs.h \
  include/mCtrl/value.h include/mCtrl/table.h src/theme.h src/theme_fn.h \
@@ -23,12 +27,25 @@ obj/mditab.o: src/mditab.c src/mditab.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/mditab.h include/mCtrl/defs.h \
  src/theme.h src/theme_fn.h
 obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
- src/version.h src/module.h
+ src/version.h src/module.h include/mctrl.h include/mCtrl/button.h \
+ include/mCtrl/defs.h include/mCtrl/grid.h include/mCtrl/value.h \
+ include/mCtrl/table.h include/mCtrl/html.h include/mCtrl/mditab.h \
+ include/mCtrl/version.h
 obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
- src/resource.h src/version.h src/theme.h src/theme_fn.h src/button.h \
- include/mCtrl/button.h include/mCtrl/defs.h src/grid.h \
+ src/resource.h src/version.h src/embedit.h src/theme.h src/theme_fn.h \
+ src/button.h include/mCtrl/button.h include/mCtrl/defs.h src/grid.h \
  include/mCtrl/grid.h include/mCtrl/value.h include/mCtrl/table.h \
- src/html.h include/mCtrl/html.h src/mditab.h include/mCtrl/mditab.h
+ src/html.h include/mCtrl/html.h src/mditab.h include/mCtrl/mditab.h \
+ src/propview.h include/mCtrl/propview.h include/mCtrl/propset.h \
+ src/value.h
+obj/propset.o: src/propset.c src/propset.h include/mCtrl/propset.h \
+ include/mCtrl/defs.h include/mCtrl/value.h src/misc.h src/compat.h \
+ src/debug.h src/resource.h src/version.h src/dsa.h src/value.h \
+ src/viewlist.h
+obj/propview.o: src/propview.c src/propview.h include/mCtrl/propview.h \
+ include/mCtrl/defs.h include/mCtrl/value.h include/mCtrl/propset.h \
+ src/misc.h src/compat.h src/debug.h src/resource.h src/version.h \
+ src/value.h src/propset.h src/dsa.h src/viewlist.h
 obj/table.o: src/table.c src/table.h include/mCtrl/table.h \
  include/mCtrl/defs.h include/mCtrl/value.h src/misc.h src/compat.h \
  src/debug.h src/resource.h src/version.h src/value.h src/viewlist.h

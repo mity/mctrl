@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -41,6 +41,7 @@
 #define MC_MIN(a,b)            ((a) < (b) ? (a) : (b))
 #define MC_MAX(a,b)            ((a) > (b) ? (a) : (b))
 #define MC_ABS(a)              ((a) >= 0 ? (a) : -(a))
+#define MC_SIGN(a)             ((a) > 0 ? +1 : ((a) < 0 ? -1 : 0))
 
 /* Specifier for variable-sized array (last member in structures) */
 #if defined __STDC__ && __STDC_VERSION__ >= 199901L
@@ -69,9 +70,42 @@
 #define MC_CONTAINEROF(ptr, type, member)                                \
             ((type*)((BYTE*)(ptr) - MC_OFFSETOF(type, member)))
 
-/* Macros telling the compiler that the condition is likely or unlikely to 
+/* Inlined memcpy(), memmove() et al.
+ * Prefer these for memory blocks known a priori to be small. */
+#define MC_MEMCPY(a, b, s)                                               \
+    do {                                                                 \
+        BYTE* __a = (BYTE*)(a);                                          \
+        BYTE* __b = (BYTE*)(b);                                          \
+        size_t __s = (size_t)(s);                                        \
+        while(__s-- > 0)  *__a++ = *__b++;                               \
+    } while(0)
+#define MC_MEMMOVE(a, b, s)                                              \
+    do {                                                                 \
+        BYTE* __a = (BYTE*)(a);                                          \
+        BYTE* __b = (BYTE*)(b);                                          \
+        size_t __s = (size_t)(s);                                        \
+        if(__a < __b) {                                                  \
+            while(__s-- > 0)  *__a++ = *__b++;                           \
+        } else {                                                         \
+            __a += __s; __b += __s;                                      \
+            while(__s-- > 0)  *(--__a) = *(--__b);                       \
+        }                                                                \
+    } while(0)
+#define MC_MEMSWAP(a, b, s)                                              \
+    do {                                                                 \
+        BYTE* __a = (BYTE*)(a);                                          \
+        BYTE* __b = (BYTE*)(b);                                          \
+        size_t __s = (size_t)(s);                                        \
+        while(__s-- > 0) {                                               \
+            BYTE __tmp = *__a;                                           \
+            *__a++ = *__b;                                               \
+            *__b++ = __tmp;                                              \
+        }                                                                \
+    } while(0)
+
+/* Macros telling the compiler that the condition is likely or unlikely to
  * be true. (If supported) it allows better optimization. Use only sparingly
- * in important loops where it really matters. Programmers are often bad in 
+ * in important loops where it really matters. Programmers are often bad in
  * this kind of prediction. */
 #if defined __GNUC__  &&  __GNUC__ >= 3
     #define MC_LIKELY(condition)       __builtin_expect(!!(condition), !0)
@@ -97,7 +131,7 @@ extern HINSTANCE mc_instance_exe;  /* *.EXE handle */
 /* Checking OS version (compare with normal operators: ==, <, <= etc.) */
 #define MC_WIN_VER(platform, major, minor)                               \
     (((platform) << 16) | ((major) << 8) | ((minor) << 0))
-    
+
 #define MC_WIN_95          MC_WIN_VER(1, 4, 0)
 #define MC_WIN_98          MC_WIN_VER(1, 4, 10)
 #define MC_WIN_ME          MC_WIN_VER(1, 4, 90)
@@ -112,14 +146,11 @@ extern HINSTANCE mc_instance_exe;  /* *.EXE handle */
 
 extern DWORD mc_win_version;
 
-/* Checking version of COMCTRL32.DLL */    
+/* Checking version of COMCTRL32.DLL */
 #define MC_DLL_VER(major, minor)                                         \
     (((major) << 16) | ((minor) << 0))
 
 extern DWORD mc_comctl32_version;
-
-/* Default user interface font */
-extern HFONT mc_font;
 
 /* Image list of glyphs used throughout mCtrl */
 #define MC_BMP_GLYPH_W               9   /* glyph image size */
@@ -129,6 +160,8 @@ extern HFONT mc_font;
 #define MC_BMP_GLYPH_MORE_OPTIONS    1
 #define MC_BMP_GLYPH_CHEVRON_L       2
 #define MC_BMP_GLYPH_CHEVRON_R       3
+#define MC_BMP_GLYPH_EXPANDED        4
+#define MC_BMP_GLYPH_COLLAPSED       5
 
 extern HIMAGELIST mc_bmp_glyphs;
 
@@ -148,8 +181,8 @@ extern HIMAGELIST mc_bmp_glyphs;
 #endif
 
 
-/* Copies zero-terminated string from_str to a newly allocated buffer. 
- * A conversion can be applied during the copying depending on the type 
+/* Copies zero-terminated string from_str to a newly allocated buffer.
+ * A conversion can be applied during the copying depending on the type
  * of the from_str and the requested new string. Returns NULL on failure.
  *
  * Caller is then responsible to free the returned buffer.
@@ -167,7 +200,7 @@ void* mc_str_n(const void* from_str, int from_type, int from_len,
 
 /* Copies zero-terminated sring from_str to the buffer to_str. A conversion
  * can be applied during the copying depending on teh type of the from_str
- * and the requested new string. Only up-to max_len-1 characters is copied.
+ * and the requested new string. Only up to max_len-1 characters is copied.
  * The resulted string is always zero-terminated.
  */
 void mc_str_inbuf(const void* from_str, int from_type,
@@ -175,9 +208,9 @@ void mc_str_inbuf(const void* from_str, int from_type,
 
 
 
-/**************************
- *** Other helper stuff ***
- **************************/
+/*************************
+ *** Utility functions ***
+ *************************/
 
 /* Convenient wrapper of InitCommonControls/InitCommonControlsEx. */
 void mc_init_common_controls(DWORD icc);
@@ -185,6 +218,18 @@ void mc_init_common_controls(DWORD icc);
 /* Detect icon size */
 void mc_icon_size(HICON icon, SIZE* size);
 
+/* Determine approximate font on-screen dimension in pixels (height and avg.
+ * char width). Used to auto-adjust item size in complex controls. */
+void mc_font_size(HFONT font, SIZE* size);
+
+int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
+
+#define mc_wheel_reset()   mc_wheel_scroll(NULL, 0, 0)
+
+
+/**********************
+ *** Initialization ***
+ **********************/
 
 int mc_init(void);
 void mc_fini(void);
