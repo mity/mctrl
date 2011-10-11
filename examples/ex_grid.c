@@ -26,7 +26,6 @@ static HWND hwndGrid;
 static void
 LoadGrid(void)
 {
-    MC_GGEOMETRY geom;
     MC_GCELL cell;
     MC_HTABLE hTable;
     MC_TABLECELL tc;
@@ -34,11 +33,6 @@ LoadGrid(void)
     /* Set size of the table to 8 columns and 16 rows. */
     SendMessage(hwndGrid, MC_GM_RESIZE, MAKEWPARAM(8, 16), 0);
 
-    /* We use custom row headers so we need more space there. */
-    geom.fMask = MC_GGF_ROWHEADERWIDTH;
-    geom.wRowHeaderWidth = 48;
-    SendMessage(hwndGrid, MC_GM_SETGEOMETRY, 0, (LPARAM)&geom);
-    
     /* Setup first column which serves as row headers. */
     cell.wCol = 0;
     cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_STRING);
@@ -162,6 +156,13 @@ win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             
         case WM_SETFONT:
             SendMessage(hwndGrid, WM_SETFONT, wParam, lParam);
+            /* Reset grid's geometry to defaults according to the font. */
+            SendMessage(hwndGrid, MC_GM_SETGEOMETRY, 0, 0);
+            /* We use custom row headers so we need more space there. */
+            MC_GGEOMETRY geom;
+            geom.fMask = MC_GGF_ROWHEADERWIDTH;
+            geom.wRowHeaderWidth = 48;
+            SendMessage(hwndGrid, MC_GM_SETGEOMETRY, 0, (LPARAM)&geom);
             return 0;
             
         case WM_CREATE:

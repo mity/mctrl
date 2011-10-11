@@ -31,6 +31,10 @@
 #endif
 
 
+#define PADDING_H     3
+#define PADDING_V     2
+
+
 #define MC_GS_COLUMNHEADERMASK                                             \
             (MC_GS_COLUMNHEADERNONE | MC_GS_COLUMNHEADERNUMBERED |         \
              MC_GS_COLUMNHEADERALPHABETIC | MC_GS_COLUMNHEADERCUSTOM)
@@ -401,8 +405,8 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
         GetScrollInfo(grid->win, SB_VERT, &si);
         switch(opcode) {
             case SB_BOTTOM:        grid->scroll_y = si.nMax; break;
-            case SB_LINEUP:        grid->scroll_y -= 4; break;
-            case SB_LINEDOWN:      grid->scroll_y += 4; break;
+            case SB_LINEUP:        grid->scroll_y -= MC_MIN(MC_MIN(grid->cell_height, 40), si.nPage); break;
+            case SB_LINEDOWN:      grid->scroll_y += MC_MIN(MC_MIN(grid->cell_height, 40), si.nPage); break;
             case SB_PAGEUP:        grid->scroll_y -= si.nPage; break;
             case SB_PAGEDOWN:      grid->scroll_y += si.nPage; break;
             case SB_THUMBPOSITION: grid->scroll_y = si.nPos; break;
@@ -422,8 +426,8 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
         GetScrollInfo(grid->win, SB_HORZ, &si);
         switch(opcode) {
             case SB_BOTTOM:        grid->scroll_x = si.nMax; break;
-            case SB_LINELEFT:      grid->scroll_x -= 1; break;
-            case SB_LINERIGHT:     grid->scroll_x += 1; break;
+            case SB_LINELEFT:      grid->scroll_x -= MC_MIN(MC_MIN(grid->cell_width, 40), si.nPage); break;
+            case SB_LINERIGHT:     grid->scroll_x += MC_MIN(MC_MIN(grid->cell_width, 40), si.nPage); break;
             case SB_PAGELEFT:      grid->scroll_x -= si.nPage; break;
             case SB_PAGERIGHT:     grid->scroll_x += si.nPage; break;
             case SB_THUMBPOSITION: grid->scroll_x = si.nPos; break;
@@ -526,35 +530,54 @@ grid_set_table(grid_t* grid, table_t* table)
          MC_GGF_PADDINGHORZ | MC_GGF_PADDINGVERT)
 
 static int
-grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom)
+grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom, BOOL invalidate)
 {
-    if(MC_ERR((geom->fMask & ~GRID_GGF_SUPPORTED_MASK) != 0)) {
-        MC_TRACE("grid_set_geometry: fMask has some unsupported bit(s)");
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return -1;
+    GRID_TRACE("grid_set_geometry(%p, %p, %d)", grid, geom, (int)invalidate);
+
+    if(geom != NULL) {
+        if(MC_ERR((geom->fMask & ~GRID_GGF_SUPPORTED_MASK) != 0)) {
+            MC_TRACE("grid_set_geometry: fMask has some unsupported bit(s)");
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return -1;
+        }
+
+        if(geom->fMask & MC_GGF_COLUMNHEADERHEIGHT)
+            grid->header_height = geom->wColumnHeaderHeight;
+        if(geom->fMask & MC_GGF_ROWHEADERWIDTH)
+            grid->header_width = geom->wRowHeaderWidth;
+        if(geom->fMask & MC_GGF_COLUMNWIDTH)
+            grid->cell_width = geom->wColumnWidth;
+        if(geom->fMask & MC_GGF_ROWHEIGHT)
+            grid->cell_height = geom->wRowHeight;
+        if(geom->fMask & MC_GGF_PADDINGHORZ)
+            grid->cell_padding_horz = geom->wPaddingHorz;
+        if(geom->fMask & MC_GGF_PADDINGVERT)
+            grid->cell_padding_vert = geom->wPaddingVert;
+    } else {
+        /* Set the geometry according to reasonable default values. */
+        SIZE size;
+        mc_font_size(grid->font, &size);
+
+        grid->header_width = 4 * size.cx + 2 * PADDING_H + 1;
+        grid->header_height = size.cy + 2 * PADDING_V + 1;
+        grid->cell_width = 8 * size.cx + 2 * PADDING_H + 1;
+        grid->cell_height = size.cy + 2 * PADDING_V + 1;
+        grid->cell_padding_horz = PADDING_H;
+        grid->cell_padding_vert = PADDING_V;
     }
 
-    if(geom->fMask & MC_GGF_COLUMNHEADERHEIGHT)
-        grid->header_height = geom->wColumnHeaderHeight;
-    if(geom->fMask & MC_GGF_ROWHEADERWIDTH)
-        grid->header_width = geom->wRowHeaderWidth;
-    if(geom->fMask & MC_GGF_COLUMNWIDTH)
-        grid->cell_width = geom->wColumnWidth;
-    if(geom->fMask & MC_GGF_ROWHEIGHT)
-        grid->cell_height = geom->wRowHeight;
-    if(geom->fMask & MC_GGF_PADDINGHORZ)
-        grid->cell_padding_horz = geom->wPaddingHorz;
-    if(geom->fMask & MC_GGF_PADDINGVERT)
-        grid->cell_padding_vert = geom->wPaddingVert;
-
-    InvalidateRect(grid->win, NULL, TRUE);
     grid_setup_scrollbars(grid);
+
+    if(invalidate)
+        InvalidateRect(grid->win, NULL, TRUE);
     return 0;
 }
 
 static int
 grid_get_geometry(grid_t* grid, MC_GGEOMETRY* geom)
 {
+    GRID_TRACE("grid_get_geometry(%p, %p)", grid, geom);
+
     if(MC_ERR((geom->fMask & ~GRID_GGF_SUPPORTED_MASK) != 0)) {
         MC_TRACE("grid_get_geometry: fMask has some unsupported bit(s)");
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -615,14 +638,11 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
     grid->table = NULL;
     grid->style = cs->style;
     grid->do_redraw = 1;
-    grid->header_width = 32;  /* TODO -- derive initial metrics values from font size */
-    grid->header_height = 19;
-    grid->cell_width = 64;
-    grid->cell_height = 19;
-    grid->cell_padding_horz = 2;
-    grid->cell_padding_vert = 1;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
+
+    grid_set_geometry(grid, NULL, FALSE);
+
     return grid;
 }
 
@@ -635,7 +655,7 @@ grid_create(grid_t* grid)
         MC_TRACE("grid_create: grid_set_table() failed.");
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -646,7 +666,7 @@ grid_destroy(grid_t* grid)
         theme_CloseThemeData(grid->theme);
         grid->theme = NULL;
     }
-    
+
     if(grid->table) {
         table_uninstall_view(grid->table, grid);
         table_unref(grid->table);
@@ -721,7 +741,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case MC_GM_SETGEOMETRY:
-            return (grid_set_geometry(grid, (MC_GGEOMETRY*)lp) == 0 ? TRUE : FALSE);
+            return (grid_set_geometry(grid, (MC_GGEOMETRY*)lp, TRUE) == 0 ? TRUE : FALSE);
 
         case MC_GM_GETGEOMETRY:
             return (grid_get_geometry(grid, (MC_GGEOMETRY*)lp) == 0 ? TRUE : FALSE);
@@ -755,7 +775,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_NCCREATE:
             grid = grid_nccreate(win, (CREATESTRUCT*)lp);
             if(MC_ERR(grid == NULL))
-                return FALSE;                
+                return FALSE;
             SetWindowLongPtr(win, 0, (LONG_PTR)grid);
             return TRUE;
 
@@ -765,7 +785,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_DESTROY:
             grid_destroy(grid);
             return 0;
-        
+
         case WM_NCDESTROY:
             if(grid)
                 grid_ncdestroy(grid);

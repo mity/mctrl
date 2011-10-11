@@ -284,6 +284,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param wParam Reserved, set to zero.
  * @param lParam[in] (@ref MC_GGEOMETRY*) Pointer to structure describing
  * the geometry. Only fields specified by the member @c fMask are set.
+ * If @c lParam is @c NULL, the geometry is reset to a default values.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_GM_SETGEOMETRY         (WM_USER + 112)
