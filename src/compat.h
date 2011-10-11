@@ -81,9 +81,7 @@
  *** <stdint.h>  ***
  *******************/
 
-#if defined MC_TOOLCHAIN_MINGW || defined MC_TOOLCHAIN_MINGW64
-    #include <stdint.h>
-#else
+#if defined MC_TOOLCHAIN_MSVC
     /* Windows SDK/Visual Studio was missing <stdint.h> for a long time, so
      * lets have few types defined here and not rely on it. */
     typedef __int8               int8_t;
@@ -131,49 +129,53 @@
     #ifndef UINT64_MAX
         #define UINT64_MAX     (0xffffffffffffffff)
     #endif
+#else
+    #include <stdint.h>
 #endif
 
 
-/******************************************
- *** Missing constants in mingw headers ***
- ******************************************/
+/*************************
+ *** Missing constants ***
+ *************************/
 
 /* Some of them should be constants from enumeration, other are just #defines.
  * However as we cannot use preprocessor to detect if enums or their members
  * are missing, we always #define it here. */
 
-#if defined MC_TOOLCHAIN_MINGW
-    #ifndef BS_TYPEMASK
-        #define BS_TYPEMASK     0x0000000fL
-    #endif
+#ifndef WM_MOUSEHWHEEL      /* missing in mingw-w64 and mingw headers */
+    #define WM_MOUSEHWHEEL  0x020E
+#endif
 
-    #ifndef BST_HOT
-        #define BST_HOT         0x0200
-    #endif
+#ifndef BS_TYPEMASK         /* missing in mingw headers */
+    #define BS_TYPEMASK     0x0000000fL
+#endif
 
-    #ifndef DT_HIDEPREFIX
-        #define DT_HIDEPREFIX   0x00100000
-    #endif
+#ifndef BST_HOT             /* missing in mingw headers */
+    #define BST_HOT         0x0200
+#endif
 
-    #ifndef UISF_HIDEFOCUS
-        #define UISF_HIDEFOCUS  0x1
-    #endif
+#ifndef DT_HIDEPREFIX       /* missing in mingw headers */
+    #define DT_HIDEPREFIX   0x00100000
+#endif
 
-    #ifndef UISF_HIDEACCEL
-        #define UISF_HIDEACCEL  0x2
-    #endif
+#ifndef UISF_HIDEFOCUS      /* missing in mingw headers */
+    #define UISF_HIDEFOCUS  0x1
+#endif
 
-    #ifndef UIS_SET
-        #define UIS_SET         1
-    #endif
+#ifndef UISF_HIDEACCEL      /* missing in mingw headers */
+    #define UISF_HIDEACCEL  0x2
+#endif
 
-    #ifndef UIS_CLEAR
-        #define UIS_CLEAR       2
-    #endif
+#ifndef UIS_SET             /* missing in mingw headers */
+    #define UIS_SET         1
+#endif
 
-    #ifndef UIS_INITIALIZE
-        #define UIS_INITIALIZE  3
-    #endif
+#ifndef UIS_CLEAR           /* missing in mingw headers */
+    #define UIS_CLEAR       2
+#endif
+
+#ifndef UIS_INITIALIZE      /* missing in mingw headers */
+    #define UIS_INITIALIZE  3
 #endif
 
 
@@ -236,8 +238,8 @@
  *** Intrinsic ***
  *****************/
 
-/* <intrin.h> is only somewhere, so we have implement the functions we want to
- * use ourselfs. */
+/* <intrin.h> is only somewhere, so we have to implement the functions we
+ * want use anywhere. */
 
 #if defined MC_TOOLCHAIN_MSVC  ||  defined MC_TOOLCHAIN_MINGW64
     #include <intrin.h>
