@@ -384,7 +384,7 @@ grid_refresh(void* view, void* detail)
 }
 
 static void
-grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
+grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
 {
     grid_layout_t layout;
     RECT rect;
@@ -401,12 +401,12 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
 
-    if(vertical) {
+    if(is_vertical) {
         GetScrollInfo(grid->win, SB_VERT, &si);
         switch(opcode) {
             case SB_BOTTOM:        grid->scroll_y = si.nMax; break;
-            case SB_LINEUP:        grid->scroll_y -= MC_MIN(MC_MIN(grid->cell_height, 40), si.nPage); break;
-            case SB_LINEDOWN:      grid->scroll_y += MC_MIN(MC_MIN(grid->cell_height, 40), si.nPage); break;
+            case SB_LINEUP:        grid->scroll_y -= factor * MC_MIN(MC_MIN(grid->cell_height, 40), si.nPage); break;
+            case SB_LINEDOWN:      grid->scroll_y += factor * MC_MIN(MC_MIN(grid->cell_height, 40), si.nPage); break;
             case SB_PAGEUP:        grid->scroll_y -= si.nPage; break;
             case SB_PAGEDOWN:      grid->scroll_y += si.nPage; break;
             case SB_THUMBPOSITION: grid->scroll_y = si.nPos; break;
@@ -426,8 +426,8 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
         GetScrollInfo(grid->win, SB_HORZ, &si);
         switch(opcode) {
             case SB_BOTTOM:        grid->scroll_x = si.nMax; break;
-            case SB_LINELEFT:      grid->scroll_x -= MC_MIN(MC_MIN(grid->cell_width, 40), si.nPage); break;
-            case SB_LINERIGHT:     grid->scroll_x += MC_MIN(MC_MIN(grid->cell_width, 40), si.nPage); break;
+            case SB_LINELEFT:      grid->scroll_x -= factor * MC_MIN(MC_MIN(grid->cell_width, 40), si.nPage); break;
+            case SB_LINERIGHT:     grid->scroll_x += factor * MC_MIN(MC_MIN(grid->cell_width, 40), si.nPage); break;
             case SB_PAGELEFT:      grid->scroll_x -= si.nPage; break;
             case SB_PAGERIGHT:     grid->scroll_x += si.nPage; break;
             case SB_THUMBPOSITION: grid->scroll_x = si.nPos; break;
@@ -445,7 +445,7 @@ grid_scroll(grid_t* grid, WORD opcode, BOOL vertical)
         SetScrollPos(grid->win, SB_HORZ, grid->scroll_x, TRUE);
     }
 
-    if(vertical)
+    if(is_vertical)
         rect.top = headerh;
     else
         rect.left = headerw;
@@ -748,8 +748,18 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_VSCROLL:
         case WM_HSCROLL:
-            grid_scroll(grid, LOWORD(wp), (msg == WM_VSCROLL));
+            grid_scroll(grid, LOWORD(wp), 1, (msg == WM_VSCROLL));
             return 0;
+
+        case WM_MOUSEWHEEL:
+        case WM_MOUSEHWHEEL:
+        {
+            int delta;
+            delta = mc_wheel_scroll(win, (msg == WM_MOUSEWHEEL), (SHORT)HIWORD(wp));
+            if(delta != 0)
+                grid_scroll(grid, SB_LINEDOWN, delta, (msg == WM_MOUSEWHEEL));
+            return 0;
+        }
 
         case WM_SIZE:
             grid_setup_scrollbars(grid);
