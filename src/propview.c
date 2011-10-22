@@ -109,7 +109,8 @@ propview_vscroll(propview_t* pv, WORD opcode)
         case SB_LINEDOWN:        scroll_y += 1; break;
         case SB_PAGEUP:          scroll_y -= si.nPage; break;
         case SB_PAGEDOWN:        scroll_y += si.nPage; break;
-        case SB_THUMBPOSITION:   scroll_y = si.nTrackPos; break;
+        case SB_THUMBPOSITION:   scroll_y = si.nPos; break;
+        case SB_THUMBTRACK:      scroll_y = si.nTrackPos; break;
         case SB_TOP:             scroll_y = 0; break;
     }
 
