@@ -17,8 +17,8 @@
  */
 
 #include "mditab.h"
+#include "dsa.h"
 #include "theme.h"
-
 
 /* TODO:
  *
@@ -92,27 +92,40 @@ struct mditab_item_tag {
 typedef struct mditab_tag mditab_t;
 struct mditab_tag {
     HWND win;
-    HWND toolbar1;
-    HWND toolbar2;
-    RECT rect_main;
-    HTHEME theme;
-    HIMAGELIST img_list;
-    HFONT font;
-    mditab_item_t* items;
-    SHORT item_count;
-    SHORT item_selected;
-    SHORT item_hot;
-    SHORT item_first_visible;
-    SHORT item_mclose;
-    WORD ui_state;
-    UINT hot_track_timer;
-    USHORT item_min_width;
-    USHORT item_def_width;
-    DWORD style       : 30;
-    DWORD do_redraw   :  1;
-    DWORD need_scroll :  1;
+    HWND toolbar1;          /* leftside toolbar */
+    HWND toolbar2;          /* tightside toolbar */
+    RECT rect_main;         /* main area where we draw the tabs and toolbars */
+    HTHEME theme;           /* theming handle */
+    DWORD ui_state;
+    HIMAGELIST img_list;    /* image list, optional */
+    HFONT font;             /* font */
+    dsa_t item_dsa;         /* items */
+    SHORT item_selected;    /* selected (== active) item */
+    SHORT item_hot;         /* tracked only when themed */
+    SHORT item_first_visible;  /* first visible item (helper for scrolling) */
+    SHORT item_mclose;      /* candidate item to close by middle button */
+    UINT hot_track_timer;   /* helper timer for tracking of hot item */
+    USHORT item_min_width;  /* minimal width of each tab */
+    USHORT item_def_width;  /* default width of each tab */
+    UINT style       : 30;  /* window styles */
+    UINT do_redraw   :  1;  /* redraw flag */
+    UINT need_scroll :  1;  /* when need scrolling, scrolling buttons appear */
 };
 
+
+#define MDITAB_ITEM(mditab, index)   \
+    ((mditab_item_t*) dsa_item(&(mditab)->item_dsa, (index)))
+#define MDITAB_COUNT(mditab)         \
+    (dsa_size(&(mditab)->item_dsa))
+
+
+static void
+mditab_item_dtor(dsa_t* dsa, void* it)
+{
+    mditab_item_t* item = (mditab_item_t*) it;
+    if(item->text != NULL)
+        free(item->text);
+}
 
 static void
 mditab_calc_need_scroll(mditab_t* mditab)
@@ -120,7 +133,7 @@ mditab_calc_need_scroll(mditab_t* mditab)
     RECT rect;
     UINT space;
 
-    if(mditab->item_count <= 1) {
+    if(MDITAB_COUNT(mditab) <= 1) {
         mditab->need_scroll = FALSE;
         return;
     }
@@ -135,7 +148,7 @@ mditab_calc_need_scroll(mditab_t* mditab)
     if(mditab->style & MC_MTS_SCROLLALWAYS)
         space -= 2 * (BTN_WIDTH + BTN_MARGIN_H);
 
-    mditab->need_scroll = (mditab->item_count * mditab->item_min_width > space);
+    mditab->need_scroll = (MDITAB_COUNT(mditab) * mditab->item_min_width > space);
 }
 
 static void
@@ -252,7 +265,7 @@ mditab_is_item_visible(mditab_t* mditab, int index)
         return FALSE;
 
     rect_main = &mditab->rect_main;
-    rect_item = &mditab->items[index].rect;
+    rect_item = &MDITAB_ITEM(mditab, index)->rect;
 
     if(rect_item->right < rect_main->left)
         return FALSE;
@@ -271,11 +284,11 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti)
     x = hti->pt.x;
     y = hti->pt.y;
 
-    for(i = mditab->item_first_visible; i < mditab->item_count; i++) {
+    for(i = mditab->item_first_visible; i < MDITAB_COUNT(mditab); i++) {
         if(!mditab_is_item_visible(mditab, i))
             break;
 
-        r = &mditab->items[i].rect;
+        r = &MDITAB_ITEM(mditab, i)->rect;
 
         if(r->left <= x && x <= r->right && r->top <= y && y <= r->bottom) {
             if(mditab->img_list != NULL) {
@@ -315,7 +328,7 @@ mditab_invalidate_item(mditab_t* mditab, int index)
 
     /* We invalidate slightly more around the tab rect, to prevent artifacts
      * when changing status of the tab to/from active one. */
-    CopyRect(&r, &mditab->items[index].rect);
+    CopyRect(&r, &MDITAB_ITEM(mditab, index)->rect);
     r.left -= 2;
     r.top -= 2;
     r.right += 1;
@@ -399,11 +412,11 @@ mditab_layout(mditab_t* mditab)
     mditab_calc_layout(mditab);
 
     SendMessage(mditab->toolbar2, TB_ENABLEBUTTON,
-            IDC_LIST_ITEMS, MAKELONG((mditab->item_count > 0), 0));
+            IDC_LIST_ITEMS, MAKELONG((MDITAB_COUNT(mditab) > 0), 0));
     SendMessage(mditab->toolbar2, TB_ENABLEBUTTON,
             IDC_CLOSE_ITEM, MAKELONG((mditab->item_selected >= 0), 0));
 
-    if(MC_ERR(mditab->items == NULL))
+    if(MC_ERR(MDITAB_COUNT(mditab) == 0))
         return;
 
     offset = mditab->rect_main.left;
@@ -412,15 +425,15 @@ mditab_layout(mditab_t* mditab)
     /* Now we can finally compute the rects */
     if(!mditab->need_scroll) {
         mditab->item_first_visible = 0;
-        if(space <= mditab->item_count * mditab->item_def_width) {
-            for(i = 0; i < mditab->item_count; i++) {
-                mditab->items[i].rect.left = offset + (i * space) / mditab->item_count;
-                mditab->items[i].rect.right = offset + ((i+1) * space) / mditab->item_count;
+        if(space <= MDITAB_COUNT(mditab) * mditab->item_def_width) {
+            for(i = 0; i < MDITAB_COUNT(mditab); i++) {
+                MDITAB_ITEM(mditab, i)->rect.left = offset + (i * space) / MDITAB_COUNT(mditab);
+                MDITAB_ITEM(mditab, i)->rect.right = offset + ((i+1) * space) / MDITAB_COUNT(mditab);
             }
         } else {
-            for(i = 0; i < mditab->item_count; i++) {
-                mditab->items[i].rect.left = offset + i * mditab->item_def_width;
-                mditab->items[i].rect.right = offset + (i+1) * mditab->item_def_width;
+            for(i = 0; i < MDITAB_COUNT(mditab); i++) {
+                MDITAB_ITEM(mditab, i)->rect.left = offset + i * mditab->item_def_width;
+                MDITAB_ITEM(mditab, i)->rect.right = offset + (i+1) * mditab->item_def_width;
             }
         }
     } else {
@@ -431,36 +444,37 @@ mditab_layout(mditab_t* mditab)
          * tabs are removed): */
         if(visible_items == 0)
             visible_items = 1;
-        if(mditab->item_count - mditab->item_first_visible < visible_items)
-            mditab->item_first_visible = mditab->item_count - visible_items;
+        if(MDITAB_COUNT(mditab) - mditab->item_first_visible < visible_items)
+            mditab->item_first_visible = MDITAB_COUNT(mditab) - visible_items;
 
         /* Divide the available space among the visible tabs */
         for(i = 0; i < visible_items; i++) {
-            mditab->items[mditab->item_first_visible + i].rect.left = offset + (i * space) / visible_items;
-            mditab->items[mditab->item_first_visible + i].rect.right = offset + ((i+1) * space) / visible_items;
+            MDITAB_ITEM(mditab, mditab->item_first_visible + i)->rect.left = offset + (i * space) / visible_items;
+            MDITAB_ITEM(mditab, mditab->item_first_visible + i)->rect.right = offset + ((i+1) * space) / visible_items;
         }
 
         /* Set rects of invisible tabs */
         for(i = 0; i < mditab->item_first_visible; i++) {
-            mditab->items[i].rect.left = -1;
-            mditab->items[i].rect.right = -1;
+            MDITAB_ITEM(mditab, i)->rect.left = -1;
+            MDITAB_ITEM(mditab, i)->rect.right = -1;
         }
         for(i = mditab->item_first_visible + visible_items;
-                                    i < mditab->item_count; i++) {
-            mditab->items[i].rect.left = -1;
-            mditab->items[i].rect.right = -1;
+                                    i < MDITAB_COUNT(mditab); i++) {
+            MDITAB_ITEM(mditab, i)->rect.left = -1;
+            MDITAB_ITEM(mditab, i)->rect.right = -1;
         }
     }
 
     /* Set top and bottom coordinates of each tab rect */
-    for(i = 0; i < mditab->item_count; i++) {
-        mditab->items[i].rect.top = mditab->rect_main.top + 2;
-        mditab->items[i].rect.bottom = mditab->rect_main.bottom - 5;
+    for(i = 0; i < MDITAB_COUNT(mditab); i++) {
+        MDITAB_ITEM(mditab, i)->rect.top = mditab->rect_main.top + 2;
+        MDITAB_ITEM(mditab, i)->rect.bottom = mditab->rect_main.bottom - 5;
     }
-    mditab->items[mditab->item_selected].rect.left -= 2;
-    mditab->items[mditab->item_selected].rect.top -= 2;
-    mditab->items[mditab->item_selected].rect.right += 1;
-    mditab->items[mditab->item_selected].rect.bottom += 1;
+    
+    MDITAB_ITEM(mditab, mditab->item_selected)->rect.left -= 2;
+    MDITAB_ITEM(mditab, mditab->item_selected)->rect.top -= 2;
+    MDITAB_ITEM(mditab, mditab->item_selected)->rect.right += 1;
+    MDITAB_ITEM(mditab, mditab->item_selected)->rect.bottom += 1;
 
     /* Setup hot item, because change of the layout (e.g. window size or new
      * tab) might change that. */
@@ -472,22 +486,21 @@ mditab_layout(mditab_t* mditab)
     SendMessage(mditab->toolbar1, TB_ENABLEBUTTON, IDC_SCROLL_LEFT,
             MAKELONG((!mditab_is_item_visible(mditab, 0)), 0));
     SendMessage(mditab->toolbar2, TB_ENABLEBUTTON, IDC_SCROLL_RIGHT,
-            MAKELONG((!mditab_is_item_visible(mditab, mditab->item_count - 1)), 0));
+            MAKELONG((!mditab_is_item_visible(mditab, MDITAB_COUNT(mditab) - 1)), 0));
 }
 
 static void
 mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
 {
     int state = 0;
-    RECT* rect;
+    mditab_item_t* item = MDITAB_ITEM(mditab, index);
+    RECT* rect = &item->rect;
     RECT contents;
     UINT flags;
 
-    rect = &mditab->items[index].rect;
-
     /* Draw tab background */
     if(mditab->theme) {
-        if(mditab->style & WS_DISABLED) {
+        if(!IsWindowEnabled(mditab->win)) {
             state = TTIS_DISABLED;
         } else {
             if(index == mditab->item_selected)
@@ -503,7 +516,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
         RECT r;
 
         SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
-        DrawEdge(dc, rect, EDGE_RAISED, BF_SOFT | BF_LEFT | BF_TOP | BF_RIGHT);
+        DrawEdge(dc, &item->rect, EDGE_RAISED, BF_SOFT | BF_LEFT | BF_TOP | BF_RIGHT);
 
         /* Make left corner rounded */
         SetRect(&r, rect->left, rect->top, rect->left + ITEM_CORNER_SIZE, rect->top + ITEM_CORNER_SIZE);
@@ -531,7 +544,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
     mditab_calc_contents_rect(&contents, rect);
 
     /* Draw tab icon */
-    if(mditab->img_list != NULL && mditab->items[index].img >= 0) {
+    if(mditab->img_list != NULL && item->img >= 0) {
         int ico_w, ico_h;
         RECT rect_ico;
 
@@ -542,9 +555,9 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
         /* Do the draw */
         if(mditab->theme) {
             theme_DrawThemeIcon(mditab->theme, dc, TABP_TOPTABITEM, TTIS_NORMAL,
-                           &rect_ico, mditab->img_list, mditab->items[index].img);
+                           &rect_ico, mditab->img_list, item->img);
         } else {
-            ImageList_Draw(mditab->img_list, mditab->items[index].img, dc,
+            ImageList_Draw(mditab->img_list, item->img, dc,
                            rect_ico.left, rect_ico.top, ILD_TRANSPARENT);
         }
 
@@ -554,17 +567,18 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
 
     /* Draw text */
     SetBkMode(dc, TRANSPARENT);
+    SelectObject(dc, mditab->font);
     flags = 0;
     if(mditab->ui_state & UISF_HIDEACCEL)
         flags |= DT_HIDEPREFIX;
     if(mditab->theme) {
         contents.top += 2;
         theme_DrawThemeText(mditab->theme, dc, TABP_TOPTABITEM, state,
-                    mditab->items[index].text, -1, flags, 0, &contents);
+                    item->text, -1, flags, 0, &contents);
     } else {
         if(index == mditab->item_selected)
             contents.bottom -= 2;
-        DrawText(dc, mditab->items[index].text, -1, &contents, flags | DT_SINGLELINE | DT_VCENTER);
+        DrawText(dc, item->text, -1, &contents, flags | DT_SINGLELINE | DT_VCENTER);
     }
 }
 
@@ -578,7 +592,7 @@ mditab_paint(mditab_t* mditab, HDC dc)
     int old_bk_mode;
     COLORREF old_text_color;
 
-    old_font = SelectObject(dc, mditab->font ? mditab->font : GetStockObject(SYSTEM_FONT));
+    old_font = SelectObject(dc, mditab->font);
     old_bk_mode = GetBkMode(dc);
     old_text_color = GetTextColor(dc);
 
@@ -588,7 +602,7 @@ mditab_paint(mditab_t* mditab, HDC dc)
         theme_DrawThemeParentBackground(mditab->win, dc, &rect);
 
     /* Draw unselected tabs */
-    for(i = mditab->item_first_visible; i < mditab->item_count; i++) {
+    for(i = mditab->item_first_visible; i < MDITAB_COUNT(mditab); i++) {
         if(!mditab_is_item_visible(mditab, i))
             break;
         if(i == mditab->item_selected)
@@ -604,11 +618,11 @@ mditab_paint(mditab_t* mditab, HDC dc)
     } else {
         if(mditab->item_selected >= 0) {
             SetRect(&r, rect.left - 5, rect.bottom - 5,
-                    mditab->items[mditab->item_selected].rect.left,
+                    MDITAB_ITEM(mditab, mditab->item_selected)->rect.left,
                     rect.bottom + 1);
             DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
 
-            SetRect(&r, mditab->items[mditab->item_selected].rect.right,
+            SetRect(&r, MDITAB_ITEM(mditab, mditab->item_selected)->rect.right,
                     rect.bottom - 5, rect.right + 5, rect.bottom + 1);
             DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
         } else {
@@ -636,9 +650,9 @@ mditab_notify_sel_change(mditab_t* mditab, int old_index, int new_index)
     notify.hdr.idFrom = GetDlgCtrlID(mditab->win);
     notify.hdr.code = MC_MTN_SELCHANGE;
     notify.iItemOld = old_index;
-    notify.lParamOld = (old_index >= 0  ?  mditab->items[old_index].lp  :  0);
+    notify.lParamOld = (old_index >= 0  ?  MDITAB_ITEM(mditab, old_index)->lp  :  0);
     notify.iItemNew = new_index;
-    notify.lParamNew = (new_index >= 0  ?  mditab->items[new_index].lp  :  0);
+    notify.lParamNew = (new_index >= 0  ?  MDITAB_ITEM(mditab, new_index)->lp  :  0);
 
     SendMessage(GetParent(mditab->win), WM_NOTIFY, 
                 (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
@@ -647,8 +661,8 @@ mditab_notify_sel_change(mditab_t* mditab, int old_index, int new_index)
 static int
 mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
-    mditab_item_t* items;
-    TCHAR* item_text = NULL;
+    TCHAR* item_text;
+    mditab_item_t* item;
     BOOL need_scroll;
     BOOL changed_sel;
 
@@ -662,44 +676,38 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         SetLastError(ERROR_INVALID_PARAMETER);
         return -1;
     }
-    if(index > mditab->item_count)
-        index = mditab->item_count;
+    if(index > MDITAB_COUNT(mditab))
+        index = MDITAB_COUNT(mditab);
 
     /* Preallocate the string now, so we can stop early if there is not
      * enough memory. */
-    if(id->dwMask & MC_MTIF_TEXT) {
+    if((id->dwMask & MC_MTIF_TEXT) && id->pszText != NULL) {
         item_text = (TCHAR*) mc_str(id->pszText,
                 (unicode ? MC_STRW : MC_STRA), MC_STRT);
-        if(MC_ERR(item_text == NULL && id->pszText != NULL)) {
+        if(MC_ERR(item_text == NULL)) {
             MC_TRACE("mditab_insert_item: mc_str() failed.");
             return -1;
         }
+    } else {
+        item_text = NULL;
     }
 
-    /* Allocate new items vector */
-    items = (mditab_item_t*) malloc((mditab->item_count + 1) *
-                                        sizeof(mditab_item_t));
-    if(MC_ERR(items == NULL)) {
-        MC_TRACE("mditab_insert_item: malloc() failed.");
+    /* Allocate a cell in item DSA */
+    item = (mditab_item_t*) dsa_insert_raw(&mditab->item_dsa, index);
+    if(MC_ERR(item == NULL)) {
+        MC_TRACE("mditab_insert_item: dsa_insert_raw() failed.");
         if(item_text != NULL)
             free(item_text);
         return -1;
     }
 
-    /* Copy all items before and after the index */
-    if(index > 0)
-        memcpy(items, mditab->items, index * sizeof(mditab_item_t));
-    if(index < mditab->item_count)
-        memcpy(items + (index+1), mditab->items + index,
-                        (mditab->item_count - index) * sizeof(mditab_item_t));
-
     /* Setup the new item */
-    items[index].text = item_text;
-    items[index].img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : -1);
-    /*items[index].rect is setup later in mditab_layout() */
-    items[index].lp = ((id->dwMask & MC_MTIF_PARAM) ? id->lParam : 0);
+    item->text = item_text;
+    item->img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : -1);
+    /*item->rect is setup later in mditab_layout() */
+    item->lp = ((id->dwMask & MC_MTIF_PARAM) ? id->lParam : 0);
 
-    /* If we inserted before remebered tab indexes, update them */
+    /* Update stored item indexes */
     if(index <= mditab->item_selected)
         mditab->item_selected++;
     changed_sel = FALSE;
@@ -711,12 +719,6 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         mditab->item_first_visible++;
     /* We don't do the same for item_hot. This is determined by mouse and set
      * in mditab_layout() below anyway... */
-
-    /* Swap the vectors */
-    if(mditab->items)
-        free(mditab->items);
-    mditab->items = items;
-    mditab->item_count++;
 
     if(changed_sel)
         mditab_notify_sel_change(mditab, -1, index);
@@ -734,17 +736,20 @@ static BOOL
 mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
     BOOL need_scroll;
+    mditab_item_t* item;
 
     if(MC_ERR(id == NULL)) {
         MC_TRACE("mditab_set_item: id == NULL");
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
-    if(MC_ERR(index < 0  ||  index >= mditab->item_count)) {
+    if(MC_ERR(index < 0  ||  index >= MDITAB_COUNT(mditab))) {
         MC_TRACE("mditab_set_item: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
+    
+    item = MDITAB_ITEM(mditab, index);
 
     if(id->dwMask & MC_MTIF_TEXT) {
         TCHAR* item_text;
@@ -755,14 +760,14 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
             return FALSE;
         }
 
-        if(mditab->items[index].text)
-            free(mditab->items[index].text);
-        mditab->items[index].text = item_text;
+        if(item->text != NULL)
+            free(item->text);
+        item->text = item_text;
     }
     if(id->dwMask & MC_MTIF_IMAGE)
-        mditab->items[index].img = id->iImage;
+        item->img = id->iImage;
     if(id->dwMask & MC_MTIF_PARAM)
-        mditab->items[index].lp = id->lParam;
+        item->lp = id->lParam;
 
     /* Refresh */
     need_scroll = mditab->need_scroll;
@@ -776,26 +781,29 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 static BOOL
 mditab_get_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
+    mditab_item_t* item;
+    
     if(MC_ERR(id == NULL)) {
         MC_TRACE("mditab_get_item: id == NULL");
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
-    if(MC_ERR(index < 0  ||  index >= mditab->item_count)) {
+    if(MC_ERR(index < 0  ||  MDITAB_COUNT(mditab))) {
         MC_TRACE("mditab_get_item: invalid tab index (%d)", index);
-        memset(id, 0, sizeof(MC_MTITEM));
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
+    
+    item = MDITAB_ITEM(mditab, index);
 
     if(id->dwMask & MC_MTIF_TEXT) {
-        mc_str_inbuf(mditab->items[index].text, MC_STRT, id->pszText,
+        mc_str_inbuf(item->text, MC_STRT, id->pszText,
                 (unicode ? MC_STRW : MC_STRA), id->cchTextMax);
     }
     if(id->dwMask & MC_MTIF_IMAGE)
-        id->iImage = mditab->items[index].img;
+        id->iImage = item->img;
     if(id->dwMask & MC_MTIF_PARAM)
-        id->lParam = mditab->items[index].lp;
+        id->lParam = item->lp;
 
     return TRUE;
 }
@@ -809,7 +817,7 @@ mditab_notify_delete_item(mditab_t* mditab, int index)
     notify.hdr.idFrom = GetDlgCtrlID(mditab->win);
     notify.hdr.code = MC_MTN_DELETEITEM;
     notify.iItem = index;
-    notify.lParam = mditab->items[index].lp;
+    notify.lParam = MDITAB_ITEM(mditab, index)->lp;
     
     SendMessage(GetParent(mditab->win), WM_NOTIFY,
                 (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
@@ -818,42 +826,25 @@ mditab_notify_delete_item(mditab_t* mditab, int index)
 static BOOL
 mditab_delete_item(mditab_t* mditab, int index)
 {
-    mditab_item_t* items;
+    mditab_item_t* item;
   
-    if(index < 0  ||  index >= mditab->item_count) {
+    if(index < 0  ||  index >= MDITAB_COUNT(mditab)) {
         MC_TRACE("mditab_delete_item: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
 
-    /* Allocate and setup new tab vector */
-    if(mditab->item_count > 1) {
-        items = (mditab_item_t*) malloc((mditab->item_count - 1) * sizeof(mditab_item_t));
-        if(MC_ERR(items == NULL)) {
-            MC_TRACE("mditab_delete_item: malloc() failed.");
-            return FALSE;
-        }
-
-        if(index > 0) {
-            memcpy(items, mditab->items, index * sizeof(mditab_item_t));
-        }
-        if(index < mditab->item_count - 1) {
-            memcpy(items + index, mditab->items + (index+1),
-                    (mditab->item_count - index - 1) * sizeof(mditab_item_t));
-        }
-    } else {
-        items = NULL;
-    }
+    item = MDITAB_ITEM(mditab, index);
 
     /* Perhaps we have to set another tab as selected. We need to do this
      * before the deletion takes effect as the application still might want
      * to use it in the notification handler. */
     if(index == mditab->item_selected) {
         int old_item_selected = mditab->item_selected;
-        if(mditab->item_selected < mditab->item_count - 1)
+        if(mditab->item_selected < MDITAB_COUNT(mditab) - 1)
             mditab->item_selected++;
         else
-            mditab->item_selected = mditab->item_count - 2;
+            mditab->item_selected = MDITAB_COUNT(mditab) - 2;
 
         mditab_notify_sel_change(mditab, old_item_selected, mditab->item_selected);
     }
@@ -861,20 +852,17 @@ mditab_delete_item(mditab_t* mditab, int index)
     /* Notify parent about the deletion */
     mditab_notify_delete_item(mditab, index);
 
-    /* Swap items vector */
-    free(mditab->items[index].text);
-    free(mditab->items);
-    mditab->items = items;
-    mditab->item_count--;
+    /* Perform the delete */
+    dsa_remove(&mditab->item_dsa, index, mditab_item_dtor);
 
-    /* Refresh all stored tab indexes */
+    /* Update stored item indexes */
     if(index < mditab->item_selected)
         mditab->item_selected--;
     mditab->item_hot = -1;
-    if(index >= mditab->item_first_visible)
+    if(index >= mditab->item_first_visible)  // ???
         mditab->item_first_visible--;
-    if(mditab->item_first_visible >= mditab->item_count)
-        mditab->item_first_visible = mditab->item_count - 1;
+    if(mditab->item_first_visible >= MDITAB_COUNT(mditab))
+        mditab->item_first_visible = MDITAB_COUNT(mditab) - 1;
     if(mditab->item_first_visible < 0)
         mditab->item_first_visible = 0;
 
@@ -895,7 +883,7 @@ mditab_notify_delete_all_items(mditab_t* mditab)
     notify.idFrom = GetDlgCtrlID(mditab->win);
     notify.code = MC_MTN_DELETEALLITEMS;
     if(SendMessage(GetParent(mditab->win), WM_NOTIFY, (WPARAM)notify.idFrom, (LPARAM)&notify) == FALSE) {
-        for(i = 0; i < mditab->item_count; i++)
+        for(i = 0; i < MDITAB_COUNT(mditab); i++)
             mditab_notify_delete_item(mditab, i);
     }
 }
@@ -903,6 +891,9 @@ mditab_notify_delete_all_items(mditab_t* mditab)
 static BOOL
 mditab_delete_all_items(mditab_t* mditab)
 {
+    if(MDITAB_COUNT(mditab) == 0)
+        return TRUE;
+
     if(mditab->item_selected >= 0) {
         int old_index = mditab->item_selected;
         mditab->item_selected = -1;
@@ -911,20 +902,13 @@ mditab_delete_all_items(mditab_t* mditab)
 
     mditab_notify_delete_all_items(mditab);
 
-    if(mditab->items) {
-        int i;
+    dsa_clear(&mditab->item_dsa, mditab_item_dtor);
 
-        for(i = 0; i < mditab->item_count; i++)
-            free(mditab->items[i].text);
+    mditab->item_hot = -1;
+    mditab->item_first_visible = 0;
+    mditab->need_scroll = 0;
+    InvalidateRect(mditab->win, NULL, TRUE);
 
-        free(mditab->items);
-        mditab->items = NULL;
-        mditab->item_count = 0;
-        mditab->item_hot = -1;
-        mditab->item_first_visible = 0;
-        mditab->need_scroll = 0;
-        InvalidateRect(mditab->win, NULL, TRUE);
-    }
     return TRUE;
 }
 
@@ -947,7 +931,7 @@ mditab_set_cur_sel(mditab_t* mditab, int index)
 {
     int old_sel_index;
 
-    if(index < 0  ||  index >= mditab->item_count) {
+    if(index < 0  ||  index >= MDITAB_COUNT(mditab)) {
         MC_TRACE("mditab_delete_item: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
         index = -1;
@@ -996,16 +980,16 @@ mditab_list_items(mditab_t* mditab)
     mii.cbSize = sizeof(MENUITEMINFO);
     mii.fMask = MIIM_DATA | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_BITMAP;
     mii.hbmpItem = HBMMENU_CALLBACK;
-    for(i = 0; i < mditab->item_count; i++) {
+    for(i = 0; i < MDITAB_COUNT(mditab); i++) {
         mii.dwItemData = i;
         mii.wID = 1000 + i;
         mii.fState = (i == mditab->item_selected ? MFS_DEFAULT : 0);
-        mii.dwTypeData = mditab->items[i].text;
+        mii.dwTypeData = MDITAB_ITEM(mditab, i)->text;
         mii.cch = _tcslen(mii.dwTypeData);
         InsertMenuItem(popup, i, TRUE, &mii);
     }
 
-    /* Disable the place for checkmarks in the menu is it is never used
+    /* Disable the place for checkmarks in the menu as it is never used
      * and looks ugly. */
     mi.cbSize = sizeof(MENUINFO);
     mi.fMask = MIM_STYLE;
@@ -1027,7 +1011,9 @@ mditab_list_items(mditab_t* mditab)
 static void
 mditab_measure_menu_icon(mditab_t* mditab, MEASUREITEMSTRUCT* mis)
 {
-    if(mditab->img_list != NULL  &&  mditab->items[mis->itemID - 1000].img >= 0) {
+    mditab_item_t* item = MDITAB_ITEM(mditab, mis->itemID - 1000);
+    
+    if(mditab->img_list != NULL  &&  item->img >= 0) {
         int w, h;
 
         ImageList_GetIconSize(mditab->img_list, &w, &h);
@@ -1042,9 +1028,11 @@ mditab_measure_menu_icon(mditab_t* mditab, MEASUREITEMSTRUCT* mis)
 static void
 mditab_draw_menu_icon(mditab_t* mditab, DRAWITEMSTRUCT* dis)
 {
-    if(mditab->img_list != NULL  &&  mditab->items[dis->itemID - 1000].img >= 0) {
-        ImageList_Draw(mditab->img_list, mditab->items[dis->itemID - 1000].img,
-                       dis->hDC, dis->rcItem.left, dis->rcItem.top, ILD_TRANSPARENT);
+    mditab_item_t* item = MDITAB_ITEM(mditab, dis->itemID - 1000);
+
+    if(mditab->img_list != NULL  &&  item->img >= 0) {
+        ImageList_Draw(mditab->img_list, item->img, dis->hDC,
+                       dis->rcItem.left, dis->rcItem.top, ILD_TRANSPARENT);
     }
 }
 
@@ -1053,7 +1041,7 @@ mditab_close_item(mditab_t* mditab, int index)
 {
     MC_NMMTCLOSEITEM notify;
 
-    if(index < 0  ||  index >= mditab->item_count) {
+    if(index < 0  ||  index >= MDITAB_COUNT(mditab)) {
         MC_TRACE("mditab_close_item: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
@@ -1063,7 +1051,7 @@ mditab_close_item(mditab_t* mditab, int index)
     notify.hdr.idFrom = GetDlgCtrlID(mditab->win);
     notify.hdr.code = MC_MTN_CLOSEITEM;
     notify.iItem = index;
-    notify.lParam = mditab->items[index].lp;
+    notify.lParam = MDITAB_ITEM(mditab, index)->lp;
 
     if(SendMessage(GetParent(mditab->win), WM_NOTIFY, (WPARAM)notify.hdr.idFrom, (LPARAM)&notify) == FALSE)
         return mditab_delete_item(mditab, index);
@@ -1092,7 +1080,6 @@ mditab_set_item_width(HWND win, MC_MTITEMWIDTH* tw)
     if(def_w != mditab->item_def_width  ||  min_w != mditab->item_min_width) {
         mditab->item_def_width = def_w;
         mditab->item_min_width = min_w;
-        mditab_layout(mditab);
         InvalidateRect(win, NULL, TRUE);
     }
     return TRUE;
@@ -1122,7 +1109,7 @@ mditab_command(HWND win, WORD code, WORD ctrl_id, HWND ctrl)
             break;
 
         case IDC_SCROLL_RIGHT:
-            if(mditab->item_first_visible < mditab->item_count)
+            if(mditab->item_first_visible < MDITAB_COUNT(mditab))
                 mditab->item_first_visible++;
             mditab_layout(mditab);
             InvalidateRect(win, NULL, TRUE);
@@ -1164,7 +1151,7 @@ mditab_key_up(HWND win, int key_code, DWORD key_data)
             return FALSE;
     }
 
-    if(0 <= index  &&  index < mditab->item_count)
+    if(0 <= index  &&  index < MDITAB_COUNT(mditab))
         mditab_set_cur_sel(mditab, index);
 
     return TRUE;
@@ -1256,13 +1243,11 @@ mditab_change_focus(mditab_t* mditab)
 }
 
 static void
-mditab_style_changed(mditab_t* mditab, int style_type, STYLESTRUCT* ss)
+mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 {
-    if(style_type == GWL_STYLE)
-        mditab->style = ss->styleNew;
-    
+    mditab->style = ss->styleNew;
     mditab_layout(mditab);
-    RedrawWindow(mditab->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
+    InvalidateRect(mditab->win, NULL, TRUE);
 }
 
 static void
@@ -1282,87 +1267,57 @@ mditab_theme_changed(mditab_t* mditab)
     mditab_track_hot(mditab, pos.x, pos.y);
 }
 
-static mditab_t*
-mditab_nccreate(HWND win, CREATESTRUCT* cs)
+static int
+mditab_create(HWND win, CREATESTRUCT* cs)
 {
     mditab_t* mditab;
-
+    
     mditab = (mditab_t*) malloc(sizeof(mditab_t));
     if(MC_ERR(mditab == NULL)) {
-        MC_TRACE("mditab_nccreate: malloc() failed.");
-        return NULL;
-    }    
-    memset(mditab, 0, sizeof(mditab_t));
-    
+        MC_TRACE("mditab_create: malloc() failed.");
+        return -1;
+    }
+
     mditab->win = win;
+    mditab->toolbar1 = CreateWindow(toolbar_wc, NULL,
+                WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
+                0, 0, 0, 0, win, (HMENU) IDC_TBAR_1, mc_instance_exe, NULL);
+    SendMessage(mditab->toolbar1, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    SendMessage(mditab->toolbar1, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
+    mditab->toolbar2 = CreateWindow(toolbar_wc,
+                NULL, WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
+                0, 0, 0, 0, win, (HMENU) IDC_TBAR_2, mc_instance_exe, NULL);
+    SendMessage(mditab->toolbar2, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    SendMessage(mditab->toolbar2, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
+    mditab->theme = theme_OpenThemeData(win, mditab_tc);
+    mditab->img_list = NULL;
+    mditab->font = NULL;
+    dsa_init(&mditab->item_dsa, sizeof(mditab_item_t));
     mditab->item_selected = -1;
     mditab->item_hot = -1;
     mditab->item_first_visible = 0;
     mditab->item_mclose = -1;
+    mditab->hot_track_timer = 0;
     mditab->item_min_width = DEFAULT_ITEM_MIN_WIDTH;
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
     mditab->do_redraw = 1;
-        
-    return mditab;
-}
-
-static int
-mditab_create(mditab_t* mditab)
-{
-    static const DWORD tb_style = WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER;
+    mditab->need_scroll = 0;
     
-    mditab->theme = theme_OpenThemeData(mditab->win, mditab_tc);
-
-    mditab->toolbar1 = CreateWindow(toolbar_wc, NULL, tb_style, 0, 0, 0, 0,
-                mditab->win, (HMENU) IDC_TBAR_1, mc_instance_exe, NULL);
-    if(MC_ERR(mditab->toolbar1 == NULL)) {
-        MC_TRACE("mditab_create: CreateWindow(toolbar1) failed [%ld]",
-                 GetLastError());
-        return -1;
-    }
-    SendMessage(mditab->toolbar1, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(mditab->toolbar1, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
-
-    mditab->toolbar2 = CreateWindow(toolbar_wc, NULL, tb_style, 0, 0, 0, 0,
-                mditab->win, (HMENU) IDC_TBAR_2, mc_instance_exe, NULL);
-    if(MC_ERR(mditab->toolbar2 == NULL)) {
-        MC_TRACE("mditab_create: CreateWindow(toolbar2) failed [%ld]",
-                 GetLastError());
-        return -1;
-    }
-    SendMessage(mditab->toolbar2, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(mditab->toolbar2, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
-
+    SetWindowLongPtr(win, 0, (LONG_PTR)mditab);
     return 0;
 }
 
 static void
 mditab_destroy(mditab_t* mditab)
 {
-    int i;
+    mditab_notify_delete_all_items(mditab);
 
-    if(mditab->items) {
-        mditab_notify_delete_all_items(mditab);
-        for(i = 0; i < mditab->item_count; i++)
-            free(mditab->items[i].text);
-        free(mditab->items);
-        mditab->items = NULL;
-    }
-
-    if(mditab->hot_track_timer) {
+    if(mditab->hot_track_timer)
         KillTimer(mditab->win, mditab->hot_track_timer);
-        mditab->hot_track_timer = 0;
-    }
-    if(mditab->theme) {
+    if(mditab->theme)
         theme_CloseThemeData(mditab->theme);
-        mditab->theme = NULL;
-    }
-}
-
-static inline void
-mditab_ncdestroy(mditab_t* mditab)
-{
+    dsa_fini(&mditab->item_dsa, mditab_item_dtor);
     free(mditab);
 }
 
@@ -1388,7 +1343,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case MC_MTM_GETITEMCOUNT:
-            return mditab->item_count;
+            return MDITAB_COUNT(mditab);
 
         case MC_MTM_INSERTITEMW:
         case MC_MTM_INSERTITEMA:
@@ -1503,7 +1458,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_WANTARROWS;
 
         case WM_STYLECHANGED:
-            mditab_style_changed(mditab, wp, (STYLESTRUCT*) lp);
+            mditab_style_changed(mditab, (STYLESTRUCT*) lp);
             return 0;
 
         case WM_THEMECHANGED:
@@ -1519,23 +1474,11 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             InvalidateRect(win, NULL, FALSE);
             break;
 
-        case WM_NCCREATE:
-            mditab = mditab_nccreate(win, (CREATESTRUCT*)lp);
-            if(MC_ERR(mditab == NULL))
-                return FALSE;
-            SetWindowLongPtr(win, 0, (LONG_PTR)mditab);
-            return TRUE;
-
         case WM_CREATE:
-            return (mditab_create(mditab) == 0 ? 0 : -1);
+            return mditab_create(win, (CREATESTRUCT*)lp);
 
         case WM_DESTROY:
             mditab_destroy(mditab);
-            return 0;
-
-        case WM_NCDESTROY:
-            if(mditab)
-                mditab_ncdestroy(mditab);
             return 0;
     }
 
