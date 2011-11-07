@@ -59,7 +59,7 @@ dsa_reserve(dsa_t* dsa, WORD size)
 
     DSA_TRACE("dsa_reserve(%p, %d)", dsa, (int)size);
 
-    if(size < dsa->capacity - dsa->size)
+    if(dsa->size + size <= dsa->capacity)
         return 0;
 
     buffer = (BYTE*)malloc((dsa->size + size) * dsa->item_size);
@@ -129,8 +129,10 @@ dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
         dtor_func(dsa, dsa_item(dsa, index));
 
     if(dsa->size == 1) {
-        if(dsa->buffer != NULL)
+        if(dsa->buffer != NULL) {
             free(dsa->buffer);
+            dsa->buffer = NULL;
+        }
         dsa->size = 0;
         dsa->capacity = 0;
         return;
