@@ -122,7 +122,7 @@ dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
 {
     BYTE* buffer;
 
-    DSA_TRACE("dsa_insert(%p, %d)", dsa, (int)index);
+    DSA_TRACE("dsa_remove(%p, %d)", dsa, (int)index);
     MC_ASSERT(index < dsa->size);
 
     if(dtor_func != NULL)
