@@ -25,12 +25,12 @@ obj/html.o: src/html.c src/html.h src/misc.h src/compat.h src/debug.h \
  src/theme.h src/theme_fn.h
 obj/mditab.o: src/mditab.c src/mditab.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/mditab.h include/mCtrl/defs.h \
- src/theme.h src/theme_fn.h
+ src/dsa.h src/theme.h src/theme_fn.h
 obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h src/module.h include/mctrl.h include/mCtrl/button.h \
  include/mCtrl/defs.h include/mCtrl/grid.h include/mCtrl/value.h \
  include/mCtrl/table.h include/mCtrl/html.h include/mCtrl/mditab.h \
- include/mCtrl/version.h
+ include/mCtrl/propset.h include/mCtrl/propview.h include/mCtrl/version.h
 obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h src/embedit.h src/theme.h src/theme_fn.h \
  src/button.h include/mCtrl/button.h include/mCtrl/defs.h src/grid.h \
