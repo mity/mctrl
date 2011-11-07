@@ -62,15 +62,10 @@ dsa_reserve(dsa_t* dsa, WORD size)
     if(dsa->size + size <= dsa->capacity)
         return 0;
 
-    buffer = (BYTE*)malloc((dsa->size + size) * dsa->item_size);
+    buffer = (BYTE*)realloc(dsa->buffer, (dsa->size + size) * dsa->item_size);
     if(MC_ERR(buffer == NULL)) {
-        MC_TRACE("dsa_reserve: malloc() failed.");
+        MC_TRACE("dsa_reserve: realloc() failed.");
         return -1;
-    }
-
-    if(dsa->buffer != NULL) {
-        memcpy(buffer, dsa->buffer, dsa->size * dsa->item_size);
-        free(dsa->buffer);
     }
     dsa->buffer = buffer;
     dsa->capacity = dsa->size + size;
@@ -137,14 +132,18 @@ dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
         dsa->capacity = 0;
         return;
     }
-
-    buffer = (BYTE*) malloc((dsa->size - 1) * dsa->item_size);
-    if(MC_ERR(buffer == NULL)) {
+    
+    if(dsa->size + 7 > dsa->capacity) {
+no_realloc:
         memmove(dsa_item(dsa, index), dsa_item(dsa, index+1),
                 (dsa->size - index - 1) * dsa->item_size);
         dsa->size--;
         return;
     }
+
+    buffer = (BYTE*) malloc((dsa->size - 1) * dsa->item_size);
+    if(MC_ERR(buffer == NULL))
+        goto no_realloc;
 
     memcpy(buffer, dsa->buffer, index * dsa->item_size);
     memcpy(buffer + index * dsa->item_size,
