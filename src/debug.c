@@ -24,6 +24,7 @@
 #if defined DEBUG && DEBUG >= 2
 
 #undef malloc
+#undef realloc
 #undef free
 
 
@@ -64,6 +65,7 @@ static const BYTE head_guard[] =
 static const BYTE tail_guard[] = 
         { 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 
           0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf };
+
 
 void* 
 debug_malloc(const char* fname, int line, size_t size)
@@ -108,6 +110,35 @@ debug_malloc(const char* fname, int line, size_t size)
     return mem;
 }
 
+void*
+debug_realloc(const char* fname, int line, void* mem, size_t size)
+{
+    void* new_mem;
+    
+    new_mem = debug_malloc(fname, line, size);
+    if(MC_ERR(new_mem == NULL))
+        return NULL;
+
+    /* Copy contents from the old memory chunk */
+    if(mem != NULL) {
+        mem_info_t* mi;
+        mi = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
+        while(mi->mem != mem) {
+            if(MC_ERR(mi == NULL)) {
+                /* Not registered? */
+                MC_TRACE("%s:%d: \tdebug_realloc(%p): Attempting to realloc "
+                         "non-allocated memory.", fname, line, mem);
+                MC_ASSERT(1 == 0);
+            }
+            mi = mi->next;
+        }
+        memcpy(new_mem, mem, MC_MIN(size, mi->size));
+        debug_free(fname, line, mem);
+    }
+
+    return new_mem;
+}
+
 void
 debug_free(const char* fname, int line, void* mem)
 {
@@ -122,15 +153,15 @@ debug_free(const char* fname, int line, void* mem)
     
     /* Find memory info for the memory chunk */
     mi = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
-    while(mi != NULL && mi->mem != mem) {
+    while(mi->mem != mem) {
+        if(MC_ERR(mi == NULL)) {
+            /* Not registered? */
+            MC_TRACE("%s:%d: \tdebug_free(%p): Attempting to release "
+                     "non-allocated memory.", fname, line, mem);
+            MC_ASSERT(1 == 0);
+        }
         mi_prev = mi;
         mi = mi->next;
-    }
-    if(mi == NULL) {
-        /* Not registered? */
-        MC_TRACE("%s:%d: \tdebug_free(%p): Attempting to release "
-                 "non-allocated memory.", fname, line, mem);
-        MC_ASSERT(1 == 0);
     }
 
     MC_TRACE("%s:%d: \tdebug_free(%p) [size=%lu]", fname, line, mem, mi->size);

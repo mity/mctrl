@@ -92,10 +92,12 @@
  * MCTRL.DLL is unloaded, it traces out report about detected leaks. */
 #if defined DEBUG && DEBUG >= 2
     void* debug_malloc(const char* fname, int line, size_t size);
+    void* debug_realloc(const char* fname, int line, void* ptr, size_t size);
     void debug_free(const char* fname, int line, void* mem);
     
-    #define malloc(size)   debug_malloc(__FILE__, __LINE__, (size))
-    #define free(ptr)      debug_free(__FILE__, __LINE__, (ptr))
+    #define malloc(size)       debug_malloc(__FILE__, __LINE__, (size))
+    #define realloc(ptr, size) debug_realloc(__FILE__, __LINE__, (ptr), (size))
+    #define free(ptr)          debug_free(__FILE__, __LINE__, (ptr))
     
     void debug_init(void);
     void debug_fini(void);
