@@ -1387,6 +1387,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_MTM_GETITEMWIDTH:
             return (LRESULT) mditab_get_item_width(win, (MC_MTITEMWIDTH*)lp);
 
+        case MC_MTM_INITSTORAGE:
+            return (dsa_reserve(&mditab->item_dsa, (UINT)wp) == 0 ? TRUE : FALSE);
+    
         case WM_LBUTTONDOWN:
             mditab_left_button_down(win, wp, LOWORD(lp), HIWORD(lp));
             return 0;

@@ -394,7 +394,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * If there is enough space, all tabs have the default width. When there are
  * too many widths, they are made narrower so more tabs fit into the visible
  * space area, but never narrower then the minimal width. 
- * @param wParam 
+ * @param wParam Reserved, set to zero.
  * @param[in] lParam (@ref MC_MTITEMWIDTH*) Pointer to a structure specifying 
  * the default and minimal widths. When @c NULL is passed, the values are 
  * reset to built-in defaults.
@@ -405,13 +405,24 @@ typedef struct MC_MTHITTESTINFO_tag {
 
 /**
  * @brief Gets default and minimal width for each tab. 
- * @param wParam 
+ * @param wParam Reserved, set to zero.
  * @param[out] lParam (@ref MC_MTITEMWIDTH*) Pointer to a structure where the 
  * current widths will be set.
  * @return @c TRUE on success, @c FALSE otherwise.
  * @sa MC_MTM_SETITEMWIDTH
  */
 #define MC_MTM_GETITEMWIDTH       (WM_USER + 117)
+
+/**
+ * @brief Preallocate anough memory for requested number of items.
+ *
+ * You may want to use this message before adding higher number of items
+ * into the controls to speed it up by avoiding multiple reallocations.
+ * @param[in] wParam (@c UINT) The number of items to add.
+ * @param lParam Reserved, set to zero.
+ * @return @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_MTM_INITSTORAGE        (WM_USER + 118)
 /*@}*/
 
 
