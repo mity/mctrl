@@ -822,10 +822,9 @@ grid_init(void)
 {
     WNDCLASS wc = { 0 };
 
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_GLOBALCLASS | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = grid_proc;
     wc.cbWndExtra = sizeof(grid_t*);
-    wc.hInstance = mc_instance_exe;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.lpszClassName = grid_wc;
@@ -840,5 +839,5 @@ grid_init(void)
 void
 grid_fini(void)
 {
-    UnregisterClass(grid_wc, mc_instance_exe);
+    UnregisterClass(grid_wc, NULL);
 }

@@ -124,9 +124,7 @@
  *** Globals ***
  ***************/
 
-/* HINSTANCE handles */
-extern HINSTANCE mc_instance_dll;  /* MCTRL.DLL handle */
-extern HINSTANCE mc_instance_exe;  /* *.EXE handle */
+extern HINSTANCE mc_instance;
 
 /* Checking OS version (compare with normal operators: ==, <, <= etc.) */
 #define MC_WIN_VER(platform, major, minor)                               \

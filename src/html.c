@@ -1367,7 +1367,6 @@ html_init(void)
 
     wc.lpfnWndProc = html_proc;
     wc.cbWndExtra = sizeof(html_t*);
-    wc.hInstance = mc_instance_exe;
     wc.lpszClassName = html_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
         MC_TRACE("html_init: RegisterClass() failed [%lu]", GetLastError());
@@ -1381,7 +1380,7 @@ html_init(void)
 void
 html_fini(void)
 {
-    UnregisterClass(html_wc, mc_instance_exe);
+    UnregisterClass(html_wc, NULL);
     SysFreeString(url_blank);
 }
 

@@ -68,8 +68,9 @@ embedit_init(void)
     
     orig_edit_proc = wc.lpfnWndProc;
     
+    wc.style &= ~CS_GLOBALCLASS;
     wc.lpfnWndProc = embedit_proc;
-    wc.hInstance = mc_instance_exe;
+    wc.hInstance = mc_instance;
     wc.lpszClassName = embedit_wc;
     
     if(MC_ERR(!RegisterClass(&wc))) {
@@ -84,5 +85,5 @@ embedit_init(void)
 void
 embedit_fini(void)
 {
-    UnregisterClass(embedit_wc, mc_instance_exe);
+    UnregisterClass(embedit_wc, mc_instance);
 }

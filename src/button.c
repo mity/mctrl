@@ -758,7 +758,8 @@ button_init(void)
         wc.lpfnWndProc = button_proc;
         wc.cbWndExtra += sizeof(button_t*);
     }
-    wc.hInstance = mc_instance_exe;
+    wc.style |= CS_GLOBALCLASS;
+    wc.hInstance = NULL;
     wc.lpszClassName = button_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
         MC_TRACE("button_init: RegisterClass() failed [%lu].",
@@ -772,5 +773,5 @@ button_init(void)
 void  
 button_fini(void)
 {
-    UnregisterClass(button_wc, mc_instance_exe);
+    UnregisterClass(button_wc, NULL);
 }

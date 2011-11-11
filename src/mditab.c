@@ -1281,12 +1281,12 @@ mditab_create(HWND win, CREATESTRUCT* cs)
     mditab->win = win;
     mditab->toolbar1 = CreateWindow(toolbar_wc, NULL,
                 WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
-                0, 0, 0, 0, win, (HMENU) IDC_TBAR_1, mc_instance_exe, NULL);
+                0, 0, 0, 0, win, (HMENU) IDC_TBAR_1, NULL, NULL);
     SendMessage(mditab->toolbar1, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     SendMessage(mditab->toolbar1, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
     mditab->toolbar2 = CreateWindow(toolbar_wc,
                 NULL, WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
-                0, 0, 0, 0, win, (HMENU) IDC_TBAR_2, mc_instance_exe, NULL);
+                0, 0, 0, 0, win, (HMENU) IDC_TBAR_2, NULL, NULL);
     SendMessage(mditab->toolbar2, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     SendMessage(mditab->toolbar2, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
     mditab->theme = theme_OpenThemeData(win, mditab_tc);
@@ -1498,10 +1498,9 @@ mditab_init(void)
 
     mc_init_common_controls(ICC_BAR_CLASSES);
 
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_GLOBALCLASS | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = mditab_proc;
     wc.cbWndExtra = sizeof(mditab_t*);
-    wc.hInstance = mc_instance_exe;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE+1);
     wc.lpszClassName = mditab_wc;
@@ -1516,6 +1515,6 @@ mditab_init(void)
 void
 mditab_fini(void)
 {
-    UnregisterClass(mditab_wc, mc_instance_exe);
+    UnregisterClass(mditab_wc, NULL);
 }
 

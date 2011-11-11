@@ -464,10 +464,10 @@ propview_init(void)
 {
     WNDCLASS wc = { 0 };
 
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_GLOBALCLASS | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = propview_proc;
     wc.cbWndExtra = sizeof(propview_t*);
-    wc.hInstance = mc_instance_exe;
+    wc.hInstance = NULL;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.lpszClassName = propview_wc;
@@ -482,5 +482,5 @@ propview_init(void)
 void
 propview_fini(void)
 {
-    UnregisterClass(propview_wc, mc_instance_exe);
+    UnregisterClass(propview_wc, NULL);
 }

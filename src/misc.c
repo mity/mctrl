@@ -24,8 +24,7 @@
  *** Globals ***
  ***************/
 
-HINSTANCE mc_instance_exe;
-HINSTANCE mc_instance_dll;
+HINSTANCE mc_instance;
 
 DWORD mc_win_version;
 DWORD mc_comctl32_version;
@@ -236,7 +235,7 @@ mc_init(void)
 {
     /* Load set of helper symbols used for helper buttons of more complex
      * controls */
-    mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance_dll, MAKEINTRESOURCE(
+    mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance, MAKEINTRESOURCE(
                            MCR_BMP_GLYPHS), MC_BMP_GLYPH_W, 1, RGB(255,0,255));
     if(MC_ERR(mc_bmp_glyphs == NULL)) {
         MC_TRACE("mc_init: ImageList_LoadBitmap() failed [%lu]", GetLastError());
@@ -385,15 +384,8 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
             MC_TRACE("DllMain(DLL_PROCESS_ATTACH): MCTRL.DLL version %hs",
                      MC_VERSION_STR);
 
-            /* Remember instance of MCTRL.DLL */
-            mc_instance_dll = instance;
-            /* Remember instance of the application we are in */
-            mc_instance_exe = GetModuleHandle(NULL);
-
-            /* We are not interested in DLL_THREAD_ATTACH/DETACH so
-             * lets save some CPU cycles in multithreaded applications */
-            DisableThreadLibraryCalls(mc_instance_dll);
-
+            mc_instance = instance;
+            DisableThreadLibraryCalls(mc_instance);
             module_init();
             break;
 
