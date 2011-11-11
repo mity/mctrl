@@ -1267,29 +1267,21 @@ mditab_theme_changed(mditab_t* mditab)
     mditab_track_hot(mditab, pos.x, pos.y);
 }
 
-static int
-mditab_create(HWND win, CREATESTRUCT* cs)
+static mditab_t*
+mditab_nccreate(HWND win, CREATESTRUCT* cs)
 {
     mditab_t* mditab;
-    
+
     mditab = (mditab_t*) malloc(sizeof(mditab_t));
     if(MC_ERR(mditab == NULL)) {
-        MC_TRACE("mditab_create: malloc() failed.");
-        return -1;
+        MC_TRACE("mditab_nccreate malloc() failed.");
+        return NULL;
     }
 
     mditab->win = win;
-    mditab->toolbar1 = CreateWindow(toolbar_wc, NULL,
-                WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
-                0, 0, 0, 0, win, (HMENU) IDC_TBAR_1, NULL, NULL);
-    SendMessage(mditab->toolbar1, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(mditab->toolbar1, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
-    mditab->toolbar2 = CreateWindow(toolbar_wc,
-                NULL, WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
-                0, 0, 0, 0, win, (HMENU) IDC_TBAR_2, NULL, NULL);
-    SendMessage(mditab->toolbar2, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(mditab->toolbar2, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
-    mditab->theme = theme_OpenThemeData(win, mditab_tc);
+    mditab->toolbar1 = NULL;
+    mditab->toolbar2 = NULL;
+    mditab->theme = NULL;
     mditab->img_list = NULL;
     mditab->font = NULL;
     dsa_init(&mditab->item_dsa, sizeof(mditab_item_t));
@@ -1303,8 +1295,30 @@ mditab_create(HWND win, CREATESTRUCT* cs)
     mditab->style = cs->style;
     mditab->no_redraw = 0;
     mditab->need_scroll = 0;
-    
-    SetWindowLongPtr(win, 0, (LONG_PTR)mditab);
+
+    return mditab;
+}
+
+static int
+mditab_create(mditab_t* mditab)
+{
+    mditab->toolbar1 = CreateWindow(toolbar_wc, NULL,
+                WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
+                0, 0, 0, 0, mditab->win, (HMENU) IDC_TBAR_1, NULL, NULL);
+    mditab->toolbar2 = CreateWindow(toolbar_wc,
+                NULL, WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
+                0, 0, 0, 0, mditab->win, (HMENU) IDC_TBAR_2, NULL, NULL);
+    if(MC_ERR(mditab->toolbar1 == NULL  ||  mditab->toolbar2 == NULL)) {
+        MC_TRACE("mditab_create: CreateWindow() failed.");
+        return -1;
+    }
+
+    SendMessage(mditab->toolbar1, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    SendMessage(mditab->toolbar1, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
+    SendMessage(mditab->toolbar2, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    SendMessage(mditab->toolbar2, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
+
+    mditab->theme = theme_OpenThemeData(mditab->win, mditab_tc);
     return 0;
 }
 
@@ -1313,11 +1327,22 @@ mditab_destroy(mditab_t* mditab)
 {
     mditab_notify_delete_all_items(mditab);
 
-    if(mditab->hot_track_timer)
+    if(mditab->hot_track_timer) {
         KillTimer(mditab->win, mditab->hot_track_timer);
-    if(mditab->theme)
+        mditab->hot_track_timer = 0;
+    }
+
+    if(mditab->theme) {
         theme_CloseThemeData(mditab->theme);
+        mditab->theme = NULL;
+    }
+
     dsa_fini(&mditab->item_dsa, mditab_item_dtor);
+}
+
+static void
+mditab_ncdestroy(mditab_t* mditab)
+{
     free(mditab);
 }
 
@@ -1479,11 +1504,23 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             InvalidateRect(win, NULL, FALSE);
             break;
 
+        case WM_NCCREATE:
+            mditab = mditab_nccreate(win, (CREATESTRUCT*)lp);
+            if(MC_ERR(mditab == NULL))
+                return FALSE;
+            SetWindowLongPtr(win, 0, (LONG_PTR)mditab);
+            return TRUE;
+
         case WM_CREATE:
-            return mditab_create(win, (CREATESTRUCT*)lp);
+            return (mditab_create(mditab) == 0 ? 0 : -1);
 
         case WM_DESTROY:
             mditab_destroy(mditab);
+            return 0;
+
+        case WM_NCDESTROY:
+            if(mditab)
+                mditab_ncdestroy(mditab);
             return 0;
     }
 
