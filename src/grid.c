@@ -54,8 +54,9 @@ struct grid_tag {
     HTHEME theme;
     HFONT font;
     table_t* table;
-    UINT style        : 30;
-    UINT do_redraw    : 1;
+    UINT style            : 30;
+    UINT no_redraw        : 1;
+    UINT dirty_scrollbars : 1;
     WORD header_width;
     WORD header_height;
     WORD cell_width;
@@ -462,6 +463,11 @@ grid_setup_scrollbars(grid_t* grid)
     RECT rect;
     SCROLLINFO si;
     WORD headerw, headerh;
+    
+    if(grid->no_redraw) {
+        grid->dirty_scrollbars = 1;
+        return;
+    }
 
     grid_calc_layout(grid, &layout);
     headerw = (layout.display_row_headers ? grid->header_width : 0);
@@ -637,7 +643,8 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
     grid->font = NULL;
     grid->table = NULL;
     grid->style = cs->style;
-    grid->do_redraw = 1;
+    grid->no_redraw = 0;
+    grid->dirty_scrollbars = 0;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
 
@@ -687,7 +694,9 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(grid->do_redraw)
+            if(grid->no_redraw)
+                return 0;
+            /* no break */
         case WM_PRINTCLIENT:
             {
                 HDC dc = (HDC)wp;
@@ -704,7 +713,9 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_SETREDRAW:
-            grid->do_redraw = (wp ? 1 : 0);
+            grid->no_redraw = !wp;
+            if(!grid->no_redraw)
+                grid_setup_scrollbars(grid);
             return 0;
 
         case MC_GM_GETTABLE:

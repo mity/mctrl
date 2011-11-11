@@ -108,7 +108,7 @@ struct mditab_tag {
     USHORT item_min_width;  /* minimal width of each tab */
     USHORT item_def_width;  /* default width of each tab */
     UINT style       : 30;  /* window styles */
-    UINT do_redraw   :  1;  /* redraw flag */
+    UINT no_redraw   :  1;  /* redraw flag */
     UINT need_scroll :  1;  /* when need scrolling, scrolling buttons appear */
 };
 
@@ -1301,7 +1301,7 @@ mditab_create(HWND win, CREATESTRUCT* cs)
     mditab->item_min_width = DEFAULT_ITEM_MIN_WIDTH;
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
-    mditab->do_redraw = 1;
+    mditab->no_redraw = 0;
     mditab->need_scroll = 0;
     
     SetWindowLongPtr(win, 0, (LONG_PTR)mditab);
@@ -1328,7 +1328,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     
     switch(msg) {
         case WM_PAINT:
-            if(mditab->do_redraw) 
+            if(mditab->no_redraw)
+                return 0;
+            /* no break */
         case WM_PRINTCLIENT:
             {
                 HDC dc = (HDC)wp;
@@ -1452,7 +1454,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return TRUE;
 
         case WM_SETREDRAW:
-            mditab->do_redraw = (wp ? 1 : 0);
+            mditab->no_redraw = !wp;
             return 0;
 
         case WM_GETDLGCODE:

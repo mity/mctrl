@@ -42,8 +42,9 @@ struct propview_tag {
     HWND win;
     HFONT font;
     propset_t* propset;
-    UINT style     : 30;
-    UINT do_redraw : 1;
+    UINT style            : 30;
+    UINT no_redraw        : 1;
+    UINT dirty_scrollbars : 1;
     WORD row_height;
     WORD label_width;
     WORD scroll_y;
@@ -134,6 +135,11 @@ propview_setup_scrollbars(propview_t* pv)
     SCROLLINFO si;
 
     PROPVIEW_TRACE("propview_setup_scrollbars(%p)", pv);
+    
+    if(pv->no_redraw) {
+        pv->dirty_scrollbars = 1;
+        return;
+    }
 
     GetClientRect(pv->win, &rect);
 
@@ -286,7 +292,8 @@ propview_nccreate(HWND win, CREATESTRUCT* cs)
     memset(pv, 0, sizeof(propview_t));
     pv->win = win;
     pv->style = cs->style;
-    pv->do_redraw = 1;
+    pv->no_redraw = 0;
+    pv->dirty_scrollbars = 0;
     pv->row_height = size.cy + 2 * PADDING_V + 1;  /* +1 for grid line */
     pv->label_width = 10 * size.cx;
 
@@ -337,7 +344,9 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(pv->do_redraw)
+            if(pv->no_redraw)
+                return 0;
+            /* no break */
         case WM_PRINTCLIENT:
             {
                 HDC dc = (HDC)wp;
@@ -415,11 +424,9 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_SETREDRAW:
-            pv->do_redraw = (wp ? 1 : 0);
-            if(pv->do_redraw) {
-                RedrawWindow(pv->win, NULL, NULL,
-                             RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN | RDW_ERASE);
-            }
+            pv->no_redraw = !wp;
+            if(!pv->no_redraw)
+                propview_setup_scrollbars(pv);
             return 0;
 
         case WM_GETDLGCODE:
