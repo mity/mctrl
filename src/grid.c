@@ -394,6 +394,7 @@ grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
     RECT rect;
     SCROLLINFO si;
     WORD headerw, headerh;
+    UINT scroll_flags;
     int old_scroll_x = grid->scroll_x;
     int old_scroll_y = grid->scroll_y;
 
@@ -449,14 +450,16 @@ grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
         SetScrollPos(grid->win, SB_HORZ, grid->scroll_x, TRUE);
     }
 
-    if(is_vertical)
-        rect.top = headerh;
-    else
-        rect.left = headerw;
+    if(!grid->no_redraw) {
+        if(is_vertical)
+            rect.top = headerh;
+        else
+            rect.left = headerw;
 
-    ScrollWindowEx(grid->win, old_scroll_x - grid->scroll_x,
-                   old_scroll_y - grid->scroll_y, &rect, &rect, NULL, NULL,
-                   SW_ERASE | SW_INVALIDATE);
+        ScrollWindowEx(grid->win, old_scroll_x - grid->scroll_x,
+                       old_scroll_y - grid->scroll_y, &rect, &rect, NULL, NULL,
+                       SW_ERASE | SW_INVALIDATE);
+    }
 }
 
 static void

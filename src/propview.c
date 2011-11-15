@@ -69,12 +69,12 @@ propview_refresh(void* view, void* refresh_data)
 }
 
 static void
-propview_scroll_rel(propview_t* pv, int row_delta)
+propview_vscroll_rel(propview_t* pv, int row_delta)
 {
     SCROLLINFO si;
     int scroll_y = pv->scroll_y + row_delta;
 
-    PROPVIEW_TRACE("propview_scroll_rel(%p, %d)", pv, (int)row_delta);
+    PROPVIEW_TRACE("propview_vscroll_rel(%p, %d)", pv, (int)row_delta);
 
     if(row_delta == 0)
         return;
@@ -92,7 +92,9 @@ propview_scroll_rel(propview_t* pv, int row_delta)
         return;
 
     SetScrollPos(pv->win, SB_VERT, scroll_y, TRUE);
-    ScrollWindow(pv->win, 0, (pv->scroll_y - scroll_y) * pv->row_height, NULL, NULL);
+    if(!pv->no_redraw)
+        ScrollWindowEx(pv->win, 0, (pv->scroll_y - scroll_y) * pv->row_height,
+                       NULL, NULL, NULL, NULL, SW_ERASE | SW_INVALIDATE);
     pv->scroll_y = scroll_y;
 }
 
@@ -127,7 +129,9 @@ propview_vscroll(propview_t* pv, WORD opcode)
         return;
 
     SetScrollPos(pv->win, SB_VERT, scroll_y, TRUE);
-    ScrollWindow(pv->win, 0, (pv->scroll_y - scroll_y) * pv->row_height, NULL, NULL);
+    if(!pv->no_redraw)
+        ScrollWindowEx(pv->win, 0, (pv->scroll_y - scroll_y) * pv->row_height,
+                       NULL, NULL, NULL, NULL, SW_ERASE | SW_INVALIDATE);
     pv->scroll_y = scroll_y;
 }
 
@@ -410,7 +414,7 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_MOUSEWHEEL:
-            propview_scroll_rel(pv, mc_wheel_scroll(win, TRUE, (SHORT)HIWORD(wp)));
+            propview_vscroll_rel(pv, mc_wheel_scroll(win, TRUE, (SHORT)HIWORD(wp)));
             return 0;
 
         case WM_KILLFOCUS:
