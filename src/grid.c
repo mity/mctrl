@@ -56,7 +56,6 @@ struct grid_tag {
     table_t* table;
     UINT style            : 30;
     UINT no_redraw        : 1;
-    UINT dirty_scrollbars : 1;
     WORD header_width;
     WORD header_height;
     WORD cell_width;
@@ -344,6 +343,9 @@ grid_refresh(void* view, void* detail)
     grid_layout_t layout;
     WORD headerw, headerh;
     RECT rect;
+    
+    if(grid->no_redraw)
+        return;
 
     if(region == NULL) {
         InvalidateRect(grid->win, NULL, TRUE);
@@ -360,7 +362,8 @@ grid_refresh(void* view, void* detail)
         rect.top = headerh + MC_MAX(0, (region->row0 - layout.display_row0) * grid->cell_height - grid->scroll_y);
         rect.right = headerw;
         rect.bottom = rect.top + (region->row1 - region->row0) * grid->cell_height;
-        InvalidateRect(grid->win, &rect, TRUE);
+        if(!grid->no_redraw)
+            InvalidateRect(grid->win, &rect, TRUE);
 
         region->col0 = layout.display_col0;
     }
@@ -464,11 +467,6 @@ grid_setup_scrollbars(grid_t* grid)
     SCROLLINFO si;
     WORD headerw, headerh;
     
-    if(grid->no_redraw) {
-        grid->dirty_scrollbars = 1;
-        return;
-    }
-
     grid_calc_layout(grid, &layout);
     headerw = (layout.display_row_headers ? grid->header_width : 0);
     headerh = (layout.display_col_headers ? grid->header_height : 0);
@@ -525,8 +523,10 @@ grid_set_table(grid_t* grid, table_t* table)
 
     grid->table = table;
 
-    InvalidateRect(grid->win, NULL, TRUE);
-    grid_setup_scrollbars(grid);
+    if(!grid->no_redraw) {
+        InvalidateRect(grid->win, NULL, TRUE);
+        grid_setup_scrollbars(grid);
+    }
     return 0;
 }
 
@@ -572,10 +572,12 @@ grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom, BOOL invalidate)
         grid->cell_padding_vert = PADDING_V;
     }
 
-    grid_setup_scrollbars(grid);
+    if(!grid->no_redraw) {
+        grid_setup_scrollbars(grid);
+        if(invalidate)
+            InvalidateRect(grid->win, NULL, TRUE);
+    }
 
-    if(invalidate)
-        InvalidateRect(grid->win, NULL, TRUE);
     return 0;
 }
 
@@ -612,8 +614,10 @@ grid_style_changed(grid_t* grid, int style_type, STYLESTRUCT* ss)
     if(style_type == GWL_STYLE)
         grid->style = ss->styleNew;
 
-    grid_setup_scrollbars(grid);
-    RedrawWindow(grid->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+    if(!grid->no_redraw) {
+        grid_setup_scrollbars(grid);
+        RedrawWindow(grid->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+    }
 }
 
 static void
@@ -623,8 +627,10 @@ grid_theme_changed(grid_t* grid)
         theme_CloseThemeData(grid->theme);
     grid->theme = theme_OpenThemeData(grid->win, grid_tc);
 
-    grid_setup_scrollbars(grid);
-    InvalidateRect(grid->win, NULL, TRUE);
+    if(!grid->no_redraw) {
+        grid_setup_scrollbars(grid);
+        InvalidateRect(grid->win, NULL, TRUE);
+    }
 }
 
 static grid_t*
@@ -644,7 +650,6 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
     grid->table = NULL;
     grid->style = cs->style;
     grid->no_redraw = 0;
-    grid->dirty_scrollbars = 0;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
 
@@ -694,8 +699,10 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(grid->no_redraw)
+            if(grid->no_redraw) {
+                ValidateRect(win, NULL);
                 return 0;
+            }
             /* no break */
         case WM_PRINTCLIENT:
             {
@@ -773,7 +780,8 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_SIZE:
-            grid_setup_scrollbars(grid);
+            if(!grid->no_redraw)
+                grid_setup_scrollbars(grid);
             return 0;
 
         case WM_GETFONT:
@@ -781,7 +789,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETFONT:
             grid->font = (HFONT) wp;
-            if((BOOL) lp)
+            if((BOOL) lp  &&  !grid->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
             return 0;
 

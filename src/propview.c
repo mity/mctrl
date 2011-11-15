@@ -57,6 +57,9 @@ propview_refresh(void* view, void* refresh_data)
     propview_t* pv = (propview_t*) pv;
     propset_refresh_data_t* data = (propset_refresh_data_t*) refresh_data;
 
+    if(pv->no_redraw)
+        return;
+
     if(data == NULL) {
         InvalidateRect(pv->win, NULL, TRUE);
         return;
@@ -248,8 +251,10 @@ propview_set_propset(propview_t* pv, propset_t* propset)
 
     pv->propset = propset;
 
-    propview_setup_scrollbars(pv);
-    InvalidateRect(pv->win, NULL, TRUE);
+    if(!pv->no_redraw) {
+        propview_setup_scrollbars(pv);
+        InvalidateRect(pv->win, NULL, TRUE);
+    }
     return 0;
 }
 
@@ -268,9 +273,11 @@ propview_style_changed(propview_t* pv, int style_type, STYLESTRUCT* ss)
         }
     }
 
-    propview_setup_scrollbars(pv);
-    RedrawWindow(pv->win, NULL, NULL,
-                 RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
+    if(!pv->no_redraw) {
+        propview_setup_scrollbars(pv);
+        RedrawWindow(pv->win, NULL, NULL,
+                     RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
+    }
 }
 
 static propview_t*
@@ -344,8 +351,10 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(pv->no_redraw)
+            if(pv->no_redraw) {
+                ValidateRect(win, NULL);
                 return 0;
+            }
             /* no break */
         case WM_PRINTCLIENT:
             {
@@ -418,7 +427,7 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             pv->font = (HFONT) wp;
             mc_font_size(pv->font, &size);
             pv->row_height = size.cy + 2 * PADDING_V + 1;
-            if((BOOL) lp)
+            if((BOOL) lp  &&  !pv->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
             return 0;
         }

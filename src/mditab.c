@@ -322,8 +322,8 @@ static void
 mditab_invalidate_item(mditab_t* mditab, int index)
 {
     RECT r;
-
-    if(!mditab_is_item_visible(mditab, index))
+    
+    if(mditab->no_redraw  ||  mditab_is_item_visible(mditab, index))
         return;
 
     /* We invalidate slightly more around the tab rect, to prevent artifacts
@@ -726,8 +726,10 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     /* Refresh */
     need_scroll = mditab->need_scroll;
     mditab_layout(mditab);
-    if(mditab_is_item_visible(mditab, index) || mditab->need_scroll != need_scroll)
-        InvalidateRect(mditab->win, NULL, TRUE);
+    if(mditab_is_item_visible(mditab, index) || mditab->need_scroll != need_scroll) {
+        if(!mditab->no_redraw)
+            InvalidateRect(mditab->win, NULL, TRUE);
+    }
 
     return index;
 }
@@ -772,8 +774,10 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     /* Refresh */
     need_scroll = mditab->need_scroll;
     mditab_layout(mditab);
-    if(mditab_is_item_visible(mditab, index) || mditab->need_scroll != need_scroll)
-        InvalidateRect(mditab->win, NULL, TRUE);
+    if(mditab_is_item_visible(mditab, index) || mditab->need_scroll != need_scroll) {
+        if(!mditab->no_redraw)
+            InvalidateRect(mditab->win, NULL, TRUE);
+    }
 
     return TRUE;
 }
@@ -868,7 +872,8 @@ mditab_delete_item(mditab_t* mditab, int index)
 
     /* Refresh */
     mditab_layout(mditab);
-    InvalidateRect(mditab->win, NULL, TRUE);
+    if(!mditab->no_redraw)
+        InvalidateRect(mditab->win, NULL, TRUE);
 
     return TRUE;
 }
@@ -907,7 +912,8 @@ mditab_delete_all_items(mditab_t* mditab)
     mditab->item_hot = -1;
     mditab->item_first_visible = 0;
     mditab->need_scroll = 0;
-    InvalidateRect(mditab->win, NULL, TRUE);
+    if(!mditab->no_redraw)
+        InvalidateRect(mditab->win, NULL, TRUE);
 
     return TRUE;
 }
@@ -922,7 +928,8 @@ mditab_set_img_list(mditab_t* mditab, HIMAGELIST img_list)
 
     old_img_list = mditab->img_list;
     mditab->img_list = img_list;
-    InvalidateRect(mditab->win, NULL, TRUE);
+    if(!mditab->no_redraw)
+        InvalidateRect(mditab->win, NULL, TRUE);
     return old_img_list;
 }
 
@@ -948,7 +955,8 @@ mditab_set_cur_sel(mditab_t* mditab, int index)
          * In this case, we have to redraw everything. */
         mditab->item_first_visible = index;
         mditab_layout(mditab);
-        InvalidateRect(mditab->win, NULL, TRUE);
+        if(!mditab->no_redraw)
+            InvalidateRect(mditab->win, NULL, TRUE);
     } else if(index != old_sel_index) {
         /* Otherwise we only redraw the tabs with changed status */
         mditab_layout(mditab);
@@ -1080,7 +1088,8 @@ mditab_set_item_width(HWND win, MC_MTITEMWIDTH* tw)
     if(def_w != mditab->item_def_width  ||  min_w != mditab->item_min_width) {
         mditab->item_def_width = def_w;
         mditab->item_min_width = min_w;
-        InvalidateRect(win, NULL, TRUE);
+        if(!mditab->no_redraw)
+            InvalidateRect(win, NULL, TRUE);
     }
     return TRUE;
 }
@@ -1105,14 +1114,16 @@ mditab_command(HWND win, WORD code, WORD ctrl_id, HWND ctrl)
             if(mditab->item_first_visible > 0)
                 mditab->item_first_visible--;
             mditab_layout(mditab);
-            InvalidateRect(win, NULL, TRUE);
+            if(!mditab->no_redraw)
+                InvalidateRect(win, NULL, TRUE);
             break;
 
         case IDC_SCROLL_RIGHT:
             if(mditab->item_first_visible < MDITAB_COUNT(mditab))
                 mditab->item_first_visible++;
             mditab_layout(mditab);
-            InvalidateRect(win, NULL, TRUE);
+            if(!mditab->no_redraw)
+                InvalidateRect(win, NULL, TRUE);
             break;
 
         case IDC_LIST_ITEMS:
@@ -1247,7 +1258,8 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 {
     mditab->style = ss->styleNew;
     mditab_layout(mditab);
-    InvalidateRect(mditab->win, NULL, TRUE);
+    if(!mditab->no_redraw)
+        InvalidateRect(mditab->win, NULL, TRUE);
 }
 
 static void
@@ -1258,7 +1270,8 @@ mditab_theme_changed(mditab_t* mditab)
     if(mditab->theme)
         theme_CloseThemeData(mditab->theme);
     mditab->theme = theme_OpenThemeData(mditab->win, mditab_tc);
-    InvalidateRect(mditab->win, NULL, TRUE);
+    if(!mditab->no_redraw)
+        InvalidateRect(mditab->win, NULL, TRUE);
 
     /* As an optimization, we do not track hot item when not themed, so
      * it might be in inconsistant state now. Refresh the state. */
@@ -1353,8 +1366,10 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     
     switch(msg) {
         case WM_PAINT:
-            if(mditab->no_redraw)
+            if(mditab->no_redraw) {
+                ValidateRect(win, NULL);
                 return 0;
+            }
             /* no break */
         case WM_PRINTCLIENT:
             {
@@ -1448,7 +1463,8 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SIZE:
             mditab_layout(mditab);
-            InvalidateRect(win, NULL, TRUE);
+            if(!mditab->no_redraw)
+                InvalidateRect(win, NULL, TRUE);
             return 0;
 
         case WM_KEYUP:
@@ -1466,7 +1482,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETFONT:
             mditab->font = (HFONT) wp;
-            if((BOOL) lp)
+            if((BOOL) lp  &&  !mditab->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
             return 0;
 
@@ -1500,8 +1516,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 case UIS_CLEAR:       mditab->ui_state &= ~HIWORD(wp); break;
                 case UIS_SET:         mditab->ui_state |= HIWORD(wp); break;
                 case UIS_INITIALIZE:  mditab->ui_state = HIWORD(wp); break;
-            }            
-            InvalidateRect(win, NULL, FALSE);
+            }
+            if(!mditab->no_redraw)
+                InvalidateRect(win, NULL, FALSE);
             break;
 
         case WM_NCCREATE:
