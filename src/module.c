@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2011 Martin Mitas
+ * Copyright (c) 2009-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -159,6 +159,11 @@ DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 DEFINE_MODULE(html)
 static module_t* mod_html_deps[] =   { &mod_mc, &mod_theme, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
+
+#include "menubar.h"
+DEFINE_MODULE(menubar)
+static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
+DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)
 
 #include "mditab.h"
 DEFINE_MODULE(mditab)

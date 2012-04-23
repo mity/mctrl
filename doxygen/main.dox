@@ -40,6 +40,7 @@
  * - @ref mCtrl/button.h - Enhanced button control (window class @c MC_WC_BUTTON)
  * - @ref mCtrl/grid.h - Grid control (window class @c MC_WC_GRID)
  * - @ref mCtrl/html.h - HTML control (window class @c MC_WC_HTML)
+ * - @ref mCtrl/menubar.h - Menu bar control (window class @c MC_WC_MENUBAR)
  * - @ref mCtrl/mditab.h - MDI tab control (window class @c MC_WC_MDITAB)
  * - @ref mCtrl/propview.h - Property list view (window class @c MC_WC_PROPVIEW)
  *

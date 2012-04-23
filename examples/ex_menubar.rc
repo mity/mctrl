@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2012 Martin Mitas
+ *
+ * This file contains example code for mCtrl library. Code of this example
+ * (but not the library itself) has been placed in the public domain.
+ */
+
+#include <windows.h>
+#include "ex_menubar.h"
+
+/* Manifest enabling XP themes */
+1 RT_MANIFEST res/manifest.xml
+
+/* Menu */
+ID_MENU MENU
+BEGIN
+	POPUP "&File"
+	BEGIN
+		MENUITEM "&New",                    100
+		MENUITEM "&Open...",                101
+		MENUITEM "&Close",                  102
+		MENUITEM "Clos&e All",              103
+		MENUITEM SEPARATOR
+		MENUITEM "&Save",                   104
+		MENUITEM "Save &As...",             105
+		MENUITEM "Save A&ll",               106
+		MENUITEM SEPARATOR
+		MENUITEM "E&xit",                   107
+	END
+
+	POPUP "&Edit"
+	BEGIN
+		MENUITEM "&Undo",                   108
+		MENUITEM "&Redo",                   109
+		MENUITEM SEPARATOR
+		MENUITEM "Cu&t",                    110
+		MENUITEM "&Copy",                   111
+		MENUITEM "&Paste",                  112
+		MENUITEM SEPARATOR
+		MENUITEM "Select &All",             113
+	END
+	
+	POPUP "&Search"
+	BEGIN
+	   MENUITEM "&Find...",                 114
+	   MENUITEM "Find &Next",               115, GRAYED
+	   MENUITEM "Find &Previous",           116, GRAYED
+	   MENUITEM "&Replace...",              117
+	END
+
+	POPUP "&Popup"
+	BEGIN
+	    POPUP "Deep &1" GRAYED
+	    BEGIN
+	        MENUITEM "&Aaaa",               118
+	        MENUITEM "&Bbbb",               119
+	    END
+
+	    POPUP "Deep &2"
+	    BEGIN
+	        MENUITEM "&Cccc",               120, GRAYED
+	        MENUITEM "&Dddd",               121
+	    END
+
+	    POPUP "Deep &3"
+	    BEGIN
+	        MENUITEM "&Eeee",               122
+	        MENUITEM "&Ffff",               123
+	    END
+	END
+
+    POPUP "&Help"
+	BEGIN
+	   MENUITEM "&About...",                124
+	END
+END

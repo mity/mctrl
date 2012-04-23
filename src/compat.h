@@ -142,7 +142,7 @@
  * However as we cannot use preprocessor to detect if enums or their members
  * are missing, we always #define it here. */
 
-#ifndef WM_MOUSEHWHEEL      /* missing in mingw-w64 and mingw headers */
+#ifndef WM_MOUSEHWHEEL      /* missing in mingw headers */
     #define WM_MOUSEHWHEEL  0x020E
 #endif
 
@@ -177,6 +177,15 @@
 #ifndef UIS_INITIALIZE      /* missing in mingw headers */
     #define UIS_INITIALIZE  3
 #endif
+
+#ifndef TB_SETBOUNDINGSIZE  /* missing in mingw and mingw-w64 headers */
+    #define TB_SETBOUNDINGSIZE  (WM_USER + 93)
+#endif
+
+#ifndef TB_SETPRESSEDIMAGELIST      /* missing in mingw and mingw-w64 headers */
+    #define TB_SETPRESSEDIMAGELIST  (WM_USER + 104)
+#endif
+
 
 
 /********************************************
