@@ -155,8 +155,8 @@ MC_HPROPSET MCTRL_API mcPropSet_Create(DWORD dwFlags);
 /**
  * @brief Increment reference counter of the property set.
  *
- * param[in] hPropSet The property set.
- * return @c TRUE on success, @c FALSE on failure.
+ * @param[in] hPropSet The property set.
+ * @return @c TRUE on success, @c FALSE on failure.
  */
 BOOL MCTRL_API mcPropSet_AddRef(MC_HPROPSET hPropSet);
 
