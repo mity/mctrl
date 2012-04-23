@@ -476,7 +476,7 @@ button_needs_fake_split(button_t* button)
      * implementation even on Vista. Windows 7 have fixed that.
      */
     if(button != NULL) {
-        if((button->style & BS_ICON) && mc_win_version == MC_WIN_VISTA)
+        if((button->style & BS_ICON) && mc_win_version < MC_WIN_7)
             return TRUE;
     }
     
@@ -660,6 +660,15 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
                 if((ss->styleOld & BS_TYPEMASK) == MC_BS_SPLITBUTTON  ||
                    (ss->styleOld & BS_TYPEMASK) == MC_BS_DEFSPLITBUTTON) {
+                    /* On older system which do not support split buttons
+                     * (i.e. 2000, XP), the dialog procedure does not handle
+                     * moving the default state correctly: It accidentaly
+                     * removes our split button button type. Hence we perform
+                     * this fixup.
+                     *
+                     * Unfortunately this means that app. cannot freely change
+                     * BS_SPLITBUTTON to BS_BUTTON with SetWindowLong(GWL_STYLE)
+                     * as this will prevent that too... */
                     BUTTON_TRACE("button_proc(WM_STYLECHANGING): split style fixup");
                     ss->styleNew &= ~(BS_TYPEMASK & ~BS_DEFPUSHBUTTON);
                     ss->styleNew |= MC_BS_SPLITBUTTON;
