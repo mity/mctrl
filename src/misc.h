@@ -141,6 +141,7 @@ extern HINSTANCE mc_instance;
 #define MC_WIN_S2008       MC_WIN_VER(2, 6, 0)
 #define MC_WIN_7           MC_WIN_VER(2, 6, 1)
 #define MC_WIN_S2008R2     MC_WIN_VER(2, 6, 1)
+#define MC_WIN_8           MC_WIN_VER(2, 6, 2)
 
 extern DWORD mc_win_version;
 

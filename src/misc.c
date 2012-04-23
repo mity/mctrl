@@ -147,21 +147,30 @@ mc_str_inbuf(const void* from_str, int from_type,
 
 #ifdef DEBUG
 static const char*
-get_win_name(void)
+get_win_name(BYTE type)
 {
-    switch(mc_win_version) {
-        case MC_WIN_95:     return "Windows 95";
-        case MC_WIN_98:     return "Windows 98";
-        case MC_WIN_ME:     return "Windows ME";
-        case MC_WIN_NT4:    return "Windows NT 4.0";
-        case MC_WIN_2000:   return "Windows 2000";
-        case MC_WIN_XP:     return "Windows XP";
-        case MC_WIN_S2003:  return "Windows Server 2003";
-        case MC_WIN_VISTA: /* == MC_OS_S2008 */
-                            return "Windows Vista / Server 2008";
-        case MC_WIN_7:     /* == MC_OS_S2008R2 */
-                            return "Windows 7 / Server 2008R2";
-        default:            return "Windows ???";
+    BOOL is_server = (type == VER_NT_DOMAIN_CONTROLLER || type == VER_NT_SERVER);
+
+    if(!is_server) {
+        switch(mc_win_version) {
+            case MC_WIN_95:         return "Windows 95";
+            case MC_WIN_98:         return "Windows 98";
+            case MC_WIN_ME:         return "Windows ME";
+            case MC_WIN_NT4:        return "Windows NT 4.0";
+            case MC_WIN_2000:       return "Windows 2000";
+            case MC_WIN_XP:         return "Windows XP";
+            case MC_WIN_VISTA:      return "Windows Vista";
+            case MC_WIN_7:          return "Windows 7";
+            case MC_WIN_8:          return "Windows 8";
+            default:                return "Windows ???";
+        }
+    } else {
+        switch(mc_win_version) {
+            case MC_WIN_S2003:      return "Windows Server 2003";
+            case MC_WIN_S2008:      return "Windows Server 2008";
+            case MC_WIN_S2008R2:    return "Windows Server 2008 R2";
+            default:                return "Windows Server ???";
+        }
     }
 }
 #endif  /* #ifdef DEBUG */
@@ -169,28 +178,19 @@ get_win_name(void)
 static void
 setup_win_version(void)
 {
-    OSVERSIONINFO os_version;
+    OSVERSIONINFOEX ver;
 
-    os_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    GetVersionEx(&os_version);
-    mc_win_version = MC_WIN_VER(os_version.dwPlatformId,
-            os_version.dwMajorVersion, os_version.dwMinorVersion);
+    ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    GetVersionEx((OSVERSIONINFO*) &ver);
+    mc_win_version = MC_WIN_VER(ver.dwPlatformId,
+                                ver.dwMajorVersion, ver.dwMinorVersion);
 
-#ifdef UNICODE
-    MC_TRACE(
-        "setup_win_version: Detected %hs %ls (%u.%u.%u.%u)",
-        get_win_name(), os_version.szCSDVersion,
-        os_version.dwPlatformId, os_version.dwMajorVersion,
-        os_version.dwMinorVersion, os_version.dwBuildNumber
-    );
-#else
-    MC_TRACE(
-        "setup_win_version: Detected %hs %hs (%u.%u.%u.%u)",
-        get_win_name(), os_version.szCSDVersion,
-        os_version.dwPlatformId, os_version.dwMajorVersion,
-        os_version.dwMinorVersion, os_version.dwBuildNumber
-    );
-#endif
+    MC_TRACE("setup_win_version: Detected %hs "
+             "(%u.%u.%u, service pack %u.%u, build %u)",
+            get_win_name(ver.wProductType), 
+            ver.dwPlatformId, ver.dwMajorVersion, ver.dwMinorVersion,
+            ver.wServicePackMajor, ver.wServicePackMinor,
+            ver.dwBuildNumber);
 }
 
 static void (WINAPI *fn_InitCommonControlsEx)(INITCOMMONCONTROLSEX*) = NULL;
@@ -224,9 +224,10 @@ setup_comctl32_version(void)
 
     vi.cbSize = sizeof(DLLVERSIONINFO);
     fn_DllGetVersion(&vi);
-    MC_TRACE("setup_comctl32_version: Detected COMCTL32.DLL %u.%u.%u.%u",
+    MC_TRACE("setup_comctl32_version: Detected COMCTL32.DLL %u.%u (build %u)",
              (unsigned)vi.dwMajorVersion, (unsigned)vi.dwMinorVersion,
-             (unsigned)vi.dwBuildNumber, (unsigned)vi.dwPlatformID);
+             (unsigned)vi.dwBuildNumber);
+
     mc_comctl32_version = MC_DLL_VER(vi.dwMajorVersion, vi.dwMinorVersion);
 }
 
@@ -266,7 +267,7 @@ void
 mc_init_common_controls(DWORD icc)
 {
     if(fn_InitCommonControlsEx != NULL) {
-        INITCOMMONCONTROLSEX icce;
+        INITCOMMONCONTROLSEX icce = { 0 };
         icce.dwSize = sizeof(INITCOMMONCONTROLSEX);
         icce.dwICC = icc;
         fn_InitCommonControlsEx(&icce);
