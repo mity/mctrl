@@ -31,8 +31,9 @@
 #endif
 
 
-#define PADDING_H     3
-#define PADDING_V     2
+#define PADDING_H                    3
+#define PADDING_V                    2
+#define DEFAULT_GRIDLINE_COLOR   RGB(220,220,220)
 
 
 #define MC_GS_COLUMNHEADERMASK                                             \
@@ -45,7 +46,6 @@
 
 
 static const TCHAR grid_wc[] = MC_WC_GRID;    /* window class name */
-static const WCHAR grid_tc[] = L"HEADER";     /* theme class */
 
 
 typedef struct grid_tag grid_t;
@@ -64,6 +64,7 @@ struct grid_tag {
     WORD cell_padding_vert;
     int scroll_x;
     int scroll_y;
+    COLORREF gridline_color;
 };
 
 static TCHAR*
@@ -289,7 +290,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         int y;
         HPEN pen, old_pen;
 
-        pen = CreatePen(PS_SOLID, 0, RGB(223,223,223));
+        pen = CreatePen(PS_SOLID, 0, grid->gridline_color);
         old_pen = SelectObject(dc, pen);
 
         x = headerw + (col0+1) * grid->cell_width - grid->scroll_x - 1;
@@ -394,7 +395,6 @@ grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
     RECT rect;
     SCROLLINFO si;
     WORD headerw, headerh;
-    UINT scroll_flags;
     int old_scroll_x = grid->scroll_x;
     int old_scroll_y = grid->scroll_y;
 
@@ -626,9 +626,19 @@ grid_style_changed(grid_t* grid, int style_type, STYLESTRUCT* ss)
 static void
 grid_theme_changed(grid_t* grid)
 {
+    HTHEME theme_lv;
+
     if(grid->theme)
         theme_CloseThemeData(grid->theme);
-    grid->theme = theme_OpenThemeData(grid->win, grid_tc);
+    grid->theme = theme_OpenThemeData(grid->win, L"HEADER");
+
+    grid->gridline_color = DEFAULT_GRIDLINE_COLOR;
+    theme_lv = theme_OpenThemeData(grid->win, L"LISTVIEW");
+    if(theme_lv) {
+        theme_GetThemeColor(theme_lv, LVP_LISTDETAIL, 0, TMT_EDGEFILLCOLOR,
+                            &grid->gridline_color);
+        theme_CloseThemeData(theme_lv);
+    }
 
     if(!grid->no_redraw) {
         grid_setup_scrollbars(grid);
@@ -655,6 +665,7 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
     grid->no_redraw = 0;
     grid->scroll_x = 0;
     grid->scroll_y = 0;
+    grid->gridline_color = DEFAULT_GRIDLINE_COLOR;
 
     grid_set_geometry(grid, NULL, FALSE);
 
@@ -664,7 +675,7 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
 static int
 grid_create(grid_t* grid)
 {
-    grid->theme = theme_OpenThemeData(grid->win, grid_tc);
+    grid_theme_changed(grid);
 
     if(MC_ERR(grid_set_table(grid, NULL) != 0)) {
         MC_TRACE("grid_create: grid_set_table() failed.");

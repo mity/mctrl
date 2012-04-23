@@ -43,6 +43,7 @@ THEME_FN(HRESULT, DrawThemeIcon,       (HTHEME,HDC,int,int,const RECT*,HIMAGELIS
 THEME_FN(HRESULT, DrawThemeParentBackground, (HWND,HDC,RECT*))
 THEME_FN(HRESULT, DrawThemeText,       (HTHEME,HDC,int,int,LPCWSTR,int,DWORD,DWORD,const RECT*))
 THEME_FN(HRESULT, GetThemeBackgroundContentRect, (HTHEME,HDC,int,int,const RECT*,RECT*))
+THEME_FN(HRESULT, GetThemeColor,       (HTHEME,int,int,int,COLORREF*))
 THEME_FN(HRESULT, GetThemeTextExtent,  (HTHEME,HDC,int,int,LPCWSTR,int,DWORD,const RECT*,RECT*))
 THEME_FN(BOOL,    IsThemeActive,       (void))
 THEME_FN(BOOL,    IsThemeBackgroundPartiallyTransparent, (HTHEME,int,int))

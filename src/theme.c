@@ -21,7 +21,7 @@
 
 
 #ifndef UNICODE
-    /* Right now, we don't supprot theming in non-unicode builds. */
+    /* Right now, we don't support theming in non-unicode builds. */
     #define DISABLE_UXTHEME     1
 #endif
 
