@@ -106,10 +106,10 @@ int32_from_string(value_t* v, const TCHAR* str)
         return -1;
 
     i = _tcstol(str, &end, 10);
-    if(MC_ERR(end == str))
+    if(MC_ERR(end == str || *end != _T('\0')))
         return -1;
 
-    v = (value_t)(intptr_t) i;
+    *v = (value_t)(intptr_t) i;
     return 0;
 }
 
@@ -216,10 +216,10 @@ uint32_from_string(value_t* v, const TCHAR* str)
         return -1;
 
     u = _tcstoul(str, &end, 10);
-    if(MC_ERR(end == str))
+    if(MC_ERR(end == str || *end != _T('\0')))
         return -1;
 
-    v = (value_t)(uintptr_t) u;
+    *v = (value_t)(uintptr_t) u;
     return 0;
 }
 
@@ -339,7 +339,7 @@ int64_from_string(value_t* v, const TCHAR* str)
         return -1;
 
     i64 = _tcstoi64(str, &end, 10);
-    if(MC_ERR(end == str))
+    if(MC_ERR(end == str || *end != _T('\0')))
         return -1;
 
     return value_set_int64(v, i64);
@@ -479,7 +479,7 @@ uint64_from_string(value_t* v, const TCHAR* str)
         return -1;
 
     u64 = _tcstoui64(str, &end, 10);
-    if(MC_ERR(end == str))
+    if(MC_ERR(end == str || *end != _T('\0')))
         return -1;
 
     return value_set_uint64(v, u64);
