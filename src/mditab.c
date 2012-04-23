@@ -830,15 +830,11 @@ mditab_notify_delete_item(mditab_t* mditab, int index)
 static BOOL
 mditab_delete_item(mditab_t* mditab, int index)
 {
-    mditab_item_t* item;
-  
     if(index < 0  ||  index >= MDITAB_COUNT(mditab)) {
         MC_TRACE("mditab_delete_item: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
-
-    item = MDITAB_ITEM(mditab, index);
 
     /* Perhaps we have to set another tab as selected. We need to do this
      * before the deletion takes effect as the application still might want
