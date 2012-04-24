@@ -172,10 +172,10 @@ mditab_calc_layout(mditab_t* mditab)
     need_btn_list_items = ((mditab->style & MC_MTS_TLBMASK) == MC_MTS_TLBALWAYS  ||
                           ((mditab->style & MC_MTS_TLBMASK) == MC_MTS_TLBONSCROLL && mditab->need_scroll));
     need_btn_close_item = ((mditab->style & MC_MTS_CBMASK) == MC_MTS_CBONTOOLBAR);
-    btn.fsStyle = TBSTYLE_BUTTON;
     if(need_btn_scroll) {
         /* Scroll left button */
         btn.iBitmap = MC_BMP_GLYPH_CHEVRON_L;
+        btn.fsStyle = TBSTYLE_BUTTON;
         btn.idCommand = IDC_SCROLL_LEFT;
         SendMessage(mditab->toolbar1, TB_ADDBUTTONS, 1, (LPARAM) &btn);
         btn_count1++;
@@ -189,6 +189,7 @@ mditab_calc_layout(mditab_t* mditab)
     if(need_btn_list_items) {
         /* Button for popup tab list */
         btn.iBitmap = MC_BMP_GLYPH_MORE_OPTIONS;
+        btn.fsStyle = BTNS_DROPDOWN;
         btn.idCommand = IDC_LIST_ITEMS;
         SendMessage(mditab->toolbar2, TB_ADDBUTTONS, 1, (LPARAM) &btn);
         btn_count2++;
@@ -196,6 +197,7 @@ mditab_calc_layout(mditab_t* mditab)
     if(need_btn_close_item) {
         /* Close tab button */
         btn.iBitmap = MC_BMP_GLYPH_CLOSE;
+        btn.fsStyle = TBSTYLE_BUTTON;
         btn.idCommand = IDC_CLOSE_ITEM;
         SendMessage(mditab->toolbar2, TB_ADDBUTTONS, 1, (LPARAM) &btn);
         btn_count2++;
@@ -975,9 +977,9 @@ mditab_list_items(mditab_t* mditab)
     HMENU popup;
     MENUINFO mi;
     MENUITEMINFO mii;
-    RECT rect;
     TPMPARAMS tpm_param;
     int i;
+    DWORD btn_state;
 
     /* Construct the menu */
     popup = CreatePopupMenu();
@@ -1003,13 +1005,17 @@ mditab_list_items(mditab_t* mditab)
 
     /* Show the menu */
     i = SendMessage(mditab->toolbar2, TB_COMMANDTOINDEX, IDC_LIST_ITEMS, 0);
-    SendMessage(mditab->toolbar2, TB_GETITEMRECT, i, (LPARAM) &rect);
-    MapWindowPoints(mditab->toolbar2, HWND_DESKTOP, (POINT*) &rect, 2);
     tpm_param.cbSize = sizeof(TPMPARAMS);
-    CopyRect(&tpm_param.rcExclude, &rect);
+    SendMessage(mditab->toolbar2, TB_GETITEMRECT, i, (LPARAM) &tpm_param.rcExclude);
+    btn_state = SendMessage(mditab->toolbar2, TB_GETSTATE, IDC_LIST_ITEMS, 0);
+    SendMessage(mditab->toolbar2, TB_SETSTATE, IDC_LIST_ITEMS,
+                MAKELONG(btn_state | TBSTATE_PRESSED, 0));
+    MapWindowPoints(mditab->toolbar2, HWND_DESKTOP, (POINT*) &tpm_param.rcExclude, 2);
     TrackPopupMenuEx(popup, TPM_LEFTBUTTON | TPM_RIGHTALIGN,
-            rect.right, rect.bottom, mditab->win, &tpm_param);
+                     tpm_param.rcExclude.right, tpm_param.rcExclude.bottom,
+                     mditab->win, &tpm_param);
     DestroyMenu(popup);
+    SendMessage(mditab->toolbar2, TB_SETSTATE, IDC_LIST_ITEMS, MAKELONG(btn_state, 0));
 }
 
 static void
@@ -1120,10 +1126,6 @@ mditab_command(HWND win, WORD code, WORD ctrl_id, HWND ctrl)
             mditab_layout(mditab);
             if(!mditab->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
-            break;
-
-        case IDC_LIST_ITEMS:
-            mditab_list_items(mditab);
             break;
 
         case IDC_CLOSE_ITEM:
@@ -1455,6 +1457,14 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_COMMAND:
             if(mditab_command(win, HIWORD(wp), LOWORD(wp), (HWND)lp))
                 return 0;
+            break;
+        
+        case WM_NOTIFY:
+            if(((NMHDR*)lp)->idFrom == IDC_TBAR_2 && ((NMHDR*)lp)->code == TBN_DROPDOWN &&
+                    ((NMTOOLBAR*)lp)->iItem == IDC_LIST_ITEMS) {
+                mditab_list_items(mditab);
+                return 0;
+            }
             break;
 
         case WM_SIZE:
