@@ -103,15 +103,16 @@ COLORREF value_get_colorref(const value_t v);
 void value_set_hicon(value_t* v, HICON icon);
 HICON value_get_hicon(const value_t v);
 
-
 #ifdef UNICODE
     #define value_set_string             value_set_string_w
     #define value_get_string             value_get_string_w
     #define value_set_immutable_string   value_set_immutable_string_w
+    #define value_get_immutable_string   value_get_immutable_string_w
 #else
     #define value_set_string             value_set_string_a
     #define value_get_string             value_get_string_a
     #define value_set_immutable_string   value_set_immutable_string_a
+    #define value_get_immutable_string   value_get_immutable_string_a
 #endif
 
 
