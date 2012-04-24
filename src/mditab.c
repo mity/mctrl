@@ -92,8 +92,8 @@ struct mditab_item_tag {
 typedef struct mditab_tag mditab_t;
 struct mditab_tag {
     HWND win;
-    HWND toolbar1;          /* leftside toolbar */
-    HWND toolbar2;          /* tightside toolbar */
+    HWND toolbar1;          /* left-side toolbar */
+    HWND toolbar2;          /* right-side toolbar */
     RECT rect_main;         /* main area where we draw the tabs and toolbars */
     HTHEME theme;           /* theming handle */
     DWORD ui_state;
