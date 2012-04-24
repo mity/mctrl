@@ -207,7 +207,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     
     /* Create main window */
     hwndMain = CreateWindow(
-        _T("main_window"), _T("mCtrl Example: Grid Control"), 
+        _T("main_window"), _T("mCtrl Example: GRID Control"), 
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 
         NULL, NULL, hInst, NULL
     );
