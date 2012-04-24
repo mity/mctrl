@@ -323,7 +323,7 @@ mditab_invalidate_item(mditab_t* mditab, int index)
 {
     RECT r;
     
-    if(mditab->no_redraw  ||  mditab_is_item_visible(mditab, index))
+    if(mditab->no_redraw  ||  !mditab_is_item_visible(mditab, index))
         return;
 
     /* We invalidate slightly more around the tab rect, to prevent artifacts
