@@ -50,6 +50,7 @@
  * - @ref mCtrl/value.h - Value (polymorphic data)
  *
  * @subsection toc_misc Miscellaneous
+ * - @ref mctrl.h - All-in-one header
  * - @ref mCtrl/defs.h - Miscellaneous macros and constants
  * - @ref mCtrl/version.h - Retrieving mCtrl version
  */
