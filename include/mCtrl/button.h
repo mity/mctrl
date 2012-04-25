@@ -131,14 +131,14 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the button control.
+ * @brief Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
  * @sa @ref sec_init
  */
 BOOL MCTRL_API mcButton_Initialize(void);
 
 /**
- * @brief Unregisters window class of the button control.
+ * @brief Unregisters window class of the control.
  * @sa @ref sec_init
  */
 void MCTRL_API mcButton_Terminate(void);

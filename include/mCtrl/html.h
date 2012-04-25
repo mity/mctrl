@@ -138,14 +138,14 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the HTML control.
+ * @brief Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
  * @sa @ref sec_init
  */
 BOOL MCTRL_API mcHtml_Initialize(void);
 
 /**
- * @brief Unregisters window class of the HTML control.
+ * @brief Unregisters window class of the control.
  *
  * @sa @ref sec_init
  */
