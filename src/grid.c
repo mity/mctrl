@@ -96,12 +96,12 @@ grid_num_to_alpha(TCHAR buffer[16], WORD num)
 
 typedef struct grid_layout_tag grid_layout_t;
 struct grid_layout_tag {
-    BOOL display_col_headers;  /* whether columns have headers */
-    BOOL display_row_headers;  /* ditto for rows */
-    WORD display_col0;         /* index of first column for grid contents (not headers) */
-    WORD display_row0;         /* ditto for rows */
-    WORD display_col_count;    /* count of columns for grid contents (not headers) */
-    WORD display_row_count;    /* ditto for rows */
+    WORD display_header_height; /* real columns headers height */
+    WORD display_header_width;  /* ditto for rows */
+    WORD display_col0;          /* index of first column for grid contents (not headers) */
+    WORD display_row0;          /* ditto for rows */
+    WORD display_col_count;     /* count of columns for grid contents (not headers) */
+    WORD display_row_count;     /* ditto for rows */
 };
 
 static void
@@ -110,16 +110,16 @@ grid_calc_layout(grid_t* grid, grid_layout_t* layout)
     WORD col_count;
     WORD row_count;
 
-    if(!grid->table) {
-        memset(layout, 0, sizeof(grid_layout_t));
-        return;
+    if(grid->table) {
+        col_count = table_col_count(grid->table);
+        row_count = table_row_count(grid->table);
+    } else {
+        col_count = 0;
+        row_count = 0;
     }
 
-    col_count = table_col_count(grid->table);
-    row_count = table_row_count(grid->table);
-
-    layout->display_col_headers = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK) != MC_GS_COLUMNHEADERNONE);
-    layout->display_row_headers = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) != MC_GS_ROWHEADERNONE);
+    layout->display_header_height = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK) != MC_GS_COLUMNHEADERNONE) ? grid->header_height : 0;
+    layout->display_header_width = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) != MC_GS_ROWHEADERNONE) ? grid->header_width : 0;
     layout->display_col0 = (col_count > 0  &&  (grid->style & MC_GS_ROWHEADERMASK) == MC_GS_ROWHEADERCUSTOM) ? 1 : 0;
     layout->display_row0 = (row_count > 0  &&  (grid->style & MC_GS_COLUMNHEADERMASK) == MC_GS_COLUMNHEADERCUSTOM) ? 1 : 0;
     layout->display_col_count = col_count - layout->display_col0;
@@ -142,8 +142,8 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                dirty->left, dirty->top, dirty->right, dirty->bottom);
 
     grid_calc_layout(grid, &layout);
-    headerw = (layout.display_row_headers ? grid->header_width : 0);
-    headerh = (layout.display_col_headers ? grid->header_height : 0);
+    headerw = layout.display_header_width;
+    headerh = layout.display_header_height;
 
     /* Calculate range of cells in dirty rect
      * ([col0,row0] inclusive; [col1,row1] exclusive) */
@@ -354,8 +354,8 @@ grid_refresh(void* view, void* detail)
     }
 
     grid_calc_layout(grid, &layout);
-    headerw = (layout.display_row_headers ? grid->header_width : 0);
-    headerh = (layout.display_col_headers ? grid->header_height : 0);
+    headerw = layout.display_header_width;
+    headerh = layout.display_header_height;
 
     /* Refresh affected row header */
     if(region->col0 < layout.display_col0) {
@@ -391,17 +391,9 @@ grid_refresh(void* view, void* detail)
 static void
 grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
 {
-    grid_layout_t layout;
-    RECT rect;
     SCROLLINFO si;
-    WORD headerw, headerh;
     int old_scroll_x = grid->scroll_x;
     int old_scroll_y = grid->scroll_y;
-
-    grid_calc_layout(grid, &layout);
-    headerw = (layout.display_row_headers ? grid->header_width : 0);
-    headerh = (layout.display_col_headers ? grid->header_height : 0);
-    GetClientRect(grid->win, &rect);
 
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
@@ -451,10 +443,15 @@ grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
     }
 
     if(!grid->no_redraw) {
+        grid_layout_t layout;
+        RECT rect;
+
+        grid_calc_layout(grid, &layout);
+        GetClientRect(grid->win, &rect);
         if(is_vertical)
-            rect.top = headerh;
+            rect.top = layout.display_header_height;
         else
-            rect.left = headerw;
+            rect.left = layout.display_header_width;
 
         ScrollWindowEx(grid->win, old_scroll_x - grid->scroll_x,
                        old_scroll_y - grid->scroll_y, &rect, &rect, NULL, NULL,
@@ -468,11 +465,8 @@ grid_setup_scrollbars(grid_t* grid)
     grid_layout_t layout;
     RECT rect;
     SCROLLINFO si;
-    WORD headerw, headerh;
     
     grid_calc_layout(grid, &layout);
-    headerw = (layout.display_row_headers ? grid->header_width : 0);
-    headerh = (layout.display_col_headers ? grid->header_height : 0);
     GetClientRect(grid->win, &rect);
 
     si.cbSize = sizeof(SCROLLINFO);
@@ -481,7 +475,7 @@ grid_setup_scrollbars(grid_t* grid)
 
     /* Setup horizontal scrollbar */
     si.nMax = layout.display_col_count * grid->cell_width;
-    si.nPage = rect.right - rect.left - headerw;
+    si.nPage = rect.right - rect.left - layout.display_header_width;
     grid->scroll_x = SetScrollInfo(grid->win, SB_HORZ, &si, TRUE);
 
     /* Fixup for Win2000 - appearance of horizontal toolbar sometimes
@@ -491,7 +485,7 @@ grid_setup_scrollbars(grid_t* grid)
 
     /* Setup vertical scrollbar */
     si.nMax = layout.display_row_count * grid->cell_height;
-    si.nPage = rect.bottom - rect.top - headerh;
+    si.nPage = rect.bottom - rect.top - layout.display_header_height;
     grid->scroll_y = SetScrollInfo(grid->win, SB_VERT, &si, TRUE);
 }
 
@@ -798,8 +792,15 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_SIZE:
-            if(!grid->no_redraw)
+            if(!grid->no_redraw) {
+                int old_scroll_x = grid->scroll_x;
+                int old_scroll_y = grid->scroll_y;
+
                 grid_setup_scrollbars(grid);
+
+                if(grid->scroll_x != old_scroll_x  ||  grid->scroll_y != old_scroll_y)
+                    InvalidateRect(win, NULL, TRUE);
+            }
             return 0;
 
         case WM_GETFONT:
@@ -848,7 +849,7 @@ grid_init(void)
 {
     WNDCLASS wc = { 0 };
 
-    wc.style = CS_GLOBALCLASS | CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_GLOBALCLASS;
     wc.lpfnWndProc = grid_proc;
     wc.cbWndExtra = sizeof(grid_t*);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
