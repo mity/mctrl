@@ -723,10 +723,14 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 HDC dc = (HDC)wp;
                 PAINTSTRUCT ps;
 
-                if(wp == 0)
+                if(wp == 0) {
                     dc = BeginPaint(win, &ps);
-                else
-                    GetClientRect(grid->win, &ps.rcPaint);
+                } else if(msg == WM_PAINT) {
+                    GetUpdateRect(win, &ps.rcPaint, TRUE);
+                    ValidateRect(win, NULL);
+                } else {
+                    GetClientRect(win, &ps.rcPaint);
+                }
                 grid_paint(grid, dc, &ps.rcPaint);
                 if(wp == 0)
                     EndPaint(win, &ps);
