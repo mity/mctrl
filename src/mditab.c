@@ -585,9 +585,10 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
 }
 
 static void
-mditab_paint(mditab_t* mditab, HDC dc)
+mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty)
 {
     RECT rect;
+    RECT* rect_item;
     RECT r;
     UINT i;
     HFONT old_font;
@@ -605,10 +606,15 @@ mditab_paint(mditab_t* mditab, HDC dc)
 
     /* Draw unselected tabs */
     for(i = mditab->item_first_visible; i < MDITAB_COUNT(mditab); i++) {
-        if(!mditab_is_item_visible(mditab, i))
+        rect_item = &MDITAB_ITEM(mditab, i)->rect;
+        
+        if(rect_item->left > mditab->rect_main.right)
             break;
+        if(rect_item->right < dirty->left || rect_item->left > dirty->right)
+            continue;
         if(i == mditab->item_selected)
             continue;
+
         mditab_paint_item(mditab, dc, i);
     }
 
@@ -635,7 +641,9 @@ mditab_paint(mditab_t* mditab, HDC dc)
     }
 
     /* Draw the selected tab */
-    if(mditab_is_item_visible(mditab, mditab->item_selected))
+    rect_item = &MDITAB_ITEM(mditab, mditab->item_selected)->rect;
+    if((dirty->left <= rect_item->left && rect_item->left <= rect_item->right) ||
+       (dirty->left <= rect_item->right && rect_item->right <= rect_item->right))
         mditab_paint_item(mditab, dc, mditab->item_selected);
 
     SelectObject(dc, old_font);
@@ -1090,8 +1098,9 @@ mditab_set_item_width(HWND win, MC_MTITEMWIDTH* tw)
     if(def_w != mditab->item_def_width  ||  min_w != mditab->item_min_width) {
         mditab->item_def_width = def_w;
         mditab->item_min_width = min_w;
+        mditab_layout(mditab);
         if(!mditab->no_redraw)
-            InvalidateRect(win, NULL, TRUE);
+            InvalidateRect(win, NULL, TRUE);        
     }
     return TRUE;
 }
@@ -1374,9 +1383,15 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 HDC dc = (HDC)wp;
                 PAINTSTRUCT ps;
     
-                if(wp == 0)
+                if(wp == 0) {
                     dc = BeginPaint(win, &ps);
-                mditab_paint(mditab, dc);
+                } else if(msg == WM_PAINT) {
+                    GetUpdateRect(win, &ps.rcPaint, TRUE);
+                    ValidateRect(win, NULL);
+                } else {
+                    GetClientRect(win, &ps.rcPaint);
+                }                    
+                mditab_paint(mditab, dc, &ps.rcPaint);
                 if(wp == 0)
                     EndPaint(win, &ps);
             }
