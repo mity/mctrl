@@ -87,7 +87,7 @@
  * there is no guaranty the behavior does not change in future versions of
  * mCtrl.
  *
- * The initialization funtion can be always called multiple times (even 
+ * The initialization function can be always called multiple times (even 
  * concurrently for multiple threads). Each module has its own initialization 
  * counter, incremented in the initialization function and decremented in
  * the termination function. The module is really uninitialized only after
@@ -96,7 +96,7 @@
  * @attention Note that if you are using @c MCTRL.DLL from your dynamic 
  * library, you may not call the initialization and termination functions 
  * in context of @c DllMain(). Windows severly limits what can be done safely 
- * in the @c DllMain context. Even if it would be safe for some modules 
+ * in the @c DllMain() context. Even if it would be safe for some modules 
  * currently there is no guaranty that future version of mCtrl won't use 
  * anything problematic in this regard.
  */
