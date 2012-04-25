@@ -523,6 +523,8 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 
                 if(!dc)
                     dc = BeginPaint(win, &ps);
+                else if(msg == WM_PAINT)
+                    ValidateRect(win, NULL);
                 button_paint_split(win, button, dc);
                 if(wp == 0)
                     EndPaint(win, &ps);
@@ -547,6 +549,8 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                     
                     if(wp == 0)
                         dc = BeginPaint(win, &ps);
+                    else if(msg == WM_PAINT)
+                        ValidateRect(win, NULL);
                     button_paint_icon(win, button, dc, icon);
                     if(wp == 0)
                         EndPaint(win, &ps);
