@@ -81,8 +81,7 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             
             if(LOWORD(wParam) == 1002 || LOWORD(wParam) == 1003) {
                 TCHAR buffer[64];
-                _sntprintf(buffer, 64, _T("Hot item: %d"), 
-                           (int) SendMessage(hwndMenubar, TB_GETHOTITEM, 0, 0));
+                _sntprintf(buffer, 64, _T("Clicked on a button ID %d."), LOWORD(wParam));
                 MessageBox(hWnd, buffer, _T("Button!"), MB_ICONINFORMATION | MB_OK);
             }
             break;
