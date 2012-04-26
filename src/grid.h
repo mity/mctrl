@@ -19,8 +19,9 @@
 #ifndef MC_GRID_H
 #define MC_GRID_H
 
-#include "misc.h"
 #include "mCtrl/grid.h"
+
+#include "misc.h"
 
 
 int grid_init(void);

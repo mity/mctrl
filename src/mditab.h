@@ -19,8 +19,9 @@
 #ifndef MC_MDITAB_H
 #define MC_MDITAB_H
 
-#include "misc.h"
 #include "mCtrl/mditab.h"
+
+#include "misc.h"
 
 
 int mditab_init(void);

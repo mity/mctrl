@@ -19,8 +19,9 @@
 #ifndef MC_BUTTON_H
 #define MC_BUTTON_H
 
-#include "misc.h"
 #include "mCtrl/button.h"
+
+#include "misc.h"
 
 
 int button_init(void);

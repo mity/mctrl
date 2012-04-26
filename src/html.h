@@ -19,8 +19,9 @@
 #ifndef MC_HTML_H
 #define MC_HTML_H
 
-#include "misc.h"
 #include "mCtrl/html.h"
+
+#include "misc.h"
 
 
 int html_init(void);
