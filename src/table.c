@@ -144,9 +144,10 @@ table_contents_alloc(table_contents_t* contents, value_type_t* homotype,
 static void
 table_contents_free(table_contents_t* contents)
 {
-    /* Buffers for all tabke attributes share one allocated chunk
+    /* Buffers for all table attributes share one allocated chunk
      * and ->values is the first of them. */
-    free(contents->values);
+    if(contents->values)
+        free(contents->values);
 }
 
 static void
@@ -217,7 +218,7 @@ table_contents_free_region(table_contents_t* contents, table_region_t* region)
                 t = contents->types[index];
 
             MC_ASSERT(t != NULL);
-            t->free(contents->values[index]);
+            t->destroy(contents->values[index]);
         }
     }
 }
@@ -518,10 +519,10 @@ table_set_cell(table_t* table, WORD col, WORD row, MC_TABLECELL* cell)
         if(TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents)) {
             MC_ASSERT(cell->hType == NULL  ||  cell->hType == table->contents.type);
             if(table->contents.values[index] != NULL)
-                table->contents.type->free(table->contents.values[index]);
+                table->contents.type->destroy(table->contents.values[index]);
         } else {
             if(table->contents.values[index] != NULL)
-                table->contents.types[index]->free(table->contents.values[index]);
+                table->contents.types[index]->destroy(table->contents.values[index]);
             table->contents.types[index] = (value_type_t*) cell->hType;
         }
     

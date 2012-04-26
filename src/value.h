@@ -22,6 +22,12 @@
 #include "mCtrl/value.h"
 #include "misc.h"
 
+#ifndef MC_DEBUG_H
+    #error shit
+#endif
+
+
+
 
 typedef void* value_t;
 
@@ -44,7 +50,7 @@ typedef void* value_t;
 
 typedef struct value_type_tag value_type_t;
 struct value_type_tag {
-    void   (*free)(value_t);
+    void   (*destroy)(value_t);
     int    (*copy)(value_t*, const value_t);
     int    (*cmp)(const value_t, const value_t);
     int    (*from_string)(value_t*, const TCHAR*);

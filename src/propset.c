@@ -123,7 +123,7 @@ propset_apply(propset_item_t* item, MC_PROPSETITEM* pi, BOOL unicode)
 
     if(pi->fMask & MC_PSIM_VALUE) {
         if(item->value != NULL)
-            item->type->free(item->value);
+            item->type->destroy(item->value);
 
         item->type = (value_type_t*) pi->hType;
         item->value = (value_t) pi->hValue;

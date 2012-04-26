@@ -47,13 +47,13 @@ draw_text_format(DWORD flags, UINT defaults)
  ************************/
 
 static void
-default_free(value_t v)
+default_destroy(value_t v)
 {
     free(v);
 }
 
 static void
-scalar_free(value_t v)
+scalar_destroy(value_t v)
 {
     /* noop */
 }
@@ -165,7 +165,7 @@ int32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 
 static const struct value_type_tag int32_type = {
-    scalar_free,
+    scalar_destroy,
     scalar_copy,
     int32_cmp,
     int32_from_string,
@@ -265,7 +265,7 @@ uint32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 
 static const struct value_type_tag uint32_type = {
-    scalar_free,
+    scalar_destroy,
     scalar_copy,
     uint32_cmp,
     uint32_from_string,
@@ -398,9 +398,9 @@ int64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 static const struct value_type_tag int64_type = {
 #ifdef _WIN64
-    scalar_free,
+    scalar_destroy,
 #else
-    default_free,
+    default_destroy,
 #endif
 #ifdef _WIN64
     scalar_copy,
@@ -528,9 +528,9 @@ uint64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 static const struct value_type_tag uint64_type = {
 #ifdef _WIN64
-    scalar_free,
+    scalar_destroy,
 #else
-    default_free,
+    default_destroy,
 #endif
 #ifdef _WIN64
     scalar_copy,
@@ -648,7 +648,7 @@ str_paint_w(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 
 static const struct value_type_tag str_type_w = {
-    default_free,
+    default_destroy,
     str_copy_w,
     str_cmp_w,
     str_from_string_w,
@@ -761,7 +761,7 @@ str_paint_a(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 
 static const struct value_type_tag str_type_a = {
-    default_free,
+    default_destroy,
     str_copy_a,
     str_cmp_a,
     str_from_string_a,
@@ -783,7 +783,7 @@ value_set_immstring_w(value_t* v, const WCHAR* str)
 }
 
 static const struct value_type_tag immstr_type_w = {
-    scalar_free,
+    scalar_destroy,
     scalar_copy,
     str_cmp_w,
     NULL,
@@ -805,7 +805,7 @@ value_set_immstring_a(value_t* v, const char* str)
 }
 
 static const struct value_type_tag immstr_type_a = {
-    scalar_free,
+    scalar_destroy,
     scalar_copy,
     str_cmp_a,
     NULL,
@@ -887,7 +887,7 @@ colorref_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 }
 
 static const struct value_type_tag colorref_type = {
-    scalar_free,
+    scalar_destroy,
     scalar_copy,
     NULL,
     colorref_from_string,
@@ -942,7 +942,7 @@ hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
 }
 
 static const struct value_type_tag hicon_type = {
-    scalar_free,
+    scalar_destroy,
     scalar_copy,
     NULL,
     NULL,
@@ -1125,5 +1125,5 @@ void MCTRL_API
 mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue)
 {
     if(hType != NULL)
-        ((value_type_t*)hType)->free((value_t)hValue);
+        ((value_type_t*)hType)->destroy((value_t)hValue);
 }
