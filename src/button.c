@@ -31,8 +31,8 @@
 
 
 
-const TCHAR button_wc[] = MC_WC_BUTTON;      /* Window class name */
-static const WCHAR button_tc[] = L"BUTTON";  /* Theming identifier */
+static const TCHAR button_wc[] = MC_WC_BUTTON;  /* Window class name */
+static const WCHAR button_tc[] = L"BUTTON";     /* Theming identifier */
 static int extra_offset;
 static WNDPROC orig_button_proc = NULL;
 
