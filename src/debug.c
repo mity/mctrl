@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2011 Martin Mitas
+ * Copyright (c) 2009-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +23,16 @@
 
 #if defined DEBUG && DEBUG >= 2
 
+
+/* Trace out all malloc() and free() calls? */
+#if DEBUG >= 3
+    #define DEBUG_TRACE          MC_TRACE
+#else
+    #define DEBUG_TRACE(...)     do { } while(0)
+#endif
+
+
+/* Undefine the replacing macros from debug.h */
 #undef malloc
 #undef realloc
 #undef free
@@ -39,6 +49,7 @@ struct mem_info_tag {
     mem_info_t* next;
 };
 
+
 /* Here we keep all alocated mem_info_t instances, hashed by the memory chunk
  * address. Keep the hashtable size not dividable by four, so that all slots 
  * are used approximately evenly. (The dynamic allocator usually tends to 
@@ -47,8 +58,7 @@ struct mem_info_tag {
  * The hashtable lives in its own heap, so it's somewhat separated from 
  * other memory usage. This lowers the probability these core data will be 
  * overwritten by some bug. (That would make this tool for memory debugging
- * a bit useless...)
- */
+ * a bit useless...) */
 #define MEM_HASHTABLE_SIZE       ((16 * 1024) - 1)
 #define MEM_HASHTABLE_INDEX(mem) ((ULONG_PTR)(mem) % MEM_HASHTABLE_SIZE)
 static mem_info_t* mem_hashtable[MEM_HASHTABLE_SIZE] = { 0 };
@@ -57,14 +67,11 @@ static CRITICAL_SECTION mem_lock;
 
 
 /* Head and tail bytes are prepended/appended to the allocated memory
- * chunk, so that buffer over/underruns can be detected. 
- */
-static const BYTE head_guard[] = 
-        { 0xaf, 0xae, 0xad, 0xac, 0xab, 0xaa, 0xa9, 0xa8, 
-          0xa7, 0xa6, 0xa5, 0xa4, 0xa3, 0xa2, 0xa1, 0xa0 };
-static const BYTE tail_guard[] = 
-        { 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 
-          0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf };
+ * chunk, so that buffer over/underruns can be detected. */
+static const BYTE head_guard[] = { 0xaf, 0xae, 0xad, 0xac, 0xab, 0xaa, 0xa9, 0xa8,
+                                   0xa7, 0xa6, 0xa5, 0xa4, 0xa3, 0xa2, 0xa1, 0xa0 };
+static const BYTE tail_guard[] = { 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7,
+                                   0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf };
 
 
 void* 
@@ -80,8 +87,7 @@ debug_malloc(const char* fname, int line, size_t size)
     /* Allocate */
     buffer = (BYTE*) malloc(size + sizeof(head_guard) + sizeof(tail_guard));
     if(MC_ERR(buffer == NULL)) {
-        MC_TRACE("%s:%d: \tdebug_malloc(%lu) failed.", 
-                 fname, line, (ULONG)size);
+        MC_TRACE("%s:%d: \tdebug_malloc(%lu) failed.", fname, line, (ULONG)size);
         return NULL;
     }
 
@@ -92,7 +98,7 @@ debug_malloc(const char* fname, int line, size_t size)
     /* Fill the memory chunk with some non-zero bytes 
      * (this can help to debug (mis)uses of uninitialized memory) */
     mem = (void*)(buffer + sizeof(head_guard));
-    memset(mem, 0xf0, size);
+    memset(mem, 0xff, size);
     
     /* Register info about the allocated memory */
     EnterCriticalSection(&mem_lock);
@@ -106,7 +112,7 @@ debug_malloc(const char* fname, int line, size_t size)
     mi->line = line;
     LeaveCriticalSection(&mem_lock);
     
-    MC_TRACE("%s:%d: \tdebug_malloc(%lu) -> %p", fname, line, mi->size, mem);
+    DEBUG_TRACE("%s:%d: \tdebug_malloc(%lu) -> %p", fname, line, mi->size, mem);
     return mem;
 }
 
@@ -164,29 +170,35 @@ debug_free(const char* fname, int line, void* mem)
         mi = mi->next;
     }
 
-    MC_TRACE("%s:%d: \tdebug_free(%p) [size=%lu]", fname, line, mem, mi->size);
+    DEBUG_TRACE("%s:%d: \tdebug_free(%p) [size=%lu]", fname, line, mem, mi->size);
 
     /* Check that the over/underrun guards are intact */
     head = (DWORD*)((BYTE*)mem - sizeof(head_guard));
     tail = (DWORD*)((BYTE*)mem + mi->size);
     if(memcmp(head, head_guard, sizeof(head_guard)) != 0) {
         MC_TRACE("%s:%d: \tdebug_free(%p) detected buffer underrun "
-                 "[guard={%x,%x,%x,%x}, size=%lu]. Was allocated here: %s:%d",
-                 fname, line, mem, head[0], head[1], head[2], head[3], 
+                 "[guard={%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x}, "
+                 "size=%lu]. Was allocated here: %s:%d",
+                 fname, line, mem,
+                 head[0], head[1], head[2], head[3], head[4], head[5], head[6], head[7],
+                 head[8], head[9], head[10], head[11], head[12], head[13], head[14], head[15],
                  mi->size, mi->fname, mi->line);
         MC_ASSERT(2 == 0);
     }
     if(memcmp(tail, tail_guard, sizeof(tail_guard)) != 0) {
         MC_TRACE("%s:%d: \tdebug_free(%p) detected buffer overrun "
-                 "[guard={%x,%x,%x,%x}, size=%lu]. Was allocated here: %s:%d",
-                 fname, line, mem, tail[0], tail[1], tail[2], tail[3], 
+                 "[guard={%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x}, "
+                 "size=%lu]. Was allocated here: %s:%d",
+                 fname, line, mem,
+                 tail[0], tail[1], tail[2], tail[3], tail[4], tail[5], tail[6], tail[7],
+                 tail[8], tail[9], tail[10], tail[11], tail[12], tail[13], tail[14], tail[15],
                  mi->size, mi->fname, mi->line);
         MC_ASSERT(3 == 0);
     }
 
     /* Rewrite all the memory with 'invalid-memory' mark. 
      * (this can help to debug (mis)uses of released memory) */
-    memset(head, 0xee, mi->size + sizeof(head_guard) + sizeof(tail_guard));
+    memset(mem, 0xee, mi->size);
     
     /* Unregister the memory info */
     if(mi_prev != NULL)
@@ -217,23 +229,42 @@ debug_fini(void)
 {
     int i;
     int n = 0;
+    size_t size = 0;
     mem_info_t* mi;
     
     /* Generate report about memory leaks */
-    MC_TRACE("debug_fini: Memory leaks report:", n);
-    MC_TRACE("debug_fini: ----------------------------------------", n);
     EnterCriticalSection(&mem_lock);
     for(i = 0; i < MEM_HASHTABLE_SIZE; i++) {
         for(mi = mem_hashtable[i]; mi != NULL; mi = mi->next) {
-            MC_TRACE("debug_fini:   leak on addr %p (%lu bytes). "
-                     "Was allocated here: %s:%d",
-                     mi->mem, mi->size, mi->fname, mi->line);
+            if(n == 0) {
+                MC_TRACE("");
+                MC_TRACE("debug_fini: LEAK REPORT:");
+                MC_TRACE("debug_fini: --------------------------------------------------");
+#ifdef _WIN64
+                MC_TRACE("debug_fini: Address              Size       Where");
+#else
+                MC_TRACE("debug_fini: Address      Size       Where");
+#endif
+                MC_TRACE("debug_fini: --------------------------------------------------");
+            }
+            
+#ifdef _WIN64
+            MC_TRACE("debug_fini: 0x%16p   %8lu   %s:%d", mi->mem, mi->size, mi->fname, mi->line);
+#else
+            MC_TRACE("debug_fini: 0x%8p   %8lu   %s:%d", mi->mem, mi->size, mi->fname, mi->line);
+#endif
+
             n++;
+            size += mi->size;
         }
     }
     LeaveCriticalSection(&mem_lock);
-    MC_TRACE("debug_fini:   [%d leaks detected]", n);
-    MC_TRACE("debug_fini: ----------------------------------------", n);
+    if(n > 0) {
+        MC_TRACE("debug_fini: --------------------------------------------------");
+        MC_TRACE("debug_fini: Lost %ul bytes in %d leaks.", size, n);
+        MC_TRACE("");
+    }
+    
     MC_ASSERT(n == 0);
     
     /* Uninitialize */
@@ -242,4 +273,3 @@ debug_fini(void)
 }
 
 #endif  /* #if defined DEBUG && DEBUG >= 2 */
-
