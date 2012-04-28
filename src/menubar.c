@@ -169,26 +169,11 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
     return 0;
 }
 
-static inline void
-menubar_item_set_state(menubar_t* mb, int item, DWORD state_bits)
-{
-    DWORD state = MENUBAR_SENDMSG(mb->win, TB_GETSTATE, item, 0);
-    state |= state_bits;
-    MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(state, 0));
-}
-
-static inline void
-menubar_item_unset_state(menubar_t* mb, int item, DWORD state_bits)
-{
-    DWORD state = MENUBAR_SENDMSG(mb->win, TB_GETSTATE, item, 0);
-    state &= ~state_bits;
-    MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(state, 0));
-}
-
 static void
 menubar_dropdown_helper(menubar_t* mb)
 {
     int item;
+    DWORD btn_state;
     TPMPARAMS pmparams = {0};
     MENUBAR_TRACE("menubar_dropdown_helper(%p)", mb);
     
@@ -208,7 +193,9 @@ menubar_dropdown_helper(menubar_t* mb)
         mb->select_from_keyboard = FALSE;
         mb->continue_hot_track = FALSE;
 
-        menubar_item_set_state(mb, item, TBSTATE_PRESSED);
+        btn_state = MENUBAR_SENDMSG(mb->win, TB_GETSTATE, item, 0);
+        MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item,
+                        MAKELONG(btn_state | TBSTATE_PRESSED, 0));
 
         MENUBAR_SENDMSG(mb->win, TB_GETITEMRECT, item, &pmparams.rcExclude);
         MapWindowPoints(mb->win, HWND_DESKTOP, (POINT*)&pmparams.rcExclude, 2);
@@ -220,7 +207,7 @@ menubar_dropdown_helper(menubar_t* mb)
                          mb->win, &pmparams);
         MENUBAR_TRACE("menubar_dropdown_helper: LEAVE TrackPopupMenuEx()");
 
-        menubar_item_unset_state(mb, item, TBSTATE_PRESSED);
+        MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(btn_state, 0));
         
         if(!mb->continue_hot_track)
             mb->pressed_item = -1;
