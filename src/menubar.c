@@ -97,6 +97,13 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
     if(menu == mb->menu)
         return;
 #endif
+
+    /* If dropped down, cancel it */
+    if(mb->pressed_item >= 0) {
+        menubar_ht_disable(mb);
+        MENUBAR_SENDMSG(mb->win, WM_CANCELMODE, 0, 0);
+    }
+
     if(mb->menu != NULL) {
         n = MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0);
         for(i = 0; i < n; i++)
@@ -148,7 +155,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
             buttons[i].idCommand = i;
         } else {
             buttons[i].dwData = 0xffff;
-            buttons[i].idCommand = 0xffff; // FIXME? 
+            buttons[i].idCommand = 0xffff;
             if(state & MF_SEPARATOR) {
                 buttons[i].fsStyle = BTNS_SEP;
                 buttons[i].iBitmap = MENUBAR_SEPARATOR_WIDTH;
@@ -158,10 +165,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
     
     MENUBAR_SENDMSG(mb->win, TB_ADDBUTTONS, n, buttons);
     mb->menu = menu;
-    
-    // TODO -- disable hot track etc.
-
-    _freea(buffer);    
+    _freea(buffer);
     return 0;
 }
 
@@ -556,7 +560,7 @@ menubar_ht_change_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
     mb->continue_hot_track = TRUE;
-    MENUBAR_SENDMSG(mb->win, WM_CANCELMODE, 0, 0); 
+    MENUBAR_SENDMSG(mb->win, WM_CANCELMODE, 0, 0);
 }
 
 static LRESULT CALLBACK
@@ -632,13 +636,14 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
 static void inline
 menubar_ht_perform_disable(void)
 {
-    UnhookWindowsHookEx(menubar_ht_hook);
-
-    menubar_ht_hook = NULL;
-    menubar_ht_mb = NULL;
-    menubar_ht_sel_menu = NULL;
-    menubar_ht_sel_item = -1;
-    menubar_ht_sel_flags = 0;
+    if(menubar_ht_hook) {
+        UnhookWindowsHookEx(menubar_ht_hook);
+        menubar_ht_hook = NULL;
+        menubar_ht_mb = NULL;
+        menubar_ht_sel_menu = NULL;
+        menubar_ht_sel_item = -1;
+        menubar_ht_sel_flags = 0;
+    }
 }
 
 static void
@@ -722,7 +727,6 @@ void
 menubar_fini(void)
 {
     DeleteCriticalSection(&menubar_ht_lock);
-
     UnregisterClass(menubar_wc, NULL);
 }
 
