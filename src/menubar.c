@@ -19,13 +19,26 @@
 #include "menubar.h"
 
 
-/* The MenuBar implementation is partially based on the MSDN article "How to
- * Create an Internet Explorer-Style Menu Bar"
- * (http://msdn.microsoft.com/en-us/library/windows/desktop/bb775450%28v=vs.85%29.aspx)
+/* TODO:
+ *  -- Support to make a chevron in a parent ReBar easy to do. 
+ *  -- Fix the artifact bug (for now it is worked around, see below).
  */
 
 
-/* TODO -- Support to make a chevron in a parent ReBar easy to do. */
+/* The MenuBar implementation is partially based on the MSDN article "How to
+ * Create an Internet Explorer-Style Menu Bar":
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/bb775450%28v=vs.85%29.aspx
+ */
+
+
+/* We have a bug somewhere which causes that when the menu is dropped down
+ * by mouse and the mouse is then moved ober other toolbar button, the firstly
+ * pressed button is displayed as hot.
+ *
+ * For now we "solved" by a very hacky workaround, which is guarded by this
+ * macro. Comment this out to see and debug the bug...
+ */
+#define MENUBAR_ARTIFACT_WORKAROUND        1
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -47,7 +60,7 @@ typedef struct menubar_tag menubar_t;
 struct menubar_tag {
     HWND win;
     HWND parent;
-    HWND old_focus;  /* non-NULL if have focus, we return focus to it on <ESC> */
+    HWND old_focus;  /* We return focus to it on <ESC> */
     HMENU menu;
     short hot_item;
     short pressed_item;
@@ -196,12 +209,12 @@ menubar_dropdown_helper(menubar_t* mb)
         MENUBAR_SENDMSG(mb->win, TB_GETITEMRECT, item, &pmparams.rcExclude);
         MapWindowPoints(mb->win, HWND_DESKTOP, (POINT*)&pmparams.rcExclude, 2);
         
-        MENUBAR_TRACE("menubar_dropdown_helper: ENTER GetSubMenu()");
+        MENUBAR_TRACE("menubar_dropdown_helper: ENTER TrackPopupMenuEx()");
         TrackPopupMenuEx(GetSubMenu(mb->menu, item),
                          TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_VERTICAL,
                          pmparams.rcExclude.left, pmparams.rcExclude.bottom,
                          mb->win, &pmparams);
-        MENUBAR_TRACE("menubar_dropdown_helper: LEAVE GetSubMenu()");
+        MENUBAR_TRACE("menubar_dropdown_helper: LEAVE TrackPopupMenuEx()");
 
         menubar_item_unset_state(mb, item, TBSTATE_PRESSED);
         
@@ -218,9 +231,13 @@ menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
     MENUBAR_TRACE("menubar_dropdown(%p, %d)", mb, item);
     
-    MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
+    MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);    
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
+    
+#ifndef MENUBAR_ARTIFACT_WORKAROUND
+    menubar_dropdown_helper(mb);
+#endif
 }
 
 static void
@@ -510,12 +527,10 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;  /* FALSE == NULL == 0 */
     }
     
-    if(mb && mb->pressed_item >= 0 && !mb->is_dropdown_active) {
-        /* This is a bit hacky: We can not do this diretly from 
-         * menubar_dropdown() because for some reason it causes some visual
-         * artifacts when moving mouse to other toolbar buttons. */
+#ifdef MENUBAR_ARTIFACT_WORKAROUND
+    if(mb && mb->pressed_item >= 0 && !mb->is_dropdown_active)
         menubar_dropdown_helper(mb);
-    }
+#endif
     
     return MENUBAR_SENDMSG(win, msg, wp, lp);
 }
@@ -537,9 +552,6 @@ static void
 menubar_ht_change_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
     MENUBAR_TRACE("menubar_ht_change_dropdown(%p,%d)", mb, item);
-    
-    if(item == mb->pressed_item)
-        return;
     
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
@@ -572,7 +584,8 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
             item = MENUBAR_SENDMSG(mb->win, TB_HITTEST, 0, (LPARAM)&pt);
             if(menubar_ht_last_pos.x != pt.x  ||  menubar_ht_last_pos.y != pt.y) {
                 menubar_ht_last_pos = pt;
-                if(0 <= item  &&  item < MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0)) {
+                if(item != mb->pressed_item  &&
+                   0 <= item  &&  item < MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0)) {
                     MENUBAR_TRACE("menubar_ht_proc: Change dropdown by mouse move "
                                   "[%d -> %d]", mb->pressed_item, item);
                     menubar_ht_change_dropdown(mb, item, FALSE);
@@ -591,7 +604,8 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                         if(item < 0)
                             item = MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0) - 1;
                         MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_LEFT");
-                        menubar_ht_change_dropdown(mb, item, TRUE);
+                        if(item != mb->pressed_item)
+                            menubar_ht_change_dropdown(mb, item, TRUE);
                     }
                     break;
 
@@ -604,7 +618,8 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                         if(item >= MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0))
                             item = 0;
                         MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_RIGHT");
-                        menubar_ht_change_dropdown(mb, item, TRUE);
+                        if(item != mb->pressed_item)
+                            menubar_ht_change_dropdown(mb, item, TRUE);
                     }
                     break;
             }
