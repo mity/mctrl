@@ -1321,6 +1321,9 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 ((TCHAR*)lp)[0] = _T('\0');
             return 0;
 
+        case WM_GETTEXTLENGTH:
+            return 0;
+
         case WM_NCCREATE:
             html = html_nccreate(win, (CREATESTRUCT*)lp);
             if(MC_ERR(html == NULL))
