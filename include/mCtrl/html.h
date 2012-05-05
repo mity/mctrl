@@ -134,6 +134,13 @@ extern "C" {
  *   URLs having two slashes after protocol and of there is no slash after.
  *   Furthermore IE can encode some special characters into their hexadecimal
  *   representation (i.e. space ' ' becomes "%20").
+ *
+ *
+ * @section std_msgs Standard Messages
+ *
+ * These standard messages are handled by the control:
+ * - @c CCM_GETUNICODEFORMAT
+ * - @c CCM_SETUNICODEFORMAT
  */
 
 

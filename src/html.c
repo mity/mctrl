@@ -1302,6 +1302,16 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 html_notify_format(html);
             return (html->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
 
+        case CCM_SETUNICODEFORMAT:
+        {
+            BOOL tmp = html->unicode_notifications;
+            html->unicode_notifications = (wp != 0);
+            return tmp;
+        }
+
+        case CCM_GETUNICODEFORMAT:
+            return html->unicode_notifications;
+
         case WM_SETFOCUS:
             if(html->ie_win) {
                 SetFocus(html->ie_win);
