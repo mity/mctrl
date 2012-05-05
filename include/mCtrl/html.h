@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -141,6 +141,9 @@ extern "C" {
  * These standard messages are handled by the control:
  * - @c CCM_GETUNICODEFORMAT
  * - @c CCM_SETUNICODEFORMAT
+ *
+ * These standards notifications are sent by the control:
+ * - @c NM_OUTOFMEMORY
  */
 
 

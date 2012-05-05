@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -329,6 +329,17 @@ mc_font_size(HFONT font, SIZE* size)
     size->cy = s.cy;
 }
 
+LRESULT
+mc_send_notify(HWND parent, HWND win, UINT code)
+{
+    NMHDR hdr;
+    
+    hdr.hwndFrom = win;
+    hdr.idFrom = GetWindowLong(win, GWL_ID);
+    hdr.code = code;
+    
+    return SendMessage(parent, WM_NOTIFY, hdr.idFrom, (LPARAM)&hdr);
+}
 
 int
 mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -221,8 +221,11 @@ void mc_icon_size(HICON icon, SIZE* size);
  * char width). Used to auto-adjust item size in complex controls. */
 void mc_font_size(HFONT font, SIZE* size);
 
-int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
+/* Send simple (i.e. using only NMHDR) notification */
+LRESULT mc_send_notify(HWND parent, HWND win, UINT code);
 
+/* Convert wheel messages into line count */
+int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
 #define mc_wheel_reset()   mc_wheel_scroll(NULL, 0, 0)
 
 

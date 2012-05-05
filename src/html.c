@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -893,6 +893,7 @@ html_goto_url(html_t* html, const void* url, BOOL unicode)
         bstr_url = html_bstr(url, (unicode ? MC_STRW : MC_STRA));
         if(MC_ERR(bstr_url == NULL)) {
             MC_TRACE("html_goto_url: html_bstr() failed.");
+            mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
             goto err_bstr;
         }
     } else {
@@ -940,6 +941,7 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     bstr_id = html_bstr(id, (unicode ? MC_STRW : MC_STRA));
     if(MC_ERR(bstr_id == NULL)) {
         MC_TRACE("html_set_element_contents: html_bstr(id) failed.");
+        mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
         goto err_id;
     }
     
@@ -948,6 +950,7 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     bstr_contents = html_bstr(contents, (unicode ? MC_STRW : MC_STRA));
     if(MC_ERR(bstr_contents == NULL)) {
         MC_TRACE("html_set_element_contents: html_bstr(contents) failed");
+        mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
         goto err_contents;
     }
     

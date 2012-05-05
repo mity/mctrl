@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -236,6 +236,7 @@ propview_set_propset(propview_t* pv, propset_t* propset)
         propset = propset_create(flags);
         if(MC_ERR(propset == NULL)) {
             MC_TRACE("propview_set_propset: propset_create() failed.");
+            mc_send_notify(GetParent(pv->win), pv->win, NM_OUTOFMEMORY);
             return -1;
         }
     }
@@ -244,6 +245,7 @@ propview_set_propset(propview_t* pv, propset_t* propset)
         if(MC_ERR(propset_install_view(propset, pv, propview_refresh) != 0)) {
             MC_TRACE("propview_set_propset: propset_install_view() failed.");
             propset_unref(propset);
+            mc_send_notify(GetParent(pv->win), pv->win, NM_OUTOFMEMORY);
             return -1;
         }
     }
@@ -271,8 +273,7 @@ propview_style_changed(propview_t* pv, int style_type, STYLESTRUCT* ss)
         if(!(pv->style & MC_PVS_NOPROPSETCREATE)  &&  pv->propset == NULL) {
             if(MC_ERR(propview_set_propset(pv, NULL) != 0)) {
                 MC_TRACE("propview_style_changed: propview_set_propset() failed.");
-                /* Damn. WM_STYLECHANGED does not offer any way how to propagate
-                 * errors to the application. */
+                mc_send_notify(GetParent(pv->win), pv->win, NM_OUTOFMEMORY);
             }
         }
     }

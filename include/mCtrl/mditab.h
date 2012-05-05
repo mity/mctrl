@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -74,10 +74,13 @@ extern "C" {
  *   another MDI document. @c MC_WC_MDITAB control does not expect that 
  *   (still you are free to implement any menu you like ;-)
  *
- * These standard messages are handled by @c MC_WC_MDITAB control:
+ * These standard messages are handled by the control:
  * - @c WM_GETFONT
  * - @c WM_SETFONT
  * - @c WM_SETREDRAW
+ *
+ * These standards notifications are sent by the control:
+ * - @c NM_OUTOFMEMORY
  */
  
 

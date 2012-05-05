@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,6 +48,14 @@ extern "C" {
  *
  * You can retrieve the underlying property set with @c MC_PVM_GETPROPSET
  * or change it with @c MC_PVM_SETPROPSET.
+ *
+ * These standard messages are handled by the control:
+ * - @c WM_GETFONT
+ * - @c WM_SETFONT
+ * - @c WM_SETREDRAW
+ *
+ * These standards notifications are sent by the control:
+ * - @c NM_OUTOFMEMORY
  */
 
 

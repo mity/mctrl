@@ -127,6 +127,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
                               n * sizeof(TCHAR) * MENUBAR_ITEM_LABEL_MAXSIZE);
     if(MC_ERR(buffer == NULL)) {
         MC_TRACE("menubar_set_menu: _malloca() failed.");
+        mc_send_notify(GetParent(mb->win), mb->win, NM_OUTOFMEMORY);
         return -1;
     }    
     buttons = (TBBUTTON*) buffer;

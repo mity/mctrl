@@ -696,6 +696,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
                 (unicode ? MC_STRW : MC_STRA), MC_STRT);
         if(MC_ERR(item_text == NULL)) {
             MC_TRACE("mditab_insert_item: mc_str() failed.");
+            mc_send_notify(GetParent(mditab->win), mditab->win, NM_OUTOFMEMORY);
             return -1;
         }
     } else {
@@ -708,6 +709,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         MC_TRACE("mditab_insert_item: dsa_insert_raw() failed.");
         if(item_text != NULL)
             free(item_text);
+        mc_send_notify(GetParent(mditab->win), mditab->win, NM_OUTOFMEMORY);
         return -1;
     }
 
@@ -769,6 +771,7 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         item_text = (TCHAR*) mc_str(id->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
         if(MC_ERR(item_text == NULL && id->pszText != NULL)) {
             MC_TRACE("mditab_set_item: mc_str() failed.");
+            mc_send_notify(GetParent(mditab->win), mditab->win, NM_OUTOFMEMORY);
             return FALSE;
         }
 
@@ -887,13 +890,9 @@ mditab_delete_item(mditab_t* mditab, int index)
 static void
 mditab_notify_delete_all_items(mditab_t* mditab)
 {
-    NMHDR notify;
     UINT i;
 
-    notify.hwndFrom = mditab->win;
-    notify.idFrom = GetDlgCtrlID(mditab->win);
-    notify.code = MC_MTN_DELETEALLITEMS;
-    if(SendMessage(GetParent(mditab->win), WM_NOTIFY, (WPARAM)notify.idFrom, (LPARAM)&notify) == FALSE) {
+    if(mc_send_notify(GetParent(mditab->win), mditab->win, MC_MTN_DELETEALLITEMS) == FALSE) {
         for(i = 0; i < MDITAB_COUNT(mditab); i++)
             mditab_notify_delete_item(mditab, i);
     }
