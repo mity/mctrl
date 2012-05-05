@@ -47,24 +47,6 @@
  * as well as in ANSI applications.
  *
  * 
- * @section sec_multithreading About Multithreading
- * 
- * mCtrl is designed to be multithreading friendly. In general, all functions
- * are reentrant. I.e. you can call the same @c MCTRL.DLL function concurrently
- * from multiple threads.
- *
- * However remeber that access to data visible externally through @c MCTRL.DLL
- * interface is not synchronized: If you have such data (e.g. @ref MC_HVALUE
- * or @ref MC_HTABLE and then want to manipulate with the data concurrently
- * from multiple threads, @c MCTRL.DLL does not synchronize for you: It's
- * application developer's to do so in order to avoid race conditions.
- *
- * Also note that some mCtrl modules may include yet another limitations.
- * Any such limitations are described in documentation of such the particular 
- * modules. (The @ref MC_WC_HTML control is a prominent example of such 
- * limitation.)
- *
- *
  * @section sec_init About Initialization and Termination
  * 
  * mCtrl functionality is divided into several modules, each having its own
@@ -99,4 +81,36 @@
  * in the @c DllMain() context. Even if it would be safe for some modules 
  * currently there is no guaranty that future version of mCtrl won't use 
  * anything problematic in this regard.
+ *
+ *
+ * @section sec_msg_constants About Message Constants
+ *
+ * mCtrl makes this promise (valid also for future versions of @c MCTRL.DLL):
+ * All mCtrl controls only implement private messages in the range 0x0401
+ * (@c WM_USER + 1) to 0x1299 (@c WM_USER + 0x0eff).
+ * 
+ * Beside that mCtrl controls support some common control general messages
+ * (@c CCM_xxxx which start at 0x2000; e.g. @c CCM_SETUNICODEFORMAT).
+ *
+ * I.e., if an application implements some custom control as a subclass of
+ * mCtrl control, it should acquire its private message from the range
+ * 0x1300 to 0x1fff.
+ *
+ *
+ * @section sec_multithreading About Multithreading
+ * 
+ * mCtrl is designed to be multithreading friendly. In general, all functions
+ * are reentrant. I.e. you can call the same @c MCTRL.DLL function concurrently
+ * from multiple threads.
+ *
+ * However remeber that access to data visible externally through @c MCTRL.DLL
+ * interface is not synchronized: If you have such data (e.g. @ref MC_HVALUE
+ * or @ref MC_HTABLE and then want to manipulate with the data concurrently
+ * from multiple threads, @c MCTRL.DLL does not synchronize for you: It's
+ * application developer's to do so in order to avoid race conditions.
+ *
+ * Also note that some mCtrl modules may include yet another limitations.
+ * Any such limitations are described in documentation of such the particular 
+ * modules. (The @ref MC_WC_HTML control is a prominent example of such 
+ * limitation.)
  */
