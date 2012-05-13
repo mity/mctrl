@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2011 Martin Mitas
+ * Copyright (c) 2009-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,6 +24,8 @@
     #include <windows.h>
     #include <stdlib.h>
     #include <stdio.h>  /* _snprintf() */
+    
+    void debug_dump(void* addr, size_t n);
 
     /* Assertion */
     #define MC_ASSERT(condition)                                              \
@@ -51,6 +53,12 @@
             _snprintf(mc_trace_buf_, sizeof(mc_trace_buf_), __VA_ARGS__);     \
             OutputDebugStringA(mc_trace_buf_);                                \
         } while(0)
+
+    #define MC_DUMP(msg,addr,n)                                               \
+        do {                                                                  \
+            MC_TRACE(msg);                                                    \
+            debug_dump((void*)(addr), (size_t)(n));                           \
+        } while(0)
 #endif
 
 
@@ -65,6 +73,9 @@
 #endif
 #ifndef MC_TRACE
     #define MC_TRACE(...)                do { } while(0)
+#endif
+#ifndef MC_DUMP
+    #define MC_DUMP(...)                 do { } while(0)
 #endif
 #ifndef MC_UNREACHABLE
     #if defined __GNUC__
