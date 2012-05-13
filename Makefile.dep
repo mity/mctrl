@@ -10,6 +10,8 @@ obj/compat.o: src/compat.c src/compat.h src/misc.h src/debug.h src/resource.h \
  src/version.h
 obj/debug.o: src/debug.c src/debug.h src/misc.h src/compat.h src/resource.h \
  src/version.h
+obj/dialog.o: src/dialog.c src/dialog.h src/misc.h src/compat.h src/debug.h \
+ src/resource.h src/version.h include/mCtrl/dialog.h include/mCtrl/defs.h
 obj/dsa.o: src/dsa.c src/dsa.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h
 obj/embedit.o: src/embedit.c src/embedit.h src/misc.h src/compat.h \
@@ -31,10 +33,10 @@ obj/menubar.o: src/menubar.c src/menubar.h include/mCtrl/menubar.h \
  src/version.h
 obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h src/module.h include/mctrl.h include/mCtrl/button.h \
- include/mCtrl/defs.h include/mCtrl/grid.h include/mCtrl/value.h \
- include/mCtrl/table.h include/mCtrl/html.h include/mCtrl/menubar.h \
- include/mCtrl/mditab.h include/mCtrl/propset.h include/mCtrl/propview.h \
- include/mCtrl/version.h
+ include/mCtrl/defs.h include/mCtrl/dialog.h include/mCtrl/grid.h \
+ include/mCtrl/value.h include/mCtrl/table.h include/mCtrl/html.h \
+ include/mCtrl/menubar.h include/mCtrl/mditab.h include/mCtrl/propset.h \
+ include/mCtrl/propview.h include/mCtrl/version.h
 obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h src/embedit.h src/theme.h src/theme_fn.h \
  src/button.h include/mCtrl/button.h include/mCtrl/defs.h src/grid.h \
