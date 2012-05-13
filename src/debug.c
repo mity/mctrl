@@ -21,6 +21,42 @@
 #include "misc.h"
 
 
+#if defined DEBUG && DEBUG >= 1
+
+#define DEBUG_DUMP_PER_LINE         16
+
+void
+debug_dump(void* addr, size_t n)
+{
+    BYTE* bytes = (BYTE*) addr;
+    size_t offset = 0;
+    size_t count;
+    char buffer[32 + 3 * DEBUG_DUMP_PER_LINE];
+    char* ptr;
+    int i;
+    
+    while(offset < n) {
+        count = MC_MIN(n - offset, DEBUG_DUMP_PER_LINE);
+        
+        ptr = buffer;
+        ptr += sprintf(ptr, "    %04x:  ", offset);
+        
+        for(i = 0; i < count; i++) {
+            ptr += sprintf(ptr, " %02x", bytes[offset + i]);
+            if(i == DEBUG_DUMP_PER_LINE/2 - 1)
+                ptr += sprintf(ptr, "  ");
+        }
+        
+        MC_TRACE(buffer);        
+        offset += count;
+    }
+    
+    MC_TRACE("            (%lu bytes)", (ULONG)n);
+}
+
+#endif  /* #if defined DEBUG && DEBUG >= 1 */
+
+
 #if defined DEBUG && DEBUG >= 2
 
 
