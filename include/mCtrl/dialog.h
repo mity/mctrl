@@ -239,6 +239,7 @@ INT_PTR MCTRL_API mcDialogBoxParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
  */
 #define mcDialogBoxA(hInstance,lpTemplateName,hWndParent,lpDialogFunc,dwFlags)   \
                 mcDialogBoxParamA((hInstance),(lpTemplateName),(hWndParent),     \
+                                  (lpDialogFunc),0L,(dwFlags))
 
 
 /**
