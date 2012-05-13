@@ -51,6 +51,7 @@
  *
  * @subsection toc_misc Miscellaneous
  * - @ref mctrl.h - All-in-one header
+ * - @ref mCtrl/dialog.h - Dialog functions
  * - @ref mCtrl/defs.h - Miscellaneous macros and constants
  * - @ref mCtrl/version.h - Retrieving mCtrl version
  */

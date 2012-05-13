@@ -10,6 +10,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <mCtrl/button.h>
+#include <mCtrl/dialog.h>
 #include "ex_button.h"
 
 
@@ -114,6 +115,6 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     mcButton_Initialize();
     
     /* Load and show a dialog. */
-    DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, myproc);
+    mcDialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, myproc, MC_DF_DEFAULTFONT);
     return 0;
 }
