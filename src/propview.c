@@ -478,7 +478,7 @@ propview_init(void)
 {
     WNDCLASS wc = { 0 };
 
-    wc.style = CS_GLOBALCLASS | CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = propview_proc;
     wc.cbWndExtra = sizeof(propview_t*);
     wc.hInstance = NULL;
