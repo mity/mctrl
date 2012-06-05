@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Martin Mitas
+ * Copyright (c) 2010-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -135,11 +135,13 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     WORD col1, row1;
     WORD col, row;
     RECT rect;
-    HRGN clip;
+    RECT client;
     int old_dc_state, cell_dc_state;
 
     GRID_TRACE("grid_paint(%d, %d, %d, %d)",
                dirty->left, dirty->top, dirty->right, dirty->bottom);
+
+    GetClientRect(grid->win, &client);
 
     grid_calc_layout(grid, &layout);
     headerw = layout.display_header_width;
@@ -161,18 +163,14 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     SetTextColor(dc, RGB(0,0,0));
     SelectObject(dc, GetStockObject(BLACK_PEN));
 
-    clip = CreateRectRgn(0, 0, 1, 1);
-    if(GetClipRgn(dc, clip) <= 0) {
-        DeleteObject(clip);
-        clip = NULL;
-    }
-
     /* Paint "dead" top left cell */
     if(headerw > 0 && headerh > 0 && dirty->left <= headerw && dirty->top <= headerh) {
         rect.left = 0;
         rect.top = 0;
         rect.right = headerw;
         rect.bottom = headerh;
+
+        mc_clip_set(dc, 0, 0, MC_MIN(headerw, client.right), MC_MIN(headerh, client.bottom));
 
         if(grid->theme) {
             theme_DrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
@@ -192,8 +190,8 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         rect.bottom = headerh;
 
         for(col = col0; col < col1; col++) {
-            IntersectClipRect(dc, MC_MAX(headerw, rect.left), rect.top,
-                                  rect.right, rect.bottom);
+            mc_clip_set(dc, MC_MAX(headerw, rect.left), rect.top,
+                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
 
             if(grid->theme) {
                 theme_DrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
@@ -227,8 +225,6 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
             rect.left += grid->cell_width;
             rect.right += grid->cell_width;
-
-            SelectClipRgn(dc, clip);
         }
     }
 
@@ -242,8 +238,8 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         rect.bottom = rect.top + grid->cell_height;
 
         for(row = row0; row < row1; row++) {
-            IntersectClipRect(dc, rect.left, MC_MAX(headerh, rect.top),
-                                  rect.right, rect.bottom);
+            mc_clip_set(dc, rect.left, MC_MAX(headerh, rect.top),
+                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));            
 
             if(grid->theme) {
                 rect.bottom++;  /* damn: Aero is ugly w/o this */
@@ -279,8 +275,6 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
             rect.top += grid->cell_height;
             rect.bottom += grid->cell_height;
-
-            SelectClipRgn(dc, clip);
         }
     }
 
@@ -289,6 +283,8 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         int x;
         int y;
         HPEN pen, old_pen;
+        
+        mc_clip_set(dc, client.left, client.top, client.right, client.bottom);
 
         pen = CreatePen(PS_SOLID, 0, grid->gridline_color);
         old_pen = SelectObject(dc, pen);
@@ -321,12 +317,11 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
             rect.right = rect.left + grid->cell_width - 2*grid->cell_padding_horz - 1;
             rect.bottom = rect.top + grid->cell_height - 2*grid->cell_padding_vert - 1;
 
-            IntersectClipRect(dc, MC_MAX(headerw, rect.left), MC_MAX(headerh, rect.top),
-                                  rect.right, rect.bottom);
+            mc_clip_set(dc, MC_MAX(headerw, rect.left), MC_MAX(headerh, rect.top),
+                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
             cell_dc_state = SaveDC(dc);
             table_paint_cell(grid->table, col, row, dc, &rect);
             RestoreDC(dc, cell_dc_state);
-            SelectClipRgn(dc, clip);
 
             rect.left += grid->cell_width;
         }
@@ -849,7 +844,7 @@ grid_init(void)
 {
     WNDCLASS wc = { 0 };
 
-    wc.style = CS_GLOBALCLASS;
+    wc.style = CS_GLOBALCLASS | CS_PARENTDC;
     wc.lpfnWndProc = grid_proc;
     wc.cbWndExtra = sizeof(grid_t*);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
