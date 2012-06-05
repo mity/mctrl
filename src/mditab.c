@@ -641,10 +641,12 @@ mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty)
     }
 
     /* Draw the selected tab */
-    rect_item = &MDITAB_ITEM(mditab, mditab->item_selected)->rect;
-    if((dirty->left <= rect_item->left && rect_item->left <= rect_item->right) ||
-       (dirty->left <= rect_item->right && rect_item->right <= rect_item->right))
-        mditab_paint_item(mditab, dc, mditab->item_selected);
+    if(mditab->item_selected >= 0) {
+        rect_item = &MDITAB_ITEM(mditab, mditab->item_selected)->rect;
+        if((dirty->left <= rect_item->left && rect_item->left <= rect_item->right) ||
+           (dirty->left <= rect_item->right && rect_item->right <= rect_item->right))
+            mditab_paint_item(mditab, dc, mditab->item_selected);
+    }
 
     SelectObject(dc, old_font);
     SetBkMode(dc, old_bk_mode);
