@@ -1381,6 +1381,7 @@ html_init(void)
         return -1;
     }
 
+    wc.style = CS_GLOBALCLASS | CS_PARENTDC;
     wc.lpfnWndProc = html_proc;
     wc.cbWndExtra = sizeof(html_t*);
     wc.lpszClassName = html_wc;
