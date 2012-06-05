@@ -341,6 +341,44 @@ mc_send_notify(HWND parent, HWND win, UINT code)
     return SendMessage(parent, WM_NOTIFY, hdr.idFrom, (LPARAM)&hdr);
 }
 
+HRGN
+mc_clip_get(HDC dc)
+{
+    HRGN clip;
+    
+    clip = CreateRectRgn(0, 0, 0, 0);
+    if(GetClipRgn(dc, clip) != 1) {
+        DeleteObject(clip);
+        return NULL;
+    }
+        
+    return clip;        
+}
+
+void
+mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom)
+{
+    HRGN clip;
+    
+    clip = CreateRectRgn(left, top, right+1, bottom+1);
+    if(MC_ERR(clip == NULL)) {
+        MC_TRACE("mc_clip_set: CreateRectRgn() failed.");
+        return;
+    }
+    
+    SelectClipRgn(dc, clip);
+    DeleteObject(clip);
+}
+
+void
+mc_clip_reset(HDC dc, HRGN old_clip)
+{
+    if(old_clip != NULL) {
+        SelectClipRgn(dc, old_clip);
+        DeleteObject(old_clip);
+    }
+}
+
 int
 mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
 {

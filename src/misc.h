@@ -224,6 +224,11 @@ void mc_font_size(HFONT font, SIZE* size);
 /* Send simple (i.e. using only NMHDR) notification */
 LRESULT mc_send_notify(HWND parent, HWND win, UINT code);
 
+/* Easy-to-use clipping functions */
+HRGN mc_clip_get(HDC dc);
+void mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom);
+void mc_clip_reset(HDC dc, HRGN old_clip);
+
 /* Convert wheel messages into line count */
 int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
 #define mc_wheel_reset()   mc_wheel_scroll(NULL, 0, 0)
