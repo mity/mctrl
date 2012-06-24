@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,6 +48,17 @@
  */
 
 
+/* Uncomment this to have more verbose traces from this module. */
+/*#define MDITAB_DEBUG     1*/
+
+#ifdef MDITAB_DEBUG
+    #define MDITAB_TRACE       MC_TRACE
+#else
+    #define MDITAB_TRACE(...)  do {} while(0)
+#endif
+
+
+
 static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
 static const WCHAR mditab_tc[] = L"TAB";        /* theme class name */
 
@@ -92,24 +103,24 @@ struct mditab_item_tag {
 typedef struct mditab_tag mditab_t;
 struct mditab_tag {
     HWND win;
-    HWND toolbar1;          /* left-side toolbar */
-    HWND toolbar2;          /* right-side toolbar */
-    RECT rect_main;         /* main area where we draw the tabs and toolbars */
-    HTHEME theme;           /* theming handle */
+    HWND toolbar1;             /* left-side toolbar */
+    HWND toolbar2;             /* right-side toolbar */
+    RECT rect_main;            /* main area where we draw the tabs and toolbars */
+    HTHEME theme;              /* theming handle */
     DWORD ui_state;
-    HIMAGELIST img_list;    /* image list, optional */
-    HFONT font;             /* font */
-    dsa_t item_dsa;         /* items */
-    SHORT item_selected;    /* selected (== active) item */
-    SHORT item_hot;         /* tracked only when themed */
+    HIMAGELIST img_list;       /* image list, optional */
+    HFONT font;                /* font */
+    dsa_t item_dsa;            /* items */
+    SHORT item_selected;       /* selected (== active) item */
+    SHORT item_hot;            /* tracked only when themed */
     SHORT item_first_visible;  /* first visible item (helper for scrolling) */
-    SHORT item_mclose;      /* candidate item to close by middle button */
-    UINT hot_track_timer;   /* helper timer for tracking of hot item */
-    USHORT item_min_width;  /* minimal width of each tab */
-    USHORT item_def_width;  /* default width of each tab */
-    UINT style       : 30;  /* window styles */
-    UINT no_redraw   :  1;  /* redraw flag */
-    UINT need_scroll :  1;  /* when need scrolling, scrolling buttons appear */
+    SHORT item_mclose;         /* candidate item to close by middle button */
+    USHORT item_min_width;     /* minimal width of each tab */
+    USHORT item_def_width;     /* default width of each tab */
+    DWORD style        : 29;   /* window styles */
+    DWORD no_redraw    :  1;   /* redraw flag */
+    DWORD need_scroll  :  1;   /* when need scrolling, scrolling buttons appear */
+    DWORD hot_tracking :  1;   /* hot track timer activated */
 };
 
 
@@ -353,8 +364,8 @@ mditab_track_hot_timer_proc(HWND win, UINT msg, UINT_PTR id, DWORD time)
         }
 
         /* Kill this timer */
-        KillTimer(win, mditab->hot_track_timer);
-        mditab->hot_track_timer = 0;
+        KillTimer(win, HOT_TRACK_TIMER_ID);
+        mditab->hot_tracking = 0;
     }
 }
 
@@ -390,13 +401,14 @@ mditab_track_hot(mditab_t* mditab, int x, int y)
             mditab_invalidate_item(mditab, index);
 
             /* Set a timer to detect when mouse leavs the window */
-            mditab->hot_track_timer = SetTimer(mditab->win, HOT_TRACK_TIMER_ID,
-                    HOT_TRACK_TIMER_INTERVAL, mditab_track_hot_timer_proc);
+            if(SetTimer(mditab->win, HOT_TRACK_TIMER_ID,
+                    HOT_TRACK_TIMER_INTERVAL, mditab_track_hot_timer_proc))
+                mditab->hot_tracking = 1;
         } else {
             /* No tab is hot so the timer is not needed. */
-            if(mditab->hot_track_timer) {
-                KillTimer(mditab->win, mditab->hot_track_timer);
-                mditab->hot_track_timer = 0;
+            if(mditab->hot_tracking) {
+                KillTimer(mditab->win, HOT_TRACK_TIMER_ID);
+                mditab->hot_tracking = 0;
             }
         }
     }
@@ -1299,23 +1311,16 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
         return NULL;
     }
 
+    memset(mditab, 0, sizeof(mditab));
+
     mditab->win = win;
-    mditab->toolbar1 = NULL;
-    mditab->toolbar2 = NULL;
-    mditab->theme = NULL;
-    mditab->img_list = NULL;
-    mditab->font = NULL;
     dsa_init(&mditab->item_dsa, sizeof(mditab_item_t));
     mditab->item_selected = -1;
     mditab->item_hot = -1;
-    mditab->item_first_visible = 0;
     mditab->item_mclose = -1;
-    mditab->hot_track_timer = 0;
     mditab->item_min_width = DEFAULT_ITEM_MIN_WIDTH;
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
-    mditab->no_redraw = 0;
-    mditab->need_scroll = 0;
 
     return mditab;
 }
@@ -1348,9 +1353,9 @@ mditab_destroy(mditab_t* mditab)
 {
     mditab_notify_delete_all_items(mditab);
 
-    if(mditab->hot_track_timer) {
-        KillTimer(mditab->win, mditab->hot_track_timer);
-        mditab->hot_track_timer = 0;
+    if(mditab->hot_tracking) {
+        KillTimer(mditab->win, HOT_TRACK_TIMER_ID);
+        mditab->hot_tracking = 0;
     }
 
     if(mditab->theme) {
