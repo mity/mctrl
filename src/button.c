@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,10 +43,11 @@ static WNDPROC orig_button_proc = NULL;
 typedef struct button_tag button_t;
 struct button_tag {
     HTHEME theme;
-    DWORD style              : 29;
+    DWORD style              : 28;
     DWORD is_dropdown_pushed :  1;
     DWORD hide_accel         :  1;
     DWORD hide_focus         :  1;
+    DWORD no_redraw          :  1;
 };
 
 
@@ -514,18 +515,22 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         
     switch(msg) {
         case WM_PAINT:
+            if(button->no_redraw  &&  wp == 0) {
+                ValidateRect(win, NULL);
+                return 0;
+            }
+            /* no break */
         case WM_PRINTCLIENT:
             if(button_needs_fake_split(button)) {
-                HDC dc = (HDC)wp;
                 PAINTSTRUCT ps;
                 
                 BUTTON_TRACE("button_proc(WM_PAINT): painting split button");
                 
-                if(!dc)
-                    dc = BeginPaint(win, &ps);
-                else if(msg == WM_PAINT)
-                    ValidateRect(win, NULL);
-                button_paint_split(win, button, dc);
+                if(wp == 0)
+                    BeginPaint(win, &ps);
+                else
+                    ps.hdc = (HDC) wp;
+                button_paint_split(win, button, ps.hdc);
                 if(wp == 0)
                     EndPaint(win, &ps);
                 return 0;
@@ -544,14 +549,13 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 
                 icon = (HICON) SendMessage(win, BM_GETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) 0);
                 if(icon != NULL) {
-                    HDC dc = (HDC)wp;
                     PAINTSTRUCT ps;
                     
                     if(wp == 0)
-                        dc = BeginPaint(win, &ps);
-                    else if(msg == WM_PAINT)
-                        ValidateRect(win, NULL);
-                    button_paint_icon(win, button, dc, icon);
+                        BeginPaint(win, &ps);
+                    else
+                        ps.hdc = (HDC) wp;
+                    button_paint_icon(win, button, ps.hdc, icon);
                     if(wp == 0)
                         EndPaint(win, &ps);
                     return 0;
@@ -659,6 +663,10 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             }
             break;
 
+        case WM_SETREDRAW:
+            button->no_redraw = !wp;
+            break;
+
         case WM_STYLECHANGING:
             if(button_needs_fake_split(button)) {
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
@@ -710,11 +718,8 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 MC_TRACE("button_proc(WM_CREATE): malloc() failed.");
                 return FALSE;
             }
-            button->theme = NULL;
+            memset(button, 0, sizeof(button_t));
             button->style = ((CREATESTRUCT*)lp)->style;
-            button->is_dropdown_pushed = 0;
-            button->hide_focus = 0;
-            button->hide_accel = 0;
             SetWindowLongPtr(win, extra_offset, (LONG_PTR) button);
             return TRUE;
 

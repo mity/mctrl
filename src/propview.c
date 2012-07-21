@@ -356,19 +356,20 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(pv->no_redraw) {
+            if(pv->no_redraw  &&  wp == 0) {
                 ValidateRect(win, NULL);
                 return 0;
             }
             /* no break */
         case WM_PRINTCLIENT:
             {
-                HDC dc = (HDC)wp;
                 PAINTSTRUCT ps;
 
                 if(wp == 0)
-                    dc = BeginPaint(win, &ps);
-                propview_paint(pv, dc);
+                    BeginPaint(win, &ps);
+                else
+                    ps.hdc = (HDC) wp;
+                propview_paint(pv, ps.hdc);
                 if(wp == 0)
                     EndPaint(win, &ps);
             }
