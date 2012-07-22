@@ -154,7 +154,7 @@ propview_setup_scrollbars(propview_t* pv)
     si.fMask = SIF_RANGE | SIF_PAGE;
     si.nMin = 0;
     si.nMax = dsa_size(&pv->propset->items) - 1;
-    si.nPage = MC_MAX(1, (rect.bottom - rect.top) / pv->row_height);
+    si.nPage = MC_MAX(1, MC_WIDTH(&rect) / pv->row_height);
 
     SetScrollInfo(pv->win, SB_VERT, &si, TRUE);
 }

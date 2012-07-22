@@ -566,16 +566,14 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             
         case WM_LBUTTONDOWN:
             if(button_needs_fake_split(button)) {
-                int x = LOWORD(lp);
-                int y = HIWORD(lp);
+                POINT pt = { LOWORD(lp), HIWORD(lp) };
                 RECT rect;
 
                 SetFocus(win);
                 GetClientRect(win, &rect);
                 rect.left = rect.right - DROPDOWN_W;
                 
-                if(rect.left <= x  &&  x <= rect.right  &&
-                   rect.top <= y  &&  y <= rect.bottom) {
+                if(MC_CONTAINS(&rect, &pt)) {
                     /* Handle the click in the drop-down part */
                     MC_NMBCDROPDOWN notify;
                         

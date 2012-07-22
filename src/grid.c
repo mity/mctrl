@@ -470,7 +470,7 @@ grid_setup_scrollbars(grid_t* grid)
 
     /* Setup horizontal scrollbar */
     si.nMax = layout.display_col_count * grid->cell_width;
-    si.nPage = rect.right - rect.left - layout.display_header_width;
+    si.nPage = MC_WIDTH(&rect) - layout.display_header_width;
     grid->scroll_x = SetScrollInfo(grid->win, SB_HORZ, &si, TRUE);
 
     /* Fixup for Win2000 - appearance of horizontal toolbar sometimes
@@ -480,7 +480,7 @@ grid_setup_scrollbars(grid_t* grid)
 
     /* Setup vertical scrollbar */
     si.nMax = layout.display_row_count * grid->cell_height;
-    si.nPage = rect.bottom - rect.top - layout.display_header_height;
+    si.nPage = MC_HEIGHT(&rect) - layout.display_header_height;
     grid->scroll_y = SetScrollInfo(grid->win, SB_VERT, &si, TRUE);
 }
 

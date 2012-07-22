@@ -70,6 +70,14 @@
 #define MC_CONTAINEROF(ptr, type, member)                                \
             ((type*)((BYTE*)(ptr) - MC_OFFSETOF(type, member)))
 
+/* Rectangle macros */
+#define MC_WIDTH(rect)                 ((rect)->right - (rect)->left)
+#define MC_HEIGHT(rect)                ((rect)->bottom - (rect)->top)
+#define MC_CONTAINS(rect, pt)                                            \
+            ((rect)->left <= (pt)->x  &&  (pt)->x < (rect)->right  &&    \
+             (rect)->top <= (pt)->y  &&  (pt)->y < (rect)->bottom)
+
+
 /* Inlined memcpy(), memmove() et al.
  * Prefer these for memory blocks known a priori to be small. */
 #define MC_MEMCPY(a, b, s)                                               \
@@ -117,7 +125,6 @@
 
 /* Macro for wrapping error conditions. */
 #define MC_ERR(condition)              MC_UNLIKELY(condition)
-
 
 
 /***************

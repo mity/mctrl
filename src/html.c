@@ -1142,8 +1142,8 @@ html_create(html_t* html, CREATESTRUCT* cs)
     browser_iface->lpVtbl->put_Left(browser_iface, 0);
     browser_iface->lpVtbl->put_Top(browser_iface, 0);
 #if 0  /* these are set in WM_SIZE handler */
-    browser_iface->lpVtbl->put_Width(browser_iface, rect.right - rect.left);
-    browser_iface->lpVtbl->put_Height(browser_iface, rect.bottom - rect.top);
+    browser_iface->lpVtbl->put_Width(browser_iface, MC_WIDTH(&rect));
+    browser_iface->lpVtbl->put_Height(browser_iface, MC_HEIGHT(&rect));
 #endif
     browser_iface->lpVtbl->Release(browser_iface);
 
