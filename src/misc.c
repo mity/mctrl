@@ -373,10 +373,9 @@ mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom)
 void
 mc_clip_reset(HDC dc, HRGN old_clip)
 {
-    if(old_clip != NULL) {
-        SelectClipRgn(dc, old_clip);
+    SelectClipRgn(dc, old_clip);
+    if(old_clip != NULL)
         DeleteObject(old_clip);
-    }
 }
 
 int
