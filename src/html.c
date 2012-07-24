@@ -935,8 +935,8 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     
     if(MC_ERR(id == NULL  ||  (unicode && ((WCHAR*)id)[0] == L'\0')  ||  
                               (!unicode && ((char*)id)[0] == '\0'))) {
-       MC_TRACE("html_set_element_contents: Empty element ID.");
-       goto err_id;
+        MC_TRACE("html_set_element_contents: Empty element ID.");
+        goto err_id;
     }
     bstr_id = html_bstr(id, (unicode ? MC_STRW : MC_STRA));
     if(MC_ERR(bstr_id == NULL)) {
