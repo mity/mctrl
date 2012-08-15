@@ -165,11 +165,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
     /* Paint "dead" top left cell */
     if(headerw > 0 && headerh > 0 && dirty->left <= headerw && dirty->top <= headerh) {
-        rect.left = 0;
-        rect.top = 0;
-        rect.right = headerw;
-        rect.bottom = headerh;
-
+        MC_SET_RECT(&rect, 0, 0, headerw, headerh);
         mc_clip_set(dc, 0, 0, MC_MIN(headerw, client.right), MC_MIN(headerh, client.bottom));
 
         if(grid->theme) {
@@ -184,10 +180,8 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     if(headerh > 0 && dirty->top <= headerh) {
         TCHAR buffer[16];
 
-        rect.left = headerw + col0 * grid->cell_width - grid->scroll_x;
-        rect.top = 0;
-        rect.right = rect.left + grid->cell_width;
-        rect.bottom = headerh;
+        MC_SET_RECT(&rect, headerw + col0 * grid->cell_width - grid->scroll_x,
+                    0, rect.left + grid->cell_width, headerh);
 
         for(col = col0; col < col1; col++) {
             mc_clip_set(dc, MC_MAX(headerw, rect.left), rect.top,
@@ -211,11 +205,10 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                     break;
                 case MC_GS_COLUMNHEADERCUSTOM:
                 {
-                    RECT r;
-                    r.left = rect.left + grid->cell_padding_horz;
-                    r.right = rect.right - 2 * grid->cell_padding_horz - 1;
-                    r.top = rect.top + grid->cell_padding_vert;
-                    r.bottom = rect.bottom - 2 * grid->cell_padding_vert - 1;
+                    RECT r = { rect.left + grid->cell_padding_horz,
+                               rect.top + grid->cell_padding_vert,
+                               rect.right - 2 * grid->cell_padding_horz - 1,
+                               rect.bottom - 2 * grid->cell_padding_vert - 1 };
                     cell_dc_state = SaveDC(dc);
                     table_paint_cell(grid->table, col + layout.display_col0, 0, dc, &r);
                     RestoreDC(dc, cell_dc_state);
@@ -232,10 +225,8 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     if(headerw > 0 && dirty->left <= headerw) {
         TCHAR buffer[16];
 
-        rect.left = 0;
-        rect.top = headerh + row0 * grid->cell_height - grid->scroll_y;
-        rect.right = headerw;
-        rect.bottom = rect.top + grid->cell_height;
+        MC_SET_RECT(&rect, 0, headerh + row0 * grid->cell_height - grid->scroll_y,
+                    headerw, rect.top + grid->cell_height);
 
         for(row = row0; row < row1; row++) {
             mc_clip_set(dc, rect.left, MC_MAX(headerh, rect.top),
@@ -261,11 +252,10 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                     break;
                 case MC_GS_ROWHEADERCUSTOM:
                 {
-                    RECT r;
-                    r.left = rect.left + grid->cell_padding_horz;
-                    r.right = rect.right - 2 * grid->cell_padding_horz - 1;
-                    r.top = rect.top + grid->cell_padding_vert;
-                    r.bottom = rect.bottom - 2 * grid->cell_padding_vert - 1;
+                    RECT r = { rect.left + grid->cell_padding_horz,
+                               rect.top + grid->cell_padding_vert,
+                               rect.right - 2 * grid->cell_padding_horz - 1,
+                               rect.bottom - 2 * grid->cell_padding_vert - 1 };
                     cell_dc_state = SaveDC(dc);
                     table_paint_cell(grid->table, 0, row + layout.display_row0, dc, &r);
                     RestoreDC(dc, cell_dc_state);
@@ -376,10 +366,11 @@ grid_refresh(void* view, void* detail)
     }
 
     /* Refresh affected contents */
-    rect.left = headerw + MC_MAX(0, (region->col0 - layout.display_col0) * grid->cell_width - grid->scroll_x);
-    rect.top = headerh + MC_MAX(0, (region->row0 - layout.display_row0) * grid->cell_height - grid->scroll_y);
-    rect.right = rect.left + (region->col1 - region->col0) * grid->cell_width;
-    rect.bottom = rect.top + (region->row1 - region->row0) * grid->cell_height;
+    MC_SET_RECT(&rect,
+                headerw + MC_MAX(0, (region->col0 - layout.display_col0) * grid->cell_width - grid->scroll_x),
+                headerh + MC_MAX(0, (region->row0 - layout.display_row0) * grid->cell_height - grid->scroll_y),
+                rect.left + (region->col1 - region->col0) * grid->cell_width,
+                rect.top + (region->row1 - region->row0) * grid->cell_height);
     InvalidateRect(grid->win, &rect, TRUE);
 }
 

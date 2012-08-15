@@ -191,10 +191,11 @@ propview_paint(propview_t* pv, HDC dc)
         LineTo(dc, rect.right, (i - pv->scroll_y + 1) * pv->row_height - 1);
 
         /* Paint label */
-        label_rect.left = PADDING_H;
-        label_rect.top = (i - pv->scroll_y) * pv->row_height;
-        label_rect.right = pv->label_width - 1 - PADDING_H;
-        label_rect.bottom = label_rect.top + pv->row_height - 1;
+        MC_SET_RECT(&label_rect,
+                 PADDING_H,
+                 (i - pv->scroll_y) * pv->row_height,
+                 pv->label_width - 1 - PADDING_H,
+                 label_rect.top + pv->row_height - 1);
         DrawText(dc, item->text, -1, &label_rect,
                  DT_SINGLELINE | DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER);
 
@@ -202,10 +203,9 @@ propview_paint(propview_t* pv, HDC dc)
         if(item->type != NULL) {
             int dc_state;
 
-            value_rect.left = pv->label_width + PADDING_H;
-            value_rect.top = label_rect.top;
-            value_rect.right = rect.right - PADDING_H;
-            value_rect.bottom = label_rect.bottom;
+            MC_SET_RECT(&value_rect,
+                    pv->label_width + PADDING_H, label_rect.top,
+                    rect.right - PADDING_H, label_rect.bottom);
 
             dc_state = SaveDC(dc);
             item->type->paint(item->value, dc, &value_rect, 0);

@@ -192,14 +192,14 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     if(!button->theme  &&  (button->style & BS_DEFPUSHBUTTON)) {
         SelectObject(dc, GetSysColorBrush(COLOR_WINDOWFRAME));
         Rectangle(dc, rect.left, rect.top, rect.right, rect.bottom);
-        InflateRect(&rect, -1, -1);
+        MC_INFLATE_RECT(&rect, -1, -1);
         width_right--;
     }
     
     /* Setup subrectangles (mainpart 1 and push-down part 2) */
-    CopyRect(&rect_left, &rect);
+    MC_COPY_RECT(&rect_left, &rect);
     rect_left.right -= width_right;
-    CopyRect(&rect_right, &rect);
+    MC_COPY_RECT(&rect_right, &rect);
     rect_right.left = rect_left.right;
 
     /* Draw background. */
@@ -297,9 +297,9 @@ button_paint_split(HWND win, button_t* button, HDC dc)
 
         /* Parts which are pushed, should have the contents moved a bit */
         if(state_left == DFCS_PUSHED)
-            OffsetRect(&rect_left, 1, 1);
+            MC_OFFSET_RECT(&rect_left, 1, 1);
         if(state_right == DFCS_PUSHED)
-            OffsetRect(&rect_right, 1, 1);
+            MC_OFFSET_RECT(&rect_right, 1, 1);
 
         /* Draw delimiter */
         if(state_left == state_right) {
@@ -311,22 +311,22 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         }
 
         /* Adjust for the outer control edges */
-        InflateRect(&rect_left, 0, -2);
+        MC_INFLATE_RECT(&rect_left, 0, -2);
         rect_left.left += 2;
-        InflateRect(&rect_right, -2, -2);
+        MC_INFLATE_RECT(&rect_right, -2, -2);
     }
 
     /* Draw focus rectangle. */
     if((SendMessage(win, BM_GETSTATE, 0, 0) & BST_FOCUS) && !button->hide_focus) {
         SelectClipRgn(dc, NULL);
         if(button->theme) {
-            SetRect(&rect, rect_left.left, rect_left.top, 
-                           rect_right.right - DROPDOWN_W, rect_right.bottom);
+            MC_SET_RECT(&rect, rect_left.left, rect_left.top, 
+                        rect_right.right - DROPDOWN_W, rect_right.bottom);
             DrawFocusRect(dc, &rect);
         } else {        
-            InflateRect(&rect_left, -1, -2);
+            MC_INFLATE_RECT(&rect_left, -1, -2);
             DrawFocusRect(dc, &rect_left);
-            InflateRect(&rect_left, -1, -1);
+            MC_INFLATE_RECT(&rect_left, -1, -1);
         }
     }
 
@@ -412,7 +412,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         } else {
             SetBkMode(dc, TRANSPARENT);
             SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-            OffsetRect(&rect_left, text_offset, text_offset);
+            MC_OFFSET_RECT(&rect_left, text_offset, text_offset);
             DrawText(dc, buffer, n, &rect_left, flags);
         }
     }
@@ -583,7 +583,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                     notify.hdr.hwndFrom = win;
                     notify.hdr.idFrom = GetWindowLong(win, GWL_ID);
                     notify.hdr.code = MC_BCN_DROPDOWN;
-                    CopyRect(&notify.rcButton, &rect);
+                    MC_COPY_RECT(&notify.rcButton, &rect);
                     SendMessage(GetParent(win), WM_NOTIFY, 
                                 notify.hdr.idFrom, (LPARAM)&notify);
                     /* We unpush immediately after the parent handles the
