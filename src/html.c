@@ -195,7 +195,7 @@ dispatch_GetTypeInfoCount(IDispatch* self, UINT* count)
 static HRESULT STDMETHODCALLTYPE
 dispatch_GetTypeInfo(IDispatch* self, UINT index, LCID lcid, ITypeInfo** type_info)
 {
-    HTML_TRACE("dispatch_GetTypeInfo: Stub [E_NOTIMPL]");
+    HTML_TRACE("dispatch_GetTypeInfo: Stub [TYPE_E_ELEMENTNOTFOUND]");
     *type_info = NULL;
     return TYPE_E_ELEMENTNOTFOUND;
 }
@@ -204,7 +204,7 @@ static HRESULT STDMETHODCALLTYPE
 dispatch_GetIDsOfNames(IDispatch* self, REFIID riid, LPOLESTR* names,
                        UINT names_count, LCID lcid, DISPID* disp_id)
 {
-    HTML_TRACE("dispatch_GetIDsOfNames('%S'): Stub [S_OK]", names_count > 0 ? names[0] : L"");
+    HTML_TRACE("dispatch_GetIDsOfNames('%S'): Stub [E_NOTIMPL]", names_count > 0 ? names[0] : L"");
     *disp_id = DISPID_UNKNOWN;
     return E_NOTIMPL;
 }
