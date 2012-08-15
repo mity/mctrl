@@ -74,8 +74,22 @@
 #define MC_WIDTH(rect)                 ((rect)->right - (rect)->left)
 #define MC_HEIGHT(rect)                ((rect)->bottom - (rect)->top)
 #define MC_CONTAINS(rect, pt)                                            \
-            ((rect)->left <= (pt)->x  &&  (pt)->x < (rect)->right  &&    \
-             (rect)->top <= (pt)->y  &&  (pt)->y < (rect)->bottom)
+        ((rect)->left <= (pt)->x  &&  (pt)->x < (rect)->right  &&        \
+         (rect)->top <= (pt)->y  &&  (pt)->y < (rect)->bottom)
+#define MC_RECT_IS_EMPTY(rect)                                           \
+        ((rect)->left >= (rect)->right  ||  (rect)->top >= (rect)->bottom)
+#define MC_SET_RECT(rect, x0, y0, x1, y1)                                \
+        do { (rect)->left = x0; (rect)->top = y0;                        \
+             (rect)->right = x1; (rect)->bottom = y1; } while(0)
+#define MC_COPY_RECT(rect, rect2)                                        \
+        MC_SET_RECT((rect), (rect2)->left, (rect2)->top,                 \
+                            (rect2)->right, (rect2)->bottom)
+#define MC_OFFSET_RECT(rect, dx, dy)                                     \
+        do { (rect)->left += dx; (rect)->top += dx;                      \
+             (rect)->right += dx; (rect)->bottom += dx; } while(0)
+#define MC_INFLATE_RECT(rect, dx, dy)                                    \
+        do { (rect)->left -= dx; (rect)->top -= dx;                      \
+             (rect)->right += dx; (rect)->bottom += dx; } while(0)
 
 
 /* Inlined memcpy(), memmove() et al.
