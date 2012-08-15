@@ -411,7 +411,7 @@ static HRESULT STDMETHODCALLTYPE
 inplace_site_ex_GetWindowContext(IOleInPlaceSiteEx* self, LPOLEINPLACEFRAME* frame,
                 LPOLEINPLACEUIWINDOW* doc, RECT* rect, RECT* clip_rect, LPOLEINPLACEFRAMEINFO frame_info)
 {
-	html_t* html;
+    html_t* html;
     HTML_TRACE("inplace_site_GetWindowContext");
 
     html = MC_HTML_FROM_INPLACE_SITE_EX(self);
