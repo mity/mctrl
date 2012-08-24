@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,12 +30,43 @@
 
 #if defined __MINGW64_VERSION_MAJOR && defined __MINGW64_VERSION_MINOR
     #define MC_TOOLCHAIN_MINGW64    1
-#elif defined __MINGW32__
-    #define MC_TOOLCHAIN_MINGW      1
 #elif defined _MSC_VER
     #define MC_TOOLCHAIN_MSVC       1
 #else
     #define MC_TOOLCHAIN_OTHER      1
+#endif
+
+
+/*******************
+ *** <stdint.h>  ***
+ *******************/
+
+#if defined MC_TOOLCHAIN_MSVC && _MSC_VER < 1600
+    /* Visual Studio versions older then 2010 misses <stdint.h> so lets
+     * provide our own poor-man's implementation. */
+    typedef __int8               int8_t;
+    typedef unsigned __int8     uint8_t;
+    typedef __int16              int16_t;
+    typedef unsigned __int16    uint16_t;
+    typedef __int32              int32_t;
+    typedef unsigned __int32    uint32_t;
+    typedef __int64              int64_t;
+    typedef unsigned __int64    uint64_t;
+
+    #define INT8_MIN       (-0x7f - 1)
+    #define INT16_MIN      (-0x7fff - 1)
+    #define INT32_MIN      (-0x7fffffff - 1)
+    #define INT64_MIN      (-0x7fffffffffffffff - 1)
+    #define INT8_MAX       (0x7f)
+    #define INT16_MAX      (0x7fff)
+    #define INT32_MAX      (0x7fffffff)
+    #define INT64_MAX      (0x7fffffffffffffff)
+    #define UINT8_MAX      (0xff)
+    #define UINT16_MAX     (0xffff)
+    #define UINT32_MAX     (0xffffffff)
+    #define UINT64_MAX     (0xffffffffffffffff)
+#else
+    #include <stdint.h>
 #endif
 
 
@@ -47,14 +78,14 @@
     /* Disable warning C4996 ("This function or variable may be unsafe.") */
     #pragma warning( disable : 4996 )
 
-    /* MSVC does not understand inline when building as pure C (not C++).
-     * However it understands __inline */
+    /* MSVC does not understand "inline" when building as pure C (not C++).
+     * However it understands "__inline" */
     #ifndef __cplusplus
         #define inline __inline
     #endif
 
     /* MS platform SDK #defines [GS]etWindowLongPtr as plain [GS]etWindowLong
-     * for x86 builds, without any casting, hence causing lots of compiler
+     * for x86 builds without any casting, hence causing lots of compiler
      * warnings C4312. Lets workaround it. */
     #ifndef _WIN64
         #ifdef GetWindowLongPtrA
@@ -77,132 +108,18 @@
 #endif
 
 
-/*******************
- *** <stdint.h>  ***
- *******************/
-
-#if defined MC_TOOLCHAIN_MSVC
-    /* Windows SDK/Visual Studio was missing <stdint.h> for a long time, so
-     * lets have few types defined here and not rely on it. */
-    typedef __int8               int8_t;
-    typedef unsigned __int8     uint8_t;
-    typedef __int16              int16_t;
-    typedef unsigned __int16    uint16_t;
-    typedef __int32              int32_t;
-    typedef unsigned __int32    uint32_t;
-    typedef __int64              int64_t;
-    typedef unsigned __int64    uint64_t;
-
-    #ifndef INT8_MIN
-        #define INT8_MIN       (-0x7f - 1)
-    #endif
-    #ifndef INT16_MIN
-        #define INT16_MIN      (-0x7fff - 1)
-    #endif
-    #ifndef INT32_MIN
-        #define INT32_MIN      (-0x7fffffff - 1)
-    #endif
-    #ifndef INT64_MIN
-        #define INT64_MIN      (-0x7fffffffffffffff - 1)
-    #endif
-    #ifndef INT8_MAX
-        #define INT8_MAX       (0x7f)
-    #endif
-    #ifndef INT16_MAX
-        #define INT16_MAX      (0x7fff)
-    #endif
-    #ifndef INT32_MAX
-        #define INT32_MAX      (0x7fffffff)
-    #endif
-    #ifndef INT64_MAX
-        #define INT64_MAX      (0x7fffffffffffffff)
-    #endif
-    #ifndef UINT8_MAX
-        #define UINT8_MAX      (0xff)
-    #endif
-    #ifndef UINT16_MAX
-        #define UINT16_MAX     (0xffff)
-    #endif
-    #ifndef UINT32_MAX
-        #define UINT32_MAX     (0xffffffff)
-    #endif
-    #ifndef UINT64_MAX
-        #define UINT64_MAX     (0xffffffffffffffff)
-    #endif
-#else
-    #include <stdint.h>
-#endif
-
-
 /*************************
  *** Missing constants ***
  *************************/
 
-/* Some of them should be constants from enumeration, other are just #defines.
- * However as we cannot use preprocessor to detect if enums or their members
- * are missing, we always #define it here. */
+/* Older toolchains can miss some stuff, so lets #define manually. */
 
-#ifndef WM_MOUSEHWHEEL      /* missing in mingw headers */
-    #define WM_MOUSEHWHEEL  0x020E
+#ifndef TB_SETBOUNDINGSIZE          /* missing in mingw-w64 headers */
+    #define TB_SETBOUNDINGSIZE      (WM_USER + 93)
 #endif
 
-#ifndef BS_TYPEMASK         /* missing in mingw headers */
-    #define BS_TYPEMASK     0x0000000fL
-#endif
-
-#ifndef BST_HOT             /* missing in mingw headers */
-    #define BST_HOT         0x0200
-#endif
-
-#ifndef DT_HIDEPREFIX       /* missing in mingw headers */
-    #define DT_HIDEPREFIX   0x00100000
-#endif
-
-#ifndef UISF_HIDEFOCUS      /* missing in mingw headers */
-    #define UISF_HIDEFOCUS  0x1
-#endif
-
-#ifndef UISF_HIDEACCEL      /* missing in mingw headers */
-    #define UISF_HIDEACCEL  0x2
-#endif
-
-#ifndef UIS_SET             /* missing in mingw headers */
-    #define UIS_SET         1
-#endif
-
-#ifndef UIS_CLEAR           /* missing in mingw headers */
-    #define UIS_CLEAR       2
-#endif
-
-#ifndef UIS_INITIALIZE      /* missing in mingw headers */
-    #define UIS_INITIALIZE  3
-#endif
-
-#ifndef TB_SETBOUNDINGSIZE  /* missing in mingw and mingw-w64 headers */
-    #define TB_SETBOUNDINGSIZE  (WM_USER + 93)
-#endif
-
-#ifndef TB_SETPRESSEDIMAGELIST      /* missing in mingw and mingw-w64 headers */
+#ifndef TB_SETPRESSEDIMAGELIST      /* missing in mingw-w64 headers */
     #define TB_SETPRESSEDIMAGELIST  (WM_USER + 104)
-#endif
-
-
-
-/********************************************
- *** Hack for broken COM headers in mingw ***
- ********************************************/
-
-/* There is a lot of COM interfaces missing in the w32api package (as of
- * version 3.13) of mingw project. Hence we use copy of those headers
- * from mingw-w64 project which seems to be more complete.
- *
- * These are placed in the com/ subdirectory. The below are hacks
- * hiding incompatibilities between headers from mingw-w64 and mingw.
- */
-
-#if defined MC_TOOLCHAIN_MINGW
-    #define SHANDLE_PTR HANDLE_PTR
-    #define __MINGW_EXTENSION
 #endif
 
 
@@ -220,26 +137,6 @@
     #define COMPAT_NEED_WCSTOUI64  1
     uint64_t compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base);
     #define _wcstoui64 compat_wcstoui64
-#endif
-
-/* mingw does not declare them in <ctype.h> and <tchar.h> */
-#if defined MC_TOOLCHAIN_MINGW
-    #include <tchar.h>
-    #ifndef _tcstoui64
-        #ifdef UNICODE
-            #define _tcstoui64 _wcstoui64
-        #else
-            #define _tcstoui64 _strtoui64
-        #endif
-    #endif
-
-    #ifndef _tcstoi64
-        #ifdef UNICODE
-            #define _tcstoi64 _wcstoi64
-        #else
-            #define _tcstoi64 _strtoi64
-        #endif
-    #endif
 #endif
 
 

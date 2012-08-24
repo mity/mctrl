@@ -1,4 +1,4 @@
-# This Makefile expects mingw/mingw-w64 toolchain, unix-like shell and utilities
+# This Makefile expects mingw-w64 toolchain, unix-like shell and utilities
 # (e.g. msys) and GNU Make.
 #
 # Targets:
@@ -12,7 +12,7 @@
 # Useful variables:
 # -----------------
 #   PREFIX=<prefix> - Specifies gcc toolchain prefix.
-#                     (e.g. 'make PREFIX=x86_64-w64-mingw32-' can build 
+#                     (e.g. 'make PREFIX=x86_64-w64-mingw32-' can build
 #                     x86_64 binaries, if you have mingw-w64 installed and
 #                     its bin directory in PATH.)
 #   DEBUG=<number>  - Sets debugging level. Default is 0. Possible values:
@@ -38,17 +38,6 @@ RM = rm -rf
 
 INCLUDES = -I$(INCDIR) -I$(SRCDIR)
 
-
-ifeq ($(filter $(PREFIX), x86_64-w64-mingw32- i686-w64-mingw32-),)
-    # Package w32api 3.13 of mingw project has incomplete headers related 
-    # to COM/OLE. So lets provide our own copy of headers we need.
-    # (taken from mingw-w64 project):
-    #
-    # When PREFIX is set to x86_64-w64-mingw32- or i686-w64-mingw32-, 
-    # it can be probably assumed we build with toolchain from mingw-w64 and
-    # this workaround is not needed.
-    INCLUDES += -isystem $(SRCDIR)/com
-endif
 
 WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT
 
@@ -100,13 +89,13 @@ examples:
 
 doc:
 	doxygen
-	
+
 clean:
 	$(RM) $(OBJECTS)
-	$(RM) $(OBJDIR/mCtrl.def) 
+	$(RM) $(OBJDIR/mCtrl.def)
 	$(RM) $(TARGET_LIB)
 	$(RM) $(TARGET)
-	
+
 distclean: clean
 	(cd examples && $(MAKE) clean)
 	$(RM) doc/*

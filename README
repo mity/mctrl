@@ -113,7 +113,7 @@ a cross-compiler. For example:
 
     $ make PREFIX=i686-w64-mingw32-
 
-More details and information about buiding within other environment (e.g.
+More details and information about buiding within other environments (e.g.
 MS VisualStudio) can be found in documentation.
 
 
