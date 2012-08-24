@@ -131,46 +131,49 @@ module_fini_modules(module_t** modules, int n)
  *** The module declarations ***
  *******************************/
 
-/* Private modules */   
+/* Module definition */
 
 #include "misc.h"
 DEFINE_MODULE(mc)
 
-#include "embedit.h"
-DEFINE_MODULE(embedit)
+#include "button.h"
+DEFINE_MODULE(button)
+
+#include "grid.h"
+DEFINE_MODULE(grid)
+
+#include "html.h"
+DEFINE_MODULE(html)
+
+#include "menubar.h"
+DEFINE_MODULE(menubar)
+
+#include "mditab.h"
+DEFINE_MODULE(mditab)
+
+#include "propview.h"
+DEFINE_MODULE(propview)
 
 #include "theme.h"
 DEFINE_MODULE(theme)
 
 
-/* Public modules */
+/* Public interfaces of exposed modules */
 
-#include "button.h"
-DEFINE_MODULE(button)
 static module_t* mod_button_deps[] = { &mod_mc, &mod_theme, &mod_button };
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
 
-#include "grid.h"
-DEFINE_MODULE(grid)
-static module_t* mod_grid_deps[] =   { &mod_mc, &mod_embedit, &mod_theme, &mod_grid };
+static module_t* mod_grid_deps[] =   { &mod_mc, &mod_theme, &mod_grid };
 DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 
-#include "html.h"
-DEFINE_MODULE(html)
 static module_t* mod_html_deps[] =   { &mod_mc, &mod_theme, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 
-#include "menubar.h"
-DEFINE_MODULE(menubar)
 static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
 DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)
 
-#include "mditab.h"
-DEFINE_MODULE(mditab)
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
-#include "propview.h"
-DEFINE_MODULE(propview)
-static module_t* mod_propview_deps[] = { &mod_mc, &mod_embedit, &mod_theme, &mod_propview };
+static module_t* mod_propview_deps[] = { &mod_mc, &mod_theme, &mod_propview };
 DEFINE_PUBLIC_IFACE(propview, PropView, mod_propview_deps)
