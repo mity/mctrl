@@ -42,7 +42,8 @@
  * - @ref mCtrl/html.h - HTML control
  * - @ref mCtrl/menubar.h - Menu bar control
  * - @ref mCtrl/mditab.h - MDI tab control
- * - @ref mCtrl/propview.h - Property list view
+ * - @ref mCtrl/propview.h - Property list view control
+ * - @ref mCtrl/valedit.h - Value edit control
  *
  * @subsection toc_data Control Data Models
  * - @ref mCtrl/propset.h - Property set (data model for the property view control)
