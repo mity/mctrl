@@ -165,7 +165,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
     /* Paint "dead" top left cell */
     if(headerw > 0 && headerh > 0 && dirty->left <= headerw && dirty->top <= headerh) {
-        MC_SET_RECT(&rect, 0, 0, headerw, headerh);
+        mc_set_rect(&rect, 0, 0, headerw, headerh);
         mc_clip_set(dc, 0, 0, MC_MIN(headerw, client.right), MC_MIN(headerh, client.bottom));
 
         if(grid->theme) {
@@ -180,7 +180,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     if(headerh > 0 && dirty->top <= headerh) {
         TCHAR buffer[16];
 
-        MC_SET_RECT(&rect, headerw + col0 * grid->cell_width - grid->scroll_x,
+        mc_set_rect(&rect, headerw + col0 * grid->cell_width - grid->scroll_x,
                     0, rect.left + grid->cell_width, headerh);
 
         for(col = col0; col < col1; col++) {
@@ -225,12 +225,12 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     if(headerw > 0 && dirty->left <= headerw) {
         TCHAR buffer[16];
 
-        MC_SET_RECT(&rect, 0, headerh + row0 * grid->cell_height - grid->scroll_y,
+        mc_set_rect(&rect, 0, headerh + row0 * grid->cell_height - grid->scroll_y,
                     headerw, rect.top + grid->cell_height);
 
         for(row = row0; row < row1; row++) {
             mc_clip_set(dc, rect.left, MC_MAX(headerh, rect.top),
-                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));            
+                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
 
             if(grid->theme) {
                 rect.bottom++;  /* damn: Aero is ugly w/o this */
@@ -273,7 +273,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         int x;
         int y;
         HPEN pen, old_pen;
-        
+
         mc_clip_set(dc, client.left, client.top, client.right, client.bottom);
 
         pen = CreatePen(PS_SOLID, 0, grid->gridline_color);
@@ -329,7 +329,7 @@ grid_refresh(void* view, void* detail)
     grid_layout_t layout;
     WORD headerw, headerh;
     RECT rect;
-    
+
     if(grid->no_redraw)
         return;
 
@@ -366,7 +366,7 @@ grid_refresh(void* view, void* detail)
     }
 
     /* Refresh affected contents */
-    MC_SET_RECT(&rect,
+    mc_set_rect(&rect,
                 headerw + MC_MAX(0, (region->col0 - layout.display_col0) * grid->cell_width - grid->scroll_x),
                 headerh + MC_MAX(0, (region->row0 - layout.display_row0) * grid->cell_height - grid->scroll_y),
                 rect.left + (region->col1 - region->col0) * grid->cell_width,
@@ -451,7 +451,7 @@ grid_setup_scrollbars(grid_t* grid)
     grid_layout_t layout;
     RECT rect;
     SCROLLINFO si;
-    
+
     grid_calc_layout(grid, &layout);
     GetClientRect(grid->win, &rect);
 
@@ -461,7 +461,7 @@ grid_setup_scrollbars(grid_t* grid)
 
     /* Setup horizontal scrollbar */
     si.nMax = layout.display_col_count * grid->cell_width;
-    si.nPage = MC_WIDTH(&rect) - layout.display_header_width;
+    si.nPage = mc_width(&rect) - layout.display_header_width;
     grid->scroll_x = SetScrollInfo(grid->win, SB_HORZ, &si, TRUE);
 
     /* Fixup for Win2000 - appearance of horizontal toolbar sometimes
@@ -471,7 +471,7 @@ grid_setup_scrollbars(grid_t* grid)
 
     /* Setup vertical scrollbar */
     si.nMax = layout.display_row_count * grid->cell_height;
-    si.nPage = MC_HEIGHT(&rect) - layout.display_header_height;
+    si.nPage = mc_height(&rect) - layout.display_header_height;
     grid->scroll_y = SetScrollInfo(grid->win, SB_VERT, &si, TRUE);
 }
 

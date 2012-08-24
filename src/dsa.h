@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -37,14 +37,33 @@ typedef void (*dsa_dtor_t)(dsa_t* dsa, void* item);
 typedef int (*dsa_cmp_t)(dsa_t*, const void*, const void*);
 
 
-#define dsa_size(dsa)              ((dsa)->size)
+static inline WORD
+dsa_size(dsa_t* dsa)
+{
+	return dsa->size;
+}
 
-#define dsa_item(dsa, index)                    \
-        ((void*)&((BYTE*)(dsa)->buffer)[(index) * (dsa)->item_size])
-        
-#define dsa_index(dsa, item)                    \
-        ((int)((((BYTE*)(item)) - ((BYTE*)(dsa)->buffer)) / (dsa)->item_size))
-        
+static inline WORD
+dsa_index(dsa_t* dsa, const void* item)
+{
+	return (int) (((BYTE*)item - (BYTE*)dsa->buffer) / dsa->item_size);
+}
+
+static inline void*
+dsa_item(dsa_t* dsa, WORD index)
+{
+	return (void*)&((BYTE*)dsa->buffer)[index * dsa->item_size];
+}
+
+/* This is harder to use, but it should lead to better optimization
+ * (asssuming item_size is compile-time known constant). */
+static inline void*
+dsa_item_(dsa_t* dsa, WORD index, WORD item_size)
+{
+	MC_ASSERT(item_size == dsa->item_size);
+	return (void*)&((BYTE*)dsa->buffer)[index * item_size];
+}
+
 
 void dsa_init(dsa_t* dsa, WORD item_size);
 void dsa_fini(dsa_t* dsa, dsa_dtor_t dtor_func);

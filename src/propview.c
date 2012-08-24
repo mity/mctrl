@@ -142,7 +142,7 @@ propview_setup_scrollbars(propview_t* pv)
     SCROLLINFO si;
 
     PROPVIEW_TRACE("propview_setup_scrollbars(%p)", pv);
-    
+
     if(pv->no_redraw) {
         pv->dirty_scrollbars = 1;
         return;
@@ -154,7 +154,7 @@ propview_setup_scrollbars(propview_t* pv)
     si.fMask = SIF_RANGE | SIF_PAGE;
     si.nMin = 0;
     si.nMax = dsa_size(&pv->propset->items) - 1;
-    si.nPage = MC_MAX(1, MC_WIDTH(&rect) / pv->row_height);
+    si.nPage = MC_MAX(1, mc_width(&rect) / pv->row_height);
 
     SetScrollInfo(pv->win, SB_VERT, &si, TRUE);
 }
@@ -191,7 +191,7 @@ propview_paint(propview_t* pv, HDC dc)
         LineTo(dc, rect.right, (i - pv->scroll_y + 1) * pv->row_height - 1);
 
         /* Paint label */
-        MC_SET_RECT(&label_rect,
+        mc_set_rect(&label_rect,
                  PADDING_H,
                  (i - pv->scroll_y) * pv->row_height,
                  pv->label_width - 1 - PADDING_H,
@@ -203,7 +203,7 @@ propview_paint(propview_t* pv, HDC dc)
         if(item->type != NULL) {
             int dc_state;
 
-            MC_SET_RECT(&value_rect,
+            mc_set_rect(&value_rect,
                     pv->label_width + PADDING_H, label_rect.top,
                     rect.right - PADDING_H, label_rect.bottom);
 

@@ -59,7 +59,7 @@ struct table_contents_tag {
     BYTE* flags;               /* Now all public cell bits fit into single byte. In future we may need to extend this to WORD or DWORD. */
 };
 
-#define TABLE_CONTENTS_IS_HOMOGENOUS(contents)      \
+#define IS_HOMOGENOUS(contents)      \
      (!((contents)->mask & TABLE_CONTENTS_TYPES))
 
 
@@ -133,7 +133,7 @@ table_contents_alloc(table_contents_t* contents, value_type_t* homotype,
     }
 
     /* If needed, setup homogenous table type */
-    if(TABLE_CONTENTS_IS_HOMOGENOUS(contents)) {
+    if(IS_HOMOGENOUS(contents)) {
         MC_ASSERT(contents->types == NULL);
         contents->type = homotype;
     }
@@ -161,7 +161,7 @@ table_contents_init_region(table_contents_t* contents, table_region_t* region)
     /* Case 0: empty region */
     if(region->col1 - region->col0 == 0 || region->row1 - region->row0 == 0)
         return;
-        
+
     /* Case 1: region contains complete lines */
     if(region->col0 == 0 && region->col1 == contents->col_count) {
         DWORD cell0 = region->row0 * (DWORD)contents->col_count;
@@ -212,7 +212,7 @@ table_contents_free_region(table_contents_t* contents, table_region_t* region)
             if(contents->values[index] == NULL)
                 continue;
 
-            if(TABLE_CONTENTS_IS_HOMOGENOUS(contents))
+            if(IS_HOMOGENOUS(contents))
                 t = contents->type;
             else
                 t = contents->types[index];
@@ -390,7 +390,7 @@ table_paint_cell(const table_t* table, WORD col, WORD row, HDC dc, RECT* rect)
     value_type_t* type;
     DWORD flags = 0;
 
-    if(TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents)) {
+    if(IS_HOMOGENOUS(&table->contents)) {
         type = table->contents.type;
         MC_ASSERT(type != NULL);
     } else {
@@ -411,25 +411,25 @@ table_resize(table_t* table, WORD col_count, WORD row_count)
     table_contents_t contents;
     value_type_t* homotype;
     table_region_t region;
-    
+
     if(col_count == table->contents.col_count && row_count == table->contents.row_count)
         return 0;
 
-    homotype = TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents) ? table->contents.type : NULL;
+    homotype = IS_HOMOGENOUS(&table->contents) ? table->contents.type : NULL;
 
     if(MC_ERR(table_contents_alloc(&contents, homotype, col_count, row_count,
                                    table->contents.mask) != 0)) {
         MC_TRACE("table_resize: table_contents_alloc() failed.");
         return -1;
     }
-    
+
     /* Move intersected contents */
     region.col0 = 0;
     region.row0 = 0;
     region.col1 = MC_MIN(col_count, table->contents.col_count);
     region.row1 = MC_MIN(row_count, table->contents.row_count);
     table_contents_move_region(&table->contents, &region, &contents, &region);
-    
+
     /* Handle difference in col_count */
     region.col0 = region.col1;
     if(col_count > table->contents.col_count) {
@@ -439,7 +439,7 @@ table_resize(table_t* table, WORD col_count, WORD row_count)
         region.col1 = table->contents.col_count;
         table_contents_free_region(&contents, &region);
     }
-    
+
     /* Handle difference in row_count */
     region.col0 = 0;
     region.row0 = region.row1;
@@ -450,7 +450,7 @@ table_resize(table_t* table, WORD col_count, WORD row_count)
         region.row1 = table->contents.row_count;
         table_contents_free_region(&contents, &region);
     }
-    
+
     /* Install new contents */
     table_contents_free(&table->contents);
     memcpy(&table->contents, &contents, sizeof(table_contents_t));
@@ -463,7 +463,7 @@ void
 table_clear(table_t* table)
 {
     table_region_t region;
-    
+
     region.col0 = 0;
     region.row0 = 0;
     region.col1 = table->contents.col_count;
@@ -480,7 +480,7 @@ table_get_cell(const table_t* table, WORD col, WORD row, MC_TABLECELL* cell)
     DWORD index = row * table->contents.col_count + col;
 
     if(cell->fMask & MC_TCM_VALUE) {
-        if(TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents))
+        if(IS_HOMOGENOUS(&table->contents))
             cell->hType = table->contents.type;
         else
             cell->hType = table->contents.types[index];
@@ -516,7 +516,7 @@ table_set_cell(table_t* table, WORD col, WORD row, MC_TABLECELL* cell)
     table_region_t region;
 
     if(cell->fMask & MC_TCM_VALUE) {
-        if(TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents)) {
+        if(IS_HOMOGENOUS(&table->contents)) {
             MC_ASSERT(cell->hType == NULL  ||  cell->hType == table->contents.type);
             if(table->contents.values[index] != NULL)
                 table->contents.type->destroy(table->contents.values[index]);
@@ -525,7 +525,7 @@ table_set_cell(table_t* table, WORD col, WORD row, MC_TABLECELL* cell)
                 table->contents.types[index]->destroy(table->contents.values[index]);
             table->contents.types[index] = (value_type_t*) cell->hType;
         }
-    
+
         table->contents.values[index] = (value_t) cell->hValue;
     }
 
@@ -671,7 +671,7 @@ mcTable_SetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
     }
 
     if(MC_ERR((pCell->fMask & MC_TCM_VALUE)  &&
-              TABLE_CONTENTS_IS_HOMOGENOUS(&table->contents)  &&
+              IS_HOMOGENOUS(&table->contents)  &&
               pCell->hType != table->contents.type)) {
         MC_TRACE("mcTable_SetCell: Value type mismatch in homogenous table.");
         SetLastError(ERROR_INVALID_PARAMETER);

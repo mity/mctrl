@@ -53,14 +53,13 @@ propset_item_cmp(dsa_t* dsa, const void* dsa_item1, const void* dsa_item2)
                     (item2->text != NULL ? item2->text : _T("")));
 }
 
-
 propset_t*
 propset_create(DWORD flags)
 {
     propset_t* propset;
 
     PROPSET_TRACE("propset_create(0x%x)", flags);
-    
+
     propset = (propset_t*) malloc(sizeof(propset_t));
     if(MC_ERR(propset == NULL)) {
         MC_TRACE("propset_create: malloc() failed.");
@@ -94,13 +93,13 @@ propset_apply(propset_item_t* item, MC_PROPSETITEM* pi, BOOL unicode)
         SetLastError(ERROR_INVALID_PARAMETER);
         return -1;
     }
-    
+
     if(MC_ERR((pi->fMask & MC_PSIM_FLAGS)  &&  (pi->dwFlags & ~PROPSET_SUPPORTED_ITEM_FLAGS))) {
         MC_TRACE("propset_apply: Unsupported MC_PROPSETITEM::dwFlags.");
         SetLastError(ERROR_INVALID_PARAMETER);
         return -1;
     }
-    
+
     if(MC_ERR((pi->fMask & MC_PSIM_VALUE)  &&  pi->hValue != NULL  &&  pi->hType == NULL)) {
         MC_TRACE("propset_apply: hValue != NULL but hType == NULL");
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -182,7 +181,7 @@ propset_set(propset_t* propset, MC_PROPSETITEM* pi, BOOL unicode)
         return -1;
     }
 
-    item = dsa_item(&propset->items, index);
+    item = propset_item(propset, index);
     if(MC_ERR(propset_apply(item, pi, unicode) != 0)) {
         MC_TRACE("propset_set: propset_apply() failed.");
         return -1;
@@ -220,7 +219,7 @@ propset_get(propset_t* propset, MC_PROPSETITEM* pi, BOOL unicode)
         return -1;
     }
 
-    item = dsa_item(&propset->items, pi->iItem);
+    item = propset_item(propset, pi->iItem);
 
     if(pi->fMask & MC_PSIM_TEXT) {
         mc_str_inbuf(item->text, MC_STRT, pi->pszText,

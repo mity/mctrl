@@ -36,9 +36,37 @@ HIMAGELIST mc_bmp_glyphs;
  *** String conversions ***
  **************************/
 
+void
+mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
+             void* to_str, mc_str_type_t to_type, int to_str_bufsize)
+{
+    MC_ASSERT(to_str_bufsize > 0);
+    MC_ASSERT(from_type == MC_STRA  ||  from_type == MC_STRW);
+    MC_ASSERT(from_type == MC_STRA  ||  from_type == MC_STRW);
+
+    if(from_str == NULL)
+        from_str = (void*)L"";
+
+    /* No conversion cases */
+    if(from_type == to_type) {
+        if(from_type == MC_STRW) {  /* W->W */
+            wcsncpy((WCHAR*)to_str, (WCHAR*)from_str, to_str_bufsize);
+            ((WCHAR*)to_str)[to_str_bufsize-1] = L'\0';
+        } else {                    /* A->A */
+            strncpy((char*)to_str, (char*)from_str, to_str_bufsize);
+            ((char*)to_str)[to_str_bufsize-1] = '\0';
+        }
+    } else {
+        if(from_type == MC_STRA)  /* A->W */
+            MultiByteToWideChar(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize);
+        else                      /* W->A */
+            WideCharToMultiByte(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize, NULL, NULL);
+    }
+}
+
 void*
-mc_str_n(const void* from_str, int from_type, int from_len,
-         int to_type, int* ptr_to_len)
+mc_str_n(const void* from_str, mc_str_type_t from_type, int from_len,
+         mc_str_type_t to_type, int* ptr_to_len)
 {
     int to_len;
     void* to_str;
@@ -112,34 +140,6 @@ mc_str_n(const void* from_str, int from_type, int from_len,
     }
 }
 
-void
-mc_str_inbuf(const void* from_str, int from_type,
-             void* to_str, int to_type, int to_str_bufsize)
-{
-    MC_ASSERT(to_str_bufsize > 0);
-    MC_ASSERT(from_type == MC_STRA  ||  from_type == MC_STRW);
-    MC_ASSERT(from_type == MC_STRA  ||  from_type == MC_STRW);
-
-    if(from_str == NULL)
-        from_str = (void*)L"";
-
-    /* No conversion cases */
-    if(from_type == to_type) {
-        if(from_type == MC_STRW) {  /* W->W */
-            wcsncpy((WCHAR*)to_str, (WCHAR*)from_str, to_str_bufsize);
-            ((WCHAR*)to_str)[to_str_bufsize-1] = L'\0';
-        } else {                    /* A->A */
-            strncpy((char*)to_str, (char*)from_str, to_str_bufsize);
-            ((char*)to_str)[to_str_bufsize-1] = '\0';
-        }
-    } else {
-        if(from_type == MC_STRA)  /* A->W */
-            MultiByteToWideChar(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize);
-        else                      /* W->A */
-            WideCharToMultiByte(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize, NULL, NULL);
-    }
-}
-
 
 /**********************
  *** Initialization ***
@@ -187,7 +187,7 @@ setup_win_version(void)
 
     MC_TRACE("setup_win_version: Detected %hs "
              "(%u.%u.%u, service pack %u.%u, build %u)",
-            get_win_name(ver.wProductType), 
+            get_win_name(ver.wProductType),
             ver.dwPlatformId, ver.dwMajorVersion, ver.dwMinorVersion,
             ver.wServicePackMajor, ver.wServicePackMinor,
             ver.dwBuildNumber);
@@ -333,11 +333,11 @@ LRESULT
 mc_send_notify(HWND parent, HWND win, UINT code)
 {
     NMHDR hdr;
-    
+
     hdr.hwndFrom = win;
     hdr.idFrom = GetWindowLong(win, GWL_ID);
     hdr.code = code;
-    
+
     return SendMessage(parent, WM_NOTIFY, hdr.idFrom, (LPARAM)&hdr);
 }
 
@@ -345,27 +345,27 @@ HRGN
 mc_clip_get(HDC dc)
 {
     HRGN clip;
-    
+
     clip = CreateRectRgn(0, 0, 0, 0);
     if(GetClipRgn(dc, clip) != 1) {
         DeleteObject(clip);
         return NULL;
     }
-        
-    return clip;        
+
+    return clip;
 }
 
 void
 mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom)
 {
     HRGN clip;
-    
+
     clip = CreateRectRgn(left, top, right+1, bottom+1);
     if(MC_ERR(clip == NULL)) {
         MC_TRACE("mc_clip_set: CreateRectRgn() failed.");
         return;
     }
-    
+
     SelectClipRgn(dc, clip);
     DeleteObject(clip);
 }

@@ -68,12 +68,12 @@ dsa_reserve(dsa_t* dsa, WORD size)
         MC_TRACE("dsa_reserve: malloc() failed.");
         return -1;
     }
-    
+
     if(dsa->buffer != NULL) {
         memcpy(buffer, dsa->buffer, dsa->size * dsa->item_size);
         free(dsa->buffer);
     }
-    
+
     dsa->buffer = buffer;
     dsa->capacity = dsa->size + size;
     return 0;
@@ -115,7 +115,7 @@ dsa_insert(dsa_t* dsa, WORD index, void* item)
         return -1;
     }
 
-    MC_MEMCPY(ptr, item, dsa->item_size);
+    mc_inlined_memcpy(ptr, item, dsa->item_size);
     return index;
 }
 
@@ -139,7 +139,7 @@ dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
         dsa->capacity = 0;
         return;
     }
-    
+
     if(dsa->size + 7 > dsa->capacity) {
 no_realloc:
         memmove(dsa_item(dsa, index), dsa_item(dsa, index+1),
@@ -231,13 +231,13 @@ dsa_sort(dsa_t* dsa, dsa_cmp_t cmp_func)
             BYTE* mid = lo + dsa->item_size * ((hi - lo) / dsa->item_size >> 1);
 
             if(cmp_func(dsa, (void*)mid, (void*)lo) < 0)
-                MC_MEMSWAP(mid, lo, dsa->item_size);
+                mc_inlined_memswap(mid, lo, dsa->item_size);
             if(cmp_func(dsa, (void*)hi, (void*)mid) < 0)
-                MC_MEMSWAP(mid, hi, dsa->item_size);
+                mc_inlined_memswap(mid, hi, dsa->item_size);
             else
                 goto jump_over;
             if (cmp_func(dsa, (void*)mid, (void*)lo) < 0)
-                MC_MEMSWAP(mid, lo, dsa->item_size);
+                mc_inlined_memswap(mid, lo, dsa->item_size);
 jump_over:
             left_ptr  = lo + dsa->item_size;
             right_ptr = hi - dsa->item_size;
@@ -252,7 +252,7 @@ jump_over:
                     right_ptr -= dsa->item_size;
 
                 if(left_ptr < right_ptr) {
-                    MC_MEMSWAP(left_ptr, right_ptr, dsa->item_size);
+                    mc_inlined_memswap(left_ptr, right_ptr, dsa->item_size);
                     if(mid == left_ptr)
                         mid = right_ptr;
                     else if(mid == right_ptr)
@@ -312,7 +312,7 @@ jump_over:
         }
 
         if(tmp_ptr != base_ptr)
-            MC_MEMSWAP(tmp_ptr, base_ptr, dsa->item_size);
+            mc_inlined_memswap(tmp_ptr, base_ptr, dsa->item_size);
 
         /* Insertion sort, running from left-hand-side up to right-hand-side.  */
 
@@ -427,7 +427,7 @@ found_index:
         return index;
 
     /* Do the move */
-    MC_MEMCPY(tmp, dsa_item(dsa, old_index), dsa->item_size);
+    mc_inlined_memcpy(tmp, dsa_item(dsa, old_index), dsa->item_size);
     if(index < old_index) {
         memmove(dsa_item(dsa, index+1), dsa_item(dsa, index),
                 (old_index - index) * dsa->item_size);
@@ -435,7 +435,7 @@ found_index:
         memmove(dsa_item(dsa, old_index), dsa_item(dsa, old_index+1),
                 (index - old_index) * dsa->item_size);
     }
-    MC_MEMCPY(dsa_item(dsa, index), tmp, dsa->item_size);
+    mc_inlined_memcpy(dsa_item(dsa, index), tmp, dsa->item_size);
     return index;
 }
 

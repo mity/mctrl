@@ -28,6 +28,7 @@
 
 #include "compat.h"
 #include "debug.h"
+#include "optim.h"
 #include "resource.h"
 #include "version.h"
 
@@ -70,60 +71,6 @@
 #define MC_CONTAINEROF(ptr, type, member)                                \
             ((type*)((BYTE*)(ptr) - MC_OFFSETOF(type, member)))
 
-/* Rectangle macros */
-#define MC_WIDTH(rect)                 ((rect)->right - (rect)->left)
-#define MC_HEIGHT(rect)                ((rect)->bottom - (rect)->top)
-#define MC_CONTAINS(rect, pt)                                            \
-        ((rect)->left <= (pt)->x  &&  (pt)->x < (rect)->right  &&        \
-         (rect)->top <= (pt)->y  &&  (pt)->y < (rect)->bottom)
-#define MC_RECT_IS_EMPTY(rect)                                           \
-        ((rect)->left >= (rect)->right  ||  (rect)->top >= (rect)->bottom)
-#define MC_SET_RECT(rect, x0, y0, x1, y1)                                \
-        do { (rect)->left = x0; (rect)->top = y0;                        \
-             (rect)->right = x1; (rect)->bottom = y1; } while(0)
-#define MC_COPY_RECT(rect, rect2)                                        \
-        MC_SET_RECT((rect), (rect2)->left, (rect2)->top,                 \
-                            (rect2)->right, (rect2)->bottom)
-#define MC_OFFSET_RECT(rect, dx, dy)                                     \
-        do { (rect)->left += dx; (rect)->top += dx;                      \
-             (rect)->right += dx; (rect)->bottom += dx; } while(0)
-#define MC_INFLATE_RECT(rect, dx, dy)                                    \
-        do { (rect)->left -= dx; (rect)->top -= dx;                      \
-             (rect)->right += dx; (rect)->bottom += dx; } while(0)
-
-
-/* Inlined memcpy(), memmove() et al.
- * Prefer these for memory blocks known a priori to be small. */
-#define MC_MEMCPY(a, b, s)                                               \
-    do {                                                                 \
-        BYTE* __a = (BYTE*)(a);                                          \
-        BYTE* __b = (BYTE*)(b);                                          \
-        size_t __s = (size_t)(s);                                        \
-        while(__s-- > 0)  *__a++ = *__b++;                               \
-    } while(0)
-#define MC_MEMMOVE(a, b, s)                                              \
-    do {                                                                 \
-        BYTE* __a = (BYTE*)(a);                                          \
-        BYTE* __b = (BYTE*)(b);                                          \
-        size_t __s = (size_t)(s);                                        \
-        if(__a < __b) {                                                  \
-            while(__s-- > 0)  *__a++ = *__b++;                           \
-        } else {                                                         \
-            __a += __s; __b += __s;                                      \
-            while(__s-- > 0)  *(--__a) = *(--__b);                       \
-        }                                                                \
-    } while(0)
-#define MC_MEMSWAP(a, b, s)                                              \
-    do {                                                                 \
-        BYTE* __a = (BYTE*)(a);                                          \
-        BYTE* __b = (BYTE*)(b);                                          \
-        size_t __s = (size_t)(s);                                        \
-        while(__s-- > 0) {                                               \
-            BYTE __tmp = *__a;                                           \
-            *__a++ = *__b;                                               \
-            *__b++ = __tmp;                                              \
-        }                                                                \
-    } while(0)
 
 /* Macros telling the compiler that the condition is likely or unlikely to
  * be true. (If supported) it allows better optimization. Use only sparingly
@@ -139,6 +86,11 @@
 
 /* Macro for wrapping error conditions. */
 #define MC_ERR(condition)              MC_UNLIKELY(condition)
+
+
+/* Inlined memcpy(), memmove() et al.
+ * Prefer these for memory blocks known a priori to be small. */
+
 
 
 /***************
@@ -192,14 +144,35 @@ extern HIMAGELIST mc_bmp_glyphs;
  **************************/
 
 /* String type identifier. */
-#define MC_STRA             1  /* Multibyte (ANSI) string */
-#define MC_STRW             2  /* Unicode (UTF-16LE) string */
+typedef enum mc_str_type_tag mc_str_type_t;
+enum mc_str_type_tag {
+    MC_STRA = 1,   /* Multibyte (ANSI) string */
+    MC_STRW = 2,   /* Unicode (UTF-16LE) string */
 #ifdef UNICODE
-    #define MC_STRT    MC_STRW
+    MC_STRT = MC_STRW
 #else
-    #define MC_STRT    MC_STRA
+    MC_STRT = MC_STRA
 #endif
+};
 
+
+/* Copies zero-terminated sring from_str to the buffer to_str. A conversion
+ * can be applied during the copying depending on teh type of the from_str
+ * and the requested new string. Only up to max_len-1 characters is copied.
+ * The resulted string is always zero-terminated.
+ */
+void mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
+                  void* to_str, mc_str_type_t to_type, int to_str_bufsize);
+
+/* Copies string of specified length (which can contain '\0' characters)
+ * to a newly allocated buffer. A conversion can be applied during the copying
+ * depending on the type of the from_str and the requested new string. Returns
+ * NULL on failure.
+ *
+ * Caller is then responsible to free the returned buffer.
+ */
+void* mc_str_n(const void* from_str, mc_str_type_t from_type, int from_len,
+               mc_str_type_t to_type, int* ptr_to_len);
 
 /* Copies zero-terminated string from_str to a newly allocated buffer.
  * A conversion can be applied during the copying depending on the type
@@ -207,25 +180,11 @@ extern HIMAGELIST mc_bmp_glyphs;
  *
  * Caller is then responsible to free the returned buffer.
  */
-#define mc_str(from_str, from_type, to_type)                             \
-                    mc_str_n(from_str, from_type, -1, to_type, NULL)
-
-/* Copies string of specified length (which can contain '\0' characters)
- * to a newly allocated buffer. A conversion can be applied during the copying
- * depending on the type of the from_str and the requested new string. Returns
- * NULL on failure.
- */
-void* mc_str_n(const void* from_str, int from_type, int from_len,
-               int to_type, int* ptr_to_len);
-
-/* Copies zero-terminated sring from_str to the buffer to_str. A conversion
- * can be applied during the copying depending on teh type of the from_str
- * and the requested new string. Only up to max_len-1 characters is copied.
- * The resulted string is always zero-terminated.
- */
-void mc_str_inbuf(const void* from_str, int from_type,
-                  void* to_str, int to_type, int to_str_bufsize);
-
+static inline void*
+mc_str(const void* from_str, mc_str_type_t from_type, mc_str_type_t to_type)
+{
+    return mc_str_n(from_str, from_type, -1, to_type, NULL);
+}
 
 
 /*************************
@@ -252,7 +211,12 @@ void mc_clip_reset(HDC dc, HRGN old_clip);
 
 /* Convert wheel messages into line count */
 int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
-#define mc_wheel_reset()   mc_wheel_scroll(NULL, 0, 0)
+
+static inline void
+mc_wheel_reset(void)
+{
+    mc_wheel_scroll(NULL, 0, 0);
+}
 
 
 /**********************
