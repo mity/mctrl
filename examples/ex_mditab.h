@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2012 Martin Mitas
  *
  * This file contains example code for mCtrl library. Code of this example
  * (but not the library itself) has been placed in the public domain.
@@ -15,7 +15,8 @@
 
 #define IDL_IMGLIST         1000
 
-#define IDC_BUTTON_NEW       100
+#define IDC_MDITAB           100
+#define IDC_BUTTON_NEW       101
 
 
 #endif  /* EXAMPLE_MDITAB_H */
