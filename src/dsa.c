@@ -203,16 +203,18 @@ void
 dsa_sort(dsa_t* dsa, dsa_cmp_t cmp_func)
 {
     register BYTE* base_ptr = (BYTE*) dsa->buffer;
-    const WORD max_thresh = MAX_THRESH * dsa->item_size;
+    const WORD size = dsa->size;
+    const WORD item_size = dsa->item_size;
+    const WORD max_thresh = MAX_THRESH * item_size;
 
     DSA_TRACE("dsa_sort(%p, %p)", dsa, cmp_func);
 
-    if (dsa->size == 0)
+    if (size == 0)
         return;
 
-    if (dsa->size > MAX_THRESH) {
+    if (size > MAX_THRESH) {
         BYTE* lo = base_ptr;
-        BYTE* hi = &lo[dsa->item_size * (dsa->size - 1)];
+        BYTE* hi = &lo[item_size * (size - 1)];
         stack_node stack[STACK_SIZE];
         stack_node *top = stack;
 
@@ -228,40 +230,40 @@ dsa_sort(dsa_t* dsa, dsa_cmp_t cmp_func)
                skips a comparison for both the LEFT_PTR and RIGHT_PTR in
                the while loops. */
 
-            BYTE* mid = lo + dsa->item_size * ((hi - lo) / dsa->item_size >> 1);
+            BYTE* mid = lo + item_size * ((hi - lo) / item_size >> 1);
 
             if(cmp_func(dsa, (void*)mid, (void*)lo) < 0)
-                mc_inlined_memswap(mid, lo, dsa->item_size);
+                mc_inlined_memswap(mid, lo, item_size);
             if(cmp_func(dsa, (void*)hi, (void*)mid) < 0)
-                mc_inlined_memswap(mid, hi, dsa->item_size);
+                mc_inlined_memswap(mid, hi, item_size);
             else
                 goto jump_over;
             if (cmp_func(dsa, (void*)mid, (void*)lo) < 0)
-                mc_inlined_memswap(mid, lo, dsa->item_size);
+                mc_inlined_memswap(mid, lo, item_size);
 jump_over:
-            left_ptr  = lo + dsa->item_size;
-            right_ptr = hi - dsa->item_size;
+            left_ptr  = lo + item_size;
+            right_ptr = hi - item_size;
 
             /* Here's the famous ``collapse the walls'' section of quicksort.
                Gotta like those tight inner loops!  They are the main reason
                that this algorithm runs much faster than others. */
             do {
                 while(cmp_func(dsa, (void*)left_ptr, (void*)mid) < 0)
-                    left_ptr += dsa->item_size;
+                    left_ptr += item_size;
                 while(cmp_func(dsa, (void*)mid, (void*)right_ptr) < 0)
-                    right_ptr -= dsa->item_size;
+                    right_ptr -= item_size;
 
                 if(left_ptr < right_ptr) {
-                    mc_inlined_memswap(left_ptr, right_ptr, dsa->item_size);
+                    mc_inlined_memswap(left_ptr, right_ptr, item_size);
                     if(mid == left_ptr)
                         mid = right_ptr;
                     else if(mid == right_ptr)
                         mid = left_ptr;
-                    left_ptr += dsa->item_size;
-                    right_ptr -= dsa->item_size;
+                    left_ptr += item_size;
+                    right_ptr -= item_size;
                 } else if(left_ptr == right_ptr) {
-                    left_ptr += dsa->item_size;
-                    right_ptr -= dsa->item_size;
+                    left_ptr += item_size;
+                    right_ptr -= item_size;
                     break;
                 }
             } while(left_ptr <= right_ptr);
@@ -297,7 +299,7 @@ jump_over:
        the array (*not* one beyond it!). */
 
     {
-        BYTE* const end_ptr = &base_ptr[dsa->item_size * (dsa->size - 1)];
+        BYTE* const end_ptr = &base_ptr[item_size * (size - 1)];
         BYTE* tmp_ptr = base_ptr;
         BYTE* thresh = MC_MIN(end_ptr, base_ptr + max_thresh);
         register BYTE* run_ptr;
@@ -306,33 +308,33 @@ jump_over:
            array's beginning.  This is the smallest array element,
            and the operation speeds up insertion sort's inner loop. */
 
-        for(run_ptr = tmp_ptr + dsa->item_size; run_ptr <= thresh; run_ptr += dsa->item_size) {
+        for(run_ptr = tmp_ptr + item_size; run_ptr <= thresh; run_ptr += item_size) {
             if (cmp_func(dsa, (void*)run_ptr, (void*)tmp_ptr) < 0)
                 tmp_ptr = run_ptr;
         }
 
         if(tmp_ptr != base_ptr)
-            mc_inlined_memswap(tmp_ptr, base_ptr, dsa->item_size);
+            mc_inlined_memswap(tmp_ptr, base_ptr, item_size);
 
         /* Insertion sort, running from left-hand-side up to right-hand-side.  */
 
-        run_ptr = base_ptr + dsa->item_size;
-        while((run_ptr += dsa->item_size) <= end_ptr) {
-            tmp_ptr = run_ptr - dsa->item_size;
+        run_ptr = base_ptr + item_size;
+        while((run_ptr += item_size) <= end_ptr) {
+            tmp_ptr = run_ptr - item_size;
             while(cmp_func(dsa, (void*)run_ptr, (void*)tmp_ptr) < 0)
-                tmp_ptr -= dsa->item_size;
+                tmp_ptr -= item_size;
 
-            tmp_ptr += dsa->item_size;
+            tmp_ptr += item_size;
             if(tmp_ptr != run_ptr) {
                 BYTE* trav;
 
-                trav = run_ptr + dsa->item_size;
+                trav = run_ptr + item_size;
                 while(--trav >= run_ptr) {
                     BYTE c = *trav;
                     BYTE* hi;
                     BYTE* lo;
 
-                    for(hi = lo = trav; (lo -= dsa->item_size) >= tmp_ptr; hi = lo)
+                    for(hi = lo = trav; (lo -= item_size) >= tmp_ptr; hi = lo)
                         *hi = *lo;
                     *hi = c;
                 }
