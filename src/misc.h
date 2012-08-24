@@ -202,12 +202,56 @@ void mc_icon_size(HICON icon, SIZE* size);
 void mc_font_size(HFONT font, SIZE* size);
 
 /* Send simple (i.e. using only NMHDR) notification */
-LRESULT mc_send_notify(HWND parent, HWND win, UINT code);
+static inline LRESULT
+mc_send_notify(HWND parent, HWND win, UINT code)
+{
+    NMHDR hdr;
+
+    hdr.hwndFrom = win;
+    hdr.idFrom = GetWindowLong(win, GWL_ID);
+    hdr.code = code;
+
+    return SendMessage(parent, WM_NOTIFY, hdr.idFrom, (LPARAM)&hdr);
+}
+
 
 /* Easy-to-use clipping functions */
-HRGN mc_clip_get(HDC dc);
-void mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom);
-void mc_clip_reset(HDC dc, HRGN old_clip);
+static inline HRGN
+mc_clip_get(HDC dc)
+{
+    HRGN old_clip;
+
+    old_clip = CreateRectRgn(0, 0, 0, 0);
+    if(GetClipRgn(dc, old_clip) != 1) {
+        DeleteObject(old_clip);
+        return NULL;
+    }
+
+    return old_clip;
+}
+
+static inline void
+mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom)
+{
+    HRGN clip;
+
+    clip = CreateRectRgn(left, top, right+1, bottom+1);
+    if(MC_ERR(clip == NULL)) {
+        MC_TRACE("mc_clip_set: CreateRectRgn() failed.");
+        return;
+    }
+
+    SelectClipRgn(dc, clip);
+    DeleteObject(clip);
+}
+
+static inline void
+mc_clip_reset(HDC dc, HRGN old_clip)
+{
+    SelectClipRgn(dc, old_clip);
+    if(old_clip != NULL)
+        DeleteObject(old_clip);
+}
 
 /* Convert wheel messages into line count */
 int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
