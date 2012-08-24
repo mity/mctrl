@@ -305,7 +305,7 @@ dlg_direct(HINSTANCE instance, const void* templ_name, HWND parent,
     return dlg_indirect(instance, templ, parent, proc, lp, flags, kind);
 
 err:
-    return (kind & DLG_KIND_MODAL) ? -1 : (INT_PTR) NULL;
+    return (kind & DLG_KIND_MODAL) ? (INT_PTR) -1 : (INT_PTR) NULL;
 }
 
 
