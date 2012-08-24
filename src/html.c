@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -97,30 +97,30 @@ struct html_tag {
 static HRESULT
 html_QueryInterface(html_t* html, REFIID riid, void** obj)
 {
-    if(IsEqualIID(riid, &IID_IDispatch)) {
+    if(InlineIsEqualGUID(riid, &IID_IDispatch)) {
         *obj = (void*)&html->dispatch;
         return S_OK;
     }
 
-    if(IsEqualIID(riid, &IID_IOleClientSite) ||
-       IsEqualIID(riid, &IID_IUnknown)) {
+    if(InlineIsEqualGUID(riid, &IID_IOleClientSite) ||
+       InlineIsEqualGUID(riid, &IID_IUnknown)) {
         *obj = (void*)&html->client_site;
         return S_OK;
     }
 
-    if(IsEqualIID(riid, &IID_IOleWindow) ||
-       IsEqualIID(riid, &IID_IOleInPlaceSite) ||
-       IsEqualIID(riid, &IID_IOleInPlaceSiteEx)) {
+    if(InlineIsEqualGUID(riid, &IID_IOleWindow) ||
+       InlineIsEqualGUID(riid, &IID_IOleInPlaceSite) ||
+       InlineIsEqualGUID(riid, &IID_IOleInPlaceSiteEx)) {
         *obj = (void*)&html->inplace_site_ex;
         return S_OK;
     }
 
-    if(IsEqualIID(riid, &IID_IOleInPlaceFrame)) {
+    if(InlineIsEqualGUID(riid, &IID_IOleInPlaceFrame)) {
         *obj = (void*)&html->inplace_frame;
         return S_OK;
     }
 
-    if(IsEqualIID(riid, &IID_IDocHostUIHandler)) {
+    if(InlineIsEqualGUID(riid, &IID_IDocHostUIHandler)) {
         *obj = (void*)&html->ui_handler;
         return S_OK;
     }
@@ -135,7 +135,7 @@ html_browser_iface(html_t* html)
 {
     IWebBrowser2* browser_iface;
     HRESULT hr;
-    
+
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                     &IID_IWebBrowser2, (void**)&browser_iface);
     if(MC_ERR(FAILED(hr))) {
@@ -143,7 +143,7 @@ html_browser_iface(html_t* html)
                  "[%lu]", (ULONG) hr);
         return NULL;
     }
-    
+
     return browser_iface;
 }
 
@@ -261,7 +261,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
                 if(browser_iface != NULL) {
                     HRESULT hr;
                     BSTR url = NULL;
-                    
+
                     hr = browser_iface->lpVtbl->get_LocationURL(browser_iface, &url);
                     if(hr == S_OK && url != NULL) {
                         html_notify_url(html, MC_HN_DOCUMENTCOMPLETE, url);
@@ -921,7 +921,7 @@ err_bstr:
 }
 
 static int
-html_set_element_contents(html_t* html, const void* id, const void* contents, 
+html_set_element_contents(html_t* html, const void* id, const void* contents,
                           BOOL unicode)
 {
     BSTR bstr_id;
@@ -932,8 +932,8 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     IHTMLElement* elem_iface;
     HRESULT hr;
     int res = -1;
-    
-    if(MC_ERR(id == NULL  ||  (unicode && ((WCHAR*)id)[0] == L'\0')  ||  
+
+    if(MC_ERR(id == NULL  ||  (unicode && ((WCHAR*)id)[0] == L'\0')  ||
                               (!unicode && ((char*)id)[0] == '\0'))) {
         MC_TRACE("html_set_element_contents: Empty element ID.");
         goto err_id;
@@ -944,7 +944,7 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
         mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
         goto err_id;
     }
-    
+
     if(contents == NULL)
         contents = (unicode ? (void*)L"" : (void*)"");
     bstr_contents = html_bstr(contents, (unicode ? MC_STRW : MC_STRA));
@@ -953,40 +953,40 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
         mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
         goto err_contents;
     }
-    
+
     browser_iface = html_browser_iface(html);
     if(MC_ERR(browser_iface == NULL)) {
         MC_TRACE("html_set_element_contents: html_browser_iface() failed");
         goto err_browser;
     }
-    
+
     hr = browser_iface->lpVtbl->get_Document(browser_iface, &dispatch_iface);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_set_element_contents: get_Document() failed [%ld]", hr);
         goto err_dispatch;
     }
-    
-    hr = dispatch_iface->lpVtbl->QueryInterface(dispatch_iface, 
+
+    hr = dispatch_iface->lpVtbl->QueryInterface(dispatch_iface,
                                     &IID_IHTMLDocument3, (void**)&doc_iface);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_set_element_contents: QueryInterface(IID_IHTMLDocument3) failed [%ld]", hr);
         goto err_doc;
     }
-    
+
     hr = doc_iface->lpVtbl->getElementById(doc_iface, bstr_id, &elem_iface);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_set_element_contents: getElementById() failed [%ld]", hr);
         goto err_elem;
     }
-    
+
     hr = elem_iface->lpVtbl->put_innerHTML(elem_iface, bstr_contents);
     if(hr != S_OK) {
         MC_TRACE("html_set_element_contents: put_innerHTML() failed [%ld]", hr);
         goto err_inner_html;
     }
-    
+
     res = 0;
-    
+
 err_inner_html:
     elem_iface->lpVtbl->Release(elem_iface);
 err_elem:
@@ -1050,7 +1050,7 @@ html_nccreate(HWND win, CREATESTRUCT* cs)
         return NULL;
     }
     memset(html, 0, sizeof(html_t));
-    
+
     html->win = win;
     html->style = cs->style;
     html->dispatch.lpVtbl = &dispatch_vtable;
@@ -1083,7 +1083,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
         MC_TRACE("html_create: OleInitialize() failed [%lu]", (ULONG)hr);
         return -1;
     }
-    
+
     html->ole_initialized = 1;
 
     /* Create browser object */
@@ -1174,7 +1174,7 @@ html_destroy(html_t* html)
         html->browser_obj->lpVtbl->Release(html->browser_obj);
         html->browser_obj = NULL;
     }
-    
+
     if(html->ole_initialized) {
         OleUninitialize();
         html->ole_initialized = 0;
@@ -1274,11 +1274,11 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_HM_SETTAGCONTENTSW:
         case MC_HM_SETTAGCONTENTSA:
         {
-            int res = html_set_element_contents(html, (void*)wp, (void*)lp, 
+            int res = html_set_element_contents(html, (void*)wp, (void*)lp,
                                                 (msg == MC_HM_SETTAGCONTENTSW));
             return (res == 0 ? TRUE : FALSE);
         }
-        
+
         case WM_SIZE:
         {
             IWebBrowser2* browser_iface;
@@ -1346,7 +1346,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_CREATE:
             return (html_create(html, (CREATESTRUCT*)lp) == 0 ? 0 : -1);
-        
+
         case WM_DESTROY:
             html_destroy(html);
             return 0;
