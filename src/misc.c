@@ -289,20 +289,19 @@ mc_icon_size(HICON icon, SIZE* size)
     }
 
     GetIconInfo(icon, &ii);
+    GetObject(ii.hbmMask, sizeof(BITMAP), &bmp);
 
-    /* In cases the HICON is monochromatic both the icon and its mask are
-     * stored in the hbmMask member (upper half is the icon, the lower half
-     * is the mask). */
-    if(ii.hbmColor) {
-        GetObject(ii.hbmColor, sizeof(BITMAP), &bmp);
-        size->cx = bmp.bmWidth;
-        size->cy = bmp.bmHeight;
+    size->cx = bmp.bmWidth;
+    size->cy = bmp.bmHeight;
+
+    /* In cases the HICON is monochromatic both the icon and its mask
+     * are stored in the hbmMask member (upper half is the icon, the
+     * lower half is the mask). */
+    if(ii.hbmColor == NULL)
+        size->cy /= 2;
+    else
         DeleteObject(ii.hbmColor);
-    } else {
-        GetObject(ii.hbmMask, sizeof(BITMAP), &bmp);
-        size->cx = bmp.bmWidth / 2;
-        size->cy = bmp.bmHeight;
-    }
+
     DeleteObject(ii.hbmMask);
 }
 
