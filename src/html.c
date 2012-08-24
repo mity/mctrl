@@ -876,8 +876,8 @@ html_notify_format(html_t* html)
     lres = SendMessage(GetParent(html->win), WM_NOTIFYFORMAT,
                        (WPARAM) html->win, NF_QUERY);
     html->unicode_notifications = (lres == NFR_UNICODE ? 1 : 0);
-    MC_TRACE("html_notify_format: Will use %s notifications.",
-             html->unicode_notifications ? "Unicode" : "ANSI");
+    HTML_TRACE("html_notify_format: Will use %s notifications.",
+               html->unicode_notifications ? "Unicode" : "ANSI");
 }
 
 static int
