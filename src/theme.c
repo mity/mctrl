@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,28 +17,37 @@
  */
 
 #include "theme.h"
-#include <shlwapi.h>  /* DLLVERSIONINFO */
 
 
-#ifndef UNICODE
-    /* Right now, we don't support theming in non-unicode builds. */
-    #define DISABLE_UXTHEME     1
-#endif
+HRESULT (WINAPI* theme_CloseThemeData)(HTHEME);
+HRESULT (WINAPI* theme_DrawThemeBackground)(HTHEME,HDC,int,int,const RECT*,const RECT*);
+HRESULT (WINAPI* theme_DrawThemeEdge)(HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*);
+HRESULT (WINAPI* theme_DrawThemeIcon)(HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int);
+HRESULT (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
+HRESULT (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
+HRESULT (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
+HRESULT (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
+HRESULT (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
+BOOL    (WINAPI* theme_IsThemeActive)(void);
+BOOL    (WINAPI* theme_IsThemeBackgroundPartiallyTransparent)(HTHEME,int,int);
+HTHEME  (WINAPI* theme_OpenThemeData)(HWND,const WCHAR*);
+
+HANIMATIONBUFFER (WINAPI* theme_BeginBufferedAnimation)(HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*);
+HRESULT (WINAPI* theme_BufferedPaintInit)(void);
+HRESULT (WINAPI* theme_BufferedPaintUnInit)(void);
+BOOL    (WINAPI* theme_BufferedPaintRenderAnimation)(HWND,HDC);
+HRESULT (WINAPI* theme_BufferedPaintStopAllAnimations)(HWND);
+HRESULT (WINAPI* theme_EndBufferedAnimation)(HANIMATIONBUFFER,BOOL);
+HRESULT (WINAPI* theme_GetThemeTransitionDuration)(HTHEME,int,int,int,int,DWORD*);
 
 
-#ifndef DISABLE_UXTHEME
-    /* Preprocessor magic to define pointers to UXTHEME.DLL functions */
-    #define THEME_FN(rettype, name, params)            \
-        rettype (WINAPI* theme_##name)params;
-    #include "theme_fn.h"
-    #undef THEME_FN
-
-    static HMODULE uxtheme_dll = NULL;
-#endif  /* #ifndef DISABLE_UXTHEME */
+static HMODULE uxtheme_dll = NULL;
 
 
-/* Dummy implementations of some UXTHEME.DLL functions so controls can 
- * comfortably detect when theming cannot be used. */
+/****************************
+ *** Dummy implementation ***
+ ****************************/
+
 static HTHEME WINAPI
 dummy_OpenThemeData(HWND win, LPCWSTR class_id_list)
 {
@@ -51,22 +60,95 @@ dummy_IsThemeActive(void)
     return FALSE;
 }
 
+static HRESULT WINAPI
+dummy_BufferedPaintInit_or_UnInit(void)
+{
+    return E_NOTIMPL;
+}
+
+static HANIMATIONBUFFER WINAPI
+dummy_BeginBufferedAnimation(HWND win, HDC dc, const RECT *rect,
+                             BP_BUFFERFORMAT format, BP_PAINTPARAMS *paint_params,
+                             BP_ANIMATIONPARAMS *anim_params,
+                             HDC* dc_from, HDC* hdc_to)
+{
+    return NULL;
+}
+
+static HRESULT WINAPI
+dummy_GetThemeTransitionDuration(HTHEME theme, int part, int state1,
+                                 int state2, int prop, DWORD* duration)
+{
+    *duration = 0;
+    return E_NOTIMPL;
+}
+
+static HRESULT WINAPI
+dummy_BufferedPaintStopAllAnimations(HWND win)
+{
+    return E_NOTIMPL;
+}
+
+
+/***************************
+ *** ANSI implementation ***
+ ***************************/
+
+#ifndef UNICODE
+
+static HRESULT (WINAPI* theme_DrawThemeTextW)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
+static HRESULT (WINAPI* theme_GetThemeTextExtentW)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
+
+static HRESULT WINAPI
+theme_DrawThemeTextA(HTHEME theme, HDC dc, int part, int state,
+                     const char* str, int str_len, DWORD flags, DWORD flags2,
+                     const RECT* rect)
+{
+    WCHAR* wstr;
+    int wstr_len;
+    HRESULT hr;
+
+    wstr = mc_str_n(str, MC_STRA, str_len, MC_STRW, &wstr_len);
+    hr = theme_DrawThemeTextW(theme, dc, part, state, wstr, wstr_len,
+                              flags, flags2, rect);
+    free(wstr);
+    return hr;
+}
+
+static HRESULT WINAPI
+theme_GetThemeTextExtentA(HTHEME theme, HDC dc, int part, int state,
+                     const char* str, int str_len, DWORD flags,
+                     const RECT* bound_rect, RECT* extent_rect)
+{
+    WCHAR* wstr;
+    int wstr_len;
+    HRESULT hr;
+
+    wstr = mc_str_n(str, MC_STRA, str_len, MC_STRW, &wstr_len);
+    hr = theme_GetThemeTextExtentW(theme, dc, part, state, wstr, wstr_len,
+                                   flags, bound_rect, extent_rect);
+    free(wstr);
+    return hr;
+}
+
+#endif  /* #ifndef UNICODE */
+
+
+/**********************
+ *** Initialization ***
+ **********************/
 
 int 
 theme_init(void)
 {
-#ifdef DISABLE_UXTHEME
-    MC_TRACE("theme_init: UXTHEME.DLL disabled in this build.");
-    goto err_uxtheme_not_available;
-#else
     /* WinXP with COMCL32.DLL version 6.0 or newer is required for theming. */
     if(mc_win_version < MC_WIN_XP) {
         MC_TRACE("theme_init: UXTHEME.DLL not used (old Windows)");
-        goto err_uxtheme_not_available;
+        goto err_uxtheme_not_loaded;
     }
     if(mc_comctl32_version < MC_DLL_VER(6, 0)) {
         MC_TRACE("theme_init: UXTHEME.DLL not used (COMCTL32.DLL < 6.0)");
-        goto err_uxtheme_not_available;
+        goto err_uxtheme_not_loaded;
     }
 
     /* Ok, so lets try to use themes. */
@@ -74,44 +156,114 @@ theme_init(void)
     if(MC_ERR(uxtheme_dll == NULL)) {
         MC_TRACE("theme_init: LoadLibrary(UXTHEME.DLL) failed [%ld].",
                  GetLastError());
-        goto err_uxtheme_not_available;
+        goto err_uxtheme_not_loaded;
     }
 
-    /* Preprocessor magic to get UXTHEME.DLL functions with GetProcAddress() */
-#define THEME_FN(rettype, name, params)                                       \
-    theme_##name = (rettype (WINAPI*)params) GetProcAddress(uxtheme_dll, #name); \
-    if(MC_ERR(theme_##name == NULL)) {                                        \
-        MC_TRACE("theme_init: GetProcAddress(%s) failed [%lu]",               \
-                 #name, GetLastError());                                      \
-        goto err_GetProcAddress;                                              \
-    }
-#include "theme_fn.h"
-#undef THEME_FN
+    /* Get core UXTHEME.DLL functions */
+    theme_CloseThemeData = (HRESULT (WINAPI*)(HTHEME)) GetProcAddress(uxtheme_dll, "CloseThemeData");
+    if(MC_ERR(theme_CloseThemeData == NULL))
+        goto err_core;
+    theme_DrawThemeBackground = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const RECT*,const RECT*)) GetProcAddress(uxtheme_dll, "DrawThemeBackground");
+    if(MC_ERR(theme_DrawThemeBackground == NULL))
+        goto err_core;
+    theme_DrawThemeEdge = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*)) GetProcAddress(uxtheme_dll, "DrawThemeEdge");
+    if(MC_ERR(theme_DrawThemeEdge == NULL))
+        goto err_core;
+    theme_DrawThemeIcon = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int)) GetProcAddress(uxtheme_dll, "DrawThemeIcon");
+    if(MC_ERR(theme_DrawThemeIcon == NULL))
+        goto err_core;
+    theme_DrawThemeParentBackground = (HRESULT (WINAPI*)(HWND,HDC,RECT*)) GetProcAddress(uxtheme_dll, "DrawThemeParentBackground");
+    if(MC_ERR(theme_DrawThemeParentBackground == NULL))
+        goto err_core;
+#ifdef UNICODE
+    theme_DrawThemeText = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const WCHAR*,int,DWORD,DWORD,const RECT*)) GetProcAddress(uxtheme_dll, "DrawThemeText");
+    if(MC_ERR(theme_DrawThemeText == NULL))
+        goto err_core;
+#else
+    theme_DrawThemeTextW = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const WCHAR*,int,DWORD,DWORD,const RECT*)) GetProcAddress(uxtheme_dll, "DrawThemeText");
+    if(MC_ERR(theme_DrawThemeTextW == NULL))
+        goto err_core;
+    theme_DrawThemeText = theme_DrawThemeTextA;
+#endif
+    theme_GetThemeBackgroundContentRect = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const RECT*,RECT*)) GetProcAddress(uxtheme_dll, "GetThemeBackgroundContentRect");
+    if(MC_ERR(theme_GetThemeBackgroundContentRect == NULL))
+        goto err_core;
+    theme_GetThemeColor = (HRESULT (WINAPI*)(HTHEME,int,int,int,COLORREF*)) GetProcAddress(uxtheme_dll, "GetThemeColor");
+    if(MC_ERR(theme_GetThemeColor == NULL))
+        goto err_core;
+#ifdef UNICODE
+    theme_GetThemeTextExtent = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const WCHAR*,int,DWORD,const RECT*,RECT*)) GetProcAddress(uxtheme_dll, "GetThemeTextExtent");
+    if(MC_ERR(theme_GetThemeTextExtent == NULL))
+        goto err_core;
+#else
+    theme_GetThemeTextExtentW = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const WCHAR*,int,DWORD,const RECT*,RECT*)) GetProcAddress(uxtheme_dll, "GetThemeTextExtent");
+    if(MC_ERR(theme_GetThemeTextExtentW == NULL))
+        goto err_core;
+    theme_GetThemeTextExtent = theme_GetThemeTextExtentA;
+#endif
+    theme_IsThemeActive = (BOOL (WINAPI*)(void)) GetProcAddress(uxtheme_dll, "IsThemeActive");
+    if(MC_ERR(theme_IsThemeActive == NULL))
+        goto err_core;
+    theme_IsThemeBackgroundPartiallyTransparent = (BOOL (WINAPI*)(HTHEME,int,int)) GetProcAddress(uxtheme_dll, "IsThemeBackgroundPartiallyTransparent");
+    if(MC_ERR(theme_IsThemeBackgroundPartiallyTransparent == NULL))
+        goto err_core;
+    theme_OpenThemeData = (HTHEME (WINAPI*)(HWND,const WCHAR*)) GetProcAddress(uxtheme_dll, "OpenThemeData");
+    if(MC_ERR(theme_OpenThemeData == NULL))
+        goto err_core;
 
-    /* Success. All mCtrl controls can use the XP themes. */
+    /* Get buffered animation functions */
+    theme_BeginBufferedAnimation = (HANIMATIONBUFFER (WINAPI*)(HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*)) GetProcAddress(uxtheme_dll, "BeginBufferedAnimation");
+    if(MC_ERR(theme_BeginBufferedAnimation == NULL))
+        goto err_anim;
+    theme_BufferedPaintInit = (HRESULT (WINAPI*)(void)) GetProcAddress(uxtheme_dll, "BufferedPaintInit");
+    if(MC_ERR(theme_BufferedPaintInit == NULL))
+        goto err_anim;
+    theme_BufferedPaintUnInit = (HRESULT (WINAPI*)(void)) GetProcAddress(uxtheme_dll, "BufferedPaintUnInit");
+    if(MC_ERR(theme_BufferedPaintUnInit == NULL))
+        goto err_anim;
+    theme_BufferedPaintRenderAnimation = (BOOL (WINAPI*)(HWND,HDC)) GetProcAddress(uxtheme_dll, "BufferedPaintRenderAnimation");
+    if(MC_ERR(theme_BufferedPaintRenderAnimation == NULL))
+        goto err_anim;
+    theme_BufferedPaintStopAllAnimations = (HRESULT (WINAPI*)(HWND)) GetProcAddress(uxtheme_dll, "BufferedPaintStopAllAnimations");
+    if(MC_ERR(theme_BufferedPaintStopAllAnimations == NULL))
+        goto err_anim;
+    theme_EndBufferedAnimation = (HRESULT (WINAPI*)(HANIMATIONBUFFER,BOOL)) GetProcAddress(uxtheme_dll, "EndBufferedAnimation");
+    if(MC_ERR(theme_EndBufferedAnimation == NULL))
+        goto err_anim;
+    theme_GetThemeTransitionDuration = (HRESULT (WINAPI*)(HTHEME,int,int,int,int,DWORD*)) GetProcAddress(uxtheme_dll, "GetThemeTransitionDuration");
+    if(MC_ERR(theme_GetThemeTransitionDuration == NULL))
+        goto err_anim;
+
+    /* Success */
     return 0;
-    
-err_GetProcAddress:
+
+err_core:
     FreeLibrary(uxtheme_dll);
     uxtheme_dll = NULL;
-#endif  /* DISABLE_UXTHEME */
-    
-err_uxtheme_not_available:
-    MC_TRACE("theme_init: Switching to dummy implementation.");
+
+err_uxtheme_not_loaded:
+    /* Make the controls fall back to GDI (non-themed) painting. */
     theme_OpenThemeData = dummy_OpenThemeData;
     theme_IsThemeActive = dummy_IsThemeActive;
-    /* Failure but return 0 anyway. XP themes won't be used in runtime. */
+
+err_anim:
+    /* Disable the UXTHEME.DLL based animations. */
+    theme_BufferedPaintInit = dummy_BufferedPaintInit_or_UnInit;
+    theme_BufferedPaintUnInit = dummy_BufferedPaintInit_or_UnInit;
+    theme_BeginBufferedAnimation = dummy_BeginBufferedAnimation;
+    theme_GetThemeTransitionDuration = dummy_GetThemeTransitionDuration;
+    theme_BufferedPaintStopAllAnimations = dummy_BufferedPaintStopAllAnimations;
+
+    /* Return 0 anyway. */
     return 0;
 }
 
 void 
 theme_fini(void)
 {
-#ifndef DISABLE_UXTHEME
     if(uxtheme_dll != NULL) {
         FreeLibrary(uxtheme_dll);
         uxtheme_dll = NULL;
     }
-#endif  /* #ifndef DISABLE_UXTHEME */
 }
 

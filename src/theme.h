@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,30 +20,33 @@
 #define MC_THEME_H
 
 #include "misc.h"
-#include <tmschema.h>
+
+#include <vssym32.h>
+#include <vsstyle.h>
+#include <uxtheme.h>
 
 
-/* Fake HTHEME definition as we don't want #include <uxtheme.h> */
-#define HTHEME HANDLE
+extern HRESULT (WINAPI* theme_CloseThemeData)(HTHEME);
+extern HRESULT (WINAPI* theme_DrawThemeBackground)(HTHEME,HDC,int,int,const RECT*,const RECT*);
+extern HRESULT (WINAPI* theme_DrawThemeEdge)(HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*);
+extern HRESULT (WINAPI* theme_DrawThemeIcon)(HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int);
+extern HRESULT (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
+extern HRESULT (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
+extern HRESULT (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
+extern HRESULT (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
+extern HRESULT (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
+extern BOOL    (WINAPI* theme_IsThemeActive)(void);
+extern BOOL    (WINAPI* theme_IsThemeBackgroundPartiallyTransparent)(HTHEME,int,int);
+extern HTHEME  (WINAPI* theme_OpenThemeData)(HWND,const WCHAR*);
 
 
-/* Preprocessor magic to declare extern variables of pointers to 
- * UXTHEME.DLL functions. Each is declared as theme_XXXX where XXXX
- * is the name of the UXTHEME function, e.g. theme_OpenThemeData. 
- *
- * Note that theme_OpenThemeData() is always valid after theme_init().
- * If UXTHEME.DLL is not available, or the application does not use it,
- * we set the pointer to our internal dummy function which then just always 
- * return NULL.
- *
- * Thus the control implementations can call it anytime and then only decide 
- * depending whether it has a valid theme handle or NULL. When NULL, no other
- * UXTHEME function can be called!
- */
-#define THEME_FN(rettype, name, params)             \
-    extern rettype (WINAPI* theme_##name)params;
-#include "theme_fn.h"
-#undef THEME_FN
+extern HANIMATIONBUFFER (WINAPI* theme_BeginBufferedAnimation)(HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*);
+extern HRESULT (WINAPI* theme_BufferedPaintInit)(void);
+extern HRESULT (WINAPI* theme_BufferedPaintUnInit)(void);
+extern BOOL    (WINAPI* theme_BufferedPaintRenderAnimation)(HWND,HDC);
+extern HRESULT (WINAPI* theme_BufferedPaintStopAllAnimations)(HWND);
+extern HRESULT (WINAPI* theme_EndBufferedAnimation)(HANIMATIONBUFFER,BOOL);
+extern HRESULT (WINAPI* theme_GetThemeTransitionDuration)(HTHEME,int,int,int,int,DWORD*);
 
 
 int theme_init(void);
