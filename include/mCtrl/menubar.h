@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -30,10 +30,10 @@ extern "C" {
  * @file
  * @brief Menu bar control (@c MC_WC_MENUBAR).
  *
- * The @c MC_WC_MENUBAR is implentation of a control generally known as 
+ * The @c MC_WC_MENUBAR is implentation of a control generally known as
  * Internet Explorer-Style Menu Bar. It is a control which can host a menu
  * (here represented by a menu handle, @c HMENU), but which generally works
- * as a toolbar. 
+ * as a toolbar.
  *
  * The standard menus take whole width of the window for their menubars,
  * and there can only be used one menu in a top-level windows. Child windows
@@ -97,9 +97,9 @@ extern "C" {
  *
  * @section sec_mb_create Installing a Menu
  *
- * To install a menu in the menubar, you may set parameter @c lpParam of 
+ * To install a menu in the menubar, you may set parameter @c lpParam of
  * @c CreateWindow or @c CreateWindowEx to the handle of the menu (@c HMENU).
- * Or, after the menubar is created, you may install a menu with the 
+ * Or, after the menubar is created, you may install a menu with the
  * message @c MC_MBM_SETMENU.
  *
  * Either way the application is responsible to keep the menu handle valid
@@ -126,7 +126,7 @@ extern "C" {
  *
  * All the notifications are sent by default to a window which was parent of
  * the menubar when creating the menubar. One exception is if the parent is
- * a ReBar control: Because it will often be the case and the ReBar control 
+ * a ReBar control: Because it will often be the case and the ReBar control
  * cannot handle the notifications propperly, they are then sent to the
  * grand-father of the menubar (i.e. parent of the ReBar).
  *
@@ -153,7 +153,7 @@ extern "C" {
  *         continue;
  *     if(IsDialogMessage(hWnd, &msg))
  *         continue;
- *     
+ *
  *     TranslateMessage(&msg);
  *     DispatchMessage(&msg);
  * }
@@ -228,12 +228,10 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
  * @name Unicode Resolution
  */
 /*@{*/
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa MC_WC_MENUBARW MC_WC_MENUBARA */
-    #define MC_WC_MENUBAR         MC_WC_MENUBARW
-#else
-    #define MC_WC_MENUBAR         MC_WC_MENUBARA
-#endif
+
+/** @brief Unicode-resolution alias. @sa MC_WC_MENUBARW MC_WC_MENUBARA */
+#define MC_WC_MENUBAR         MCTRL_NAME_AW(MC_WC_MENUBAR)
+
 /*@}*/
 
 

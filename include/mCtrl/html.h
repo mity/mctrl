@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -30,14 +30,14 @@ extern "C" {
  * @file
  * @brief HTML control (@c MC_WC_HTML).
  *
- * As the control name suggests, the control is intended to display HTML 
- * documents. Actually the control is thin wrapper of Internet Explorer 
+ * As the control name suggests, the control is intended to display HTML
+ * documents. Actually the control is thin wrapper of Internet Explorer
  * COM object, so it can do much more: display a plethory of multimedia files,
- * take use of javascript etc. 
+ * take use of javascript etc.
  *
- * The easiest way how to show some document is to specify URL of target 
- * document as control's window name. For example when created with 
- * @c CreateWindow(), use the 2nd argument as the URL. This allows easy use 
+ * The easiest way how to show some document is to specify URL of target
+ * document as control's window name. For example when created with
+ * @c CreateWindow(), use the 2nd argument as the URL. This allows easy use
  * of the control in dialog templates.
  *
  * URL can also be set anytime later with message @ref MC_HM_GOTOURL.
@@ -57,7 +57,7 @@ extern "C" {
  * javascripts into binary of your application or any DLL it uses.
  *
  * The resources addessable by the control must be of type @c RT_HTML. You can
- * link to such resources with url in format "res://modname/res_id" where 
+ * link to such resources with url in format "res://modname/res_id" where
  * @c modname is name of the binary module (usually filename of your program
  * or any DLL it loads) and @c res_id is ID of the resource in the resource
  * script (RC). It can be both string or number identifier.
@@ -96,7 +96,7 @@ extern "C" {
  * The application can set contents of almost any tag (identified by HTML
  * attribute @c "id") with any custom string with the message @ref MC_HM_SETTAGCONTENTS.
  * The message takes ID. Then, if the currently loaded page has a tag with the
- * given ID, the text of the tag is changed and set to the given string. Any 
+ * given ID, the text of the tag is changed and set to the given string. Any
  * previous content of that tag is removed. Remember the string has to follow
  * HTML syntax and it can contain nested HTML tags.
  *
@@ -107,10 +107,10 @@ extern "C" {
  * @attention
  * Please note that for limitations of Internet Explorer, contents of these
  * tags can <b>not</b> be modified:<br>
- * @c COL, @c COLGROUP, @c FRAMESET, @c HEAD, @c HTML, @c STYLE, @c TABLE, 
+ * @c COL, @c COLGROUP, @c FRAMESET, @c HEAD, @c HTML, @c STYLE, @c TABLE,
  * @c TBODY, @c TFOOT, @c THEAD, @c TITLE, @c TR.
  *
- * We recommend to use tags @c DIV or @c SPAN for the dynamic contents 
+ * We recommend to use tags @c DIV or @c SPAN for the dynamic contents
  * injected by application code into the HTML pages.
  *
  *
@@ -278,21 +278,14 @@ typedef struct MC_NMHTMLURLA_tag {
  */
 /*@{*/
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa MC_WC_HTMLW MC_WC_HTMLA */
-    #define MC_WC_HTML             MC_WC_HTMLW
-    /** @brief Unicode-resolution alias. @sa MC_HM_GOTOURLW MC_HM_GOTOURLA */
-    #define MC_HM_GOTOURL          MC_HM_GOTOURLW
-    /** @brief Unicode-resolution alias. @sa MC_HM_SETTAGCONTENTSW MC_HM_SETTAGCONTENTSA*/
-    #define MC_HM_SETTAGCONTENTS   MC_HM_SETTAGCONTENTSW
-    /** @brief Unicode-resolution alias. @sa MC_NMHTMLURLW MC_NMHTMLURLA */
-    #define MC_NMHTMLURL           MC_NMHTMLURLW
-#else
-    #define MC_WC_HTML             MC_WC_HTMLA
-    #define MC_HM_GOTOURL          MC_HM_GOTOURLA
-    #define MC_HM_SETTAGCONTENTS   MC_HM_SETTAGCONTENTSA
-    #define MC_NMHTMLURL           MC_NMHTMLURLA
-#endif
+/** @brief Unicode-resolution alias. @sa MC_WC_HTMLW MC_WC_HTMLA */
+#define MC_WC_HTML             MCTRL_NAME_AW(MC_WC_HTML)
+/** @brief Unicode-resolution alias. @sa MC_HM_GOTOURLW MC_HM_GOTOURLA */
+#define MC_HM_GOTOURL          MCTRL_NAME_AW(MC_HM_GOTOURL)
+/** @brief Unicode-resolution alias. @sa MC_HM_SETTAGCONTENTSW MC_HM_SETTAGCONTENTSA*/
+#define MC_HM_SETTAGCONTENTS   MCTRL_NAME_AW(MC_HM_SETTAGCONTENTS)
+/** @brief Unicode-resolution alias. @sa MC_NMHTMLURLW MC_NMHTMLURLA */
+#define MC_NMHTMLURL           MCTRL_NAME_AW(MC_NMHTMLURL)
 
 /*@}*/
 

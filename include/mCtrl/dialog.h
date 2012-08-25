@@ -33,7 +33,7 @@ extern "C" {
  * This module offers functions for creation of modal and modless dialogs
  * in ery similar manner as standard functions @c DialogBox and @c CreateDialog
  * do.
- * 
+ *
  * Therefore mCtrl functions are very similar to their @c USER32.DLL
  * counterparts, including their function name and parameteres. Actually
  * the only difference is that the mCtrl functions take an extra argument
@@ -306,33 +306,22 @@ INT_PTR MCTRL_API mcDialogBoxIndirectParamA(HINSTANCE hInstance,
  */
 /*@{*/
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa mcCreateDialogParamW mcCreateDialogParamA */
-    #define mcCreateDialogParam            mcCreateDialogParamW
-    /** @brief Unicode-resolution alias. @sa mcCreateDialogW mcCreateDialogA */
-    #define mcCreateDialog                 mcCreateDialogW
-    /** @brief Unicode-resolution alias. @sa mcCreateDialogIndirectParamW mcCreateDialogIndirectParamA */
-    #define mcCreateDialogIndirectParam    mcCreateDialogIndirectParamW
-    /** @brief Unicode-resolution alias. @sa mcCreateDialogIndirectW mcCreateDialogIndirectA */
-    #define mcCreateDialogIndirect         mcCreateDialogIndirectW
-    /** @brief Unicode-resolution alias. @sa mcDialogBoxParamW mcDialogBoxParamA */
-    #define mcDialogBoxParam               mcDialogBoxParamW
-    /** @brief Unicode-resolution alias. @sa mcDialogBoxW mcDialogBoxA */
-    #define mcDialogBox                    mcDialogBoxW
-    /** @brief Unicode-resolution alias. @sa mcDialogBoxIndirectParamW mcDialogBoxIndirectParamA */
-    #define mcDialogBoxIndirectParam       mcDialogBoxIndirectParamW
-    /** @brief Unicode-resolution alias. @sa mcDialogBoxIndirectW mcDialogBoxIndirectA */
-    #define mcDialogBoxIndirect            mcDialogBoxIndirectW
-#else
-    #define mcCreateDialogParam            mcCreateDialogParamA
-    #define mcCreateDialog                 mcCreateDialogA
-    #define mcCreateDialogIndirectParam    mcCreateDialogIndirectParamA
-    #define mcCreateDialogIndirect         mcCreateDialogIndirectA
-    #define mcDialogBoxParam               mcDialogBoxParamA
-    #define mcDialogBox                    mcDialogBoxA
-    #define mcDialogBoxIndirectParam       mcDialogBoxIndirectParamA
-    #define mcDialogBoxIndirect            mcDialogBoxIndirectA
-#endif
+/** @brief Unicode-resolution alias. @sa mcCreateDialogParamW mcCreateDialogParamA */
+#define mcCreateDialogParam            MCTRL_NAME_AW(mcCreateDialogParam)
+/** @brief Unicode-resolution alias. @sa mcCreateDialogW mcCreateDialogA */
+#define mcCreateDialog                 MCTRL_NAME_AW(mcCreateDialog)
+/** @brief Unicode-resolution alias. @sa mcCreateDialogIndirectParamW mcCreateDialogIndirectParamA */
+#define mcCreateDialogIndirectParam    MCTRL_NAME_AW(mcCreateDialogIndirectParam)
+/** @brief Unicode-resolution alias. @sa mcCreateDialogIndirectW mcCreateDialogIndirectA */
+#define mcCreateDialogIndirect         MCTRL_NAME_AW(mcCreateDialogIndirect)
+/** @brief Unicode-resolution alias. @sa mcDialogBoxParamW mcDialogBoxParamA */
+#define mcDialogBoxParam               MCTRL_NAME_AW(mcDialogBoxParam)
+/** @brief Unicode-resolution alias. @sa mcDialogBoxW mcDialogBoxA */
+#define mcDialogBox                    MCTRL_NAME_AW(mcDialogBox)
+/** @brief Unicode-resolution alias. @sa mcDialogBoxIndirectParamW mcDialogBoxIndirectParamA */
+#define mcDialogBoxIndirectParam       MCTRL_NAME_AW(mcDialogBoxIndirectParam)
+/** @brief Unicode-resolution alias. @sa mcDialogBoxIndirectW mcDialogBoxIndirectA */
+#define mcDialogBoxIndirect            MCTRL_NAME_AW(mcDialogBoxIndirect)
 
 /*@}*/
 

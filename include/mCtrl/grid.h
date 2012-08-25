@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -88,7 +88,7 @@ void MCTRL_API mcGrid_Terminate(void);
 
 
 /**
- * @name Control Styles 
+ * @name Control Styles
  */
 /*@{*/
 
@@ -192,11 +192,11 @@ typedef struct MC_GGEOMETRY_tag {
  * @brief Gets handle of table attached to the controlo or @c NULL if none is
  * attached.
  *
- * Note that calling the message does not change reference counter of the 
- * returned table. If you want to preserve the handle, you should call 
- * @ref mcTable_AddRef() on it and then @ref mcTable_Release() when you no 
+ * Note that calling the message does not change reference counter of the
+ * returned table. If you want to preserve the handle, you should call
+ * @ref mcTable_AddRef() on it and then @ref mcTable_Release() when you no
  * longer need it.
- * 
+ *
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@ref MC_HTABLE) Handle of the table, or @c NULL.
@@ -236,10 +236,10 @@ typedef struct MC_GGEOMETRY_tag {
  */
 #define MC_GM_GETROWCOUNT         (WM_USER + 103)
 
-/** 
+/**
  * @brief Resizes table attached to the control.
  *
- * @param[in] wParam (@c DWORD) The low-order word specifies count of columns, 
+ * @param[in] wParam (@c DWORD) The low-order word specifies count of columns,
  * high-order word specifies count of rows.
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
@@ -307,12 +307,8 @@ typedef struct MC_GGEOMETRY_tag {
  */
 /*@{*/
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
-    #define MC_WC_GRID          MC_WC_GRIDW
-#else
-    #define MC_WC_GRID          MC_WC_GRIDA
-#endif
+/** @brief Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
+#define MC_WC_GRID          MCTRL_NAME_AW(MC_WC_GRID)
 
 /*@}*/
 

@@ -93,7 +93,7 @@ void MCTRL_API mcPropView_Terminate(void);
 /** @brief Do not automatically create empty property set. */
 #define MC_PVS_NOPROPSETCREATE       (0x00000001L)
 
-/** @brief Sort items alphabetically. 
+/** @brief Sort items alphabetically.
  *
  * This applies only when the control creates new property set.
  */
@@ -236,24 +236,16 @@ void MCTRL_API mcPropView_Terminate(void);
  */
 /*@{*/
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa MC_WC_PROPVIEWW MC_WC_PROPVIEWA */
-    #define MC_WC_PROPVIEW      MC_WC_PROPVIEWW
-    /** @brief Unicode-resolution alias. @sa MC_PVITEMW MC_PVITEMA */
-    #define MC_PVITEM           MC_PVITEMW
-    /** @brief Unicode-resolution alias. @sa MC_PVM_INSERTITEMW MC_PVM_INSERTITEMA */
-    #define MC_PVM_INSERTITEM   MC_PVM_INSERTITEMW
-    /** @brief Unicode-resolution alias. @sa MC_PVM_SETITEMW MC_PVM_SETITEMA */
-    #define MC_PVM_SETITEM      MC_PVM_SETITEMW
-    /** @brief Unicode-resolution alias. @sa MC_PVM_GETITEMW MC_PVM_GETITEMA */
-    #define MC_PVM_GETITEM      MC_PVM_GETITEMW
-#else
-    #define MC_WC_PROPVIEW      MC_WC_PROPVIEWA
-    #define MC_PVITEM           MC_PVITEMA
-    #define MC_PVM_INSERTITEM   MC_PVM_INSERTITEMA
-    #define MC_PVM_SETITEM      MC_PVM_SETITEMA
-    #define MC_PVM_GETITEM      MC_PVM_GETITEMA
-#endif
+/** @brief Unicode-resolution alias. @sa MC_WC_PROPVIEWW MC_WC_PROPVIEWA */
+#define MC_WC_PROPVIEW      MCTRL_NAME_AW(MC_WC_PROPVIEW)
+/** @brief Unicode-resolution alias. @sa MC_PVITEMW MC_PVITEMA */
+#define MC_PVITEM           MCTRL_NAME_AW(MC_PVITEM)
+/** @brief Unicode-resolution alias. @sa MC_PVM_INSERTITEMW MC_PVM_INSERTITEMA */
+#define MC_PVM_INSERTITEM   MCTRL_NAME_AW(MC_PVM_INSERTITEM)
+/** @brief Unicode-resolution alias. @sa MC_PVM_SETITEMW MC_PVM_SETITEMA */
+#define MC_PVM_SETITEM      MCTRL_NAME_AW(MC_PVM_SETITEM)
+/** @brief Unicode-resolution alias. @sa MC_PVM_GETITEMW MC_PVM_GETITEMA */
+#define MC_PVM_GETITEM      MCTRL_NAME_AW(MC_PVM_GETITEM)
 
 /*@}*/
 

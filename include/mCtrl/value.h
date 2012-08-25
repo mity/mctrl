@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -31,7 +31,7 @@ extern "C" {
  * @brief Polymorphic data (@c MC_HVALUETYPE and @c MC_HVALUE).
  *
  * Some controls are able to cope with data of multiple kinds. For example
- * grid control (@c ref MC_WC_GRID) is able to present a table of cells 
+ * grid control (@c ref MC_WC_GRID) is able to present a table of cells
  * where each cell contains another kind of data, e.g. string, numbers
  * or some images (either bitmaps or icons) and much more.
  *
@@ -53,7 +53,7 @@ extern "C" {
  * Almost all functions manipulating with some data take both, the @c MC_HVALUE
  * and @c MC_HVALUETYPE as their parameters.
  *
- * @note This is because @c MC_HVALUE does not keep reference to its 
+ * @note This is because @c MC_HVALUE does not keep reference to its
  * @c MC_HVALUETYPE. On one side it would be more comfortable but it would make
  * many useful value types much more memory hungry. Often some collections
  * of data require all of their data to be of single type and in such cases
@@ -72,11 +72,11 @@ extern "C" {
  * mCtrl provides value types for some very common kinds of data (e.g. integer
  * numbers, strings etc.).
  *
- * Values of each of these built-in value types can be created by the 
+ * Values of each of these built-in value types can be created by the
  * corresponding factory function. There is also a corresponding getter
  * function which allows to get the data held by the value.
  *
- * Note that for any given value you can only use the getter function 
+ * Note that for any given value you can only use the getter function
  * corresponding to the value's type. Otherwise the behavior is undefined: it
  * can even lead to an application crash.
  *
@@ -121,7 +121,7 @@ extern "C" {
  * @section sec_value_null Values and @c NULL
  *
  * Each value type guarantees that @c NULL is valid value of that type.
- * Furthermore all the value types provide a guaranty that calling 
+ * Furthermore all the value types provide a guaranty that calling
  * @c mcValue_Destroy() for @c NULL values is noop.
  *
  * However it depends on the particular value type, how @c NULL values are
@@ -156,7 +156,7 @@ typedef void* MC_HVALUE;
 /** @brief ID for 64-bit signed integer value type. */
 #define MC_VALUETYPEID_INT64            3
 /** @brief ID for 64-bit unsigned integer value type. */
-#define MC_VALUETYPEID_UINT64           4 
+#define MC_VALUETYPEID_UINT64           4
 /** @brief ID for unicode string value type. */
 #define MC_VALUETYPEID_STRINGW          5
 /** @brief ID for ANSI string value type. */
@@ -376,27 +376,18 @@ void MCTRL_API mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue);
  */
 /*@{*/
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa MC_VALUETYPEID_STRINGW MC_VALUETYPEID_STRINGA */
-    #define MC_VALUETYPEID_STRING        MC_VALUETYPEID_STRINGW
-    /** @brief Unicode-resolution alias. @sa MC_VALUETYPEID_IMMSTRINGW MC_VALUETYPEID_IMMSTRINGA */
-    #define MC_VALUETYPEID_IMMSTRING     MC_VALUETYPEID_IMMSTRINGW
-    /** @brief Unicode-resolution alias. @sa mcValue_CreateFromStringW mcValue_CreateFromStringA */
-    #define mcValue_CreateFromString      mcValue_CreateFromStringW
-    /** @brief Unicode-resolution alias. @sa mcValue_CreateFromImmStringW mcValue_CreateFromImmStringA */
-    #define mcValue_CreateFromImmString   mcValue_CreateFromImmStringW
-    /** @brief Unicode-resolution alias. @sa mcValue_GetStringW mcValue_GetStringA */
-    #define mcValue_GetString             mcValue_GetStringW
-    /** @brief Unicode-resolution alias. @sa mcValue_GetImmStringW mcValue_GetImmStringA */
-    #define mcValue_GetImmString          mcValue_GetImmStringW
-#else
-    #define MC_VALUETYPEID_STRING         MC_VALUETYPEID_STRINGA
-    #define MC_VALUETYPEID_IMMSTRING      MC_VALUETYPEID_IMMSTRINGA
-    #define mcValue_CreateFromString      mcValue_CreateFromStringA
-    #define mcValue_CreateFromImmString   mcValue_CreateFromImmStringA
-    #define mcValue_GetString             mcValue_GetStringA
-    #define mcValue_GetImmString          mcValue_GetImmStringA
-#endif
+/** @brief Unicode-resolution alias. @sa MC_VALUETYPEID_STRINGW MC_VALUETYPEID_STRINGA */
+#define MC_VALUETYPEID_STRING        MCTRL_NAME_AW(MC_VALUETYPEID_STRING)
+/** @brief Unicode-resolution alias. @sa MC_VALUETYPEID_IMMSTRINGW MC_VALUETYPEID_IMMSTRINGA */
+#define MC_VALUETYPEID_IMMSTRING     MCTRL_NAME_AW(MC_VALUETYPEID_IMMSTRING)
+/** @brief Unicode-resolution alias. @sa mcValue_CreateFromStringW mcValue_CreateFromStringA */
+#define mcValue_CreateFromString     MCTRL_NAME_AW(mcValue_CreateFromString)
+/** @brief Unicode-resolution alias. @sa mcValue_CreateFromImmStringW mcValue_CreateFromImmStringA */
+#define mcValue_CreateFromImmString  MCTRL_NAME_AW(mcValue_CreateFromImmString)
+/** @brief Unicode-resolution alias. @sa mcValue_GetStringW mcValue_GetStringA */
+#define mcValue_GetString            MCTRL_NAME_AW(mcValue_GetString)
+/** @brief Unicode-resolution alias. @sa mcValue_GetImmStringW mcValue_GetImmStringA */
+#define mcValue_GetImmString         MCTRL_NAME_AW(mcValue_GetImmString)
 
 /*@}*/
 

@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -146,7 +146,7 @@ typedef struct MC_PROPSETITEMA_tag {
 
 /**
  * @brief Create new property set.
- * 
+ *
  * @param[in] dwFlags Flags of the new property set.
  * @return Handle of the property set, or @c NULL if the function fails.
  */
@@ -163,7 +163,7 @@ BOOL MCTRL_API mcPropSet_AddRef(MC_HPROPSET hPropSet);
 /**
  * @brief Decrement reference counter of the property set.
  *
- * If the reference counter drops to zero, all resources allocated for 
+ * If the reference counter drops to zero, all resources allocated for
  * the property set are released.
  *
  * @param[in] hPropSet The property set.
@@ -267,21 +267,21 @@ BOOL MCTRL_API mcPropSet_DeleteItem(MC_HPROPSET hPropSet, int iItem);
 BOOL MCTRL_API mcPropSet_DeleteAllItems(MC_HPROPSET hPropSet);
 
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa MC_PROPERTYW MC_PROPERTYA */
-    #define MC_PROPSETITEM          MC_PROPSETITEMW
-    /** @brief Unicode-resolution alias. @sa mcPropSet_InsertItemW mcPropSet_InsertItemA */
-    #define mcPropSet_InsertItem    mcPropSet_InsertItemW
-    /** @brief Unicode-resolution alias. @sa mcPropSet_SetItemW mcPropSet_SetItemA */
-    #define mcPropSet_SetItem       mcPropSet_SetItemW
-    /** @brief Unicode-resolution alias. @sa mcPropSet_GetItemW mcPropSet_GetItemA */
-    #define mcPropSet_GetItem       mcPropSet_GetItemW
-#else
-    #define MC_PROPSETITEM          MC_PROPSETITEMA
-    #define mcPropSet_InsertItem    mcPropSet_InsertItemA
-    #define mcPropSet_SetItem       mcPropSet_SetItemA
-    #define mcPropSet_GetItem       mcPropSet_GetItemA
-#endif
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+/** @brief Unicode-resolution alias. @sa MC_PROPERTYW MC_PROPERTYA */
+#define MC_PROPSETITEM          MCTRL_NAME_AW(MC_PROPSETITEM)
+/** @brief Unicode-resolution alias. @sa mcPropSet_InsertItemW mcPropSet_InsertItemA */
+#define mcPropSet_InsertItem    MCTRL_NAME_AW(mcPropSet_InsertItem)
+/** @brief Unicode-resolution alias. @sa mcPropSet_SetItemW mcPropSet_SetItemA */
+#define mcPropSet_SetItem       MCTRL_NAME_AW(mcPropSet_SetItem)
+/** @brief Unicode-resolution alias. @sa mcPropSet_GetItemW mcPropSet_GetItemA */
+#define mcPropSet_GetItem       MCTRL_NAME_AW(mcPropSet_GetItem)
+
+/*@}*/
 
 
 #ifdef __cplusplus
