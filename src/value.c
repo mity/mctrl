@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -30,14 +30,14 @@ draw_text_format(DWORD flags, UINT defaults)
         case VALUE_PF_ALIGNRIGHT:  format |= DT_RIGHT; break;
         default:                   format |= defaults & (DT_LEFT | DT_CENTER | DT_RIGHT); break;
     }
-    
+
     switch(flags & VALUE_PF_ALIGNMASKVERT) {
         case VALUE_PF_ALIGNTOP:     format |= DT_TOP; break;
         case VALUE_PF_ALIGNVCENTER: format |= DT_VCENTER; break;
         case VALUE_PF_ALIGNBOTTOM:  format |= DT_BOTTOM; break;
         default:                    format |= defaults & (DT_TOP | DT_VCENTER | DT_BOTTOM); break;
     }
-    
+
     return format;
 }
 
@@ -553,7 +553,7 @@ const value_type_t* VALUE_TYPE_UINT64 = &uint64_type;
 static const WCHAR str_empty_w[] = L"";
 
 int
-value_set_string_w(value_t* v, const WCHAR* str)
+value_set_string_W(value_t* v, const WCHAR* str)
 {
     WCHAR* s;
     size_t size;
@@ -576,28 +576,28 @@ value_set_string_w(value_t* v, const WCHAR* str)
 }
 
 const WCHAR*
-value_get_string_w(const value_t v)
+value_get_string_W(const value_t v)
 {
     return (v != NULL ? (const WCHAR*)v : str_empty_w);
 }
 
 static int
-str_copy_w(value_t* dest, const value_t src)
+str_copy_W(value_t* dest, const value_t src)
 {
-    return value_set_string_w(dest, value_get_string_w(src));
+    return value_set_string_W(dest, value_get_string_W(src));
 }
 
 static int
-str_cmp_w(const value_t v1, const value_t v2)
+str_cmp_W(const value_t v1, const value_t v2)
 {
-    return _wcsicmp(value_get_string_w(v1), value_get_string_w(v2));
+    return _wcsicmp(value_get_string_W(v1), value_get_string_W(v2));
 }
 
 static int
-str_from_string_w(value_t* v, const TCHAR* str)
+str_from_string_W(value_t* v, const TCHAR* str)
 {
 #ifdef UNICODE
-    return value_set_string_w(v, str);
+    return value_set_string_W(v, str);
 #else
     if(str == NULL || str[0] == L'\0') {
         *v = NULL;
@@ -613,9 +613,9 @@ str_from_string_w(value_t* v, const TCHAR* str)
 }
 
 static size_t
-str_to_string_w(const value_t v, TCHAR* buffer, size_t bufsize)
+str_to_string_W(const value_t v, TCHAR* buffer, size_t bufsize)
 {
-    const WCHAR* s = value_get_string_w(v);
+    const WCHAR* s = value_get_string_W(v);
 #ifdef UNICODE
     size_t len;
 
@@ -630,7 +630,7 @@ str_to_string_w(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-str_paint_w(const value_t v, HDC dc, RECT* rect, DWORD flags)
+str_paint_W(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
     COLORREF old_color;
@@ -640,7 +640,7 @@ str_paint_w(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawTextW(dc, value_get_string_w(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+    DrawTextW(dc, value_get_string_W(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
               draw_text_format(flags, DT_LEFT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
@@ -649,11 +649,11 @@ str_paint_w(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 static const struct value_type_tag str_type_w = {
     default_destroy,
-    str_copy_w,
-    str_cmp_w,
-    str_from_string_w,
-    str_to_string_w,
-    str_paint_w
+    str_copy_W,
+    str_cmp_W,
+    str_from_string_W,
+    str_to_string_W,
+    str_paint_W
 };
 
 const value_type_t* VALUE_TYPE_STRING_W = &str_type_w;
@@ -666,7 +666,7 @@ const value_type_t* VALUE_TYPE_STRING_W = &str_type_w;
 static const char str_empty_a[] = "";
 
 int
-value_set_string_a(value_t* v, const char* str)
+value_set_string_A(value_t* v, const char* str)
 {
     char* s;
     size_t size;
@@ -689,25 +689,25 @@ value_set_string_a(value_t* v, const char* str)
 }
 
 const char*
-value_get_string_a(const value_t v)
+value_get_string_A(const value_t v)
 {
     return (v != NULL ? (const char*)v : str_empty_a);
 }
 
 static int
-str_copy_a(value_t* dest, const value_t src)
+str_copy_A(value_t* dest, const value_t src)
 {
-    return value_set_string_a(dest, value_get_string_a(src));
+    return value_set_string_A(dest, value_get_string_A(src));
 }
 
 static int
-str_cmp_a(const value_t v1, const value_t v2)
+str_cmp_A(const value_t v1, const value_t v2)
 {
-    return stricmp(value_get_string_a(v1), value_get_string_a(v2));
+    return stricmp(value_get_string_A(v1), value_get_string_A(v2));
 }
 
 static int
-str_from_string_a(value_t* v, const TCHAR* str)
+str_from_string_A(value_t* v, const TCHAR* str)
 {
 #ifdef UNICODE
     if(str == NULL || str[0] == L'\0') {
@@ -721,14 +721,14 @@ str_from_string_a(value_t* v, const TCHAR* str)
 
     return 0;
 #else
-    return value_set_string_a(v, str);
+    return value_set_string_A(v, str);
 #endif
 }
 
 static size_t
-str_to_string_a(const value_t v, TCHAR* buffer, size_t bufsize)
+str_to_string_A(const value_t v, TCHAR* buffer, size_t bufsize)
 {
-    const char* s = value_get_string_a(v);
+    const char* s = value_get_string_A(v);
 #ifdef UNICODE
     MultiByteToWideChar(CP_ACP, 0, s, -1, buffer, bufsize);
     return MultiByteToWideChar(CP_ACP, 0, s, -1, NULL, 0);
@@ -743,7 +743,7 @@ str_to_string_a(const value_t v, TCHAR* buffer, size_t bufsize)
 }
 
 static void
-str_paint_a(const value_t v, HDC dc, RECT* rect, DWORD flags)
+str_paint_A(const value_t v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
     COLORREF old_color;
@@ -753,7 +753,7 @@ str_paint_a(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawTextA(dc, value_get_string_a(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+    DrawTextA(dc, value_get_string_A(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
               draw_text_format(flags, DT_LEFT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
@@ -762,11 +762,11 @@ str_paint_a(const value_t v, HDC dc, RECT* rect, DWORD flags)
 
 static const struct value_type_tag str_type_a = {
     default_destroy,
-    str_copy_a,
-    str_cmp_a,
-    str_from_string_a,
-    str_to_string_a,
-    str_paint_a
+    str_copy_A,
+    str_cmp_A,
+    str_from_string_A,
+    str_to_string_A,
+    str_paint_A
 };
 
 const value_type_t* VALUE_TYPE_STRING_A = &str_type_a;
@@ -777,7 +777,7 @@ const value_type_t* VALUE_TYPE_STRING_A = &str_type_a;
  **************************************/
 
 void
-value_set_immstring_w(value_t* v, const WCHAR* str)
+value_set_immstring_W(value_t* v, const WCHAR* str)
 {
     *v = (value_t) str;
 }
@@ -785,10 +785,10 @@ value_set_immstring_w(value_t* v, const WCHAR* str)
 static const struct value_type_tag immstr_type_w = {
     scalar_destroy,
     scalar_copy,
-    str_cmp_w,
+    str_cmp_W,
     NULL,
-    str_to_string_w,
-    str_paint_w
+    str_to_string_W,
+    str_paint_W
 };
 
 const value_type_t* VALUE_TYPE_IMMSTRING_W = &immstr_type_w;
@@ -799,7 +799,7 @@ const value_type_t* VALUE_TYPE_IMMSTRING_W = &immstr_type_w;
  **************************************/
 
 void
-value_set_immstring_a(value_t* v, const char* str)
+value_set_immstring_A(value_t* v, const char* str)
 {
     *v = (value_t) str;
 }
@@ -807,10 +807,10 @@ value_set_immstring_a(value_t* v, const char* str)
 static const struct value_type_tag immstr_type_a = {
     scalar_destroy,
     scalar_copy,
-    str_cmp_a,
+    str_cmp_A,
     NULL,
-    str_to_string_a,
-    str_paint_a
+    str_to_string_A,
+    str_paint_A
 };
 
 const value_type_t* VALUE_TYPE_IMMSTRING_A = &immstr_type_a;
@@ -920,10 +920,10 @@ hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
     HICON icon = (HICON)v;
     SIZE icon_size;
     int x, y;
-    
+
     if(icon == NULL)
         return;
-    
+
     mc_icon_size(icon, &icon_size);
     switch(flags & VALUE_PF_ALIGNMASKHORZ) {
         case VALUE_PF_ALIGNLEFT:    x = rect->left; break;
@@ -937,7 +937,7 @@ hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
         case VALUE_PF_ALIGNVCENTER:  y = (rect->top + rect->bottom - icon_size.cy) / 2; break;
         case VALUE_PF_ALIGNBOTTOM:   y = rect->bottom - icon_size.cy; break;
     }
-    
+
     DrawIconEx(dc, x, y, icon, 0, 0, 0, NULL, DI_NORMAL);
 }
 
@@ -972,7 +972,7 @@ mcValueType_GetBuiltin(int id)
         case MC_VALUETYPEID_COLORREF:   return VALUE_TYPE_COLORREF;
         case MC_VALUETYPEID_HICON:      return VALUE_TYPE_HICON;
     }
-    
+
     MC_TRACE("mcValueType_GetBuiltin: id %d unknown", id);
     SetLastError(ERROR_INVALID_PARAMETER);
     return NULL;
@@ -1010,26 +1010,26 @@ mcValue_CreateFromUInt64(MC_HVALUE* phValue, UINT64 u64Value)
 BOOL MCTRL_API
 mcValue_CreateFromStringW(MC_HVALUE* phValue, LPCWSTR lpStr)
 {
-    return (value_set_string_w((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
+    return (value_set_string_W((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
 }
 
 BOOL MCTRL_API
 mcValue_CreateFromStringA(MC_HVALUE* phValue, LPCSTR lpStr)
 {
-    return (value_set_string_a((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
+    return (value_set_string_A((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
 }
 
 BOOL MCTRL_API
 mcValue_CreateFromImmStringW(MC_HVALUE* phValue, LPCWSTR lpStr)
 {
-    value_set_immstring_w((value_t*) phValue, lpStr);
+    value_set_immstring_W((value_t*) phValue, lpStr);
     return TRUE;
 }
 
 BOOL MCTRL_API
 mcValue_CreateFromImmStringA(MC_HVALUE* phValue, LPCSTR lpStr)
 {
-    value_set_immstring_a((value_t*) phValue, lpStr);
+    value_set_immstring_A((value_t*) phValue, lpStr);
     return TRUE;
 }
 
@@ -1075,25 +1075,25 @@ mcValue_GetUInt64(const MC_HVALUE hValue)
 LPCWSTR MCTRL_API
 mcValue_GetStringW(const MC_HVALUE hValue)
 {
-    return value_get_string_w((value_t)hValue);
+    return value_get_string_W((value_t)hValue);
 }
 
 LPCSTR MCTRL_API
 mcValue_GetStringA(const MC_HVALUE hValue)
 {
-    return value_get_string_a((value_t)hValue);
+    return value_get_string_A((value_t)hValue);
 }
 
 LPCWSTR MCTRL_API
 mcValue_GetImmStringW(const MC_HVALUE hValue)
 {
-    return value_get_immstring_w((value_t)hValue);
+    return value_get_immstring_W((value_t)hValue);
 }
 
 LPCSTR MCTRL_API
 mcValue_GetImmStringA(const MC_HVALUE hValue)
 {
-    return value_get_immstring_a((value_t)hValue);
+    return value_get_immstring_A((value_t)hValue);
 }
 
 COLORREF MCTRL_API
@@ -1116,7 +1116,7 @@ mcValue_Duplicate(MC_HVALUETYPE hType, MC_HVALUE* phDest, const MC_HVALUE hSrc)
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
-    
+
     return (((value_type_t*)hType)->copy((value_t*)phDest, (value_t)hSrc)
             ? TRUE : FALSE);
 }

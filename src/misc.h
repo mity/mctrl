@@ -88,9 +88,12 @@
 #define MC_ERR(condition)              MC_UNLIKELY(condition)
 
 
-/* Inlined memcpy(), memmove() et al.
- * Prefer these for memory blocks known a priori to be small. */
-
+/* Unicode resolution. */
+#ifdef UNICODE
+    #define MC_NAME_AW(name)           name##W
+#else
+    #define MC_NAME_AW(name)           name##A
+#endif
 
 
 /***************

@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -70,13 +70,8 @@ extern const value_type_t* VALUE_TYPE_IMMSTRING_A;
 extern const value_type_t* VALUE_TYPE_COLORREF;
 extern const value_type_t* VALUE_TYPE_HICON;
 
-#ifdef UNICODE
-    #define VALUE_TYPE_STRING             VALUE_TYPE_STRING_W
-    #define VALUE_TYPE_IMMUTABLE_STRING   VALUE_TYPE_IMMUTABLE_STRING_W
-#else
-    #define VALUE_TYPE_STRING             VALUE_TYPE_STRING_A
-    #define VALUE_TYPE_IMMUTABLE_STRING   VALUE_TYPE_IMMUTABLE_STRING_A
-#endif
+#define VALUE_TYPE_STRING             MC_NAME_AW(VALUE_TYPE_STRING_)
+#define VALUE_TYPE_IMMUTABLE_STRING   MC_NAME_AW(VALUE_TYPE_IMMUTABLE_STRING_)
 
 
 void value_set_int32(value_t* v, int32_t i);
@@ -91,35 +86,28 @@ int64_t value_get_int64(const value_t v);
 int  value_set_uint64(value_t* v, uint64_t u64);
 uint64_t value_get_uint64(const value_t v);
 
-int value_set_string_w(value_t* v, const WCHAR* str);
-const WCHAR* value_get_string_w(const value_t v);
+int value_set_string_W(value_t* v, const WCHAR* str);
+const WCHAR* value_get_string_W(const value_t v);
 
-int value_set_string_a(value_t* v, const char* str);
-const char* value_get_string_a(const value_t v);
+int value_set_string_A(value_t* v, const char* str);
+const char* value_get_string_A(const value_t v);
 
-void value_set_immstring_w(value_t* v, const WCHAR* str);
-#define value_get_immstring_w value_get_string_w
+void value_set_immstring_W(value_t* v, const WCHAR* str);
+#define value_get_immstring_W value_get_string_W
 
-void value_set_immstring_a(value_t* v, const char* str);
-#define value_get_immstring_a value_get_string_a
- 
+void value_set_immstring_A(value_t* v, const char* str);
+#define value_get_immstring_A value_get_string_A
+
 void value_set_colorref(value_t* v, COLORREF cref);
 COLORREF value_get_colorref(const value_t v);
 
 void value_set_hicon(value_t* v, HICON icon);
 HICON value_get_hicon(const value_t v);
 
-#ifdef UNICODE
-    #define value_set_string             value_set_string_w
-    #define value_get_string             value_get_string_w
-    #define value_set_immutable_string   value_set_immutable_string_w
-    #define value_get_immutable_string   value_get_immutable_string_w
-#else
-    #define value_set_string             value_set_string_a
-    #define value_get_string             value_get_string_a
-    #define value_set_immutable_string   value_set_immutable_string_a
-    #define value_get_immutable_string   value_get_immutable_string_a
-#endif
+#define value_set_string             MC_NAME_AW(value_set_string_)
+#define value_get_string             MC_NAME_AW(value_get_string_)
+#define value_set_immutable_string   MC_NAME_AW(value_set_immutable_string_)
+#define value_get_immutable_string   MC_NAME_AW(value_get_immutable_string_)
 
 
 #endif  /* MC_VALUE_H */
