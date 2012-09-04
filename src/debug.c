@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -34,23 +34,23 @@ debug_dump(void* addr, size_t n)
     char buffer[32 + 3 * DEBUG_DUMP_PER_LINE];
     char* ptr;
     int i;
-    
+
     while(offset < n) {
         count = MC_MIN(n - offset, DEBUG_DUMP_PER_LINE);
-        
+
         ptr = buffer;
-        ptr += sprintf(ptr, "    %04x:  ", offset);
-        
+        ptr += sprintf(ptr, "    %04lx:  ", (ULONG) offset);
+
         for(i = 0; i < count; i++) {
             ptr += sprintf(ptr, " %02x", bytes[offset + i]);
             if(i == DEBUG_DUMP_PER_LINE/2 - 1)
                 ptr += sprintf(ptr, "  ");
         }
-        
-        MC_TRACE(buffer);        
+
+        MC_TRACE(buffer);
         offset += count;
     }
-    
+
     MC_TRACE("            (%lu bytes)", (ULONG)n);
 }
 
@@ -74,7 +74,7 @@ debug_dump(void* addr, size_t n)
 #undef free
 
 
-/* For each allocated memory chunk we have a memory info with some info 
+/* For each allocated memory chunk we have a memory info with some info
  * about it. */
 typedef struct mem_info_tag mem_info_t;
 struct mem_info_tag {
@@ -87,12 +87,12 @@ struct mem_info_tag {
 
 
 /* Here we keep all alocated mem_info_t instances, hashed by the memory chunk
- * address. Keep the hashtable size not dividable by four, so that all slots 
- * are used approximately evenly. (The dynamic allocator usually tends to 
- * allocate on DWORD or QUADWORD boundaries ;-). 
+ * address. Keep the hashtable size not dividable by four, so that all slots
+ * are used approximately evenly. (The dynamic allocator usually tends to
+ * allocate on DWORD or QUADWORD boundaries ;-).
  *
- * The hashtable lives in its own heap, so it's somewhat separated from 
- * other memory usage. This lowers the probability these core data will be 
+ * The hashtable lives in its own heap, so it's somewhat separated from
+ * other memory usage. This lowers the probability these core data will be
  * overwritten by some bug. (That would make this tool for memory debugging
  * a bit useless...) */
 #define MEM_HASHTABLE_SIZE       ((16 * 1024) - 1)
@@ -110,16 +110,16 @@ static const BYTE tail_guard[] = { 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb
                                    0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf };
 
 
-void* 
+void*
 debug_malloc(const char* fname, int line, size_t size)
 {
     BYTE* buffer;
     void* mem;
     mem_info_t* mi;
-    
+
     /* We never attempt to allocate zero bytes in mCtrl */
     MC_ASSERT(size > 0);
-    
+
     /* Allocate */
     buffer = (BYTE*) malloc(size + sizeof(head_guard) + sizeof(tail_guard));
     if(MC_ERR(buffer == NULL)) {
@@ -131,11 +131,11 @@ debug_malloc(const char* fname, int line, size_t size)
     memcpy(buffer, head_guard, sizeof(head_guard));
     memcpy(buffer + sizeof(head_guard) + size, tail_guard, sizeof(tail_guard));
 
-    /* Fill the memory chunk with some non-zero bytes 
+    /* Fill the memory chunk with some non-zero bytes
      * (this can help to debug (mis)uses of uninitialized memory) */
     mem = (void*)(buffer + sizeof(head_guard));
     memset(mem, 0xff, size);
-    
+
     /* Register info about the allocated memory */
     EnterCriticalSection(&mem_lock);
     mi = (mem_info_t*) HeapAlloc(mem_heap, 0, sizeof(mem_info_t));
@@ -147,7 +147,7 @@ debug_malloc(const char* fname, int line, size_t size)
     mi->fname = fname;
     mi->line = line;
     LeaveCriticalSection(&mem_lock);
-    
+
     DEBUG_TRACE("%s:%d: \tdebug_malloc(%lu) -> %p", fname, line, mi->size, mem);
     return mem;
 }
@@ -156,7 +156,7 @@ void*
 debug_realloc(const char* fname, int line, void* mem, size_t size)
 {
     void* new_mem;
-    
+
     new_mem = debug_malloc(fname, line, size);
     if(MC_ERR(new_mem == NULL))
         return NULL;
@@ -188,11 +188,11 @@ debug_free(const char* fname, int line, void* mem)
     mem_info_t* mi;
     DWORD* head;
     DWORD* tail;
-    
+
     MC_ASSERT(mem != NULL);
 
     EnterCriticalSection(&mem_lock);
-    
+
     /* Find memory info for the memory chunk */
     mi = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
     while(mi->mem != mem) {
@@ -232,17 +232,17 @@ debug_free(const char* fname, int line, void* mem)
         MC_ASSERT(3 == 0);
     }
 
-    /* Rewrite all the memory with 'invalid-memory' mark. 
+    /* Rewrite all the memory with 'invalid-memory' mark.
      * (this can help to debug (mis)uses of released memory) */
     memset(mem, 0xee, mi->size);
-    
+
     /* Unregister the memory info */
     if(mi_prev != NULL)
         mi_prev->next = mi->next;
     else
         mem_hashtable[MEM_HASHTABLE_INDEX(mem)] = mi->next;
     HeapFree(mem_heap, 0, mi);
-    
+
     LeaveCriticalSection(&mem_lock);
 
     /* Finally we can free it */
@@ -253,7 +253,7 @@ void
 debug_init(void)
 {
     InitializeCriticalSection(&mem_lock);
-    
+
     /* We guard the heap with our own locking as we need the critical section
      * around it anyway. Hence HEAP_NO_SERIALIZE. */
     mem_heap = HeapCreate(HEAP_NO_SERIALIZE, 1024 * 16 * sizeof(mem_info_t), 0);
@@ -267,7 +267,7 @@ debug_fini(void)
     int n = 0;
     size_t size = 0;
     mem_info_t* mi;
-    
+
     /* Generate report about memory leaks */
     EnterCriticalSection(&mem_lock);
     for(i = 0; i < MEM_HASHTABLE_SIZE; i++) {
@@ -283,7 +283,7 @@ debug_fini(void)
 #endif
                 MC_TRACE("debug_fini: --------------------------------------------------");
             }
-            
+
 #ifdef _WIN64
             MC_TRACE("debug_fini: 0x%16p   %8lu   %s:%d", mi->mem, mi->size, mi->fname, mi->line);
 #else
@@ -300,9 +300,9 @@ debug_fini(void)
         MC_TRACE("debug_fini: Lost %ul bytes in %d leaks.", size, n);
         MC_TRACE("");
     }
-    
+
     MC_ASSERT(n == 0);
-    
+
     /* Uninitialize */
     HeapDestroy(mem_heap);
     DeleteCriticalSection(&mem_lock);
