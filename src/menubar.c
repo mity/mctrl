@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -20,7 +20,7 @@
 
 
 /* TODO:
- *  -- Support to make a chevron in a parent ReBar easy to do. 
+ *  -- Support to make a chevron in a parent ReBar easy to do.
  *  -- Fix the artifact bug (for now it is worked around, see below).
  */
 
@@ -91,7 +91,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
     int i, n;
 
     MENUBAR_TRACE("menubar_set_menu(%p, %p)", mb, menu);
-    
+
     /* Uninstall the old menu */
 #if 0  /* not possible as long as MC_MBM_REFRESH works as it does now */
     if(menu == mb->menu)
@@ -117,39 +117,39 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
         MC_TRACE("menubar_set_menu: GetMenuItemCount() failed.");
         return -1;
     }
-    
+
     if(n == 0) {
         mb->menu = menu;
         return 0;
     }
 
-    buffer = (BYTE*) _malloca(n * sizeof(TBBUTTON) + 
+    buffer = (BYTE*) _malloca(n * sizeof(TBBUTTON) +
                               n * sizeof(TCHAR) * MENUBAR_ITEM_LABEL_MAXSIZE);
     if(MC_ERR(buffer == NULL)) {
         MC_TRACE("menubar_set_menu: _malloca() failed.");
         mc_send_notify(GetParent(mb->win), mb->win, NM_OUTOFMEMORY);
         return -1;
-    }    
+    }
     buttons = (TBBUTTON*) buffer;
     labels = (TCHAR*) (buffer + n * sizeof(TBBUTTON));
-    
+
     memset(buttons, 0, n * sizeof(TBBUTTON));
 
     for(i = 0; i < n; i++) {
         UINT state;
         state = GetMenuState(menu, i, MF_BYPOSITION);
-        
+
         buttons[i].iBitmap = I_IMAGENONE;
         buttons[i].fsState = 0;
         if(!(state & (MF_DISABLED | MF_GRAYED)))
             buttons[i].fsState |= TBSTATE_ENABLED;
         if((state & (MF_MENUBREAK | MF_MENUBARBREAK)) && i > 0)
             buttons[i-1].fsState |= TBSTATE_WRAP;
-            
+
         if(state & MF_POPUP) {
             TCHAR* label = labels + i * MENUBAR_ITEM_LABEL_MAXSIZE;
             GetMenuString(menu, i, label, MENUBAR_ITEM_LABEL_MAXSIZE, MF_BYPOSITION);
-                          
+
             buttons[i].fsStyle = BTNS_AUTOSIZE | BTNS_DROPDOWN | BTNS_SHOWTEXT;
             buttons[i].dwData = i;
             buttons[i].iString = (INT_PTR) label;
@@ -163,7 +163,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
             }
         }
     }
-    
+
     MENUBAR_SENDMSG(mb->win, TB_ADDBUTTONS, n, buttons);
     mb->menu = menu;
     _freea(buffer);
@@ -177,15 +177,15 @@ menubar_dropdown_helper(menubar_t* mb)
     DWORD btn_state;
     TPMPARAMS pmparams = {0};
     MENUBAR_TRACE("menubar_dropdown_helper(%p)", mb);
-    
+
     pmparams.cbSize = sizeof(TPMPARAMS);
 
     mb->is_dropdown_active = TRUE;
     menubar_ht_enable(mb);
-    
+
     while(mb->pressed_item >= 0) {
         item = mb->pressed_item;
-        
+
         if(mb->select_from_keyboard) {
             keybd_event(VK_DOWN, 0, 0, 0);
             keybd_event(VK_DOWN, 0, KEYEVENTF_KEYUP, 0);
@@ -200,7 +200,7 @@ menubar_dropdown_helper(menubar_t* mb)
 
         MENUBAR_SENDMSG(mb->win, TB_GETITEMRECT, item, &pmparams.rcExclude);
         MapWindowPoints(mb->win, HWND_DESKTOP, (POINT*)&pmparams.rcExclude, 2);
-        
+
         MENUBAR_TRACE("menubar_dropdown_helper: ENTER TrackPopupMenuEx()");
         TrackPopupMenuEx(GetSubMenu(mb->menu, item),
                          TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_VERTICAL,
@@ -209,7 +209,7 @@ menubar_dropdown_helper(menubar_t* mb)
         MENUBAR_TRACE("menubar_dropdown_helper: LEAVE TrackPopupMenuEx()");
 
         MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(btn_state, 0));
-        
+
         if(!mb->continue_hot_track)
             mb->pressed_item = -1;
     }
@@ -222,11 +222,11 @@ static inline void
 menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
     MENUBAR_TRACE("menubar_dropdown(%p, %d)", mb, item);
-    
-    MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);    
+
+    MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
-    
+
 #ifndef MENUBAR_ARTIFACT_WORKAROUND
     menubar_dropdown_helper(mb);
 #endif
@@ -243,7 +243,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
             menubar_dropdown(mb, info->iItem, FALSE);
             break;
         }
-        
+
         case TBN_HOTITEMCHANGE:
         {
             NMTBHOTITEM* info = (NMTBHOTITEM*) hdr;
@@ -280,7 +280,7 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
                 return TRUE;
             }
             break;
-        
+
         case VK_RIGHT:
             MENUBAR_TRACE("menubar_key_down(VK_RIGHT)");
             if(mb->hot_item >= 0) {
@@ -312,19 +312,19 @@ menubar_nccreate(HWND win, CREATESTRUCT *cs)
 {
     menubar_t* mb;
     TCHAR parent_class[16];
-    
+
     MENUBAR_TRACE("menubar_nccreate(%p, %p)", win, cs);
-    
+
     mb = (menubar_t*) malloc(sizeof(menubar_t));
     if(MC_ERR(mb == NULL)) {
         MC_TRACE("menubar_nccreate: malloc() failed.");
         return NULL;
     }
-    
+
     memset(mb, 0, sizeof(menubar_t));
     mb->win = win;
     mb->parent = GetParent(cs->hwndParent);
-    
+
     /* Lets be a little friendly to the app. developers: If the parent is
      * ReBar control, lets send WM_NOTIFY/WM_COMMAND to the ReBar's parent
      * as ReBar really is not interested in it, and embedding the menubar
@@ -343,26 +343,26 @@ static int
 menubar_create(menubar_t* mb, CREATESTRUCT *cs)
 {
     MENUBAR_TRACE("menubar_create(%p, %p)", mb, cs);
-    
+
     if(MC_ERR(MENUBAR_SENDMSG(mb->win, WM_CREATE, 0, cs) != 0)) {
         MC_TRACE("menubar_create: CallWindowProc() failed [%lu]", GetLastError());
         return -1;
     }
-    
+
     MENUBAR_SENDMSG(mb->win, TB_SETPARENT, mb->win, 0);
     MENUBAR_SENDMSG(mb->win, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    
+
     /* Add some styles we consider default */
     SetWindowLongPtr(mb->win, GWL_STYLE, cs->style | TBSTYLE_FLAT |
                      TBSTYLE_LIST | TBSTYLE_TRANSPARENT | CCS_NODIVIDER);
-    
+
     if(cs->lpCreateParams != NULL) {
         if(MC_ERR(menubar_set_menu(mb, (HMENU) cs->lpCreateParams) != 0)) {
             MC_TRACE("menubar_create: menubar_set_menu() failed.");
             return -1;
         }
     }
-    
+
     return 0;
 }
 
@@ -399,7 +399,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             mb->parent = (HWND)wp;
             return (LRESULT) old_parent;
         }
-        
+
         case WM_COMMAND:
             MENUBAR_TRACE("menubar_proc(WM_COMMAND): code=%d; wid=%d; control=%p",
                           (int)HIWORD(wp), (int)LOWORD(wp), (HWND)lp);
@@ -411,7 +411,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         {
             NMHDR* hdr = (NMHDR*) lp;
             if(hdr->hwndFrom == win) {
-                menubar_notify(mb, hdr);                
+                menubar_notify(mb, hdr);
                 return SendMessage(mb->parent, msg, wp, lp);
             }
             break;
@@ -432,7 +432,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_MEASUREITEM:
         case WM_DRAWITEM:
             return SendMessage(mb->parent, msg, wp, lp);
-        
+
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:
             if(menubar_key_down(mb, wp, lp))
@@ -457,12 +457,12 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETFOCUS:
             mb->old_focus = (HWND) wp;
             break;
-       
+
         case WM_KILLFOCUS:
             if(mb->old_focus != NULL) {
                 SetFocus(mb->old_focus);
                 mb->old_focus = NULL;
-            }            
+            }
             MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
             MENUBAR_SENDMSG(mb->win, WM_CHANGEUISTATE, MAKELONG(UIS_SET, UISF_HIDEACCEL), 0);
             break;
@@ -482,7 +482,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         /* Disable those standard toolbar messages, which modify contents of
-         * the toolbar, as it is our internal resposnisibility to set it
+         * the toolbar, as it is our internal responsibility to set it
          * according to the menu. */
         case TB_ADDBITMAP:
         case TB_ADDSTRING:
@@ -518,12 +518,12 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
             return 0;  /* FALSE == NULL == 0 */
     }
-    
+
 #ifdef MENUBAR_ARTIFACT_WORKAROUND
     if(mb && mb->pressed_item >= 0 && !mb->is_dropdown_active)
         menubar_dropdown_helper(mb);
 #endif
-    
+
     return MENUBAR_SENDMSG(win, msg, wp, lp);
 }
 
@@ -531,7 +531,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 /********************
  *** Hot Tracking ***
  ********************/
- 
+
 static CRITICAL_SECTION menubar_ht_lock;
 static HHOOK menubar_ht_hook = NULL;
 static menubar_t* menubar_ht_mb = NULL;
@@ -544,7 +544,7 @@ static void
 menubar_ht_change_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
     MENUBAR_TRACE("menubar_ht_change_dropdown(%p,%d)", mb, item);
-    
+
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
     mb->continue_hot_track = TRUE;
@@ -556,9 +556,9 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
 {
     MSG* msg = (MSG*)lp;
     menubar_t* mb = menubar_ht_mb;
-    
+
     MC_ASSERT(mb != NULL);
-    
+
     switch(msg->message) {
         case WM_MENUSELECT:
             menubar_ht_sel_menu = (HMENU)msg->lParam;
@@ -566,12 +566,12 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
             menubar_ht_sel_flags = HIWORD(msg->wParam);
             MENUBAR_TRACE("menubar_ht_proc: WM_MENUSELECT %p %d", menubar_ht_sel_menu, menubar_ht_sel_item);
             break;
-        
+
         case WM_MOUSEMOVE:
         {
             POINT pt = msg->pt;
             int item;
-            
+
             MapWindowPoints(NULL, mb->win, &pt, 1);
             item = MENUBAR_SENDMSG(mb->win, TB_HITTEST, 0, (LPARAM)&pt);
             if(menubar_ht_last_pos.x != pt.x  ||  menubar_ht_last_pos.y != pt.y) {
@@ -584,8 +584,8 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                 }
             }
             break;
-        }        
-        
+        }
+
         case WM_KEYDOWN:
             switch(msg->wParam) {
                 case VK_LEFT:
@@ -617,7 +617,7 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
             }
             break;
     }
-    
+
     return CallNextHookEx(menubar_ht_hook, code, wp, lp);
 }
 
@@ -638,20 +638,20 @@ static void
 menubar_ht_enable(menubar_t* mb)
 {
     MENUBAR_TRACE("menubar_ht_enable(%p)", mb);
-    
+
     EnterCriticalSection(&menubar_ht_lock);
-    
+
     if(MC_ERR(menubar_ht_hook != NULL)) {
         MC_TRACE("menubar_ht_enable: Another menubar hot tracks???");
         menubar_ht_perform_disable();
     }
-    
+
     menubar_ht_hook = SetWindowsHookEx(WH_MSGFILTER, menubar_ht_proc, mc_instance, GetCurrentThreadId());
     if(MC_ERR(menubar_ht_hook == NULL)) {
         MC_TRACE("menubar_ht_enable: SetWindowsHookEx() failed [%ld]", GetLastError());
         goto err_hook;
     }
-    
+
     menubar_ht_mb = mb;
 
 err_hook:
@@ -662,14 +662,14 @@ static void
 menubar_ht_disable(menubar_t* mb)
 {
     MENUBAR_TRACE("menubar_ht_disable(%p)", mb);
-    
+
     EnterCriticalSection(&menubar_ht_lock);
-    
+
     if(MC_ERR(menubar_ht_mb != mb))
         MC_TRACE("menubar_ht_disable: Another menubar hot tracks???");
     else
         menubar_ht_perform_disable();
-    
+
     LeaveCriticalSection(&menubar_ht_lock);
 }
 
@@ -689,11 +689,11 @@ menubar_init(void)
         MC_TRACE("menubar_init: GetClassInfo() failed [%lu].", GetLastError());
         return -1;
     }
-        
+
     /* Remember needed values of standard toolbar window class */
     orig_toolbar_proc = wc.lpfnWndProc;
     extra_offset = wc.cbWndExtra;
-    
+
     /* Create our subclass. */
     wc.lpfnWndProc = menubar_proc;
     wc.cbWndExtra += sizeof(menubar_t*);
@@ -705,9 +705,9 @@ menubar_init(void)
                  GetLastError());
         return -1;
     }
-    
+
     InitializeCriticalSection(&menubar_ht_lock);
-    
+
     return 0;
 }
 
@@ -722,7 +722,7 @@ menubar_fini(void)
 /**************************
  *** Exported functions ***
  **************************/
- 
+
 BOOL MCTRL_API
 mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
 {
@@ -743,7 +743,7 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
                 return TRUE;
             }
             break;
-        
+
         case WM_SYSCHAR:
         case WM_CHAR:
             /* Handle hotkeys (<ALT> + something) */
@@ -757,6 +757,6 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             }
             break;
     }
-    
+
     return FALSE;
 }
