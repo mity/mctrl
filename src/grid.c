@@ -180,8 +180,10 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     if(headerh > 0 && dirty->top <= headerh) {
         TCHAR buffer[16];
 
-        mc_set_rect(&rect, headerw + col0 * grid->cell_width - grid->scroll_x,
-                    0, rect.left + grid->cell_width, headerh);
+        rect.left = headerw + col0 * grid->cell_width - grid->scroll_x;
+        rect.top = 0;
+        rect.right = rect.left + grid->cell_width;
+        rect.bottom = headerh;
 
         for(col = col0; col < col1; col++) {
             mc_clip_set(dc, MC_MAX(headerw, rect.left), rect.top,
@@ -225,8 +227,10 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
     if(headerw > 0 && dirty->left <= headerw) {
         TCHAR buffer[16];
 
-        mc_set_rect(&rect, 0, headerh + row0 * grid->cell_height - grid->scroll_y,
-                    headerw, rect.top + grid->cell_height);
+        rect.left = 0;
+        rect.top = headerh + row0 * grid->cell_height - grid->scroll_y;
+        rect.right = headerw;
+        rect.bottom = rect.top + grid->cell_height;
 
         for(row = row0; row < row1; row++) {
             mc_clip_set(dc, rect.left, MC_MAX(headerh, rect.top),
