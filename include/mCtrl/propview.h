@@ -91,13 +91,13 @@ void MCTRL_API mcPropView_Terminate(void);
 /*@{*/
 
 /** @brief Do not automatically create empty property set. */
-#define MC_PVS_NOPROPSETCREATE       (0x00000001L)
+#define MC_PVS_NOPROPSETCREATE       0x0001
 
 /** @brief Sort items alphabetically.
  *
  * This applies only when the control creates new property set.
  */
-#define MC_PVS_SORTITEMS             (0x00000002L)
+#define MC_PVS_SORTITEMS             0x0002
 
 /*@}*/
 

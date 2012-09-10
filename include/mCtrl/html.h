@@ -178,7 +178,7 @@ void MCTRL_API mcHtml_Terminate(void);
  */
 /*@{*/
 /** @brief Disables context menu */
-#define MC_HS_NOCONTEXTMENU   (0x00000001L)
+#define MC_HS_NOCONTEXTMENU    0x0001
 /*@}*/
 
 

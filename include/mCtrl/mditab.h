@@ -115,37 +115,37 @@ void MCTRL_API mcMditab_Terminate(void);
 /*@{*/
 
 /** @brief Show close button on right side of the control. This is default. */
-#define MC_MTS_CBONTOOLBAR          (0x00000000L)
+#define MC_MTS_CBONTOOLBAR           0x0000
 /** @brief Not supported, reserved for future use. */
-#define MC_MTS_CBONEACHTAB          (0x00000001L)
+#define MC_MTS_CBONEACHTAB           0x0001
 /** @brief Not supported, reserved for future use. */
-#define MC_MTS_CBONACTIVETAB        (0x00000002L)
+#define MC_MTS_CBONACTIVETAB         0x0002
 /** @brief Don't show close button */
-#define MC_MTS_CBNONE               (0x00000003L)
+#define MC_MTS_CBNONE                0x0003
 /** @brief This is not valid style, its bitmask of @c MC_MTS_CBxxx styles. */
-#define MC_MTS_CBMASK               (0x00000003L)
+#define MC_MTS_CBMASK                0x0003
 
 /** @brief Popup tab list button is shown always. This is default. */
-#define MC_MTS_TLBALWAYS            (0x00000000L)
+#define MC_MTS_TLBALWAYS            0x0000
 /** @brief Popup tab list button is shown if scrolling is triggered on. */
-#define MC_MTS_TLBONSCROLL          (0x00000004L)
+#define MC_MTS_TLBONSCROLL          0x0004
 /** @brief Popup tab list button is never displayed. */
-#define MC_MTS_TLBNEVER             (0x00000008L)
+#define MC_MTS_TLBNEVER             0x0008
 /** @brief This is not valid style, but bitmask of @c MC_NTS_TLBxxx styles. */
-#define MC_MTS_TLBMASK              (0x0000000CL)
+#define MC_MTS_TLBMASK              0x000C
 
 /** @brief Always shows scrolling buttons. */
-#define MC_MTS_SCROLLALWAYS         (0x00000010L)
+#define MC_MTS_SCROLLALWAYS         0x0010
 
 /** @brief Middle click closes a tab. */
-#define MC_MTS_CLOSEONMCLICK        (0x00000020L)
+#define MC_MTS_CLOSEONMCLICK        0x0020
 
 /** @brief Mouse button down gains focus. */
-#define MC_MTS_FOCUSONBUTTONDOWN    (0x00000040L)
+#define MC_MTS_FOCUSONBUTTONDOWN    0x0040
 /** @brief Never gains focus */
-#define MC_MTS_FOCUSNEVER           (0x00000080L)
+#define MC_MTS_FOCUSNEVER           0x0080
 /** @brief This is not valid style, but bitmask of @c MC_NTS_FOCUSxxx styles. */
-#define MC_MTS_FOCUSMASK            (0x000000C0L)
+#define MC_MTS_FOCUSMASK            0x00C0
 
 /*@}*/
 

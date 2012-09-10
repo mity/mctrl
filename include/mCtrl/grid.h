@@ -93,28 +93,28 @@ void MCTRL_API mcGrid_Terminate(void);
 /*@{*/
 
 /** @brief Do not automatically create empty table. */
-#define MC_GS_NOTABLECREATE          (0x00000001L)
+#define MC_GS_NOTABLECREATE          0x0001
 
 /** @brief Do not paint grid lines. */
-#define MC_GS_NOGRIDLINES            (0x00000002L)
+#define MC_GS_NOGRIDLINES            0x0002
 
 /** @brief Columns have no header. This is default. */
-#define MC_GS_COLUMNHEADERNONE       (0x00000000L)
+#define MC_GS_COLUMNHEADERNONE       0x0000
 /** @brief Columns have numerical headers (i.e. "1", "2", "3" etc.) */
-#define MC_GS_COLUMNHEADERNUMBERED   (0x00001000L)
+#define MC_GS_COLUMNHEADERNUMBERED   0x1000
 /** @brief Columns have alphabetical headers (i.e. "A", "B", "C" etc.) */
-#define MC_GS_COLUMNHEADERALPHABETIC (0x00002000L)
+#define MC_GS_COLUMNHEADERALPHABETIC 0x2000
 /** @brief First table row is interpreted as column headers. */
-#define MC_GS_COLUMNHEADERCUSTOM     (0x00003000L)
+#define MC_GS_COLUMNHEADERCUSTOM     0x3000
 
 /** @brief Rows have no header. This is default. */
-#define MC_GS_ROWHEADERNONE          (0x00000000L)
+#define MC_GS_ROWHEADERNONE          0x0000
 /** @brief Rows have numerical headers (i.e. "1", "2", "3" etc.) */
-#define MC_GS_ROWHEADERNUMBERED      (0x00004000L)
+#define MC_GS_ROWHEADERNUMBERED      0x4000
 /** @brief Rows have alphabetical headers (i.e. "A", "B", "C" etc.) */
-#define MC_GS_ROWHEADERALPHABETIC    (0x00008000L)
+#define MC_GS_ROWHEADERALPHABETIC    0x8000
 /** @brief First table column is interpreted as row headers. */
-#define MC_GS_ROWHEADERCUSTOM        (0x0000C000L)
+#define MC_GS_ROWHEADERCUSTOM        0xC000
 
 /*@}*/
 
