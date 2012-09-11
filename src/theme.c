@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -31,6 +31,7 @@ HRESULT (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,D
 BOOL    (WINAPI* theme_IsThemeActive)(void);
 BOOL    (WINAPI* theme_IsThemeBackgroundPartiallyTransparent)(HTHEME,int,int);
 HTHEME  (WINAPI* theme_OpenThemeData)(HWND,const WCHAR*);
+HRESULT (WINAPI* theme_SetWindowTheme)(HWND,const WCHAR*,const WCHAR*);
 
 HANIMATIONBUFFER (WINAPI* theme_BeginBufferedAnimation)(HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*);
 HRESULT (WINAPI* theme_BufferedPaintInit)(void);
@@ -48,16 +49,22 @@ static HMODULE uxtheme_dll = NULL;
  *** Dummy implementation ***
  ****************************/
 
-static HTHEME WINAPI
-dummy_OpenThemeData(HWND win, LPCWSTR class_id_list)
-{
-    return NULL;
-}
-
 static BOOL WINAPI
 dummy_IsThemeActive(void)
 {
     return FALSE;
+}
+
+static HTHEME WINAPI
+dummy_OpenThemeData(HWND win, const WCHAR* class_id_list)
+{
+    return NULL;
+}
+
+static HRESULT WINAPI
+dummy_SetWindowTheme(HWND win, const WCHAR* app_name, const WCHAR* theme_name)
+{
+    return E_NOTIMPL;
 }
 
 static HRESULT WINAPI
@@ -138,7 +145,7 @@ theme_GetThemeTextExtentA(HTHEME theme, HDC dc, int part, int state,
  *** Initialization ***
  **********************/
 
-int 
+int
 theme_init(void)
 {
     /* WinXP with COMCL32.DLL version 6.0 or newer is required for theming. */
@@ -210,6 +217,9 @@ theme_init(void)
     theme_OpenThemeData = (HTHEME (WINAPI*)(HWND,const WCHAR*)) GetProcAddress(uxtheme_dll, "OpenThemeData");
     if(MC_ERR(theme_OpenThemeData == NULL))
         goto err_core;
+    theme_SetWindowTheme = (HRESULT (WINAPI*)(HWND,const WCHAR*,const WCHAR*)) GetProcAddress(uxtheme_dll, "SetWindowTheme");
+    if(MC_ERR(theme_SetWindowTheme == NULL))
+        goto err_core;
 
     /* Get buffered animation functions */
     theme_BeginBufferedAnimation = (HANIMATIONBUFFER (WINAPI*)(HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*)) GetProcAddress(uxtheme_dll, "BeginBufferedAnimation");
@@ -243,8 +253,9 @@ err_core:
 
 err_uxtheme_not_loaded:
     /* Make the controls fall back to GDI (non-themed) painting. */
-    theme_OpenThemeData = dummy_OpenThemeData;
     theme_IsThemeActive = dummy_IsThemeActive;
+    theme_OpenThemeData = dummy_OpenThemeData;
+    theme_SetWindowTheme = dummy_SetWindowTheme;
 
 err_anim:
     /* Disable the UXTHEME.DLL based animations. */
@@ -258,7 +269,7 @@ err_anim:
     return 0;
 }
 
-void 
+void
 theme_fini(void)
 {
     if(uxtheme_dll != NULL) {
