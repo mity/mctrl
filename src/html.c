@@ -62,6 +62,7 @@ typedef struct html_tag html_t;
 struct html_tag {
     HWND win;
     HWND ie_win;
+    HWND notify_win;
     WNDPROC ie_proc;
     DWORD style                 : 30;
     DWORD ole_initialized       :  1;
@@ -862,7 +863,7 @@ html_notify_url(html_t* html, UINT code, BSTR url)
     else
         notify.pszUrl = (WCHAR*) mc_str(url, MC_STRW, MC_STRA);
 
-    SendMessage(GetParent(html->win), WM_NOTIFY,
+    SendMessage(html->notify_win, WM_NOTIFY,
                 (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
 
     if(!html->unicode_notifications && notify.pszUrl != NULL)
@@ -873,7 +874,7 @@ static void
 html_notify_format(html_t* html)
 {
     LRESULT lres;
-    lres = SendMessage(GetParent(html->win), WM_NOTIFYFORMAT,
+    lres = SendMessage(html->notify_win, WM_NOTIFYFORMAT,
                        (WPARAM) html->win, NF_QUERY);
     html->unicode_notifications = (lres == NFR_UNICODE ? 1 : 0);
     HTML_TRACE("html_notify_format: Will use %s notifications.",
@@ -893,7 +894,7 @@ html_goto_url(html_t* html, const void* url, BOOL unicode)
         bstr_url = html_bstr(url, (unicode ? MC_STRW : MC_STRA));
         if(MC_ERR(bstr_url == NULL)) {
             MC_TRACE("html_goto_url: html_bstr() failed.");
-            mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
+            mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
             goto err_bstr;
         }
     } else {
@@ -1052,6 +1053,7 @@ html_nccreate(HWND win, CREATESTRUCT* cs)
     memset(html, 0, sizeof(html_t));
 
     html->win = win;
+    html->notify_win = cs->hwndParent;
     html->style = cs->style;
     html->dispatch.lpVtbl = &dispatch_vtable;
     html->client_site.lpVtbl = &client_site_vtable;
@@ -1314,6 +1316,13 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case CCM_GETUNICODEFORMAT:
             return html->unicode_notifications;
+
+        case CCM_SETNOTIFYWINDOW:
+        {
+            HWND old = html->notify_win;
+            html->notify_win = (wp  ?  (HWND) wp  :  GetParent(win));
+            return (LPARAM) old;
+        }
 
         case WM_SETFOCUS:
             if(html->ie_win) {

@@ -140,6 +140,7 @@ extern "C" {
  *
  * These standard messages are handled by the control:
  * - @c CCM_GETUNICODEFORMAT
+ * - @c CCM_SETNOTIFYWINDOW
  * - @c CCM_SETUNICODEFORMAT
  *
  * These standards notifications are sent by the control:
