@@ -78,6 +78,8 @@ extern "C" {
  * - @c WM_GETFONT
  * - @c WM_SETFONT
  * - @c WM_SETREDRAW
+ * - @c CCM_SETNOTIFYWINDOW
+ * - @c CCM_SETWINDOWTHEME
  *
  * These standards notifications are sent by the control:
  * - @c NM_OUTOFMEMORY

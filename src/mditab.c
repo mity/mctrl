@@ -105,6 +105,7 @@ struct mditab_tag {
     HWND win;
     HWND toolbar1;             /* left-side toolbar */
     HWND toolbar2;             /* right-side toolbar */
+    HWND notify_win;           /* notifications target window */
     RECT rect_main;            /* main area where we draw the tabs and toolbars */
     HTHEME theme;              /* theming handle */
     DWORD ui_state;
@@ -684,7 +685,7 @@ mditab_notify_sel_change(mditab_t* mditab, int old_index, int new_index)
     notify.iItemNew = new_index;
     notify.lParamNew = (new_index >= 0  ?  mditab_item(mditab, new_index)->lp  :  0);
 
-    SendMessage(GetParent(mditab->win), WM_NOTIFY,
+    SendMessage(mditab->notify_win, WM_NOTIFY,
                 (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
 }
 
@@ -856,7 +857,7 @@ mditab_notify_delete_item(mditab_t* mditab, int index)
     notify.iItem = index;
     notify.lParam = mditab_item(mditab, index)->lp;
 
-    SendMessage(GetParent(mditab->win), WM_NOTIFY,
+    SendMessage(mditab->notify_win, WM_NOTIFY,
                 (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
 }
 
@@ -1090,7 +1091,7 @@ mditab_close_item(mditab_t* mditab, int index)
     notify.iItem = index;
     notify.lParam = mditab_item(mditab, index)->lp;
 
-    if(SendMessage(GetParent(mditab->win), WM_NOTIFY, (WPARAM)notify.hdr.idFrom, (LPARAM)&notify) == FALSE)
+    if(SendMessage(mditab->notify_win, WM_NOTIFY, (WPARAM)notify.hdr.idFrom, (LPARAM)&notify) == FALSE)
         return mditab_delete_item(mditab, index);
     else
         return FALSE;
@@ -1259,18 +1260,6 @@ mditab_middle_button_up(HWND win, UINT keys, short x, short y)
 }
 
 static void
-mditab_notify_click(HWND win, int code)
-{
-    NMHDR hdr;
-
-    hdr.hwndFrom = win;
-    hdr.idFrom = GetDlgCtrlID(win);
-    hdr.code = code;
-
-    SendMessage(GetParent(win), WM_NOTIFY, (WPARAM)hdr.idFrom, (LPARAM)&hdr);
-}
-
-static void
 mditab_change_focus(mditab_t* mditab)
 {
     /* The selected tab needs refresh to draw/hide focus rect. */
@@ -1320,6 +1309,7 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
     memset(mditab, 0, sizeof(mditab));
 
     mditab->win = win;
+    mditab->notify_win = cs->hwndParent;
     dsa_init(&mditab->item_dsa, sizeof(mditab_item_t));
     mditab->item_selected = -1;
     mditab->item_hot = -1;
@@ -1467,11 +1457,11 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_LBUTTONUP:
-            mditab_notify_click(win, NM_CLICK);
+            mc_send_notify(mditab->notify_win, win, NM_CLICK);
             return 0;
 
         case WM_RBUTTONUP:
-            mditab_notify_click(win, NM_RCLICK);
+            mc_send_notify(mditab->notify_win, win, NM_RCLICK);
             return 0;
 
         case WM_MOUSEMOVE:
@@ -1550,6 +1540,17 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(!mditab->no_redraw)
                 InvalidateRect(win, NULL, FALSE);
             break;
+
+        case CCM_SETNOTIFYWINDOW:
+        {
+            HWND old = mditab->notify_win;
+            mditab->notify_win = (HWND) wp;
+            return (LRESULT) old;
+        }
+
+        case CCM_SETWINDOWTHEME:
+            theme_SetWindowTheme(win, (const WCHAR*) lp, NULL);
+            return 0;
 
         case WM_NCCREATE:
             mditab = mditab_nccreate(win, (CREATESTRUCT*)lp);
