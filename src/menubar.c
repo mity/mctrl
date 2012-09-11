@@ -127,7 +127,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
                               n * sizeof(TCHAR) * MENUBAR_ITEM_LABEL_MAXSIZE);
     if(MC_ERR(buffer == NULL)) {
         MC_TRACE("menubar_set_menu: _malloca() failed.");
-        mc_send_notify(GetParent(mb->win), mb->win, NM_OUTOFMEMORY);
+        mc_send_notify(mb->parent, mb->win, NM_OUTOFMEMORY);
         return -1;
     }
     buttons = (TBBUTTON*) buffer;
@@ -323,15 +323,17 @@ menubar_nccreate(HWND win, CREATESTRUCT *cs)
 
     memset(mb, 0, sizeof(menubar_t));
     mb->win = win;
-    mb->parent = GetParent(cs->hwndParent);
 
     /* Lets be a little friendly to the app. developers: If the parent is
      * ReBar control, lets send WM_NOTIFY/WM_COMMAND to the ReBar's parent
      * as ReBar really is not interested in it, and embedding the menubar
-     * in the ReBar is of our main purposes... */
+     * in the ReBar is actually main advantage of this control in comparision
+     * with the standard window menu. */
     GetClassName(mb->parent, parent_class, MC_ARRAY_SIZE(parent_class));
     if(_tcscmp(parent_class, _T("ReBarWindow32")) == 0)
-        mb->parent = GetParent(mb->parent);
+        mb->parent = GetParent(cs->hwndParent);
+    else
+        mb->parent = cs->hwndParent;
 
     mb->hot_item = -1;
     mb->pressed_item = -1;
@@ -394,6 +396,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (menubar_set_menu(mb, (HMENU)lp) == 0 ? TRUE : FALSE);
 
         case TB_SETPARENT:
+        case CCM_SETNOTIFYWINDOW:
         {
             HWND old_parent = mb->parent;
             mb->parent = (HWND)wp;

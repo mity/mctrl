@@ -158,6 +158,15 @@ extern "C" {
  *     DispatchMessage(&msg);
  * }
  * @endcode
+ *
+ *
+ * @section std_msgs Standard Messages
+ *
+ * These standard messages are handled by the control:
+ * - @c CCM_SETNOTIFYWINDOW
+ *
+ * These standards notifications are sent by the control:
+ * - @c NM_OUTOFMEMORY
  */
 
 
