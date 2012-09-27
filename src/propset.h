@@ -29,7 +29,7 @@
 
 typedef struct propset_tag propset_t;
 struct propset_tag {
-    LONG refs;
+    mc_ref_t refs;
     dsa_t items;
     DWORD flags;
     view_list_t vlist;
@@ -54,13 +54,13 @@ void propset_destroy(propset_t* propset);
 static inline void
 propset_ref(propset_t* propset)
 {
-    InterlockedIncrement(&propset->refs);
+    mc_ref(&propset->refs);
 }
 
 static inline void
 propset_unref(propset_t* propset)
 {
-    if(InterlockedDecrement(&propset->refs) == 0)
+    if(mc_unref(&propset->refs) == 0)
         propset_destroy(propset);
 }
 
