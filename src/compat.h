@@ -36,12 +36,20 @@
     #define MC_TOOLCHAIN_OTHER      1
 #endif
 
+#if defined __GNUC__
+    #define MC_COMPILER_GCC         (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#elif defined _MSC_VER
+    #define MC_COMPILER_MSVC        _MSC_VER
+#else
+    #define MC_COMPILER_OTHER       1
+#endif
+
 
 /*******************
  *** <stdint.h>  ***
  *******************/
 
-#if defined MC_TOOLCHAIN_MSVC && _MSC_VER < 1600
+#if defined MC_COMPILER_MSVC  &&  MC_COMPILER_MSVC < 1600
     /* Visual Studio versions older then 2010 misses <stdint.h> so lets
      * provide our own poor-man's implementation. */
     typedef __int8               int8_t;
@@ -74,7 +82,7 @@
  *** MSVC compatibility hacks  ***
  *********************************/
 
-#if defined MC_TOOLCHAIN_MSVC
+#if defined MC_COMPILER_MSVC
     /* Disable warning C4996 ("This function or variable may be unsafe.") */
     #pragma warning( disable : 4996 )
 
