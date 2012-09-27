@@ -61,7 +61,7 @@
 /* Offset of struct member */
 #if defined offsetof
     #define MC_OFFSETOF(type, member)   offsetof(type, member)
-#elif defined __GNUC__  &&  __GNUC__ >= 4
+#elif defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40000
     #define MC_OFFSETOF(type, member)   __builtin_offsetof(type, member)
 #else
     #define MC_OFFSETOF(type, member)   ((size_t) &((type*)0)->member)
@@ -76,7 +76,7 @@
  * be true. (If supported) it allows better optimization. Use only sparingly
  * in important loops where it really matters. Programmers are often bad in
  * this kind of prediction. */
-#if defined __GNUC__  &&  __GNUC__ >= 3
+#if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 30000
     #define MC_LIKELY(condition)       __builtin_expect(!!(condition), !0)
     #define MC_UNLIKELY(condition)     __builtin_expect((condition), 0)
 #else
@@ -190,9 +190,53 @@ mc_str(const void* from_str, mc_str_type_t from_type, mc_str_type_t to_type)
 }
 
 
+/*********************************
+ *** Atomic reference counting ***
+ *********************************/
+
+#if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40100
+    typedef int32_t mc_ref_t;
+#else
+    typedef LONG mc_ref_t;
+#endif
+
+static inline mc_ref_t
+mc_ref(mc_ref_t* i)
+{
+#if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40700
+    return __atomic_add_fetch(i, 1, __ATOMIC_RELAXED);
+#elif defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40100
+    return __sync_add_and_fetch(i, 1);
+#elif defined MC_COMPILER_MSVC
+    return _InterlockedIncrement(i);
+#else
+    return InterlockedIncrement(i);
+#endif
+}
+
+static inline mc_ref_t
+mc_unref(mc_ref_t* i)
+{
+#if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40700
+    /* See http://stackoverflow.com/questions/10268737/c11-atomics-and-intrusive-shared-pointer-reference-count */
+    mc_ref_t ref = __atomic_add_fetch(i, 1, __ATOMIC_RELEASE);
+    if(ref == 0)
+        __atomic_thread_fence(__ATOMIC_ACQUIRE);
+    return ref;
+#elif defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40100
+    return __sync_sub_and_fetch(i, 1);
+#elif defined MC_COMPILER_MSVC
+    return _InterlockedDecrement(i);
+#else
+    return InterlockedDecrement(i);
+#endif
+}
+
+
 /*************************
  *** Utility functions ***
  *************************/
+
 
 /* Convenient wrapper of InitCommonControls/InitCommonControlsEx. */
 void mc_init_common_controls(DWORD icc);
