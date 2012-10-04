@@ -540,7 +540,7 @@ static HRESULT STDMETHODCALLTYPE
 inplace_site_ex_OnPosRectChange(IOleInPlaceSiteEx* self, const RECT* rect)
 {
     IOleInPlaceObject* inplace;
-	html_t* html;
+    html_t* html;
     HTML_TRACE("inplace_site_OnPosRectChange");
 
     html = MC_HTML_FROM_INPLACE_SITE_EX(self);

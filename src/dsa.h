@@ -40,19 +40,19 @@ typedef int (*dsa_cmp_t)(dsa_t*, const void*, const void*);
 static inline WORD
 dsa_size(dsa_t* dsa)
 {
-	return dsa->size;
+    return dsa->size;
 }
 
 static inline WORD
 dsa_index(dsa_t* dsa, const void* item)
 {
-	return (int) (((BYTE*)item - (BYTE*)dsa->buffer) / dsa->item_size);
+    return (int) (((BYTE*)item - (BYTE*)dsa->buffer) / dsa->item_size);
 }
 
 static inline void*
 dsa_item(dsa_t* dsa, WORD index)
 {
-	return (void*)&((BYTE*)dsa->buffer)[index * dsa->item_size];
+    return (void*)&((BYTE*)dsa->buffer)[index * dsa->item_size];
 }
 
 /* This is harder to use, but it should lead to better optimization
@@ -60,8 +60,8 @@ dsa_item(dsa_t* dsa, WORD index)
 static inline void*
 dsa_item_(dsa_t* dsa, WORD index, WORD item_size)
 {
-	MC_ASSERT(item_size == dsa->item_size);
-	return (void*)&((BYTE*)dsa->buffer)[index * item_size];
+    MC_ASSERT(item_size == dsa->item_size);
+    return (void*)&((BYTE*)dsa->buffer)[index * item_size];
 }
 
 
