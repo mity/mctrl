@@ -30,7 +30,7 @@ CreateMenuBar(HWND hWnd)
     DWORD dwBtnSize;
 
     /* Create ReBar window */
-    hwndRebar = CreateWindowEx(WS_EX_TOOLWINDOW, "ReBarWindow32", _T(""), 
+    hwndRebar = CreateWindowEx(WS_EX_TOOLWINDOW, _T("ReBarWindow32"), _T(""),
             WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER |
             CCS_NODIVIDER | CCS_TOP | RBS_VARHEIGHT | RBS_BANDBORDERS | RBS_AUTOSIZE,
             0, 0, 0, 0, hWnd, (HMENU) 1000, hInst, NULL);
@@ -51,16 +51,16 @@ CreateMenuBar(HWND hWnd)
     band.cyMinChild = HIWORD(dwBtnSize);
     band.cx = 0;
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
-    
+
     /* Create yet another (empty) ReBar band */
     band.hwndChild = NULL;
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
 
     /* Create some dummy child windows, so it can just be seen how focus
      * is handled with the respect to the menubar. */
-    CreateWindow("BUTTON", _T("f&oo"), WS_CHILD | WS_TABSTOP | WS_VISIBLE | BS_DEFPUSHBUTTON,
+    CreateWindow(_T("BUTTON"), _T("f&oo"), WS_CHILD | WS_TABSTOP | WS_VISIBLE | BS_DEFPUSHBUTTON,
                  10, 60, 100, 25, hWnd, (HMENU) 1002, hInst, NULL);
-    CreateWindow("BUTTON", _T("&bar"), WS_CHILD | WS_TABSTOP | WS_VISIBLE | BS_PUSHBUTTON,
+    CreateWindow(_T("BUTTON"), _T("&bar"), WS_CHILD | WS_TABSTOP | WS_VISIBLE | BS_PUSHBUTTON,
                  10, 90, 100, 25, hWnd, (HMENU) 1003, hInst, NULL);
 }
 
@@ -78,14 +78,14 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     return 0;
                 }
             }
-            
+
             if(LOWORD(wParam) == 1002 || LOWORD(wParam) == 1003) {
                 TCHAR buffer[64];
                 _sntprintf(buffer, 64, _T("Clicked on a button ID %d."), LOWORD(wParam));
                 MessageBox(hWnd, buffer, _T("Button!"), MB_ICONINFORMATION | MB_OK);
             }
             break;
-            
+
         case WM_SIZE:
             /* Ensure the ReBar is resized on top of the main window */
             SendMessage(hwndRebar, WM_SIZE, 0, 0);
@@ -94,7 +94,7 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_CREATE:
             CreateMenuBar(hWnd);
             return 0;
-            
+
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
@@ -112,13 +112,13 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
 
     hInst = hInstance;
     hMenu = LoadMenu(hInst, MAKEINTRESOURCE(ID_MENU));
-    
+
     /* Initialize mCtrl control */
     mcMenubar_Initialize();
-    
+
     /* Prevent linker from ignoring comctl32.dll */
     InitCommonControls();
-    
+
     /* Register main window class */
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WndProc;
@@ -127,26 +127,26 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = _T("main_window");
     RegisterClass(&wc);
-    
+
     /* Create main window */
-    hWnd = CreateWindow(_T("main_window"), _T("mCtrl Example: MENUBAR Control"), 
+    hWnd = CreateWindow(_T("main_window"), _T("mCtrl Example: MENUBAR Control"),
             WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 500, 310,
             NULL, NULL, hInst, NULL);
     ShowWindow(hWnd, nCmdShow);
-    
+
     /* Message loop */
     while(GetMessage(&msg, NULL, 0, 0)) {
         if(mcIsMenubarMessage(hwndMenubar, &msg))
             continue;
         if(IsDialogMessage(hWnd, &msg))
             continue;
-        
+
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    
+
     mcMenubar_Terminate();
-    
+
     /* Return exit code of WM_QUIT */
     return (int)msg.wParam;
 }
