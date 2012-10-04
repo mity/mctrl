@@ -14,6 +14,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_grid", "ex_grid.vcxproj"
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_dllgetversion", "ex_dllgetversion.vcxproj", "{C5CCF159-2509-4CBF-98A3-1EFF095303C4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_html", "ex_html.vcxproj", "{E1F631E0-C2E7-4247-90DC-EB0DA2D1935A}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -21,6 +24,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_html", "ex_html.vcxproj"
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_mditab", "ex_mditab.vcxproj", "{A387985B-8EF7-4105-B30B-0A5D8D0A69BC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_menubar", "ex_menubar.vcxproj", "{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}"
 	ProjectSection(ProjectDependencies) = postProject
 		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
 	EndProjectSection
@@ -55,6 +63,10 @@ Global
 		{A387985B-8EF7-4105-B30B-0A5D8D0A69BC}.Debug|Win32.Build.0 = Debug|Win32
 		{A387985B-8EF7-4105-B30B-0A5D8D0A69BC}.Release|Win32.ActiveCfg = Release|Win32
 		{A387985B-8EF7-4105-B30B-0A5D8D0A69BC}.Release|Win32.Build.0 = Release|Win32
+		{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}.Debug|Win32.Build.0 = Debug|Win32
+		{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}.Release|Win32.ActiveCfg = Release|Win32
+		{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
