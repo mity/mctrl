@@ -54,7 +54,7 @@ struct propview_tag {
 static void
 propview_refresh(void* view, void* refresh_data)
 {
-    propview_t* pv = (propview_t*) pv;
+    propview_t* pv = (propview_t*) view;
     propset_refresh_data_t* data = (propset_refresh_data_t*) refresh_data;
 
     if(pv->no_redraw)
@@ -191,11 +191,10 @@ propview_paint(propview_t* pv, HDC dc)
         LineTo(dc, rect.right, (i - pv->scroll_y + 1) * pv->row_height - 1);
 
         /* Paint label */
-        mc_set_rect(&label_rect,
-                 PADDING_H,
-                 (i - pv->scroll_y) * pv->row_height,
-                 pv->label_width - 1 - PADDING_H,
-                 label_rect.top + pv->row_height - 1);
+        label_rect.left = PADDING_H;
+        label_rect.top = (i - pv->scroll_y) * pv->row_height;
+        label_rect.right = pv->label_width - 1 - label_rect.left,
+        label_rect.bottom = label_rect.top + pv->row_height - 1;
         DrawText(dc, item->text, -1, &label_rect,
                  DT_SINGLELINE | DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER);
 
