@@ -160,7 +160,7 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
     if(endptr)
         *endptr = (wchar_t*)nptr;
 
-    return negative ? -ret : ret;
+    return negative ? (uint64_t)(-(int64_t)ret) : ret;
 }
 #endif  /* COMPAT_NEED_WCSTOUI64 */
 
