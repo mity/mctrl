@@ -33,6 +33,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_menubar", "ex_menubar.vc
 		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_propview", "ex_propview.vcxproj", "{F0E665D0-E321-4C80-978C-6568E3633835}"
+	ProjectSection(ProjectDependencies) = postProject
+		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -67,6 +72,10 @@ Global
 		{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}.Debug|Win32.Build.0 = Debug|Win32
 		{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}.Release|Win32.ActiveCfg = Release|Win32
 		{66EAC46B-5AB1-4EB4-A5B4-CC5FEE9721E9}.Release|Win32.Build.0 = Release|Win32
+		{F0E665D0-E321-4C80-978C-6568E3633835}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F0E665D0-E321-4C80-978C-6568E3633835}.Debug|Win32.Build.0 = Debug|Win32
+		{F0E665D0-E321-4C80-978C-6568E3633835}.Release|Win32.ActiveCfg = Release|Win32
+		{F0E665D0-E321-4C80-978C-6568E3633835}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
