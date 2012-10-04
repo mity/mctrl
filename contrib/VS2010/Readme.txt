@@ -8,7 +8,7 @@ Disclaimer
 
 Please note that MS Visual Studio solution and project files are not maintained
 properly as it is not te main development tool for the project. They are just
-added as a favor to those who might find it useful as a startpoint iof they
+added as a favor to those who might find it useful as a startpoint if they
 really want to play with mCtrl in Visual Studio.
 
 If you are lucky and the files were updated recently, you should be able to
