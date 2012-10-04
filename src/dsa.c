@@ -153,8 +153,7 @@ no_realloc:
         goto no_realloc;
 
     memcpy(buffer, dsa->buffer, index * dsa->item_size);
-    memcpy(buffer + index * dsa->item_size,
-           dsa->buffer + (index+1) * dsa->item_size,
+    memcpy(buffer + index * dsa->item_size, dsa_item(dsa, index+1),
            (dsa->size - index - 1) * dsa->item_size);
 
     free(dsa->buffer);
