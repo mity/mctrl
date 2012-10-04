@@ -2,23 +2,51 @@ EXPORTS
     DllGetVersion
     mcButton_Initialize
     mcButton_Terminate
+    mcCreateDialogIndirectParamA
+    mcCreateDialogIndirectParamW
+    mcCreateDialogParamA
+    mcCreateDialogParamW
+    mcDialogBoxIndirectParamA
+    mcDialogBoxIndirectParamW
+    mcDialogBoxParamA
+    mcDialogBoxParamW
     mcGrid_Initialize
     mcGrid_Terminate
     mcHtml_Initialize
     mcHtml_Terminate
+    mcIsMenubarMessage
     mcMditab_Initialize
     mcMditab_Terminate
+    mcMenubar_Initialize
+    mcMenubar_Terminate
+    mcPropSet_AddRef
+    mcPropSet_Create
+    mcPropSet_DeleteAllItems
+    mcPropSet_DeleteItem
+    mcPropSet_GetItemA
+    mcPropSet_GetItemCount
+    mcPropSet_GetItemW
+    mcPropSet_InsertItemA
+    mcPropSet_InsertItemW
+    mcPropSet_Release
+    mcPropSet_SetItemA
+    mcPropSet_SetItemW
+    mcPropView_Initialize
+    mcPropView_Terminate
     mcTable_AddRef
     mcTable_Clear
     mcTable_ColumnCount
     mcTable_Create
     mcTable_GetCell
+    mcTable_GetCellEx
     mcTable_Release
     mcTable_Resize
     mcTable_RowCount
     mcTable_SetCell
+    mcTable_SetCellEx
     mcValueType_GetBuiltin
     mcValue_CreateFromColorref
+    mcValue_CreateFromHIcon
     mcValue_CreateFromImmStringA
     mcValue_CreateFromImmStringW
     mcValue_CreateFromInt32
@@ -30,6 +58,7 @@ EXPORTS
     mcValue_Destroy
     mcValue_Duplicate
     mcValue_GetColorref
+    mcValue_GetHIcon
     mcValue_GetImmStringA
     mcValue_GetImmStringW
     mcValue_GetInt32
