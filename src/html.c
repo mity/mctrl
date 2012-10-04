@@ -25,7 +25,6 @@
  *  - Notifications for context menus so app could customize the menu
  *    or provide its own. (App may want provide different menus depending
  *    on the object clicked. E.g. normal link versus image etc.).
- *  - Notification for status text.
  */
 
 #include "html.h"
@@ -40,6 +39,7 @@
 /* Uncomment this to have more verbose traces about MC_HTML control. */
 /*#define HTML_DEBUG     1*/
 
+
 #ifdef HTML_DEBUG
     #define HTML_TRACE        MC_TRACE
     #define HTML_TRACE_GUID   MC_TRACE_GUID
@@ -53,7 +53,11 @@
 static const TCHAR html_wc[] = MC_WC_HTML;
 
 
-static BSTR url_blank = NULL;
+/* We use 'about:blank' as a default URL */
+static const WCHAR url_blank_data[] = { L"\x16\x00about:blank" };
+static BSTR url_blank = (BSTR) &url_blank_data[2];
+
+
 static TCHAR ie_prop[] = _T("mctrl.html.handle");
 
 
@@ -64,9 +68,11 @@ struct html_tag {
     HWND ie_win;
     HWND notify_win;
     WNDPROC ie_proc;
-    DWORD style                 : 30;
+    DWORD style                 : 28;
     DWORD ole_initialized       :  1;
     DWORD unicode_notifications :  1;
+    DWORD can_back              :  1;
+    DWORD can_forward           :  1;
 
     /* Pointer to the COM-object representing the embedded Internet Explorer */
     IOleObject* browser_obj;
@@ -210,12 +216,14 @@ dispatch_GetIDsOfNames(IDispatch* self, REFIID riid, LPOLESTR* names,
     return E_NOTIMPL;
 }
 
-/* Forward declaration */
-static void html_notify_url(html_t* html, UINT code, BSTR url);
+/* Forward declarations */
+static LRESULT html_notify_text(html_t* html, UINT code, const WCHAR* url);
+static int html_goto_url(html_t* html, const void* url, BOOL unicode);
+
 
 static HRESULT STDMETHODCALLTYPE
 dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
-                WORD flags, DISPPARAMS* disp_params, VARIANT* var_res,
+                WORD flags, DISPPARAMS* params, VARIANT* var_res,
                 EXCEPINFO* except, UINT* arg_err)
 {
     html_t* html = MC_HTML_FROM_DISPTACH(self);
@@ -223,15 +231,14 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
     switch(disp_id) {
         case DISPID_BEFORENAVIGATE2:
         {
-            BSTR url = disp_params->rgvarg[5].pvarVal->bstrVal;
-            VARIANT_BOOL* done = disp_params->rgvarg[0].pboolVal;
+            BSTR url = V_BSTR(V_VARIANTREF(&params->rgvarg[5]));
+            VARIANT_BOOL* cancel = V_BOOLREF(&params->rgvarg[0]);
+
             HTML_TRACE("dispatch_Invoke: DISPID_BEFORENAVIGATE2(%S)", url);
 
             if(wcsncmp(url, L"app:", 4) == 0) {
-                html_notify_url(html, MC_HN_APPLINK, url);
-                *done = VARIANT_TRUE;
-            } else {
-                *done = VARIANT_FALSE;
+                html_notify_text(html, MC_HN_APPLINK, url);
+                *cancel = VARIANT_TRUE;
             }
             break;
         }
@@ -242,21 +249,23 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
          * via DISPID_PROGRESSCHANGE below. */
         case DISPID_DOCUMENTCOMPLETE:
         {
-            BSTR url = disp_params->rgvarg[0].pvarVal->bstrVal;
+            BSTR url = V_BSTR(V_VARIANTREF(&params->rgvarg[0]));
             HTML_TRACE("dispatch_Invoke: DISPID_DOCUMENTCOMPLETE(%S)", url);
 
-            html_notify_url(html, MC_HN_DOCUMENTCOMPLETE, url);
+            html_notify_text(html, MC_HN_DOCUMENTCOMPLETE, url);
             break;
         }
 #endif
 
         case DISPID_PROGRESSCHANGE:
         {
-            long progress = disp_params->rgvarg[0].lVal;
-            long progress_max = disp_params->rgvarg[1].lVal;
+            LONG progress_max = V_I4(&params->rgvarg[0]);
+            LONG progress = V_I4(&params->rgvarg[1]);
+            MC_NMHTMLPROGRESS notify;
             HTML_TRACE("dispatch_Invoke: DISPID_PROGRESSCHANGE(%ld, %ld)",
                        progress, progress_max);
 
+            /* This replaces DISPID_DOCUMENTCOMPLETE above */
             if(progress < 0  ||  progress_max < 0) {
                 IWebBrowser2* browser_iface = html_browser_iface(html);
                 if(browser_iface != NULL) {
@@ -265,10 +274,74 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 
                     hr = browser_iface->lpVtbl->get_LocationURL(browser_iface, &url);
                     if(hr == S_OK && url != NULL) {
-                        html_notify_url(html, MC_HN_DOCUMENTCOMPLETE, url);
+                        html_notify_text(html, MC_HN_DOCUMENTCOMPLETE, url);
                         SysFreeString(url);
                     }
                 }
+            }
+
+            /* Send also notification about the progress */
+            notify.hdr.hwndFrom = html->win;
+            notify.hdr.idFrom = GetDlgCtrlID(html->win);
+            notify.hdr.code = MC_HN_PROGRESS;
+            notify.lProgress = progress;
+            notify.lProgressMax = progress_max;
+            SendMessage(html->notify_win, WM_NOTIFY,
+                        (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
+            break;
+        }
+
+        case DISPID_STATUSTEXTCHANGE:
+            html_notify_text(html, MC_HN_STATUSTEXT, V_BSTR(&params->rgvarg[0]));
+            break;
+
+        case DISPID_TITLECHANGE:
+            html_notify_text(html, MC_HN_TITLETEXT, V_BSTR(&params->rgvarg[0]));
+            break;
+
+        case DISPID_COMMANDSTATECHANGE:
+        {
+            VARIANT_BOOL enabled = V_BOOL(&params->rgvarg[0]);
+            LONG cmd = V_I4(&params->rgvarg[0]);
+            MC_NMHTMLHISTORY notify;
+
+            if(cmd == CSC_NAVIGATEBACK  &&  cmd == CSC_NAVIGATEFORWARD) {
+                if(cmd == CSC_NAVIGATEBACK)
+                    html->can_back = enabled;
+                else
+                    html->can_forward = enabled;
+
+                notify.hdr.hwndFrom = html->win;
+                notify.hdr.idFrom = GetDlgCtrlID(html->win);
+                notify.hdr.code = MC_HN_HISTORY;
+                notify.bCanBack = html->can_back;
+                notify.bCanForward = html->can_forward;
+                SendMessage(html->notify_win, WM_NOTIFY,
+                            (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
+            }
+            break;
+        }
+
+        case DISPID_NEWWINDOW2:
+        /* This is called instead of DISPID_NEWWINDOW3 on Windows XP SP2
+         * and older. */
+        {
+            VARIANT_BOOL* cancel = V_BOOLREF(&params->rgvarg[0]);
+            if(html_notify_text(html, MC_HN_NEWWINDOW, L"") == 0) {
+                *cancel = VARIANT_TRUE;
+                HTML_TRACE("dispatch_Invoke(DISPID_NEWWINDOW2): Canceled.");
+            }
+            break;
+        }
+
+        case DISPID_NEWWINDOW3:
+        {
+            BSTR url = V_BSTR(&params->rgvarg[0]);
+            VARIANT_BOOL* cancel = V_BOOLREF(&params->rgvarg[3]);
+
+            if(html_notify_text(html, MC_HN_NEWWINDOW, url) == 0) {
+                *cancel = VARIANT_TRUE;
+                HTML_TRACE("dispatch_Invoke(DISPID_NEWWINDOW3, '%S'): Canceled.", url);
             }
             break;
         }
@@ -848,26 +921,34 @@ html_bstr(const void* from_str, int from_type)
     return str_b;
 }
 
-static void
-html_notify_url(html_t* html, UINT code, BSTR url)
+static LRESULT
+html_notify_text(html_t* html, UINT code, const WCHAR* text)
 {
-    MC_NMHTMLURLW notify;
+    /* Note we shamelessly misuse this also for URL notifications, as the
+     * MC_NMHTMLURL and MC_NMHTMLTEXT are binary compatible.
+     * They are separate mainly for historical reasons.
+     */
 
-    HTML_TRACE("html_notify_url: code=%d url='%S'", code, url ? url : L"[null]");
+    MC_NMHTMLTEXTW notify;
+    LRESULT res;
+
+    HTML_TRACE("html_notify_text: code=%d str='%S'", code, text ? text : L"[null]");
 
     notify.hdr.hwndFrom = html->win;
     notify.hdr.idFrom = GetDlgCtrlID(html->win);
     notify.hdr.code = code;
     if(html->unicode_notifications)
-        notify.pszUrl = url;
+        notify.pszText = text;
     else
-        notify.pszUrl = (WCHAR*) mc_str(url, MC_STRW, MC_STRA);
+        notify.pszText = (WCHAR*) mc_str(text, MC_STRW, MC_STRA);
 
-    SendMessage(html->notify_win, WM_NOTIFY,
+    res = SendMessage(html->notify_win, WM_NOTIFY,
                 (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
 
-    if(!html->unicode_notifications && notify.pszUrl != NULL)
-        free((char*)notify.pszUrl);
+    if(!html->unicode_notifications && notify.pszText != NULL)
+        free((char*)notify.pszText);
+
+    return res;
 }
 
 static void
@@ -885,40 +966,53 @@ static int
 html_goto_url(html_t* html, const void* url, BOOL unicode)
 {
     IWebBrowser2* browser_iface;
-    BSTR bstr_url;
-    VARIANT var_url;
-    int res = -1;
-
-    if(url != NULL  &&  ((unicode && ((WCHAR*)url)[0] != L'\0') ||
-                         (!unicode && ((char*)url)[0] != '\0'))) {
-        bstr_url = html_bstr(url, (unicode ? MC_STRW : MC_STRA));
-        if(MC_ERR(bstr_url == NULL)) {
-            MC_TRACE("html_goto_url: html_bstr() failed.");
-            mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
-            goto err_bstr;
-        }
-    } else {
-        bstr_url = url_blank;
-    }
+    VARIANT var;
 
     browser_iface = html_browser_iface(html);
     if(MC_ERR(browser_iface == NULL))
-        goto err_iface;
+        return -1;
 
-    VariantInit(&var_url);
-    var_url.vt = VT_BSTR;
-    var_url.bstrVal = bstr_url;
-    browser_iface->lpVtbl->Navigate2(browser_iface, &var_url, NULL, NULL, NULL, NULL);
+    V_VT(&var) = VT_BSTR;
+
+    if(url != NULL  &&  ((unicode && ((WCHAR*)url)[0] != L'\0') ||
+                         (!unicode && ((char*)url)[0] != '\0'))) {
+        V_BSTR(&var) = html_bstr(url, (unicode ? MC_STRW : MC_STRA));
+        if(MC_ERR(var.bstrVal == NULL)) {
+            MC_TRACE("html_goto_url: html_bstr() failed.");
+            mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
+            return -1;
+        }
+    } else {
+        V_BSTR(&var) = url_blank;
+    }
+
+    browser_iface->lpVtbl->Navigate2(browser_iface, &var, NULL, NULL, NULL, NULL);
     browser_iface->lpVtbl->Release(browser_iface);
-    VariantClear(&var_url);
 
-    res = 0;
+    if(V_BSTR(&var) != url_blank)
+        SysFreeString(var.bstrVal);
 
-err_iface:
-    if(bstr_url != url_blank)
-        SysFreeString(bstr_url);
-err_bstr:
-    return res;
+    return 0;
+}
+
+static int
+html_goto_back(html_t* html, BOOL back)
+{
+    IWebBrowser2* browser_iface;
+    HRESULT hr;
+
+    browser_iface = html_browser_iface(html);
+    if(MC_ERR(browser_iface == NULL))
+        return -1;
+
+    if(back)
+        hr = browser_iface->lpVtbl->GoBack(browser_iface);
+    else
+        hr = browser_iface->lpVtbl->GoForward(browser_iface);
+
+    browser_iface->lpVtbl->Release(browser_iface);
+
+    return (SUCCEEDED(hr)  ?  0  :  -1);
 }
 
 static int
@@ -1281,6 +1375,15 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (res == 0 ? TRUE : FALSE);
         }
 
+        case MC_HM_GOBACK:
+        {
+            int res = html_goto_back(html, wp);
+            return (res == 0 ? TRUE : FALSE);
+        }
+
+        case MC_HM_CANBACK:
+            return ((wp ? html->can_back : html->can_forward) ? TRUE : FALSE);
+
         case WM_SIZE:
         {
             IWebBrowser2* browser_iface;
@@ -1384,12 +1487,6 @@ html_init(void)
 
     mc_init_common_controls(ICC_STANDARD_CLASSES);
 
-    url_blank = SysAllocString(L"about:blank");
-    if(MC_ERR(url_blank == NULL)) {
-        MC_TRACE("html_init: SysAllocString() failed [%lu]", GetLastError());
-        return -1;
-    }
-
     wc.style = CS_GLOBALCLASS | CS_PARENTDC;
     wc.lpfnWndProc = html_proc;
     wc.cbWndExtra = sizeof(html_t*);
@@ -1407,6 +1504,5 @@ void
 html_fini(void)
 {
     UnregisterClass(html_wc, NULL);
-    SysFreeString(url_blank);
 }
 

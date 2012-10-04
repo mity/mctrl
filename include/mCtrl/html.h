@@ -90,7 +90,7 @@ extern "C" {
  * @section html_generated_contents Generated Contents
  *
  * Generating HTML contents programatically is also possibly to some degree.
- * Note however that the application is nut supposed to generate whole
+ * Note however that the application is not supposed to generate whole
  * documents but only smaller snippets of them.
  *
  * The application can set contents of almost any tag (identified by HTML
@@ -101,7 +101,7 @@ extern "C" {
  * HTML syntax and it can contain nested HTML tags.
  *
  * Note the application should use the message @ref MC_HM_SETTAGCONTENTS
- * only after the HTML document intended ot be changed is completely loaded,
+ * only after the HTML document intended to be changed is completely loaded,
  * i.e. anytime after the notification @ref MC_HN_DOCUMENTCOMPLETE is fired.
  *
  * @attention
@@ -124,9 +124,7 @@ extern "C" {
  *   During creation of the control @c OleInitialize() is called. I.e.
  *   the OLE subsystem is initialized for every thread which creates
  *   the HTML control. @c OleUninitialize() is similarly called when the
- *   control is destroyed. If you want to send some messages to the control
- *   from another thread then where it has been created, you have to
- *   initialize OLE subsystem in that thread manually.
+ *   control is destroyed.
  *
  * - The value of the URL in notifications might not match the URL that was
  *   originally given to the HTML control, because the URL might be converted
@@ -222,30 +220,98 @@ void MCTRL_API mcHtml_Terminate(void);
  */
 #define MC_HM_SETTAGCONTENTSA (WM_USER + 13)
 
+/**
+ * @brief Navigates the HTML control back or forward in history.
+ * @param[in] wParam (@c BOOL) Set to @c TRUE to go back in history or
+ * @c FALSE to go forward.
+ * @param lParam Reserved, set to zero.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ * @see MC_HM_CANBACK
+ */
+#define MC_HM_GOBACK          (WM_USER + 14)
+
+/**
+ * @brief Tests whether going back or forward in history is possible.
+ * @param[in] wParam (@c BOOL) Set to @c TRUE to test going back in history or
+ * @c FALSE to going forward.
+ * @param lParam Reserved, set to zero.
+ * @return (@c BOOL) @c TRUE if can go back or forward respectivelly, @c FALSE otherwise.
+ * @see MC_HM_GOBACK
+ */
+#define MC_HM_CANBACK         (WM_USER + 15)
+
 /*@}*/
 
 
 /**
- * @brief Structure used for some HTML control notifications (unicode variant).
+ * @brief Structure used for notifications with URL parameter (unicode variant).
  * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLW_tag {
     /** @brief Common notification structure header. */
     NMHDR hdr;
-    /** @brief String representation of @c app: protocol URL. */
+    /** @brief String representation of the URL. */
     LPCWSTR pszUrl;
 } MC_NMHTMLURLW;
 
 /**
- * @brief Structure used for some HTML control notifications (ANSI variant).
+ * @brief Structure used for notifications with URL parameter (ANSI variant).
  * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLA_tag {
     /** @brief Common notification structure header. */
     NMHDR hdr;
-    /** @brief String representation of @c app: protocol URL. */
+    /** @brief String representation of the URL. */
     LPCSTR pszUrl;
 } MC_NMHTMLURLA;
+
+/**
+ * @brief Structure used for notification about download progress.
+ * @sa MC_HN_PROGRESS
+ */
+typedef struct MC_NMHTMLPROGRESS_tag {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief Current progress. */
+    LONG lProgress;
+    /** @brief Progress maximum. */
+    LONG lProgressMax;
+} MC_NMHTMLPROGRESS;
+
+/**
+ * @brief Structure used for notifications with textual parameter (unicode variant).
+ * @sa MC_HN_STATUSTEXT MC_HN_TITLETEXT
+ */
+typedef struct MC_NMHTMLTEXTW_tag {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief The string. */
+    LPCWSTR pszText;
+} MC_NMHTMLTEXTW;
+
+/**
+ * @brief Structure used for notifications with textual parameter (ANSI variant).
+ * @sa MC_HN_STATUSTEXT MC_HN_TITLETEXT
+ */
+typedef struct MC_NMHTMLTEXTA_tag {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief The string. */
+    LPCSTR pszText;
+} MC_NMHTMLTEXTA;
+
+/**
+ * @brief Structure used for notification about history navigation.
+ * @sa MC_HN_HISTORY
+ */
+typedef struct MC_NMHTMLHISTORY_tag {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief @c TRUE if going back in history is possible. */
+    BOOL bCanBack;
+    /** @brief @c TRUE if going forward in history is possible. */
+    BOOL bCanForward;
+} MC_NMHTMLHISTORY;
 
 
 /**
@@ -271,6 +337,73 @@ typedef struct MC_NMHTMLURLA_tag {
  */
 #define MC_HN_DOCUMENTCOMPLETE   ((0U-2000U) + 0x0002)
 
+/**
+ * @brief Fired to inform application about download progress.
+ *
+ * This allows example for example to show a progress indicator.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMHTMLPROGRESS*) Pointer to a structure specifying
+ * details about the progress.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_HN_PROGRESS           ((0U-2000U) + 0x0003)
+
+/**
+ * @brief Fired when the browser would like to change status text.
+ *
+ * IE usually shows this text in its statusbar.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMHTMLTEXT*) Pointer to a structure specifying
+ * the text.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_HN_STATUSTEXT         ((0U-2000U) + 0x0004)
+
+/**
+ * @brief Fired when the browser changes title of the HTML page.
+ *
+ * IE usually shows this in window caption or tab label.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMHTMLTEXT*) Pointer to a structure specifying
+ * the text.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_HN_TITLETEXT          ((0U-2000U) + 0x0005)
+
+/**
+ * @brief Fired when possibility of going back or foward in history changes.
+ *
+ * This allow application to enable or disable the corresponding command
+ * buttons.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMHTMLBACK*) Pointer to a structure specifying
+ * the text.
+ * @return Application should return zero if it processes the notification.
+ *
+ * @sa MC_HM_GOBACK MC_HM_CANBACK
+ */
+#define MC_HN_HISTORY            ((0U-2000U) + 0x0006)
+
+/**
+ * @brief Fired when the browser would open a new window.
+ *
+ * This happens for exaple if user clicks on a link while holding @c SHIFT.
+ *
+ * @c MC_NMHTMLURL::pszUrl is URL to be opened in the new window. Note however
+ * that prior to Windows XP SP2, the URL is not filled.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMHTMLURL*) Pointer to a structure specifying
+ * details about the URL.
+ * @return Application should return non-zero to allow opening the new window,
+ * or zero to deny it.
+ */
+#define MC_HN_NEWWINDOW          ((0U-2000U) + 0x0007)
+
 /*@}*/
 
 
@@ -287,6 +420,8 @@ typedef struct MC_NMHTMLURLA_tag {
 #define MC_HM_SETTAGCONTENTS   MCTRL_NAME_AW(MC_HM_SETTAGCONTENTS)
 /** @brief Unicode-resolution alias. @sa MC_NMHTMLURLW MC_NMHTMLURLA */
 #define MC_NMHTMLURL           MCTRL_NAME_AW(MC_NMHTMLURL)
+/** @brief Unicode-resolution alias. @sa MC_NMHTMLTEXTW MC_NMHTMLTEXTA */
+#define MC_NMHTMLTEXT          MCTRL_NAME_AW(MC_NMHTMLTEXT)
 
 /*@}*/
 

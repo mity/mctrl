@@ -35,14 +35,14 @@ GenerateDynamicContents(void)
 {
     static UINT uCounter = 1;
     TCHAR buffer[512];
-    
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR), 
+
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR),
                _T("<p>This paragraph is generated dynamically by the application "
                   "and injected via message <tt>MC_HM_SETTAGCONTENTS</tt>. To "
                   "prove that the following number is incremented anytime this "
                   "page is <a href=\"1000\">reloaded</a> or "
                   "<a href=\"app:set_dynamic\">this app link is clicked</a>:</p>"
-                  "<div class=\"big\">%u</div>"), 
+                  "<div class=\"big\">%u</div>"),
                   uCounter);
 
     SendMessage(hwndHtml, MC_HM_SETTAGCONTENTS, (WPARAM)_T("dynamic"), (LPARAM)buffer);
@@ -76,7 +76,7 @@ WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     MessageBox(hwnd, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
             }
             if(((NMHDR*)lParam)->idFrom == IDC_HTML && ((NMHDR*)lParam)->code == MC_HN_DOCUMENTCOMPLETE) {
-                /* We received notification from the HTML control that the 
+                /* We received notification from the HTML control that the
                  * document is completely loaded. If it is the initial URL,
                  * we use this chance to generate the dynamiccontents for
                  * the first time. */
