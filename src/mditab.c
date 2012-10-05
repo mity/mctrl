@@ -1306,7 +1306,7 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
         return NULL;
     }
 
-    memset(mditab, 0, sizeof(mditab));
+    memset(mditab, 0, sizeof(mditab_t));
 
     mditab->win = win;
     mditab->notify_win = cs->hwndParent;
