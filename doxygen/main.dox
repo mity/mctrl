@@ -1,28 +1,28 @@
 /**
  * @mainpage
- * 
- * mCtrl is @c C open source library for MS Windows, providing a set of user 
- * interface controls, that complement the standard set as offered by @c 
- * USER32.DLL and @c COMCTL32.DLL libraries. 
  *
- * Please check project homepage http://mctrl.sourceforge.net and 
- * https://sourceforge.net/projects/mctrl for newer versions and more actual 
+ * mCtrl is @c C open source library for MS Windows, providing a set of user
+ * interface controls, that complement the standard set as offered by @c
+ * USER32.DLL and @c COMCTL32.DLL libraries.
+ *
+ * Please check project homepage http://mctrl.sourceforge.net and
+ * https://sourceforge.net/projects/mctrl for newer versions and more actual
  * information.
  *
- * 
+ *
  * @section sec_license License
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful, but 
+ *
+ * This library is distributed in the hope that it will be useful, but
  * <b>without any warranty</b>; without even the implied warranty of
  * <b>merchantability</b> or <b>fitness for a particular purpose</b>.  See the
  * <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">
  * GNU Lesser General Public License</a> for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor,
@@ -30,7 +30,7 @@
  *
  *
  * @section sec_toc Table of Contents
- * 
+ *
  * @subsection toc_general General Design
  * - @ref page_intro
  * - @ref page_design
@@ -43,7 +43,6 @@
  * - @ref mCtrl/menubar.h - Menu bar control
  * - @ref mCtrl/mditab.h - MDI tab control
  * - @ref mCtrl/propview.h - Property list view control
- * - @ref mCtrl/valedit.h - Value edit control
  *
  * @subsection toc_data Control Data Models
  * - @ref mCtrl/propset.h - Property set (data model for the property view control)
