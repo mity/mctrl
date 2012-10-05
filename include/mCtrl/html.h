@@ -380,7 +380,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * buttons.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMHTMLBACK*) Pointer to a structure specifying
+ * @param[in] lParam (@ref MC_NMHTMLURL*) Pointer to a structure specifying
  * the text.
  * @return Application should return zero if it processes the notification.
  *
