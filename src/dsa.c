@@ -60,7 +60,7 @@ dsa_reserve(dsa_t* dsa, WORD size)
 
     DSA_TRACE("dsa_reserve(%p, %d)", dsa, (int)size);
 
-    if(dsa->size + size <= dsa->capacity)
+    if((WORD)(dsa->size + size) <= dsa->capacity)
         return 0;
 
     buffer = (BYTE*) malloc((dsa->size + size) * dsa->item_size);
