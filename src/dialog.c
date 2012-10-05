@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -52,7 +52,7 @@ dlg_default_font(void)
     static const dlg_font_t font_shell_dlg =   { L"MS Shell Dlg", 8 };
     static const dlg_font_t font_shell_dlg_2 = { L"MS Shell Dlg 2", 8 };
     static const dlg_font_t font_segoe_ui =    { L"Segoe UI", 9 };
-    
+
     if(mc_win_version >= MC_WIN_VISTA)
         return &font_segoe_ui;
     else if(mc_win_version >= MC_WIN_2000)
@@ -94,7 +94,7 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
 {
     DLGTEMPLATE* templ_tmp = (DLGTEMPLATE*) templ;
     INT_PTR res;
-    
+
     if(flags & MC_DF_DEFAULTFONT) {
         const dlg_font_t* default_font;
         BYTE* data = (BYTE*) templ;
@@ -108,23 +108,23 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
         DWORD tail_size;
         DWORD tail_offset;
         int i;
-        
+
         default_font = dlg_default_font();
-        
+
         DLG_TRACE("dlg_indirect: Using font %S, %dpt",
                   default_font->face_name, default_font->point_size);
-        
+
         /* Check DLGTEMPLATE version */
         if(GET_WORD(data + DLGTEMPLATEEX_OFFSET_SIGNATURE) == 0xffff) {
             templ_extended = TRUE;
             if(GET_WORD(data + DLGTEMPLATEEX_OFFSET_VERSION) != 1) {
                 MC_TRACE("dlg_indirect: Unknown DIALOGEX version.");
                 goto fallback;
-            }            
+            }
         } else {
             templ_extended = FALSE;
         }
-        
+
         /* Retrieve some info from the template header */
         style = GET_DWORD(data + (templ_extended ? DLGTEMPLATEEX_OFFSET_STYLE : DLGTEMPLATE_OFFSET_STYLE));
 
@@ -133,13 +133,13 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
             header_size += sizeof(DWORD); /* menu (by ordinal) */
         else
             header_size += sizeof(WCHAR) * (wcslen((WCHAR*)(data + header_size)) + 1);  /* menu name */
-            
+
         DLG_TRACE("dlg_indirect: Dlg class '%S'", (WCHAR*)(data + header_size));
         header_size += sizeof(WCHAR) * (wcslen((WCHAR*)(data + header_size)) + 1);  /* class name */
-        
+
         DLG_TRACE("dlg_indirect: Caption '%S'", (WCHAR*)(data + header_size));
         header_size += sizeof(WCHAR) * (wcslen((WCHAR*)(data + header_size)) + 1);  /* caption text */
-        
+
         item_count = GET_WORD(data + (templ_extended ? DLGTEMPLATEEX_OFFSET_ITEMCOUNT
                                                      : DLGTEMPLATE_OFFSET_ITEMCOUNT));
         DLG_TRACE("dlg_indirect: Dlg has %d items", item_count);
@@ -166,7 +166,7 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
         }
         tail = TO_DWORD_BOUNDARY(tail);
         tail_size = 0;
-        
+
         /* Calculate size of the rest of the data (i.e. for controls) */
         for(i = 0; i < item_count; i++) {
             tail_size = (UINT_PTR) TO_DWORD_BOUNDARY(tail_size);
@@ -178,7 +178,7 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
                 case 0x00ff:   /* control class atom */
                     tail_size += 2 * sizeof(WORD);
                     break;
-                    
+
                 default:       /* control class name */
                     tail_size += sizeof(WCHAR) * (wcslen((WCHAR*)(tail + tail_size)) + 1);
                     break;
@@ -193,14 +193,14 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
                     tail_size += sizeof(WCHAR) * (wcslen((WCHAR*)(tail + tail_size)) + 1);
                     break;
             }
-            
+
             tail_size += sizeof(WORD) + GET_WORD(tail + tail_size);  /* extra data */
         }
-        
+
         /* Determine space for the new font */
         font_size = (templ_extended ? 2 : 6);
         font_size += sizeof(WCHAR) * (wcslen(default_font->face_name) + 1);
-        
+
         /* Allocate a temporary buffer for the modified template
          * (plus few bytes for alignement) */
         templ_tmp = (DLGTEMPLATE*) _malloca(header_size + font_size + tail_size + 4);
@@ -210,15 +210,15 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
             goto fallback;
         }
         data_tmp = (BYTE*) templ_tmp;
-        
+
         /* Copy template header */
         memcpy(data_tmp, data, header_size);
-        
+
         /* Ensure the DS_SHELLFONT style is set */
         style |= DS_SHELLFONT;
         PUT_DWORD(data_tmp + (templ_extended ? DLGTEMPLATEEX_OFFSET_STYLE
                                              : DLGTEMPLATE_OFFSET_STYLE), style);
-        
+
         /* Set template font */
         tail_offset = header_size;
         if(templ_extended) {
@@ -240,11 +240,11 @@ dlg_indirect(HINSTANCE instance, const DLGTEMPLATE* templ, HWND parent,
 
         /* Copy template tail */
         memcpy(data_tmp + tail_offset, tail, tail_size);
-        
+
         DLG_DUMP("dlg_indirect: Dialog resource dump:",
                  templ_tmp, tail_offset + tail_size);
     }
-    
+
 fallback:
     switch(kind) {
         case (DLG_KIND_MODAL | DLG_KIND_UNICODE):
@@ -262,8 +262,11 @@ fallback:
         case 0:
             res = (INT_PTR) CreateDialogIndirectParamA(instance, templ_tmp, parent, proc, lp);
             break;
+
+        default:
+            MC_UNREACHABLE;
     }
-    
+
     if(templ_tmp != templ)
         _freea(templ_tmp);
 
@@ -292,13 +295,13 @@ dlg_direct(HINSTANCE instance, const void* templ_name, HWND parent,
         MC_TRACE("dlg_load: LoadResource() failed [%lu]", GetLastError());
         goto err;
     }
-    
+
     templ = (DLGTEMPLATE*) LockResource(glob);
     if(MC_ERR(templ == NULL)) {
         MC_TRACE("dlg_load: LockResource() failed [%lu]", GetLastError());
         goto err;
     }
-    
+
     DLG_DUMP("dlg_direct: Dialog resource dump:",
              templ, SizeofResource(instance, rsrc));
 

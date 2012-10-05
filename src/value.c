@@ -930,12 +930,14 @@ hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
         case VALUE_PF_ALIGNDEFAULT:
         case VALUE_PF_ALIGNCENTER:  x = (rect->left + rect->right - icon_size.cx) / 2; break;
         case VALUE_PF_ALIGNRIGHT:   x = rect->right - icon_size.cx; break;
+        default:                    MC_UNREACHABLE;
     }
     switch(flags & VALUE_PF_ALIGNMASKVERT) {
         case VALUE_PF_ALIGNTOP:      y = rect->top; break;
         case VALUE_PF_ALIGNVDEFAULT:
         case VALUE_PF_ALIGNVCENTER:  y = (rect->top + rect->bottom - icon_size.cy) / 2; break;
         case VALUE_PF_ALIGNBOTTOM:   y = rect->bottom - icon_size.cy; break;
+        default:                     MC_UNREACHABLE;
     }
 
     DrawIconEx(dc, x, y, icon, 0, 0, 0, NULL, DI_NORMAL);
