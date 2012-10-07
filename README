@@ -17,21 +17,6 @@ widnow class of particular control is registered with some initialization
 function, the control can be normally created with the Win32API's
 CreateWindow() or CreateWindowEx() functions and controlled with SendMessage().
 
-At the moment these controls are available:
-
- * BUTTON provides some emulation for older Windows version (e.g. split
-   buttons).
-
- * GRID allows you to easily present large quantity of data in tabular and
-   well-arranged way.
-
- * HTML embeds power of web browser into your application.
-
- * MDI TAB is modern replacement for MDI (multiple document interface). These
-   days, almost all users are familiar with using tabs when they have multiple
-   documents opened in a single application window, as almost all web browsers
-   provide this feature.
-
 
 License
 =======
@@ -63,10 +48,8 @@ webpages:
     * http://sourceforge.net/projects/mctrl
 
 There are usually four packages for each release version available:
-    * mCtrl-x.y.z-doc.zip    ... documentation (HTML)
+    * mCtrl-x.y.z-bin.zip    ... binaries and documentation
     * mCtrl-x.y.z-src.zip    ... sources
-    * mCtrl-x.y.z-x86.zip    ... prebuilt 32-bit binaries
-    * mCtrl-x.y.z-x86_64.zip ... prebuilt 64-bit binaries
 
 
 Using mCtrl
