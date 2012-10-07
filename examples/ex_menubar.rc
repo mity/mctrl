@@ -11,6 +11,7 @@
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
+
 /* Menu */
 ID_MENU MENU
 BEGIN
@@ -74,3 +75,24 @@ BEGIN
        MENUITEM "&About...",                124
     END
 END
+
+
+/* Smaller menu */
+ID_MENU_SM MENU
+BEGIN
+    POPUP "F&oo"
+    BEGIN
+        MENUITEM "Foo &1",                  200
+        MENUITEM "Foo &2",                  201
+    END
+    POPUP "&Bar"
+    BEGIN
+        MENUITEM "Bar &1",                  202
+        MENUITEM "Bar &2",                  203
+        MENUITEM "Bar &3",                  204
+    END
+END
+
+
+/* Image list */
+ID_IMGLIST BITMAP res/img_list.bmp

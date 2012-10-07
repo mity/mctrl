@@ -13,7 +13,9 @@
 
 /* IDs of resources and controls  */
 
-#define ID_MENU              1000
+#define ID_MENU               1000
+#define ID_MENU_SM            1001
+#define ID_IMGLIST            1002
 
 
 #endif  /* EXAMPLE_MDITAB_H */

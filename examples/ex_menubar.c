@@ -17,9 +17,13 @@
 
 
 static HINSTANCE hInst;
+
 static HMENU hMenu;
 static HWND hwndRebar;
 static HWND hwndMenubar;
+
+static HMENU hMenuSm;
+static HWND hwndMenubarSmall;
 
 
 /* Create the menubar control */
@@ -28,6 +32,9 @@ CreateMenuBar(HWND hWnd)
 {
     REBARBANDINFO band = {0};
     DWORD dwBtnSize;
+    HWND hwndToolbar;
+    HIMAGELIST hImgList;
+    int i;
 
     /* Create ReBar window */
     hwndRebar = CreateWindowEx(WS_EX_TOOLWINDOW, _T("ReBarWindow32"), _T(""),
@@ -43,25 +50,50 @@ CreateMenuBar(HWND hWnd)
     /* Embed the menubar in the ReBar */
     band.cbSize = sizeof(REBARBANDINFO);
     band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-    band.fStyle = RBBS_GRIPPERALWAYS | RBBS_TOPALIGN | RBBS_USECHEVRON;
+    band.fStyle = RBBS_GRIPPERALWAYS | RBBS_TOPALIGN | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
     band.hwndChild = hwndMenubar;
     dwBtnSize = (DWORD)SendMessage(band.hwndChild, TB_GETBUTTONSIZE, 0,0);
     band.cyChild = HIWORD(dwBtnSize);
     band.cxMinChild = LOWORD(dwBtnSize);
     band.cyMinChild = HIWORD(dwBtnSize);
-    band.cx = 0;
+    band.cx = 200;
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
 
-    /* Create yet another (empty) ReBar band */
-    band.hwndChild = NULL;
-    SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
+    /* Create yet another ReBar band with a dummy toolbar, so user can play by
+     * positioning the two bands. */
+    hwndToolbar = CreateWindow(TOOLBARCLASSNAME, _T(""), WS_CHILD | WS_VISIBLE |
+            WS_CLIPCHILDREN | WS_CLIPSIBLINGS | CCS_NORESIZE | CCS_NOPARENTALIGN |
+            CCS_NODIVIDER | TBSTYLE_TRANSPARENT,
+            0, 0, 0, 0, hwndRebar, (HMENU) 1002, hInst, 0);
+    hImgList = ImageList_LoadImage(hInst, MAKEINTRESOURCE(ID_IMGLIST),
+                    16, 1, RGB(255,0,255), IMAGE_BITMAP, LR_CREATEDIBSECTION);
+    SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) hImgList);
+    for(i = 0; i < 6; i++) {
+        TBBUTTON button = { 0 };
+        button.iBitmap = i;
+        button.idCommand = 300 + i;
+        button.fsState = TBSTATE_ENABLED;
+        SendMessage(hwndToolbar, TB_ADDBUTTONS, 1, (LPARAM) &button);
+    }
 
-    /* Create some dummy child windows, so it can just be seen how focus
-     * is handled with the respect to the menubar. */
-    CreateWindow(_T("BUTTON"), _T("f&oo"), WS_CHILD | WS_TABSTOP | WS_VISIBLE | BS_DEFPUSHBUTTON,
-                 10, 60, 100, 25, hWnd, (HMENU) 1002, hInst, NULL);
-    CreateWindow(_T("BUTTON"), _T("&bar"), WS_CHILD | WS_TABSTOP | WS_VISIBLE | BS_PUSHBUTTON,
-                 10, 90, 100, 25, hWnd, (HMENU) 1003, hInst, NULL);
+    /* Embed the toolbar in the ReBar */
+    band.hwndChild = hwndToolbar;
+    dwBtnSize = (DWORD)SendMessage(band.hwndChild, TB_GETBUTTONSIZE, 0,0);
+    band.cyChild = HIWORD(dwBtnSize);
+    band.cxMinChild = 6 * LOWORD(dwBtnSize);
+    band.cyMinChild = HIWORD(dwBtnSize);
+    band.cx = 16 * LOWORD(dwBtnSize);
+    SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
+}
+
+/* Create smaller menu bar as a child of the main window, demonstrating we
+ * can place a menu anywhere. */
+static void
+CreateMenuBarSm(HWND hWnd)
+{
+    hwndMenubarSmall = CreateWindow(MC_WC_MENUBAR, _T(""), WS_CHILD | WS_VISIBLE |
+            WS_CLIPCHILDREN | WS_CLIPSIBLINGS | CCS_NORESIZE | CCS_NOPARENTALIGN,
+            100, 100, 100, 23, hWnd, (HMENU) 1003, hInst, (LPVOID) hMenuSm);
 }
 
 /* Main window procedure */
@@ -78,12 +110,6 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     return 0;
                 }
             }
-
-            if(LOWORD(wParam) == 1002 || LOWORD(wParam) == 1003) {
-                TCHAR buffer[64];
-                _sntprintf(buffer, 64, _T("Clicked on a button ID %d."), LOWORD(wParam));
-                MessageBox(hWnd, buffer, _T("Button!"), MB_ICONINFORMATION | MB_OK);
-            }
             break;
 
         case WM_SIZE:
@@ -93,6 +119,7 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         case WM_CREATE:
             CreateMenuBar(hWnd);
+            CreateMenuBarSm(hWnd);
             return 0;
 
         case WM_DESTROY:
@@ -112,6 +139,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
 
     hInst = hInstance;
     hMenu = LoadMenu(hInst, MAKEINTRESOURCE(ID_MENU));
+    hMenuSm = LoadMenu(hInst, MAKEINTRESOURCE(ID_MENU_SM));
 
     /* Initialize mCtrl control */
     mcMenubar_Initialize();
@@ -137,6 +165,8 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     /* Message loop */
     while(GetMessage(&msg, NULL, 0, 0)) {
         if(mcIsMenubarMessage(hwndMenubar, &msg))
+            continue;
+        if(mcIsMenubarMessage(hwndMenubarSmall, &msg))
             continue;
         if(IsDialogMessage(hWnd, &msg))
             continue;
