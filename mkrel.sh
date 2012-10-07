@@ -2,9 +2,7 @@
 #
 # Helper script to make release packages:
 #  - mCtrl-$VERSION-src.zip
-#  - mCtrl-$VERSION-doc.zip
-#  - mCtrl-$VERSION-x86.zip (if i686-w64-mingw32-gcc or gcc is found in $PATH)
-#  - mCtrl-$VERSION-x86_64.zip (if x86_64-w64-mingw32-gcc is found in $PATH)
+#  - mCtrl-$VERSION-bin.zip
 #
 # All packages are put in current directory (and overwritten if exist already).
 
@@ -77,7 +75,7 @@ echo "$MKZIP" >&3
 echo -n "Detecting lib.exe... " >&3
 if which lib.exe ; then
     LIBEXE="lib.exe"
-elif [ -x "/c/Program Files/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe" ]; then 
+elif [ -x "/c/Program Files/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe" ]; then
     LIBEXE="/c/Program Files/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe"
 elif [ -x "/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe" ]; then
     LIBEXE="/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe"
@@ -121,7 +119,7 @@ if [ x$HAVE_X86_64 != x ]; then
     else
         echo "Skipped: lib.exe not found." >&3
     fi
-    
+
     mv $TMP/mCtrl-$VERSION/bin $TMP/mCtrl-$VERSION/bin64
     mv $TMP/mCtrl-$VERSION/lib $TMP/mCtrl-$VERSION/lib64
     (cd $TMP/mCtrl-$VERSION && make distclean)
