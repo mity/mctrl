@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This file contains example code for mCtrl library. Code of this example
  * (but not the library itself) has been placed in the public domain.
@@ -15,15 +15,23 @@
 #include <mCtrl/html.h>
 
 
-/* Control ID of the HTML control */
-#define IDC_HTML      100
+/* Control ID of controls */
+#define IDC_HTML         100
+#define IDC_REBAR        101
+#define IDC_HISTORY      102
+#define IDC_ADDRESS      103
+#define IDC_STATUS       104
+
+#define CAPTION       _T("mCtrl Example: HTML Control")
 
 /* The initial URL. Note that 1000 is ID of the HTML resource in html.rc. */
 #define INITIAL_URL   _T("res://ex_html.exe/1000")
 
 
 static HINSTANCE hInst;
+
 static HWND hwndHtml;
+static HWND hwndStatus;
 
 
 /* Set the dynamically generated contents in the HTML page with resource
@@ -50,46 +58,83 @@ GenerateDynamicContents(void)
 }
 
 
+static void
+HandleNotify(HWND hwnd, NMHDR* hdr)
+{
+    if(hdr->idFrom == IDC_HTML) {
+        if(hdr->code == MC_HN_APPLINK) {
+            /* User has activated the application link (app: protocol).
+             * If it is the "Say Hello" link in our resource page, we greet
+             * the user as an URL of the link suggests.
+             * If it is the link to change the dynamic contents, we do so.
+             * Otherwise as a fallback we just show an URL of the link.
+             */
+            MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) hdr;
+            if(_tcscmp(nmhtmlurl->pszUrl, _T("app:SayHello")) == 0)
+                MessageBox(hwnd, _T("Hello World!"), _T("Hello World!"), MB_OK);
+            else if(_tcscmp(nmhtmlurl->pszUrl, _T("app:set_dynamic")) == 0)
+                GenerateDynamicContents();
+            else
+                MessageBox(hwnd, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
+        }
+
+        if(hdr->code == MC_HN_DOCUMENTCOMPLETE) {
+            /* The document is completely loaded. If it is the initial URL,
+             * we use this as a chance to generate the dynamic contents for
+             * the first time.
+             */
+            MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) hdr;
+            if(_tcscmp(nmhtmlurl->pszUrl, INITIAL_URL) == 0)
+                GenerateDynamicContents();
+        }
+
+        if(hdr->code == MC_HN_STATUSTEXT) {
+            /* Update status bar */
+            MC_NMHTMLTEXT* nmhtmltext = (MC_NMHTMLTEXT*) hdr;
+            SetWindowText(hwndStatus, nmhtmltext->pszText);
+        }
+
+        if(hdr->code == MC_HN_TITLETEXT) {
+            /* Update title */
+            MC_NMHTMLTEXT* nmhtmltext = (MC_NMHTMLTEXT*) hdr;
+            if(nmhtmltext->pszText[0] != _T('\0')) {
+                TCHAR buffer[512];
+                _sntprintf(buffer, 512, _T("%s - %s"), nmhtmltext->pszText, CAPTION);
+                SetWindowText(hwnd, buffer);
+            } else {
+                SetWindowText(hwnd, CAPTION);
+            }
+        }
+    }
+}
+
+
+static void
+HandleResize(HWND hwnd, UINT uWidth, UINT uHeight)
+{
+    RECT rect;
+    UINT statusHeight;
+
+    SendMessage(hwndStatus, WM_SIZE, 0, 0);
+    GetWindowRect(hwndStatus, &rect);
+    statusHeight = rect.bottom - rect.top;
+
+    SetWindowPos(hwndHtml, NULL, 0, 0, uWidth, uHeight - statusHeight, SWP_NOZORDER);
+}
+
+
 /* Main window procedure */
 static LRESULT CALLBACK
 WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {
         case WM_NOTIFY:
-            if(((NMHDR*)lParam)->idFrom == IDC_HTML && ((NMHDR*)lParam)->code == MC_HN_APPLINK) {
-                /* We recieved notification from the HTML control: user has
-                 * activated the application link (app: protocol).
-                 *
-                 * If it is the "Say Hello" link in our resource page, we greet
-                 * the user as the link as the URL suggested.
-                 *
-                 * If it is the link to change the dynamic contents, we do so.
-                 *
-                 * Otherwise as a fallback we just show a URL of the link.
-                 */
-                MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) lParam;
-                if(_tcscmp(nmhtmlurl->pszUrl, _T("app:SayHello")) == 0)
-                    MessageBox(hwnd, _T("Hello World!"), _T("Hello World!"), MB_OK);
-                else if(_tcscmp(nmhtmlurl->pszUrl, _T("app:set_dynamic")) == 0)
-                    GenerateDynamicContents();
-                else
-                    MessageBox(hwnd, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
-            }
-            if(((NMHDR*)lParam)->idFrom == IDC_HTML && ((NMHDR*)lParam)->code == MC_HN_DOCUMENTCOMPLETE) {
-                /* We received notification from the HTML control that the
-                 * document is completely loaded. If it is the initial URL,
-                 * we use this chance to generate the dynamiccontents for
-                 * the first time. */
-                MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*) lParam;
-
-                if(_tcscmp(nmhtmlurl->pszUrl, INITIAL_URL) == 0)
-                    GenerateDynamicContents();
-            }
+            HandleNotify(hwnd, (NMHDR*) lParam);
             return 0;
 
         case WM_SIZE:
             if(wParam == SIZE_RESTORED  ||  wParam == SIZE_MAXIMIZED)
-                SetWindowPos(hwndHtml, NULL, 0, 0, LOWORD(lParam), HIWORD(lParam), SWP_NOZORDER);
+                HandleResize(hwnd, LOWORD(lParam), HIWORD(lParam));
             return 0;
 
         case WM_SETFOCUS:
@@ -100,6 +145,8 @@ WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             /* Create the html control */
             hwndHtml = CreateWindow(MC_WC_HTML, INITIAL_URL, WS_CHILD | WS_VISIBLE | WS_TABSTOP,
                                     0, 0, 0, 0, hwnd, (HMENU) IDC_HTML, hInst, NULL);
+            hwndStatus = CreateWindow(STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
+                                    0, 0, 0, 0, hwnd, (HMENU) IDC_STATUS, hInst, NULL);
             return 0;
 
         case WM_DESTROY:
@@ -123,11 +170,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     /* Register class of HTML control. */
     mcHtml_Initialize();
 
-    /* Prevent linker from ignoring COMCTL32.DLL. We do not use common
-     * controls at all in this sample, however MCTRL.DLL enables XP styles
-     * in forms for the HTML control only oif the application uses them,
-     * i.e. if the application links against COMCTL32.DLL 6 (or newer) and
-     * has the manifest in resources. */
+    /* Init common controls. */
     InitCommonControls();
 
     /* Register main window class */
@@ -140,8 +183,8 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
 
     /* Create main window */
     hwndMain = CreateWindow(
-        _T("main_window"), _T("mCtrl Example: HTML Control"),
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        _T("main_window"), CAPTION, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         NULL, NULL, hInst, NULL
     );
     ShowWindow(hwndMain, nCmdShow);
