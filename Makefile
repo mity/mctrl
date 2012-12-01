@@ -23,45 +23,46 @@
 
 BASENAME = mCtrl.dll
 
-INCDIR = include
-SRCDIR = src
-BINDIR = bin
-OBJDIR = obj
-LIBDIR = lib
 
-CC = $(PREFIX)gcc -c
-LD = $(PREFIX)gcc
-WINDRES = $(PREFIX)windres
-DLLTOOL = $(PREFIX)dlltool
-DEP = $(PREFIX)gcc -x c -MM -MG
-RM = rm -rf
+DEBUG ?= 0
+
+INCDIR ?= include
+SRCDIR ?= src
+BINDIR ?= bin
+OBJDIR ?= obj
+LIBDIR ?= lib
+
+export GCC ?= gcc
+
+export CC = $(GCC) -c
+export LD = $(GCC)
+export WINDRES ?= windres
+export DLLTOOL ?= dlltool
+export DEP = $(GCC) -x c -MM -MG
+export RM = rm -rf
+
 
 INCLUDES = -I$(INCDIR) -I$(SRCDIR)
-
-
 WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT
 
-CPPFLAGS += -DMCTRL_BUILD $(WINVER) $(INCLUDES)
-CFLAGS += -Wall
-LDFLAGS += -mwindows
-LIBS += -lcomctl32 -lole32 -loleaut32
+override CPPFLAGS += -DMCTRL_BUILD $(WINVER) $(INCLUDES) -D_CRT_NON_CONFORMING_SWPRINTFS
+override CFLAGS += -Wall
+override LDFLAGS += -mwindows
+override LIBS = -lcomctl32 -lole32 -loleaut32
 
-ifndef DEBUG
-    DEBUG = 0
-endif
 ifneq ($(DEBUG),0)
-	CPPFLAGS += -DDEBUG=$(DEBUG)
-	CFLAGS += -g -O0
+	override CPPFLAGS += -DDEBUG=$(DEBUG)
+	override CFLAGS += -g -O0
 else
-	CFLAGS += -O3
-	LDFLAGS += -s
+	override CFLAGS += -O3
+	override LDFLAGS += -s
 endif
 
 ifndef DISABLE_UNICODE
-    CPPFLAGS_UNICODE = -DUNICODE=1 -D_UNICODE=1
-    CPPFLAGS += $(CPPFLAGS_UNICODE)
-    CFLAGS += -municode
-    LDFLAGS += -municode
+    override CPPFLAGS_UNICODE = -DUNICODE=1 -D_UNICODE=1
+    override CPPFLAGS += $(CPPFLAGS_UNICODE)
+    override CFLAGS += -municode
+    override LDFLAGS += -municode
 endif
 
 PUBLIC_HEADERS = $(wildcard $(INCDIR)/*.h $(INCDIR)/mCtrl/*.h)
@@ -80,9 +81,11 @@ TARGET_LIB = $(LIBDIR)/lib$(basename $(BASENAME)).a
 # The main targets #
 ####################
 
-.PHONY: all examples doc clean distclean
+.PHONY: all examples doc clean distclean mctrl
 
-all: $(TARGET) $(TARGET_LIB)
+all: mctrl
+
+mctrl: $(TARGET) $(TARGET_LIB)
 
 examples:
 	(cd examples && $(MAKE))
@@ -92,7 +95,7 @@ doc:
 
 clean:
 	$(RM) $(OBJECTS)
-	$(RM) $(OBJDIR/mCtrl.def)
+	$(RM) $(OBJDIR)/mCtrl.def
 	$(RM) $(TARGET_LIB)
 	$(RM) $(TARGET)
 

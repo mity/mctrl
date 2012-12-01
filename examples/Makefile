@@ -2,20 +2,22 @@
 
 .PHONY: all clean
 
-INCDIR = . ../include
-SRCDIR = .
-BINDIR = ../bin
-OBJDIR = ../obj/examples
+INCDIR ?= . ../include
+SRCDIR ?= .
+BINDIR ?= ../bin
+OBJDIR ?= ../obj/examples
 
-CC = $(PREFIX)gcc -c
-LD = $(PREFIX)gcc
-WINDRES = $(PREFIX)windres
+GCC ?= gcc
+
+CC = $(GCC) -c
+LD = $(GCC)
+WINDRES ?= windres
 RM = rm -rf
 
-CPPFLAGS = -I../include
-CFLAGS = -Wall
-LDFLAGS = -mwindows -L../lib
-LIBS = -lmCtrl -lcomctl32
+override CPPFLAGS += -I../include
+override CFLAGS += -Wall
+override LDFLAGS += -mwindows -L../lib
+override LIBS = -lmCtrl -lcomctl32
 
 EXAMPLES = $(BINDIR)/ex_button.exe          \
            $(BINDIR)/ex_dllgetversion.exe   \
@@ -35,7 +37,7 @@ OBJECTS = $(C_OBJECTS) $(RC_OBJECTS)
 
 all: $(EXAMPLES)
 
-clean: 
+clean:
 	$(RM) $(OBJECTS)
 	$(RM) $(EXAMPLES)
 
@@ -57,7 +59,7 @@ $(BINDIR)/ex_propview.exe: $(OBJDIR)/ex_propview.o $(OBJDIR)/ex_manifest_rc.o
 # Generic rules #
 #################
 
-$(BINDIR)/%.exe: 
+$(BINDIR)/%.exe:
 	$(LD) $(LDFLAGS) $^ -o $@ $(LIBS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(wildcard $(SRCDIR)/%.h)

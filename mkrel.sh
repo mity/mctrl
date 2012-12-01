@@ -97,18 +97,12 @@ rm -rf $TMP/mCtrl-$VERSION
 git clone . $TMP/mCtrl-$VERSION
 
 echo -n "Building 64-bit binaries... " >&3
-if which x86_64-w64-mingw32-gcc; then
-    x86_64-w64-mingw32-gcc -v > $CWD/build-x86_64.log 2>&1
-    echo >> $CWD/build-x86_64.log
-    (cd $TMP/mCtrl-$VERSION && make DEBUG=0 PREFIX=x86_64-w64-mingw32- all examples >> $CWD/build-x86_64.log 2>&1)
-    if [ $? -ne 0 ]; then
-        echo "Failed: see build-x86_64.log."
-        exit 1
-    fi
-    echo "Done." >&3
+(cd $TMP/mCtrl-$VERSION && ./build.sh --release --64 all examples > $CWD/build-x86_64.log 2>&1)
+if [ $? -eq 0 ]; then
     HAVE_X86_64=yes
+    echo "Done." >&3
 else
-    echo "Skipped: x86_64-w64-mingw32-gcc not found in PATH." >&3
+    echo "Failed. See build-x86_64.log." >&3
 fi
 
 if [ x$HAVE_X86_64 != x ]; then
@@ -122,10 +116,11 @@ if [ x$HAVE_X86_64 != x ]; then
 
     mv $TMP/mCtrl-$VERSION/bin $TMP/mCtrl-$VERSION/bin64
     mv $TMP/mCtrl-$VERSION/lib $TMP/mCtrl-$VERSION/lib64
-    (cd $TMP/mCtrl-$VERSION && make distclean)
     mkdir $TMP/mCtrl-$VERSION/bin
     mkdir $TMP/mCtrl-$VERSION/lib
 fi
+
+(cd $TMP/mCtrl-$VERSION && make distclean)
 
 
 #########################
@@ -133,18 +128,12 @@ fi
 #########################
 
 echo -n "Building 32-bit binaries... " >&3
-if which i686-w64-mingw32-gcc; then
-    i686-w64-mingw32-gcc -v > $CWD/build-x86.log 2>&1
-    echo >> $CWD/build-x86.log
-    (cd $TMP/mCtrl-$VERSION && make DEBUG=0 PREFIX=i686-w64-mingw32- all examples >> $CWD/build-x86.log 2>&1)
-    if [ $? -ne 0 ]; then
-        echo "Failed: see build-x86.log."
-        exit 1
-    fi
-    echo "Done." >&3
+(cd $TMP/mCtrl-$VERSION && ./build.sh --release --32 all examples > $CWD/build-x86.log 2>&1)
+if [ $? -eq 0 ]; then
     HAVE_X86=yes
+    echo "Done." >&3
 else
-    echo "Skipped: i686-w64-mingw32-gcc not found in PATH." >&3
+    echo "Failed. See build-x86.log." >&3
 fi
 
 if [ x$HAVE_X86 != x ]; then
