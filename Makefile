@@ -48,7 +48,7 @@ WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT
 override CPPFLAGS += -DMCTRL_BUILD $(WINVER) $(INCLUDES) -D_CRT_NON_CONFORMING_SWPRINTFS
 override CFLAGS += -Wall
 override LDFLAGS += -mwindows
-override LIBS = -lcomctl32 -lole32 -loleaut32
+override LIBS = -lgdi32 -lcomctl32 -lole32 -loleaut32
 
 ifneq ($(DEBUG),0)
 	override CPPFLAGS += -DDEBUG=$(DEBUG)
@@ -140,4 +140,5 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 $(OBJDIR)/%.o: $(SRCDIR)/%.rc
 	$(WINDRES) $(filter-out $(CPPFLAGS_UNICODE), $(subst -isystem,-I,$(CPPFLAGS))) -I$(SRCDIR) $< $@
 
-
+$(SRCDIR)/resource.h: $(SRCDIR)/resource.h.in
+	./scripts/mkres.sh -f $< -o $@
