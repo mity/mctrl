@@ -320,7 +320,7 @@ mc_font_size(HFONT font, SIZE* size)
 
     dc = GetDCEx(NULL, NULL, DCX_CACHE);
     old_font = SelectObject(dc, font);
-    GetTextExtentPoint(dc, canary_str, canary_len, &s);
+    GetTextExtentPoint32(dc, canary_str, canary_len, &s);
     SelectObject(dc, old_font);
     ReleaseDC(NULL, dc);
 
