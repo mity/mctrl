@@ -237,7 +237,7 @@ mc_init(void)
     /* Load set of helper symbols used for helper buttons of more complex
      * controls */
     mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance, MAKEINTRESOURCE(
-                           MCR_BMP_GLYPHS), MC_BMP_GLYPH_W, 1, RGB(255,0,255));
+                           IDR_GLYPHS), MC_BMP_GLYPH_W, 1, RGB(255,0,255));
     if(MC_ERR(mc_bmp_glyphs == NULL)) {
         MC_TRACE("mc_init: ImageList_LoadBitmap() failed [%lu]", GetLastError());
         return -1;
