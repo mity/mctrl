@@ -11,12 +11,15 @@
 exec 3>&1
 exec 1>/dev/null 2>&1
 
+# Change dir to project root.
+cd `dirname "$0"`/..
+
 CWD=`pwd`
 PRJ="$CWD"
 
-# Check we run this script from the right diretory:
-if [ ! -x $PRJ/mkrel.sh ]; then
-    echo "You have to run mkrel.sh script from the main mCtrl directory." >&3
+# Sanity check we run this script from the right directory:
+if [ ! -x $PRJ/scripts/mkrel.sh ]; then
+    echo "There is some path mismatch." >&3
     exit 1
 fi
 
@@ -97,7 +100,7 @@ rm -rf $TMP/mCtrl-$VERSION
 git clone . $TMP/mCtrl-$VERSION
 
 echo -n "Building 64-bit binaries... " >&3
-(cd $TMP/mCtrl-$VERSION && ./build.sh --release --64 all examples > $CWD/build-x86_64.log 2>&1)
+(cd $TMP/mCtrl-$VERSION && scripts/build.sh --release --64 all examples > $CWD/build-x86_64.log 2>&1)
 if [ $? -eq 0 ]; then
     HAVE_X86_64=yes
     echo "Done." >&3
@@ -128,7 +131,7 @@ fi
 #########################
 
 echo -n "Building 32-bit binaries... " >&3
-(cd $TMP/mCtrl-$VERSION && ./build.sh --release --32 all examples > $CWD/build-x86.log 2>&1)
+(cd $TMP/mCtrl-$VERSION && scripts/build.sh --release --32 all examples > $CWD/build-x86.log 2>&1)
 if [ $? -eq 0 ]; then
     HAVE_X86=yes
     echo "Done." >&3
