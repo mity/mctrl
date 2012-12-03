@@ -331,18 +331,20 @@ mc_font_size(HFONT font, SIZE* size)
 int
 mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
 {
-    static HWND cached_win = NULL;
-    static int cached_delta_v = 0;
-    static int cached_delta_h = 0;
+    /* We accumulate the wheel_delta until there is enough to scroll for
+     * at least a single line. This improves the feel for strange values
+     * of SPI_GETWHEELSCROLLLINES and for some mouses. */
+    static HWND last_win = NULL;
+    static int wheel[2] = { 0, 0 };  /* horizontal, vertical */
 
-    int* cached_delta;
+    int dir;
     int lines_per_WHEEL_DELTA;
-    int lines_to_scroll = 0;
+    int lines_to_scroll;
 
-    if(win != cached_win) {
-        cached_win = win;
-        cached_delta_v = 0;
-        cached_delta_h = 0;
+    if(win != last_win) {
+        last_win = win;
+        wheel[0] = 0;
+        wheel[1] = 0;
 
         if(win == NULL)  /* just reset */
             return 0;
@@ -351,16 +353,15 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
     if(MC_ERR(!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines_per_WHEEL_DELTA, 0)))
         lines_per_WHEEL_DELTA = 3;
 
-    cached_delta = (is_vertical ? &cached_delta_v : &cached_delta_h);
+    dir = (is_vertical ? 1 : 0);
 
-    /* On wheel direction change, reset the accumulated delta */
-    if(MC_SIGN(wheel_delta) != MC_SIGN(*cached_delta))
-        *cached_delta = 0;
+    if((wheel_delta > 0 && wheel[dir] < 0) || (wheel_delta < 0 && wheel[dir] > 0))
+        wheel[dir] = 0;
 
-    *cached_delta += wheel_delta;
-
-    lines_to_scroll = *cached_delta / (WHEEL_DELTA / lines_per_WHEEL_DELTA);
-    *cached_delta = *cached_delta % (WHEEL_DELTA / lines_per_WHEEL_DELTA);
+    wheel[dir] += wheel_delta;
+    lines_to_scroll = (wheel[dir] * lines_per_WHEEL_DELTA) / WHEEL_DELTA;
+    if(lines_to_scroll != 0)
+        wheel[dir] = 0;
 
     return (is_vertical ? -lines_to_scroll : lines_to_scroll);
 }
