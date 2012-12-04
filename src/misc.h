@@ -24,6 +24,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <commctrl.h>
+#include <wingdi.h>
 #include <shlwapi.h>
 
 #include "compat.h"
@@ -142,9 +143,27 @@ extern HIMAGELIST mc_bmp_glyphs;
 
 
 
-/**************************
- *** String conversions ***
- **************************/
+/**********************
+ *** String helpers ***
+ **********************/
+
+/* Loads string from stringtable resource. */
+static inline TCHAR*
+mc_str_load(UINT id)
+{
+#ifdef UNICODE
+    WCHAR* str;
+    LoadStringW(mc_instance, id, (WCHAR*) &str, 0);
+    return str;
+#else
+    /* Well, this is probably the end of non-unicode MCTRL.DLL builds.
+     * Because I am reluctant to implement any dynamic management of buffers
+     * for the strings just because of the ANSI compatibility.
+     */
+    #error Not implemented.
+#endif
+}
+
 
 /* String type identifier. */
 typedef enum mc_str_type_tag mc_str_type_t;
@@ -161,7 +180,7 @@ enum mc_str_type_tag {
 
 /* Copies zero-terminated sring from_str to the buffer to_str. A conversion
  * can be applied during the copying depending on teh type of the from_str
- * and the requested new string. Only up to max_len-1 characters is copied.
+ * and the requested new string. Only up to max_len-1 characters are copied.
  * The resulted string is always zero-terminated.
  */
 void mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
