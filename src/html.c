@@ -1101,10 +1101,13 @@ err_id:
 static void
 html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
 {
+    DWORD pos;
     MSG message;
     IWebBrowser2* browser_iface;
     IOleInPlaceActiveObject* active_iface;
     HRESULT hr;
+
+    pos = GetMessagePos();
 
     /* Setup the message structure */
     message.hwnd = html->ie_win;
@@ -1112,8 +1115,8 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
     message.wParam = wp;
     message.lParam = lp;
     message.time = GetMessageTime();
-    message.pt.x = LOWORD(GetMessagePos());
-    message.pt.y = HIWORD(GetMessagePos());
+    message.pt.x = LOWORD(pos);
+    message.pt.y = HIWORD(pos);
 
     /* ->TranslateAccelerator() */
     browser_iface = html_browser_iface(html);
