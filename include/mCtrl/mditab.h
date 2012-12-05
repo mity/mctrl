@@ -317,7 +317,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @brief Sets tab in the tab control (unicode variant).
  * @param[in] wParam (@c int) Index of the item.
  * @param[in] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the tab.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_SETITEMW           (WM_USER + 107)
 
@@ -325,7 +325,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @brief Sets tab in the tab control (ANSI variant).
  * @param[in] wParam (@c int) Index of the item.
  * @param[in] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the tab.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_SETITEMA           (WM_USER + 108)
 
@@ -334,7 +334,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @param[in] wParam (@c int) Index of the item.
  * @param[in,out] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_GETITEMW           (WM_USER + 109)
 
@@ -343,7 +343,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @param[in] wParam (@c int) Index of the item.
  * @param[in,out] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_GETITEMA           (WM_USER + 110)
 
@@ -353,7 +353,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * Sends @ref MC_MTN_DELETEITEM notification to parent window.
  * @param[in] wParam (@c int) Index of tab to be deleted.
  * @param lParam Reserved, set to zero.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_DELETEITEM         (WM_USER + 111)
 
@@ -389,7 +389,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * return value it then can cause deleteing the item.
  * @param[in] wParam (@c int) Index of the item to be closed.
  * @param lParam Reserved, set to zero.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_CLOSEITEM          (WM_USER + 115)
 
@@ -403,7 +403,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @param[in] lParam (@ref MC_MTITEMWIDTH*) Pointer to a structure specifying
  * the default and minimal widths. When @c NULL is passed, the values are
  * reset to built-in defaults.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  * @sa MC_MTM_GETITEMWIDTH
  */
 #define MC_MTM_SETITEMWIDTH       (WM_USER + 116)
@@ -413,7 +413,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @param wParam Reserved, set to zero.
  * @param[out] lParam (@ref MC_MTITEMWIDTH*) Pointer to a structure where the
  * current widths will be set.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  * @sa MC_MTM_SETITEMWIDTH
  */
 #define MC_MTM_GETITEMWIDTH       (WM_USER + 117)
@@ -425,7 +425,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * into the controls to speed it up by avoiding multiple reallocations.
  * @param[in] wParam (@c UINT) The number of items to add.
  * @param lParam Reserved, set to zero.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_INITSTORAGE        (WM_USER + 118)
 /*@}*/

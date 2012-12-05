@@ -214,7 +214,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
  *
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c HMENU) The menu to install.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MBM_SETMENU            (WM_USER + 1000)
 
@@ -226,7 +226,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
  *
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
- * @return @c TRUE on success, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MBM_REFRESH            (WM_USER + 1001)
 
