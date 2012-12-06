@@ -40,6 +40,7 @@ static const TCHAR propview_wc[] = MC_WC_PROPVIEW;    /* window class name */
 typedef struct propview_tag propview_t;
 struct propview_tag {
     HWND win;
+    HWND notify_win;
     HFONT font;
     propset_t* propset;
     UINT style            : 30;
@@ -235,7 +236,7 @@ propview_set_propset(propview_t* pv, propset_t* propset)
         propset = propset_create(flags);
         if(MC_ERR(propset == NULL)) {
             MC_TRACE("propview_set_propset: propset_create() failed.");
-            mc_send_notify(GetParent(pv->win), pv->win, NM_OUTOFMEMORY);
+            mc_send_notify(pv->notify_win, pv->win, NM_OUTOFMEMORY);
             return -1;
         }
     }
@@ -244,7 +245,7 @@ propview_set_propset(propview_t* pv, propset_t* propset)
         if(MC_ERR(propset_install_view(propset, pv, propview_refresh) != 0)) {
             MC_TRACE("propview_set_propset: propset_install_view() failed.");
             propset_unref(propset);
-            mc_send_notify(GetParent(pv->win), pv->win, NM_OUTOFMEMORY);
+            mc_send_notify(pv->notify_win, pv->win, NM_OUTOFMEMORY);
             return -1;
         }
     }
@@ -272,7 +273,7 @@ propview_style_changed(propview_t* pv, int style_type, STYLESTRUCT* ss)
         if(!(pv->style & MC_PVS_NOPROPSETCREATE)  &&  pv->propset == NULL) {
             if(MC_ERR(propview_set_propset(pv, NULL) != 0)) {
                 MC_TRACE("propview_style_changed: propview_set_propset() failed.");
-                mc_send_notify(GetParent(pv->win), pv->win, NM_OUTOFMEMORY);
+                mc_send_notify(pv->notify_win, pv->win, NM_OUTOFMEMORY);
             }
         }
     }
@@ -302,6 +303,7 @@ propview_nccreate(HWND win, CREATESTRUCT* cs)
 
     memset(pv, 0, sizeof(propview_t));
     pv->win = win;
+    pv->notify_win = cs->hwndParent;
     pv->style = cs->style;
     pv->no_redraw = 0;
     pv->dirty_scrollbars = 0;
@@ -449,6 +451,13 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_STYLECHANGED:
             propview_style_changed(pv, wp, (STYLESTRUCT*)lp);
             return 0;
+
+        case CCM_SETNOTIFYWINDOW:
+        {
+            HWND old = pv->notify_win;
+            pv->notify_win = (wp ? (HWND) wp : GetAncestor(win, GA_PARENT));
+            return (LPARAM) old;
+        }
 
         case WM_NCCREATE:
             pv = propview_nccreate(win, (CREATESTRUCT*)lp);

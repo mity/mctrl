@@ -717,7 +717,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
                 (unicode ? MC_STRW : MC_STRA), MC_STRT);
         if(MC_ERR(item_text == NULL)) {
             MC_TRACE("mditab_insert_item: mc_str() failed.");
-            mc_send_notify(GetParent(mditab->win), mditab->win, NM_OUTOFMEMORY);
+            mc_send_notify(GetAncestor(mditab->win, GA_PARENT), mditab->win, NM_OUTOFMEMORY);
             return -1;
         }
     } else {
@@ -730,7 +730,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         MC_TRACE("mditab_insert_item: dsa_insert_raw() failed.");
         if(item_text != NULL)
             free(item_text);
-        mc_send_notify(GetParent(mditab->win), mditab->win, NM_OUTOFMEMORY);
+        mc_send_notify(mditab->notify_win, mditab->win, NM_OUTOFMEMORY);
         return -1;
     }
 
@@ -792,7 +792,7 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         item_text = (TCHAR*) mc_str(id->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
         if(MC_ERR(item_text == NULL && id->pszText != NULL)) {
             MC_TRACE("mditab_set_item: mc_str() failed.");
-            mc_send_notify(GetParent(mditab->win), mditab->win, NM_OUTOFMEMORY);
+            mc_send_notify(mditab->notify_win, mditab->win, NM_OUTOFMEMORY);
             return FALSE;
         }
 
@@ -913,7 +913,7 @@ mditab_notify_delete_all_items(mditab_t* mditab)
 {
     UINT i;
 
-    if(mc_send_notify(GetParent(mditab->win), mditab->win, MC_MTN_DELETEALLITEMS) == FALSE) {
+    if(mc_send_notify(mditab->notify_win, mditab->win, MC_MTN_DELETEALLITEMS) == FALSE) {
         for(i = 0; i < mditab_count(mditab); i++)
             mditab_notify_delete_item(mditab, i);
     }
@@ -1544,7 +1544,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case CCM_SETNOTIFYWINDOW:
         {
             HWND old = mditab->notify_win;
-            mditab->notify_win = (HWND) wp;
+            mditab->notify_win = (wp ? (HWND) wp : GetAncestor(win, GA_PARENT));
             return (LRESULT) old;
         }
 

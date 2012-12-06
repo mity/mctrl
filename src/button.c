@@ -71,7 +71,7 @@ static HBRUSH
 button_send_ctlcolorbtn(HWND win, HDC dc)
 {
     HBRUSH brush;
-    HWND parent = GetParent(win);
+    HWND parent = GetAncestor(win, GA_PARENT);
 
     if(parent == NULL)
         parent = win;
@@ -584,7 +584,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                     notify.hdr.idFrom = GetWindowLong(win, GWL_ID);
                     notify.hdr.code = MC_BCN_DROPDOWN;
                     mc_copy_rect(&notify.rcButton, &rect);
-                    SendMessage(GetParent(win), WM_NOTIFY,
+                    SendMessage(GetAncestor(win, GA_PARENT), WM_NOTIFY,
                                 notify.hdr.idFrom, (LPARAM)&notify);
                     /* We unpush immediately after the parent handles the
                      * notification. Usually it takes some time - parent

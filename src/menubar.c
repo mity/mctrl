@@ -331,7 +331,7 @@ menubar_nccreate(HWND win, CREATESTRUCT *cs)
      * with the standard window menu. */
     GetClassName(mb->parent, parent_class, MC_ARRAY_SIZE(parent_class));
     if(_tcscmp(parent_class, _T("ReBarWindow32")) == 0)
-        mb->parent = GetParent(cs->hwndParent);
+        mb->parent = GetAncestor(cs->hwndParent, GA_PARENT);
     else
         mb->parent = cs->hwndParent;
 
@@ -399,7 +399,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case CCM_SETNOTIFYWINDOW:
         {
             HWND old_parent = mb->parent;
-            mb->parent = (HWND)wp;
+            mb->parent = (wp ? (HWND) wp : GetAncestor(win, GA_PARENT));
             return (LRESULT) old_parent;
         }
 

@@ -1036,7 +1036,7 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     bstr_id = html_bstr(id, (unicode ? MC_STRW : MC_STRA));
     if(MC_ERR(bstr_id == NULL)) {
         MC_TRACE("html_set_element_contents: html_bstr(id) failed.");
-        mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
+        mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
         goto err_id;
     }
 
@@ -1045,7 +1045,7 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     bstr_contents = html_bstr(contents, (unicode ? MC_STRW : MC_STRA));
     if(MC_ERR(bstr_contents == NULL)) {
         MC_TRACE("html_set_element_contents: html_bstr(contents) failed");
-        mc_send_notify(GetParent(html->win), html->win, NM_OUTOFMEMORY);
+        mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
         goto err_contents;
     }
 
@@ -1426,7 +1426,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case CCM_SETNOTIFYWINDOW:
         {
             HWND old = html->notify_win;
-            html->notify_win = (wp  ?  (HWND) wp  :  GetParent(win));
+            html->notify_win = (wp ? (HWND) wp : GetAncestor(win, GA_PARENT));
             return (LPARAM) old;
         }
 
