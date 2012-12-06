@@ -59,7 +59,7 @@ static WNDPROC orig_toolbar_proc = NULL;
 typedef struct menubar_tag menubar_t;
 struct menubar_tag {
     HWND win;
-    HWND parent;
+    HWND notify_win;
     HWND old_focus;  /* We return focus to it on <ESC> */
     HMENU menu;
     short hot_item;
@@ -127,7 +127,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
                               n * sizeof(TCHAR) * MENUBAR_ITEM_LABEL_MAXSIZE);
     if(MC_ERR(buffer == NULL)) {
         MC_TRACE("menubar_set_menu: _malloca() failed.");
-        mc_send_notify(mb->parent, mb->win, NM_OUTOFMEMORY);
+        mc_send_notify(mb->notify_win, mb->win, NM_OUTOFMEMORY);
         return -1;
     }
     buttons = (TBBUTTON*) buffer;
@@ -329,11 +329,11 @@ menubar_nccreate(HWND win, CREATESTRUCT *cs)
      * as ReBar really is not interested in it, and embedding the menubar
      * in the ReBar is actually main advantage of this control in comparision
      * with the standard window menu. */
-    GetClassName(mb->parent, parent_class, MC_ARRAY_SIZE(parent_class));
+    GetClassName(cs->hwndParent, parent_class, MC_ARRAY_SIZE(parent_class));
     if(_tcscmp(parent_class, _T("ReBarWindow32")) == 0)
-        mb->parent = GetAncestor(cs->hwndParent, GA_PARENT);
+        mb->notify_win = GetAncestor(cs->hwndParent, GA_PARENT);
     else
-        mb->parent = cs->hwndParent;
+        mb->notify_win = cs->hwndParent;
 
     mb->hot_item = -1;
     mb->pressed_item = -1;
@@ -398,16 +398,16 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case TB_SETPARENT:
         case CCM_SETNOTIFYWINDOW:
         {
-            HWND old_parent = mb->parent;
-            mb->parent = (wp ? (HWND) wp : GetAncestor(win, GA_PARENT));
-            return (LRESULT) old_parent;
+            HWND old = mb->notify_win;
+            mb->notify_win = (wp ? (HWND) wp : GetAncestor(win, GA_PARENT));
+            return (LRESULT) old;
         }
 
         case WM_COMMAND:
             MENUBAR_TRACE("menubar_proc(WM_COMMAND): code=%d; wid=%d; control=%p",
                           (int)HIWORD(wp), (int)LOWORD(wp), (HWND)lp);
             if(lp == 0  &&  HIWORD(wp) == 0)  /* msg came from the menu */
-                return SendMessage(mb->parent, msg, wp, lp);
+                return SendMessage(mb->notify_win, msg, wp, lp);
             break;
 
         case WM_NOTIFY:
@@ -415,7 +415,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             NMHDR* hdr = (NMHDR*) lp;
             if(hdr->hwndFrom == win) {
                 menubar_notify(mb, hdr);
-                return SendMessage(mb->parent, msg, wp, lp);
+                return SendMessage(mb->notify_win, msg, wp, lp);
             }
             break;
         }
@@ -434,7 +434,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_MENUGETOBJECT:
         case WM_MEASUREITEM:
         case WM_DRAWITEM:
-            return SendMessage(mb->parent, msg, wp, lp);
+            return SendMessage(mb->notify_win, msg, wp, lp);
 
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:
