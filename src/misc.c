@@ -308,24 +308,26 @@ mc_icon_size(HICON icon, SIZE* size)
 void
 mc_font_size(HFONT font, SIZE* size)
 {
+    /* See http://support.microsoft.com/kb/125681 */
     static const TCHAR canary_str[] = _T("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
     static const int canary_len = MC_ARRAY_SIZE(canary_str) - 1;
-
     HDC dc;
     HFONT old_font;
     SIZE s;
+    TEXTMETRIC tm;
 
     if(font == NULL)
-        font = GetStockObject(SYSTEM_FONT);   // FIXME: is this needed?
+        font = GetStockObject(SYSTEM_FONT);
 
     dc = GetDCEx(NULL, NULL, DCX_CACHE);
     old_font = SelectObject(dc, font);
     GetTextExtentPoint32(dc, canary_str, canary_len, &s);
+    GetTextMetrics(dc, &tm);
     SelectObject(dc, old_font);
     ReleaseDC(NULL, dc);
 
-    size->cx = s.cx / canary_len + 1;  /* +1 to fight rounding */
-    size->cy = s.cy;
+    size->cx = (s.cx / (canary_len/2) + 1) / 2;
+    size->cy = tm.tmHeight;
 }
 
 int
