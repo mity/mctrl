@@ -566,7 +566,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_LBUTTONDOWN:
             if(button_needs_fake_split(button)) {
-                POINT pt = { LOWORD(lp), HIWORD(lp) };
+                POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
                 RECT rect;
 
                 SetFocus(win);
@@ -600,8 +600,8 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_LBUTTONDBLCLK:
             if(button_needs_fake_split(button)) {
-                int x = LOWORD(lp);
-                int y = HIWORD(lp);
+                int x = GET_X_LPARAM(lp);
+                int y = GET_Y_LPARAM(lp);
                 RECT rect;
 
                 GetClientRect(win, &rect);

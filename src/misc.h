@@ -23,6 +23,7 @@
 #include <stddef.h>
 #include <tchar.h>
 #include <windows.h>
+#include <windowsx.h>
 #include <commctrl.h>
 #include <wingdi.h>
 #include <shlwapi.h>

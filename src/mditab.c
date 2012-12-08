@@ -1445,15 +1445,15 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (dsa_reserve(&mditab->item_dsa, (UINT)wp) == 0 ? TRUE : FALSE);
 
         case WM_LBUTTONDOWN:
-            mditab_left_button_down(win, wp, LOWORD(lp), HIWORD(lp));
+            mditab_left_button_down(win, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
         case WM_MBUTTONDOWN:
-            mditab_middle_button_down(win, wp, LOWORD(lp), HIWORD(lp));
+            mditab_middle_button_down(win, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
         case WM_MBUTTONUP:
-            mditab_middle_button_up(win, wp, LOWORD(lp), HIWORD(lp));
+            mditab_middle_button_up(win, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
         case WM_LBUTTONUP:
@@ -1465,7 +1465,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_MOUSEMOVE:
-            mditab_track_hot(mditab, LOWORD(lp), HIWORD(lp));
+            mditab_track_hot(mditab, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
         case WM_COMMAND:
