@@ -749,11 +749,11 @@ expand_init(void)
     WNDCLASS wc = { 0 };
 
     expand_glyphs[0] = LoadImage(mc_instance, MAKEINTRESOURCE(IDR_EXPAND_GLYPHS_19),
-                                 IMAGE_BITMAP, 0, 0, LR_SHARED);
+                                 IMAGE_BITMAP, 0, 0, LR_SHARED | LR_CREATEDIBSECTION);
     expand_glyphs[1] = LoadImage(mc_instance, MAKEINTRESOURCE(IDR_EXPAND_GLYPHS_24),
-                                 IMAGE_BITMAP, 0, 0, LR_SHARED);
+                                 IMAGE_BITMAP, 0, 0, LR_SHARED | LR_CREATEDIBSECTION);
     expand_glyphs[2] = LoadImage(mc_instance, MAKEINTRESOURCE(IDR_EXPAND_GLYPHS_29),
-                                 IMAGE_BITMAP, 0, 0, LR_SHARED);
+                                 IMAGE_BITMAP, 0, 0, LR_SHARED | LR_CREATEDIBSECTION);
 
     wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = expand_proc;
