@@ -56,6 +56,8 @@ CreateMenuBar(HWND hWnd)
     band.cyChild = HIWORD(dwBtnSize);
     band.cxMinChild = LOWORD(dwBtnSize);
     band.cyMinChild = HIWORD(dwBtnSize);
+    band.cyMaxChild = HIWORD(dwBtnSize);
+    band.cyIntegral = HIWORD(dwBtnSize);
     band.cx = 200;
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
 
@@ -63,7 +65,7 @@ CreateMenuBar(HWND hWnd)
      * positioning the two bands. */
     hwndToolbar = CreateWindow(TOOLBARCLASSNAME, _T(""), WS_CHILD | WS_VISIBLE |
             WS_CLIPCHILDREN | WS_CLIPSIBLINGS | CCS_NORESIZE | CCS_NOPARENTALIGN |
-            CCS_NODIVIDER | TBSTYLE_TRANSPARENT,
+            CCS_NODIVIDER | TBSTYLE_TRANSPARENT | TBSTYLE_FLAT,
             0, 0, 0, 0, hwndRebar, (HMENU) 1002, hInst, 0);
     hImgList = ImageList_LoadImage(hInst, MAKEINTRESOURCE(ID_IMGLIST),
                     16, 1, RGB(255,0,255), IMAGE_BITMAP, LR_CREATEDIBSECTION);
@@ -82,6 +84,8 @@ CreateMenuBar(HWND hWnd)
     band.cyChild = HIWORD(dwBtnSize);
     band.cxMinChild = 6 * LOWORD(dwBtnSize);
     band.cyMinChild = HIWORD(dwBtnSize);
+    band.cyMaxChild = HIWORD(dwBtnSize);
+    band.cyIntegral = HIWORD(dwBtnSize);
     band.cx = 16 * LOWORD(dwBtnSize);
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
 }
