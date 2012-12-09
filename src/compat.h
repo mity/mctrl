@@ -20,8 +20,8 @@
 #define MC_COMPAT_H
 
 
-/* This file is here to hide differences between various build environments
- * and toolchains. */
+/* This file is here to hide differences and incompabilties among various
+ * build environments and toolchains. */
 
 
 /**********************************
@@ -50,29 +50,32 @@
  *******************/
 
 #if defined MC_COMPILER_MSVC  &&  MC_COMPILER_MSVC < 1600
-    /* Visual Studio versions older then 2010 misses <stdint.h> so lets
-     * provide our own poor-man's implementation. */
-    typedef __int8               int8_t;
-    typedef unsigned __int8     uint8_t;
-    typedef __int16              int16_t;
-    typedef unsigned __int16    uint16_t;
-    typedef __int32              int32_t;
-    typedef unsigned __int32    uint32_t;
-    typedef __int64              int64_t;
-    typedef unsigned __int64    uint64_t;
+    /* Old MSVC versions miss <stdint.h> so lets provide our own (incomplete)
+     * replacement. */
+    typedef __int8  int8_t;
+    typedef __int16 int16_t;
+    typedef __int32 int32_t;
+    typedef __int64 int64_t;
 
-    #define INT8_MIN       (-0x7f - 1)
-    #define INT16_MIN      (-0x7fff - 1)
-    #define INT32_MIN      (-0x7fffffff - 1)
-    #define INT64_MIN      (-0x7fffffffffffffff - 1)
-    #define INT8_MAX       (0x7f)
-    #define INT16_MAX      (0x7fff)
-    #define INT32_MAX      (0x7fffffff)
-    #define INT64_MAX      (0x7fffffffffffffff)
-    #define UINT8_MAX      (0xff)
-    #define UINT16_MAX     (0xffff)
-    #define UINT32_MAX     (0xffffffff)
-    #define UINT64_MAX     (0xffffffffffffffff)
+    typedef unsigned __int8  uint8_t;
+    typedef unsigned __int16 uint16_t;
+    typedef unsigned __int32 uint32_t;
+    typedef unsigned __int64 uint64_t;
+
+    #define INT8_MIN  (-0x7f - 1)
+    #define INT16_MIN (-0x7fff - 1)
+    #define INT32_MIN (-0x7fffffff - 1)
+    #define INT64_MIN (-0x7fffffffffffffff - 1)
+
+    #define INT8_MAX  (0x7f)
+    #define INT16_MAX (0x7fff)
+    #define INT32_MAX (0x7fffffff)
+    #define INT64_MAX (0x7fffffffffffffff)
+
+    #define UINT8_MAX  (0xff)
+    #define UINT16_MAX (0xffff)
+    #define UINT32_MAX (0xffffffff)
+    #define UINT64_MAX (0xffffffffffffffff)
 #else
     #include <stdint.h>
 #endif
@@ -122,17 +125,21 @@
 #endif
 
 
-/*************************
- *** Missing constants ***
- *************************/
+/*************************************
+ *** Mingw-w64 compatibility hacks ***
+ *************************************/
 
-/* Older toolchains can miss some stuff, so lets #define manually. */
+/* <wingdi.h> misses this prototype */
+BOOL WINAPI GdiAlphaBlend(HDC dc1, int x1, int y1, int w1, int h1,
+                          HDC dc0, int x0, int y0, int w0, int h0,
+                          BLENDFUNCTION fn);
 
-#ifndef TB_SETBOUNDINGSIZE          /* missing in mingw-w64 headers */
+/* various missing constants */
+#ifndef TB_SETBOUNDINGSIZE
     #define TB_SETBOUNDINGSIZE      (WM_USER + 93)
 #endif
 
-#ifndef TB_SETPRESSEDIMAGELIST      /* missing in mingw-w64 headers */
+#ifndef TB_SETPRESSEDIMAGELIST
     #define TB_SETPRESSEDIMAGELIST  (WM_USER + 104)
 #endif
 
@@ -141,8 +148,8 @@
  *** _wcstoi64() and _wcstoui64() ***
  ************************************/
 
-/* MSVCRT.DLL on Windows 2000 lacks these symbols, so we have to provide our
- * own implementations for 32bit version of MCTRL.DLL. */
+/* MSVCRT.DLL on Windows 2000 lacks these symbols, so in 32-bit version we
+ * always use own implementation. */
 #ifndef _WIN64
     #define COMPAT_NEED_WCSTOI64   1
     int64_t compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base);
@@ -158,8 +165,8 @@
  *** Intrinsic ***
  *****************/
 
-/* <intrin.h> is only somewhere, so we have to implement the functions we
- * want use anywhere. */
+/* <intrin.h> is only somewhere, so we may need to provide fallback
+ * implementations for those we use. */
 
 #if defined MC_TOOLCHAIN_MSVC  ||  defined MC_TOOLCHAIN_MINGW64
     #include <intrin.h>
