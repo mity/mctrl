@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -22,7 +22,7 @@
 /**************************
  *** Module abstraction ***
  **************************/
- 
+
 static CRITICAL_SECTION mod_lock;
 
 void
@@ -67,7 +67,7 @@ module_init_modules(module_t** modules, int n)
                     modules[i]->refs--;
                     if(modules[i]->refs == 0)
                         modules[i]->fn_fini();
-                }                
+                }
                 break;
             }
         }
@@ -139,6 +139,9 @@ DEFINE_MODULE(mc)
 #include "button.h"
 DEFINE_MODULE(button)
 
+#include "expand.h"
+DEFINE_MODULE(expand)
+
 #include "grid.h"
 DEFINE_MODULE(grid)
 
@@ -162,6 +165,9 @@ DEFINE_MODULE(theme)
 
 static module_t* mod_button_deps[] = { &mod_mc, &mod_theme, &mod_button };
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
+
+static module_t* mod_expand_deps[] = { &mod_mc, &mod_theme, &mod_expand };
+DEFINE_PUBLIC_IFACE(expand, Expand, mod_expand_deps);
 
 static module_t* mod_grid_deps[] =   { &mod_mc, &mod_theme, &mod_grid };
 DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)

@@ -21,6 +21,7 @@ override LIBS = -lmCtrl -lcomctl32
 
 EXAMPLES = $(BINDIR)/ex_button.exe          \
            $(BINDIR)/ex_dllgetversion.exe   \
+           $(BINDIR)/ex_expand.exe          \
            $(BINDIR)/ex_grid.exe            \
            $(BINDIR)/ex_html.exe            \
            $(BINDIR)/ex_mditab.exe          \
@@ -48,6 +49,7 @@ clean:
 
 $(BINDIR)/ex_button.exe: $(OBJDIR)/ex_button.o $(OBJDIR)/ex_button_rc.o
 $(BINDIR)/ex_dllgetversion.exe: $(OBJDIR)/ex_dllgetversion.o $(OBJDIR)/ex_manifest_rc.o
+$(BINDIR)/ex_expand.exe: $(OBJDIR)/ex_expand.o $(OBJDIR)/ex_expand_rc.o
 $(BINDIR)/ex_grid.exe: $(OBJDIR)/ex_grid.o $(OBJDIR)/ex_grid_rc.o
 $(BINDIR)/ex_html.exe: $(OBJDIR)/ex_html.o $(OBJDIR)/ex_html_rc.o
 $(BINDIR)/ex_menubar.exe: $(OBJDIR)/ex_menubar.o $(OBJDIR)/ex_menubar_rc.o

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,27 +16,16 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MC_RESOURCE_H
-#define MC_RESOURCE_H
+#ifndef MC_EXPAND_H
+#define MC_EXPAND_H
+
+#include "mCtrl/expand.h"
+
+#include "misc.h"
 
 
-/********************
- *** Resource IDs ***
-*********************/
-
-#define IDR_GLYPHS                @RESOURCE_ID@
-
-#define IDR_EXPAND_GLYPHS_19      @RESOURCE_ID@
-#define IDR_EXPAND_GLYPHS_24      @RESOURCE_ID@
-#define IDR_EXPAND_GLYPHS_29      @RESOURCE_ID@
+int expand_init(void);
+void expand_fini(void);
 
 
-/******************
- *** String IDs ***
- ******************/
-
-#define IDS_EXPAND_MOREDETAILS    @STRING_ID@
-#define IDS_EXPAND_FEWERDETAILS   @STRING_ID@
-
-
-#endif  /* MC_RESOURCE_H */
+#endif  /* MC_EXPAND_H */

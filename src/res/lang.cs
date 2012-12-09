@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,27 +16,11 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MC_RESOURCE_H
-#define MC_RESOURCE_H
+LANGUAGE LANG_CZECH, SUBLANG_DEFAULT
+#pragma code_page(1250)
 
-
-/********************
- *** Resource IDs ***
-*********************/
-
-#define IDR_GLYPHS                @RESOURCE_ID@
-
-#define IDR_EXPAND_GLYPHS_19      @RESOURCE_ID@
-#define IDR_EXPAND_GLYPHS_24      @RESOURCE_ID@
-#define IDR_EXPAND_GLYPHS_29      @RESOURCE_ID@
-
-
-/******************
- *** String IDs ***
- ******************/
-
-#define IDS_EXPAND_MOREDETAILS    @STRING_ID@
-#define IDS_EXPAND_FEWERDETAILS   @STRING_ID@
-
-
-#endif  /* MC_RESOURCE_H */
+STRINGTABLE
+BEGIN
+    IDS_EXPAND_MOREDETAILS    "Další podrobnosti\0"
+    IDS_EXPAND_FEWERDETAILS   "Ménì podrobností\0"
+END

@@ -1,0 +1,26 @@
+/*
+ * Copyright (c) 2012 Martin Mitas
+ *
+ * This file contains example code for mCtrl library. Code of this example
+ * (but not the library itself) has been placed in the public domain.
+ */
+
+#include <windows.h>
+#include <mCtrl/expand.h>
+#include "ex_expand.h"
+
+
+/* Manifest enabling XP themes */
+1 RT_MANIFEST res/manifest.xml
+
+/* Dialog box */
+IDD_DIALOG DIALOG 100, 100, 300, 86
+STYLE WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME
+EXSTYLE WS_EX_DLGMODALFRAME
+CAPTION "mCtrl Example: EXPAND Control"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    CONTROL "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi fermentum, libero at tincidunt ultricies, turpis purus cursus lorem, at tempor erat purus sit amet quam. Nulla et ante massa. Integer pretium eros sed lectus scelerisque eu dictum orci porttitor.", -1, "STATIC", 0, 7, 7, 286, 24
+    CONTROL "", IDC_EXPAND, MC_WC_EXPAND, WS_TABSTOP, 7, 38, 100, 10
+    CONTROL "Vivamus neque dui, dictum sit amet gravida nec, aliquet et elit. Aenean pretium auctor leo at commodo. Quisque nec eros diam. Suspendisse potenti. Nam quis nisl metus. Praesent eros orci, interdum ut sagittis ut, vulputate et ante. Nullam non leo quis tellus tempus congue. Nullam sed diam nibh, in consequat arcu.", -1, "STATIC", 0, 7, 55, 286, 24
+END

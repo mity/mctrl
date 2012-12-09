@@ -21,10 +21,23 @@
 #include "resource.h"
 
 
-IDR_GLYPHS BITMAP   res/glyphs.bmp
+IDR_GLYPHS           BITMAP  res/glyphs.bmp
+
+IDR_EXPAND_GLYPHS_19 BITMAP  res/expand-19x19.bmp
+IDR_EXPAND_GLYPHS_24 BITMAP  res/expand-24x24.bmp
+IDR_EXPAND_GLYPHS_29 BITMAP  res/expand-29x29.bmp
+
+
+/* Per-language resources */
+
+#include "res/lang.cs"       /* Czech */
+#include "res/lang.en"       /* English */
+#include "res/lang.fr"       /* French */
+#pragma code_page(DEFAULT)
 
 
 /* Version info */
+
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION    MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_RELEASE, 0
 PRODUCTVERSION MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_RELEASE, 0
@@ -40,10 +53,10 @@ FILESUBTYPE    0
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "000004b0"
+        BLOCK "000004b0"   /* language: 0 (neutral); charset: 0x04b0 == 1200 (unicode) */
         BEGIN
 #pragma code_page(1250)
-            VALUE "LegalCopyright",    "© 2008-2011 Martin Mitáš"
+            VALUE "LegalCopyright",    "© 2008-2012 Martin Mitáš"
 #pragma code_page(DEFAULT)
             VALUE "ProductName",       "mCtrl Library"
             VALUE "FileDescription",   "mCtrl Library"

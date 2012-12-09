@@ -24,7 +24,23 @@
 #define MC_RESOURCE_H
 
 
+/********************
+ *** Resource IDs ***
+*********************/
+
 #define IDR_GLYPHS                100
+
+#define IDR_EXPAND_GLYPHS_19      101
+#define IDR_EXPAND_GLYPHS_24      102
+#define IDR_EXPAND_GLYPHS_29      103
+
+
+/******************
+ *** String IDs ***
+ ******************/
+
+#define IDS_EXPAND_MOREDETAILS    0
+#define IDS_EXPAND_FEWERDETAILS   1
 
 
 #endif  /* MC_RESOURCE_H */
