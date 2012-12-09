@@ -1115,8 +1115,8 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
     message.wParam = wp;
     message.lParam = lp;
     message.time = GetMessageTime();
-    message.pt.x = LOWORD(pos);
-    message.pt.y = HIWORD(pos);
+    message.pt.x = GET_X_LPARAM(pos);
+    message.pt.y = GET_Y_LPARAM(pos);
 
     /* ->TranslateAccelerator() */
     browser_iface = html_browser_iface(html);
