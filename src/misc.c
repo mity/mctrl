@@ -331,6 +331,28 @@ mc_font_size(HFONT font, SIZE* size)
 }
 
 int
+mc_pixels_from_dlus(HFONT font, int dlus, BOOL vert)
+{
+    SIZE font_size;
+    mc_font_size(font, &font_size);
+    if(vert)
+        return (dlus * font_size.cy + 2) / 8;
+    else
+        return (dlus * font_size.cx + 2) / 4;
+}
+
+int
+mc_dlus_from_pixels(HFONT font, int pixels, BOOL vert)
+{
+    SIZE font_size;
+    mc_font_size(font, &font_size);
+    if(vert)
+        return (16 * pixels + font_size.cy) / (2 * font_size.cy);
+    else
+        return (8 * pixels + font_size.cx) / (2 * font_size.cx);
+}
+
+int
 mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
 {
     /* We accumulate the wheel_delta until there is enough to scroll for

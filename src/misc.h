@@ -268,6 +268,10 @@ void mc_icon_size(HICON icon, SIZE* size);
  * char width). Used to auto-adjust item size in complex controls. */
 void mc_font_size(HFONT font, SIZE* size);
 
+/* Converting pixels <--> DLUs */
+int mc_pixels_from_dlus(HFONT font, int dlus, BOOL vert);
+int mc_dlus_from_pixels(HFONT font, int pixels, BOOL vert);
+
 /* Send simple (i.e. using only NMHDR) notification */
 static inline LRESULT
 mc_send_notify(HWND parent, HWND win, UINT code)
