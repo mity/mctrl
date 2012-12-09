@@ -109,6 +109,12 @@ dummy_BufferedPaintInit_or_UnInit(void)
     return E_NOTIMPL;
 }
 
+static BOOL WINAPI
+dummy_BufferedPaintRenderAnimation(HWND win, HDC dc)
+{
+    return FALSE;
+}
+
 static HANIMATIONBUFFER WINAPI
 dummy_BeginBufferedAnimation(HWND win, HDC dc, const RECT *rect,
                              BP_BUFFERFORMAT format, BP_PAINTPARAMS *paint_params,
@@ -298,6 +304,7 @@ err_anim:
     /* Disable the UXTHEME.DLL based animations. */
     theme_BufferedPaintInit = dummy_BufferedPaintInit_or_UnInit;
     theme_BufferedPaintUnInit = dummy_BufferedPaintInit_or_UnInit;
+    theme_BufferedPaintRenderAnimation = dummy_BufferedPaintRenderAnimation;
     theme_BeginBufferedAnimation = dummy_BeginBufferedAnimation;
     theme_GetThemeTransitionDuration = dummy_GetThemeTransitionDuration;
     theme_BufferedPaintStopAllAnimations = dummy_BufferedPaintStopAllAnimations;
