@@ -49,6 +49,42 @@ static HMODULE uxtheme_dll = NULL;
  *** Dummy implementation ***
  ****************************/
 
+static HRESULT WINAPI
+dummy_DrawThemeParentBackground(HWND win, HDC dc, RECT* rect)
+{
+    RECT r;
+    POINT old_origin;
+    HWND parent;
+    HRGN clip = NULL;
+    int clip_state;
+
+    parent = GetAncestor(win, GA_PARENT);
+    if(parent == NULL)
+        parent = win;
+
+    mc_copy_rect(&r, rect);
+    MapWindowPoints(win, parent, (POINT*) &r, 2);
+    clip = CreateRectRgn(0, 0, 1, 1);
+    clip_state = GetClipRgn(dc, clip);
+    if(clip_state != -1)
+        IntersectClipRect(dc, rect->left, rect->top, rect->right, rect->bottom);
+
+    OffsetViewportOrgEx(dc, -r.left, -r.top, &old_origin);
+
+    SendMessage(parent, WM_ERASEBKGND, (WPARAM) dc, 0);
+    SendMessage(parent, WM_PRINTCLIENT, (WPARAM) dc, PRF_CLIENT);
+
+    SetViewportOrgEx(dc, old_origin.x, old_origin.y, NULL);
+
+    if(clip_state == 0)
+        SelectClipRgn(dc, NULL);
+    else if(clip_state == 1)
+        SelectClipRgn(dc, clip);
+    DeleteObject(clip);
+
+    return S_OK;
+}
+
 static BOOL WINAPI
 dummy_IsThemeActive(void)
 {
@@ -253,6 +289,7 @@ err_core:
 
 err_uxtheme_not_loaded:
     /* Make the controls fall back to GDI (non-themed) painting. */
+    theme_DrawThemeParentBackground = dummy_DrawThemeParentBackground;
     theme_IsThemeActive = dummy_IsThemeActive;
     theme_OpenThemeData = dummy_OpenThemeData;
     theme_SetWindowTheme = dummy_SetWindowTheme;
