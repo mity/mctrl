@@ -439,7 +439,13 @@ static void
 expand_resize_parent(expand_t* expand)
 {
     SIZE size;
+    RECT entire;
+    RECT old_rect;
+    RECT new_rect;
+    HWND child;
+    RECT r;
 
+    /* Get the size we need to resize to */
     if(expand->state & STATE_EXPANDED) {
         size.cx = expand->expanded_w;
         size.cy = expand->expanded_h;
@@ -448,6 +454,7 @@ expand_resize_parent(expand_t* expand)
         size.cy = expand->collapsed_h;
     }
 
+    /* If not set explicitly, try to guess */
     if(size.cx == 0  &&  size.cy == 0) {
         expand_guess_size(expand, &size);
 
@@ -462,14 +469,51 @@ expand_resize_parent(expand_t* expand)
         }
     }
 
+    /* We need old (i.e. current) and new (i.e. desired) client rects to
+     * analyze what children are (in)covered. We want these in screen
+     * coords. */
+    GetWindowRect(expand->notify_win, &entire);
+    GetClientRect(expand->notify_win, &old_rect);
+    MapWindowPoints(expand->notify_win, NULL, (POINT*)&old_rect, 2);
+    mc_set_rect(&new_rect, old_rect.left, old_rect.top,
+                           old_rect.left + size.cx, old_rect.top + size.cy);
+
     if(!(expand->style & MC_EXS_RESIZEENTIREWINDOW)) {
-        RECT entire, client;
-        GetWindowRect(expand->notify_win, &entire);
-        GetClientRect(expand->notify_win, &client);
-        size.cx += mc_width(&entire) - mc_width(&client);
-        size.cy += mc_height(&entire) - mc_height(&client);
+        /* Add "padding" of the non-lient area for the parent resize */
+        size.cx += mc_width(&entire) - mc_width(&old_rect);
+        size.cy += mc_height(&entire) - mc_height(&old_rect);
+    } else {
+        /* Compensate new client rect for the fact the size already includes
+         * non-client area. */
+        new_rect.right -= mc_width(&entire) - mc_width(&old_rect);
+        new_rect.bottom -= mc_height(&entire) - mc_height(&old_rect);
     }
 
+
+    /* Show/hide children (un)covered by the resize of parent */
+#define OVERLAP(a,b)   (!(a.bottom <= b.top  ||  a.top >= b.bottom  ||   \
+                          a.right <= b.left  ||  a.left >= b.right))
+    for(child = GetWindow(expand->notify_win, GW_CHILD);
+        child != NULL;
+        child = GetWindow(child, GW_HWNDNEXT))
+    {
+        GetWindowRect(child, &r);
+
+        if(expand->state & STATE_EXPANDED) {
+            if(!OVERLAP(r, old_rect)  &&  OVERLAP(r, new_rect)) {
+                EnableWindow(child, TRUE);
+                ShowWindow(child, SW_SHOW);
+            }
+        } else {
+            if(OVERLAP(r, old_rect)  &&  !OVERLAP(r, new_rect)) {
+                ShowWindow(child, SW_HIDE);
+                EnableWindow(child, FALSE);
+            }
+        }
+    }
+#undef OVERLAP
+
+    /* Finally resize the parent */
     SetWindowPos(expand->notify_win, NULL, 0, 0, size.cx, size.cy,
                  SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 }
