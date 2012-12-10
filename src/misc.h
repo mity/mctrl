@@ -22,18 +22,17 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <tchar.h>
+
 #include <windows.h>
-#include <windowsx.h>
 #include <commctrl.h>
-#include <wingdi.h>
 #include <shlwapi.h>
+#include <wingdi.h>
+#include <windowsx.h>
 
 #include "compat.h"
 #include "debug.h"
-#include "optim.h"
 #include "resource.h"
 #include "version.h"
-
 
 
 /***************************
@@ -104,7 +103,9 @@
 
 extern HINSTANCE mc_instance;
 
+
 /* Checking OS version (compare with normal operators: ==, <, <= etc.) */
+
 #define MC_WIN_VER(platform, major, minor)                               \
     (((platform) << 16) | ((major) << 8) | ((minor) << 0))
 
@@ -123,13 +124,17 @@ extern HINSTANCE mc_instance;
 
 extern DWORD mc_win_version;
 
+
 /* Checking version of COMCTRL32.DLL */
+
 #define MC_DLL_VER(major, minor)                                         \
     (((major) << 16) | ((minor) << 0))
 
 extern DWORD mc_comctl32_version;
 
+
 /* Image list of glyphs used throughout mCtrl */
+
 #define MC_BMP_GLYPH_W               9   /* glyph image size */
 #define MC_BMP_GLYPH_H               9
 
@@ -143,12 +148,90 @@ extern DWORD mc_comctl32_version;
 extern HIMAGELIST mc_bmp_glyphs;
 
 
+/*************************************
+ *** Memory manipulation utilities ***
+ *************************************/
 
-/**********************
- *** String helpers ***
- **********************/
+/* memcpy/memmove can be slow because of 'call' instruction for very small
+ * blocks of memory. Hence if we know the size is small already in compile
+ * time, we may inline it instead.
+ *
+ * (gcc has a capability of inlining of these built-in.)
+ */
 
-/* Loads string from stringtable resource. */
+#ifndef MC_COMPILER_GCC
+    static inline void
+    mc_inlined_memcpy(void* addr0, const void* addr1, size_t n)
+    {
+        BYTE* iter0 = (BYTE*) addr0;
+        const BYTE* iter1 = (const BYTE*) addr1;
+
+        while(n-- > 0)
+            *iter0++ = *iter1++;
+    }
+#else
+    #define mc_inlined_memcpy memcpy
+#endif
+
+#ifndef MC_COMPILER_GCC
+mc_inlined_memmove(void* addr0, const void* addr1, size_t n)
+    static inline void
+    {
+        BYTE* iter0 = (BYTE*) addr0;
+        const BYTE* iter1 = (const BYTE*) addr1;
+
+        if(iter0 < iter1) {
+            while(n-- > 0)
+                *iter0++ = *iter1++;
+        } else {
+            iter0 += n;
+            iter1 += n;
+            while(n-- > 0)
+                *(--iter0) = *(--iter1);
+        }
+    }
+#else
+    #define mc_inlined_memmove memmove
+#endif
+
+/* Swapping two memory blocks. They must not overlay. */
+static inline void
+mc_inlined_memswap(void* addr0, void* addr1, size_t n)
+{
+    BYTE* iter0 = (BYTE*) addr0;
+    BYTE* iter1 = (BYTE*) addr1;
+    BYTE tmp;
+
+    while(n-- > 0) {
+        tmp = *iter0;
+        *iter0++ = *iter1;
+        *iter1++ = tmp;
+    }
+}
+
+#define mc_memswap    mc_inlined_memswap
+
+
+/************************
+ *** String utilities ***
+ ************************/
+
+/* String type identifier. */
+
+typedef enum mc_str_type_tag mc_str_type_t;
+enum mc_str_type_tag {
+    MC_STRA = 1,   /* Multibyte (ANSI) string */
+    MC_STRW = 2,   /* Unicode (UTF-16LE) string */
+#ifdef UNICODE
+    MC_STRT = MC_STRW
+#else
+    MC_STRT = MC_STRA
+#endif
+};
+
+
+/* Loading strings from resources */
+
 static inline TCHAR*
 mc_str_load(UINT id)
 {
@@ -166,47 +249,118 @@ mc_str_load(UINT id)
 }
 
 
-/* String type identifier. */
-typedef enum mc_str_type_tag mc_str_type_t;
-enum mc_str_type_tag {
-    MC_STRA = 1,   /* Multibyte (ANSI) string */
-    MC_STRW = 2,   /* Unicode (UTF-16LE) string */
-#ifdef UNICODE
-    MC_STRT = MC_STRW
-#else
-    MC_STRT = MC_STRA
-#endif
-};
+/* Copying/converting strings into provided buffer */
+
+static inline void
+mc_str_inbuf_A2A(const char* from_str, char* to_str, int to_str_bufsize)
+{
+    strncpy(to_str, from_str ? from_str : "", to_str_bufsize);
+    to_str[to_str_bufsize-1] = '\0';
+}
+
+static inline void
+mc_str_inbuf_W2W(const WCHAR* from_str, WCHAR* to_str, int to_str_bufsize)
+{
+    wcsncpy(to_str, from_str ? from_str : L"", to_str_bufsize);
+    to_str[to_str_bufsize-1] = L'\0';
+}
+
+static inline void
+mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize)
+{
+    MultiByteToWideChar(CP_ACP, 0, from_str ? from_str : "", -1,
+                        to_str, to_str_bufsize);
+    to_str[to_str_bufsize-1] = L'\0';
+}
+
+static inline void
+mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize)
+{
+    WideCharToMultiByte(CP_ACP, 0, from_str ? from_str : L"", -1,
+                        to_str, to_str_bufsize, NULL, NULL);
+    to_str[to_str_bufsize-1] = '\0';
+}
+
+static inline void
+mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
+             void* to_str, mc_str_type_t to_type, int to_str_bufsize)
+{
+    if(from_type == to_type) {
+        if(from_type == MC_STRA)
+            mc_str_inbuf_A2A(from_str, to_str, to_str_bufsize);
+        else
+            mc_str_inbuf_W2W(from_str, to_str, to_str_bufsize);
+    } else {
+        if(from_type == MC_STRA)
+            mc_str_inbuf_A2W(from_str, to_str, to_str_bufsize);
+        else
+            mc_str_inbuf_W2A(from_str, to_str, to_str_bufsize);
+    }
+}
 
 
-/* Copies zero-terminated sring from_str to the buffer to_str. A conversion
- * can be applied during the copying depending on teh type of the from_str
- * and the requested new string. Only up to max_len-1 characters are copied.
- * The resulted string is always zero-terminated.
- */
-void mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
-                  void* to_str, mc_str_type_t to_type, int to_str_bufsize);
+/* Copying/converting strings into malloc'ed buffer */
 
-/* Copies string of specified length (which can contain '\0' characters)
- * to a newly allocated buffer. A conversion can be applied during the copying
- * depending on the type of the from_str and the requested new string. Returns
- * NULL on failure.
- *
- * Caller is then responsible to free the returned buffer.
- */
-void* mc_str_n(const void* from_str, mc_str_type_t from_type, int from_len,
-               mc_str_type_t to_type, int* ptr_to_len);
+char* mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len);
+WCHAR* mc_str_n_W2W(const WCHAR* from_str, int from_len, int* ptr_to_len);
+WCHAR* mc_str_n_A2W(const char* from_str, int from_len, int* ptr_to_len);
+char* mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len);
 
-/* Copies zero-terminated string from_str to a newly allocated buffer.
- * A conversion can be applied during the copying depending on the type
- * of the from_str and the requested new string. Returns NULL on failure.
- *
- * Caller is then responsible to free the returned buffer.
- */
+static inline void*
+mc_str_n(const void* from_str, mc_str_type_t from_type, int from_len,
+         mc_str_type_t to_type, int* ptr_to_len)
+{
+    if(from_type == to_type) {
+        if(from_type == MC_STRA)
+            return mc_str_n_A2A(from_str, from_len, ptr_to_len);
+        else
+            return mc_str_n_W2W(from_str, from_len, ptr_to_len);
+    } else {
+        if(from_type == MC_STRA)
+            return mc_str_n_A2W(from_str, from_len, ptr_to_len);
+        else
+            return mc_str_n_W2A(from_str, from_len, ptr_to_len);
+    }
+}
+
+static inline char*
+mc_str_A2A(const char* from_str)
+{
+    return mc_str_n_A2A(from_str, -1, NULL);
+}
+
+static inline WCHAR*
+mc_str_W2W(const WCHAR* from_str)
+{
+    return mc_str_n_W2W(from_str, -1, NULL);
+}
+
+static inline WCHAR*
+mc_str_A2W(const char* from_str)
+{
+    return mc_str_n_A2W(from_str, -1, NULL);
+}
+
+static inline char*
+mc_str_W2A(const WCHAR* from_str)
+{
+    return mc_str_n_W2A(from_str, -1, NULL);
+}
+
 static inline void*
 mc_str(const void* from_str, mc_str_type_t from_type, mc_str_type_t to_type)
 {
-    return mc_str_n(from_str, from_type, -1, to_type, NULL);
+    if(from_type == to_type) {
+        if(from_type == MC_STRA)
+            return mc_str_A2A(from_str);
+        else
+            return mc_str_W2W(from_str);
+    } else {
+        if(from_type == MC_STRA)
+            return mc_str_A2W(from_str);
+        else
+            return mc_str_W2A(from_str);
+    }
 }
 
 
@@ -253,40 +407,79 @@ mc_unref(mc_ref_t* i)
 }
 
 
-/*************************
- *** Utility functions ***
- *************************/
+/**********************
+ *** Rect utilities ***
+ **********************/
 
+/* These are so trivial that inlining these is probably always better then
+ * calling Win32API functions like InflateRect() etc. */
 
-/* Convenient wrapper of InitCommonControls/InitCommonControlsEx. */
-void mc_init_common_controls(DWORD icc);
-
-/* Detect icon size */
-void mc_icon_size(HICON icon, SIZE* size);
-
-/* Determine approximate font on-screen dimension in pixels (height and avg.
- * char width). Used to auto-adjust item size in complex controls. */
-void mc_font_size(HFONT font, SIZE* size);
-
-/* Converting pixels <--> DLUs */
-int mc_pixels_from_dlus(HFONT font, int dlus, BOOL vert);
-int mc_dlus_from_pixels(HFONT font, int pixels, BOOL vert);
-
-/* Send simple (i.e. using only NMHDR) notification */
-static inline LRESULT
-mc_send_notify(HWND parent, HWND win, UINT code)
+static inline LONG
+mc_width(const RECT* r)
 {
-    NMHDR hdr;
+    return (r->right - r->left);
+}
 
-    hdr.hwndFrom = win;
-    hdr.idFrom = GetWindowLong(win, GWL_ID);
-    hdr.code = code;
+static inline LONG
+mc_height(const RECT* r)
+{
+    return (r->bottom - r->top);
+}
 
-    return SendMessage(parent, WM_NOTIFY, hdr.idFrom, (LPARAM)&hdr);
+static inline BOOL
+mc_contains(const RECT* r, const POINT* pt)
+{
+    return (r->left <= pt->x  &&  pt->x < r->right  &&
+            r->top <= pt->y  &&  pt->y < r->bottom);
+}
+
+static inline BOOL
+mc_rect_is_empty(const RECT* r)
+{
+    return (r->left >= r->right  ||  r->top >= r->bottom);
+}
+
+static inline void
+mc_set_rect(RECT* r, LONG x0, LONG y0, LONG x1, LONG y1)
+{
+    r->left = x0;
+    r->top = y0;
+    r->right = x1;
+    r->bottom = y1;
+}
+
+static inline void
+mc_copy_rect(RECT* r0, const RECT* r1)
+{
+    r0->left = r1->left;
+    r0->top = r1->top;
+    r0->right = r1->right;
+    r0->bottom = r1->bottom;
+}
+
+static inline void
+mc_offset_rect(RECT* r, LONG dx, LONG dy)
+{
+    r->left += dx;
+    r->top += dy;
+    r->right += dx;
+    r->bottom += dy;
+}
+
+static inline void
+mc_inflate_rect(RECT* r, LONG dx, LONG dy)
+{
+    r->left -= dx;
+    r->top -= dy;
+    r->right += dx;
+    r->bottom += dy;
 }
 
 
-/* Easy-to-use clipping functions */
+/**************************
+ *** Clipping utilities ***
+ **************************/
+
 static inline HRGN
 mc_clip_get(HDC dc)
 {
@@ -324,13 +517,49 @@ mc_clip_reset(HDC dc, HRGN old_clip)
         DeleteObject(old_clip);
 }
 
-/* Convert wheel messages into line count */
+
+/*****************************
+ *** Mouse wheel utilities ***
+ *****************************/
+
 int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
 
 static inline void
 mc_wheel_reset(void)
 {
     mc_wheel_scroll(NULL, 0, 0);
+}
+
+
+/**************************
+ *** Assorted utilities ***
+ **************************/
+
+/* Convenient wrapper of InitCommonControls/InitCommonControlsEx. */
+void mc_init_common_controls(DWORD icc);
+
+/* Detect icon size */
+void mc_icon_size(HICON icon, SIZE* size);
+
+/* Determine approximate font on-screen dimension in pixels (height and avg.
+ * char width). Used to auto-adjust item size in complex controls. */
+void mc_font_size(HFONT font, SIZE* size);
+
+/* Converting pixels <--> DLUs */
+int mc_pixels_from_dlus(HFONT font, int dlus, BOOL vert);
+int mc_dlus_from_pixels(HFONT font, int pixels, BOOL vert);
+
+/* Send simple (i.e. using only NMHDR) notification */
+static inline LRESULT
+mc_send_notify(HWND parent, HWND win, UINT code)
+{
+    NMHDR hdr;
+
+    hdr.hwndFrom = win;
+    hdr.idFrom = GetWindowLong(win, GWL_ID);
+    hdr.code = code;
+
+    return SendMessage(parent, WM_NOTIFY, hdr.idFrom, (LPARAM)&hdr);
 }
 
 
