@@ -128,7 +128,7 @@ struct mditab_tag {
 static inline mditab_item_t*
 mditab_item(mditab_t* mditab, WORD index)
 {
-    return (mditab_item_t*) dsa_item_(&mditab->item_dsa, index, sizeof(mditab_item_t));
+    return DSA_ITEM(&mditab->item_dsa, index, mditab_item_t);
 }
 
 static inline WORD

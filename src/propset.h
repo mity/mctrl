@@ -74,7 +74,7 @@ propset_size(propset_t* propset)
 static inline propset_item_t*
 propset_item(propset_t* propset, WORD index)
 {
-    return (propset_item_t*) dsa_item_(&propset->items, index, sizeof(propset_item_t));
+    return DSA_ITEM(&propset->items, index, propset_item_t);
 }
 
 

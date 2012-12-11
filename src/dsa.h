@@ -31,7 +31,7 @@ struct dsa_tag {
 };
 
 /* destructor */
-typedef void (*dsa_dtor_t)(dsa_t* dsa, void* item);
+typedef void (*dsa_dtor_t)(dsa_t*, void*);
 
 /* comparision callback */
 typedef int (*dsa_cmp_t)(dsa_t*, const void*, const void*);
@@ -60,9 +60,11 @@ dsa_item(dsa_t* dsa, WORD index)
 static inline void*
 dsa_item_(dsa_t* dsa, WORD index, WORD item_size)
 {
-    MC_ASSERT(item_size == dsa->item_size);
     return (void*)&((BYTE*)dsa->buffer)[index * item_size];
 }
+
+#define DSA_ITEM(dsa, index, type)                                            \
+        ((type*) dsa_item_((dsa), (index), sizeof(type)))
 
 
 void dsa_init(dsa_t* dsa, WORD item_size);
