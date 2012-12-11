@@ -43,13 +43,14 @@ char*
 mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len)
 {
     char* to_str;
-    int to_len = from_len;
+    int to_len;
 
     if(from_str == NULL)
         return NULL;
 
     if(from_len < 0)
         from_len = (int)strlen((char*)from_str);
+    to_len = from_len;
 
     to_str = (char*) malloc(to_len + 1);
     if(MC_ERR(to_str == NULL)) {
@@ -70,15 +71,16 @@ WCHAR*
 mc_str_n_W2W(const WCHAR* from_str, int from_len, int* ptr_to_len)
 {
     WCHAR* to_str;
-    int to_len = from_len;
+    int to_len;
 
     if(from_str == NULL)
         return NULL;
 
     if(from_len < 0)
-        from_len = (int)(wcslen((WCHAR*)from_str) * sizeof(WCHAR));
+        from_len = wcslen(from_str);
+    to_len = from_len;
 
-    to_str = (WCHAR*) malloc((to_len  + 1) * sizeof(WCHAR));
+    to_str = (WCHAR*) malloc((to_len + 1) * sizeof(WCHAR));
     if(MC_ERR(to_str == NULL)) {
         MC_TRACE("mc_str_n_W2W: malloc() failed.");
         return NULL;
