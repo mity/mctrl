@@ -89,16 +89,17 @@ extern "C" {
  *
  * @section html_generated_contents Generated Contents
  *
- * Generating HTML contents programatically is also possibly to some degree.
+ * Generating HTML contents programatically is also possible to some degree.
  * Note however that the application is not supposed to generate whole
  * documents but only smaller snippets of them.
  *
  * The application can set contents of almost any tag (identified by HTML
- * attribute @c "id") with any custom string with the message @ref MC_HM_SETTAGCONTENTS.
- * The message takes ID. Then, if the currently loaded page has a tag with the
- * given ID, the text of the tag is changed and set to the given string. Any
- * previous content of that tag is removed. Remember the string has to follow
- * HTML syntax and it can contain nested HTML tags.
+ * attribute @c "id") with any custom string using the message @ref MC_HM_SETTAGCONTENTS.
+ * The message takes the ID and the string as its arguments. Then, if the
+ * currently loaded page has a tag with the given ID, the content of the
+ * tag is replaced  and set to the given string. Any previous content of that
+ * tag is removed. Remember the string has to follow HTML syntax and keep
+ * integrity of the HTML document.
  *
  * Note the application should use the message @ref MC_HM_SETTAGCONTENTS
  * only after the HTML document intended to be changed is completely loaded,

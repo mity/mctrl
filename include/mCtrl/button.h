@@ -58,7 +58,7 @@ extern "C" {
  * @c BS_CHECKBOX.
  *
  *
- * @section sec_button_icon Icon buttons
+ * @section sec_button_icon Icon Buttons
  *
  * On Windows XP, the standard @c BUTTON uses the old and boring look from
  * Windows 95/98 when you use style @c BS_ICON and set image of the button
@@ -83,7 +83,7 @@ extern "C" {
  * not styled with the XP theme.
  *
  *
- * @section sec_button_split Split buttons
+ * @section sec_button_split Split Buttons
  *
  * Split button is a push button devided to two parts. The main part behaves
  * as the normal push buttons and the other part (called dropdown) opens some

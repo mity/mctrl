@@ -5,12 +5,12 @@
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -45,7 +45,7 @@ extern "C" {
  * attributes of table cells.
  *
  * If application sets some of such flags (e.g. @c MC_TF_NOCELLFOREGROUND) and
- * later it attempts to set he corresponding attribute of the cell (e.g. 
+ * later it attempts to set he corresponding attribute of the cell (e.g.
  * foreground color), the behavior is undefined (setting of some attributes
  * is silantly ignored, or the operation as a whole can fail but application
  * should not rely on exact behavior).
@@ -54,7 +54,7 @@ extern "C" {
  * table expecting other value type, the operation fails.
  *
  *
- * @section sec_grid_homo Homogenous tables
+ * @section sec_grid_homo Homogenous Tables
  *
  * Homogenous tables can hold only values of the same type (@ref MC_HVALUETYPE),
  * specified during creation of the table. Homogenous table is less memory
@@ -72,11 +72,11 @@ extern "C" {
  * interpreted.
  *
  *
- * @section sec_grid_hetero Heterogenous tables
+ * @section sec_grid_hetero Heterogenous Tables
  *
  * When @c NULL is used as the value type during table creation, then a
  * heterogenous table is created.
- * 
+ *
  * Heterogenous table holds pair of @ref MC_HVALUETYPE and @ref MC_HVALUE for
  * each cell. Initially the table is empty (both the handles of each cell are
  * @c NULL).
@@ -132,7 +132,7 @@ void MCTRL_API mcTable_AddRef(MC_HTABLE hTable);
 /**
  * @brief Decrement reference counter of the table.
  *
- * If the reference counter drops to zero, all resources allocated for 
+ * If the reference counter drops to zero, all resources allocated for
  * the table are released.
  *
  * @param[in] hTable The table.
@@ -198,11 +198,11 @@ void MCTRL_API mcTable_Clear(MC_HTABLE hTable);
  * @param[in] type Value type. In case of homogenous table the type must match the
  * type used during table creation.
  * @param[in] value The value.
- * @return @c TRUE on success, @c FALSE otherwise. 
+ * @return @c TRUE on success, @c FALSE otherwise.
  *
  * @sa mcTable_SetCellEx
  */
-BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, 
+BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
                                MC_HVALUETYPE type, MC_HVALUE value);
 
 /**
@@ -217,9 +217,9 @@ BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
  * @param[in] wRow Row index.
  * @param[out] phType Value type is filled here.
  * @param[out] phValue Value handle is filled here.
- * @return @c TRUE on success, @c FALSE otherwise. 
+ * @return @c TRUE on success, @c FALSE otherwise.
  */
-BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, 
+BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
                                MC_HVALUETYPE* phType, MC_HVALUE* phValue);
 
 /**
