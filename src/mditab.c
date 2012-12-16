@@ -717,7 +717,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
                 (unicode ? MC_STRW : MC_STRA), MC_STRT);
         if(MC_ERR(item_text == NULL)) {
             MC_TRACE("mditab_insert_item: mc_str() failed.");
-            mc_send_notify(GetAncestor(mditab->win, GA_PARENT), mditab->win, NM_OUTOFMEMORY);
+            mc_send_notify(mditab->notify_win, mditab->win, NM_OUTOFMEMORY);
             return -1;
         }
     } else {
