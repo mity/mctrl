@@ -165,16 +165,27 @@ BOOL WINAPI __declspec(dllimport) GdiAlphaBlend(HDC dc1, int x1, int y1, int w1,
  *** Intrinsic ***
  *****************/
 
-/* <intrin.h> is only somewhere, so we may need to provide fallback
- * implementations for those we use. */
+/* <intrin.h> is only provided by some toolchains and many functions are
+ * available only for some architectures, so we may need to provide fallback
+ * implementations for those few functions we use. */
 
 #if defined MC_TOOLCHAIN_MSVC  ||  defined MC_TOOLCHAIN_MINGW64
     #include <intrin.h>
-#else
-    #define COMPAT_NEED_STOSD      1
-    void compat_stosd(unsigned long* dst, unsigned long val, size_t n);
-    #define __stosd compat_stosd
+    #define MC_HAVE_INTRIN_H
 #endif
+
+
+static inline void
+mc_stosd(uint32_t* dst, uint32_t val, size_t n)
+{
+#ifdef MC_HAVE_INTRIN_H
+    __stosd((unsigned long*) dst, (unsigned long)val, n);
+#else
+    size_t i;
+    for(i = 0; i < n; i++)
+        dst[i] = val;
+#endif
+}
 
 
 #endif  /* MC_COMPAT_H */

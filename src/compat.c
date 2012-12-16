@@ -164,14 +164,3 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
 }
 #endif  /* COMPAT_NEED_WCSTOUI64 */
 
-
-#ifdef COMPAT_NEED_STOSD
-void
-compat_stosd(unsigned long* dst, unsigned long val, size_t n)
-{
-    size_t i;
-
-    for(i = 0; i < n; i++)
-        dst[i] = val;
-}
-#endif  /* COMPAT_NEED_STOSD */
