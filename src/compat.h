@@ -187,5 +187,20 @@ mc_stosd(uint32_t* dst, uint32_t val, size_t n)
 #endif
 }
 
+static inline unsigned
+mc_clz(uint32_t val)
+{
+#ifdef MC_COMPILER_GCC
+    return __builtin_clz(val);
+#else
+    unsigned n = 0;
+    while(val > 0) {
+        val = val >> 1;
+        n++;
+    }
+    return (32 - n);
+#endif
+}
+
 
 #endif  /* MC_COMPAT_H */

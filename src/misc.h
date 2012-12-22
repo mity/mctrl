@@ -42,6 +42,8 @@
 /* Mininum and maximum et al. */
 #define MC_MIN(a,b)            ((a) < (b) ? (a) : (b))
 #define MC_MAX(a,b)            ((a) > (b) ? (a) : (b))
+#define MC_MIN3(a,b,c)         MC_MIN(MC_MIN((a), (b)), (c))
+#define MC_MAX3(a,b,c)         MC_MAX(MC_MAX((a), (b)), (c))
 #define MC_ABS(a)              ((a) >= 0 ? (a) : -(a))
 #define MC_SIGN(a)             ((a) > 0 ? +1 : ((a) < 0 ? -1 : 0))
 
