@@ -54,7 +54,7 @@ extern "C" {
  * - @c WM_SETFONT
  * - @c WM_SETREDRAW
  *
- * These standards notifications are sent by the control:
+ * These standard notifications are sent by the control:
  * - @c NM_OUTOFMEMORY
  */
 

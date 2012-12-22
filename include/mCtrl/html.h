@@ -142,7 +142,7 @@ extern "C" {
  * - @c CCM_SETNOTIFYWINDOW
  * - @c CCM_SETUNICODEFORMAT
  *
- * These standards notifications are sent by the control:
+ * These standard notifications are sent by the control:
  * - @c NM_OUTOFMEMORY
  */
 
