@@ -314,7 +314,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c int) Count of tabs.
  */
-#define MC_MTM_GETITEMCOUNT       (WM_USER + 100)
+#define MC_MTM_GETITEMCOUNT       (MC_MTM_FIRST + 100)
 
 /**
  * @brief Gets imagelist.
@@ -324,7 +324,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  *
  * @sa MC_MTM_SETIMAGELIST
  */
-#define MC_MTM_GETIMAGELIST       (WM_USER + 101)
+#define MC_MTM_GETIMAGELIST       (MC_MTM_FIRST + 101)
 
 /**
  * @brief Sets imagelist.
@@ -336,7 +336,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  *
  * @sa MC_MTM_GETIMAGELIST
  */
-#define MC_MTM_SETIMAGELIST       (WM_USER + 102)
+#define MC_MTM_SETIMAGELIST       (MC_MTM_FIRST + 102)
 
 /**
  * @brief Delete all tab items.
@@ -350,7 +350,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  *
  * @sa MC_MTM_DELETEITEM
  */
-#define MC_MTM_DELETEALLITEMS     (WM_USER + 103)
+#define MC_MTM_DELETEALLITEMS     (MC_MTM_FIRST + 103)
 
 /**
  * @brief Inserts new tab into the tab control (unicode variant).
@@ -359,7 +359,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * tab.
  * @return (@c int) index of the new tab, or @c -1 on failure.
  */
-#define MC_MTM_INSERTITEMW        (WM_USER + 105)
+#define MC_MTM_INSERTITEMW        (MC_MTM_FIRST + 105)
 
 /**
  * @brief Inserts new tab into the tab control (ANSI variant).
@@ -368,7 +368,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * tab.
  * @return (@c int) index of the new tab, or @c -1 on failure.
  */
-#define MC_MTM_INSERTITEMA        (WM_USER + 106)
+#define MC_MTM_INSERTITEMA        (MC_MTM_FIRST + 106)
 
 /**
  * @brief Sets tab in the tab control (unicode variant).
@@ -376,7 +376,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param[in] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the tab.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MTM_SETITEMW           (WM_USER + 107)
+#define MC_MTM_SETITEMW           (MC_MTM_FIRST + 107)
 
 /**
  * @brief Sets tab in the tab control (ANSI variant).
@@ -384,7 +384,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param[in] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the tab.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MTM_SETITEMA           (WM_USER + 108)
+#define MC_MTM_SETITEMA           (MC_MTM_FIRST + 108)
 
 /**
  * @brief Gets tab data from the tab control (unicode variant).
@@ -393,7 +393,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MTM_GETITEMW           (WM_USER + 109)
+#define MC_MTM_GETITEMW           (MC_MTM_FIRST + 109)
 
 /**
  * @brief Gets tab data from the tab control (ANSI variant).
@@ -402,7 +402,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MTM_GETITEMA           (WM_USER + 110)
+#define MC_MTM_GETITEMA           (MC_MTM_FIRST + 110)
 
 /**
  * @brief Deletes the item.
@@ -412,7 +412,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MTM_DELETEITEM         (WM_USER + 111)
+#define MC_MTM_DELETEITEM         (MC_MTM_FIRST + 111)
 
 /**
  * @brief Tests which tab (and its part) is placed on specified position.
@@ -421,7 +421,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * structure. Set @ref MC_MTHITTESTINFO::pt on input.
  * @return (@c int) Index of the hit tab, or -1.
  */
-#define MC_MTM_HITTEST            (WM_USER + 112)
+#define MC_MTM_HITTEST            (MC_MTM_FIRST + 112)
 
 /**
  * @brief Selects a tab.
@@ -429,7 +429,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c int) Index of previously selected tab, or @c -1.
  */
-#define MC_MTM_SETCURSEL          (WM_USER + 113)
+#define MC_MTM_SETCURSEL          (MC_MTM_FIRST + 113)
 
 /**
  * @brief Gets indes of selected tab.
@@ -437,7 +437,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c int) Index of selected tab, or @c -1.
  */
-#define MC_MTM_GETCURSEL          (WM_USER + 114)
+#define MC_MTM_GETCURSEL          (MC_MTM_FIRST + 114)
 
 /**
  * @brief Asks to close item.
@@ -448,7 +448,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MTM_CLOSEITEM          (WM_USER + 115)
+#define MC_MTM_CLOSEITEM          (MC_MTM_FIRST + 115)
 
 /**
  * @brief Sets default and minimal width for each tab.
@@ -463,7 +463,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  * @sa MC_MTM_GETITEMWIDTH
  */
-#define MC_MTM_SETITEMWIDTH       (WM_USER + 116)
+#define MC_MTM_SETITEMWIDTH       (MC_MTM_FIRST + 116)
 
 /**
  * @brief Gets default and minimal width for each tab.
@@ -473,7 +473,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  * @sa MC_MTM_SETITEMWIDTH
  */
-#define MC_MTM_GETITEMWIDTH       (WM_USER + 117)
+#define MC_MTM_GETITEMWIDTH       (MC_MTM_FIRST + 117)
 
 /**
  * @brief Preallocate anough memory for requested number of items.
@@ -484,7 +484,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MTM_INITSTORAGE        (WM_USER + 118)
+#define MC_MTM_INITSTORAGE        (MC_MTM_FIRST + 118)
 
 /*@}*/
 
@@ -501,7 +501,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * details about the selection change.
  * @return Application should return zero, if it processes the message.
  */
-#define MC_MTN_SELCHANGE          (0xfffffddb)
+#define MC_MTN_SELCHANGE          (MC_MTN_FIRST + 0)
 
 /**
  * @brief Fired when a tab is being deleted.
@@ -510,7 +510,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * specifying details about the item being deleted.
  * @return Application should return zero if it processes the notification.
  */
-#define MC_MTN_DELETEITEM         (0xfffffdd0)
+#define MC_MTN_DELETEITEM         (MC_MTN_FIRST + 1)
 
 /**
  * @brief Fired when control processes @c MC_MTM_DELETEALLITEMS message or
@@ -523,7 +523,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @return Application should return @c FALSE to receive subsequent
  * @ref MC_MTN_DELETEITEM for each item; or @c TRUE to supress sending them.
  */
-#define MC_MTN_DELETEALLITEMS     (0xfffffdcf)
+#define MC_MTN_DELETEALLITEMS     (MC_MTN_FIRST + 2)
 
 /**
  * @brief Fired when user requests closing a tab item.
@@ -534,7 +534,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * then deleted and @ref MC_MTN_DELETEITEM notification is sent); or @c TRUE
  * to cancel the tab closure.
  */
-#define MC_MTN_CLOSEITEM          (0xfffffdce)
+#define MC_MTN_CLOSEITEM          (MC_MTN_FIRST + 3)
 
 /*@}*/
 

@@ -157,7 +157,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * high-order word specifies height.
  * @return (@c DWORD) The original size.
  */
-#define MC_EXM_SETCOLLAPSEDSIZE    (WM_USER + 100)
+#define MC_EXM_SETCOLLAPSEDSIZE    (MC_EXM_FIRST + 0)
 
 /**
  * @brief Gets size of parent's client area when in collapsed state.
@@ -167,7 +167,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @return (@c DWORD) The size. Low-order word specifies width and high-order
  * word specifies height.
  */
-#define MC_EXM_GETCOLLAPSEDSIZE    (WM_USER + 101)
+#define MC_EXM_GETCOLLAPSEDSIZE    (MC_EXM_FIRST + 1)
 
 /**
  * @brief Specify size of parent's client area when in expanded state.
@@ -180,7 +180,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * high-order word specifies height.
  * @return (@c DWORD) The original size.
  */
- #define MC_EXM_SETEXPANDEDSIZE     (WM_USER + 102)
+ #define MC_EXM_SETEXPANDEDSIZE     (MC_EXM_FIRST + 2)
 
 /**
  * @brief Gets size of parent's client area when in expanded state.
@@ -190,7 +190,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @return (@c DWORD) The size. Low-order word specifies width and high-order
  * word specifies height.
  */
-#define MC_EXM_GETEXPANDEDSIZE     (WM_USER + 103)
+#define MC_EXM_GETEXPANDEDSIZE     (MC_EXM_FIRST + 3)
 
 /**
  * @brief Sets current state of the control to expanded or collapsed.
@@ -199,7 +199,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_EXM_EXPAND              (WM_USER + 104)
+#define MC_EXM_EXPAND              (MC_EXM_FIRST + 4)
 
 /**
  * @brief Toggles current state of the control between expanded and collapsed.
@@ -208,7 +208,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_EXM_TOGGLE              (WM_USER + 106)
+#define MC_EXM_TOGGLE              (MC_EXM_FIRST + 5)
 
 /**
  * @brief Gets current state of the control.
@@ -217,7 +217,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE if expanded, @c FALSE if collapsed.
  */
-#define MC_EXM_ISEXPANDED          (WM_USER + 107)
+#define MC_EXM_ISEXPANDED          (MC_EXM_FIRST + 6)
 
 /*@}*/
 

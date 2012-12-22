@@ -86,6 +86,56 @@ extern "C" {
 /*@}*/
 
 
+/**
+ * @name Control Specific Message Ranges
+ */
+/*@{*/
+
+#define MC_EXM_FIRST        (WM_USER+0x4000 + 0)
+#define MC_EXM_LAST         (WM_USER+0x4000 + 49)
+
+#define MC_GM_FIRST         (WM_USER+0x4000 + 50)
+#define MC_GM_LAST          (WM_USER+0x4000 + 199)
+
+#define MC_HM_FIRST         (WM_USER+0x4000 + 200)
+#define MC_HM_LAST          (WM_USER+0x4000 + 299)
+
+#define MC_MTM_FIRST        (WM_USER+0x4000 + 300)
+#define MC_MTM_LAST         (WM_USER+0x4000 + 399)
+
+#define MC_MBM_FIRST        (WM_USER+0x4000 + 400)
+#define MC_MBM_LAST         (WM_USER+0x4000 + 499)
+
+#define MC_PVM_FIRST        (WM_USER+0x4000 + 500)
+#define MC_PVM_LAST         (WM_USER+0x4000 + 599)
+
+/*@}*/
+
+
+/**
+ * @name Control Specific Notification Ranges
+ */
+/*@{*/
+
+#define MC_EXN_FIRST        (0x40000000 + 0)
+#define MC_EXN_LAST         (0x40000000 + 49)
+
+#define MC_GN_FIRST         (0x40000000 + 100)
+#define MC_GN_LAST          (0x40000000 + 199)
+
+#define MC_HN_FIRST         (0x40000000 + 200)
+#define MC_HN_LAST          (0x40000000 + 299)
+
+#define MC_MTN_FIRST        (0x40000000 + 300)
+#define MC_MTN_LAST         (0x40000000 + 349)
+
+#define MC_PVN_FIRST        (0x40000000 + 400)
+#define MC_PVN_LAST         (0x40000000 + 499)
+
+/*@}*/
+
+
+
 #ifdef __cplusplus
 }  /* extern "C" */
 #endif

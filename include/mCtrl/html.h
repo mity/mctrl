@@ -201,7 +201,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * @param[in] lParam (@c const @c WCHAR*) The URL.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_HM_GOTOURLW        (WM_USER + 10)
+#define MC_HM_GOTOURLW        (MC_HM_FIRST + 10)
 
 /**
  * @brief Displays a document specified by the given URL (ANSI variant).
@@ -209,7 +209,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * @param[in] lParam (@c const @c char*) The URL.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_HM_GOTOURLA        (WM_USER + 11)
+#define MC_HM_GOTOURLA        (MC_HM_FIRST + 11)
 
 /**
  * @brief Set contents of the HTML tag with given attribute @c "id" (Unicode variant).
@@ -218,7 +218,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  * @see @ref html_generated_contents
  */
-#define MC_HM_SETTAGCONTENTSW (WM_USER + 12)
+#define MC_HM_SETTAGCONTENTSW (MC_HM_FIRST + 12)
 
 /**
  * @brief Set contents of the HTML tag with given attribute @c "id" (ANSI variant).
@@ -227,7 +227,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  * @see @ref html_generated_contents
  */
-#define MC_HM_SETTAGCONTENTSA (WM_USER + 13)
+#define MC_HM_SETTAGCONTENTSA (MC_HM_FIRST + 13)
 
 /**
  * @brief Navigates the HTML control back or forward in history.
@@ -237,7 +237,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  * @see MC_HM_CANBACK
  */
-#define MC_HM_GOBACK          (WM_USER + 14)
+#define MC_HM_GOBACK          (MC_HM_FIRST + 14)
 
 /**
  * @brief Tests whether going back or forward in history is possible.
@@ -247,7 +247,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * @return (@c BOOL) @c TRUE if can go back or forward respectivelly, @c FALSE otherwise.
  * @see MC_HM_GOBACK
  */
-#define MC_HM_CANBACK         (WM_USER + 15)
+#define MC_HM_CANBACK         (MC_HM_FIRST + 15)
 
 /*@}*/
 
@@ -342,7 +342,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * details about the URL.
  * @return Application should return zero if it processes the notification.
  */
-#define MC_HN_APPLINK            ((0U-2000U) + 0x0001)
+#define MC_HN_APPLINK            (MC_HN_FIRST + 0)
 
 /**
  * @brief Fired when loading of a document is complete.
@@ -351,7 +351,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * details about the URL.
  * @return Application should return zero if it processes the notification.
  */
-#define MC_HN_DOCUMENTCOMPLETE   ((0U-2000U) + 0x0002)
+#define MC_HN_DOCUMENTCOMPLETE   (MC_HN_FIRST + 1)
 
 /**
  * @brief Fired to inform application about download progress.
@@ -363,7 +363,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * details about the progress.
  * @return Application should return zero if it processes the notification.
  */
-#define MC_HN_PROGRESS           ((0U-2000U) + 0x0003)
+#define MC_HN_PROGRESS           (MC_HN_FIRST + 2)
 
 /**
  * @brief Fired when the browser would like to change status text.
@@ -375,7 +375,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * the text.
  * @return Application should return zero if it processes the notification.
  */
-#define MC_HN_STATUSTEXT         ((0U-2000U) + 0x0004)
+#define MC_HN_STATUSTEXT         (MC_HN_FIRST + 3)
 
 /**
  * @brief Fired when the browser changes title of the HTML page.
@@ -387,7 +387,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * the text.
  * @return Application should return zero if it processes the notification.
  */
-#define MC_HN_TITLETEXT          ((0U-2000U) + 0x0005)
+#define MC_HN_TITLETEXT          (MC_HN_FIRST + 4)
 
 /**
  * @brief Fired when possibility of going back or foward in history changes.
@@ -402,7 +402,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  *
  * @sa MC_HM_GOBACK MC_HM_CANBACK
  */
-#define MC_HN_HISTORY            ((0U-2000U) + 0x0006)
+#define MC_HN_HISTORY            (MC_HN_FIRST + 5)
 
 /**
  * @brief Fired when the browser would open a new window.
@@ -418,7 +418,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * @return Application should return non-zero to allow opening the new window,
  * or zero to deny it.
  */
-#define MC_HN_NEWWINDOW          ((0U-2000U) + 0x0007)
+#define MC_HN_NEWWINDOW          (MC_HN_FIRST + 6)
 
 /*@}*/
 

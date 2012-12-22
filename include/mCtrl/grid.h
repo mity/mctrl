@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Martin Mitas
+ * Copyright (c) 2010-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -219,7 +219,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@ref MC_HTABLE) Handle of the table, or @c NULL.
  */
-#define MC_GM_GETTABLE            (WM_USER + 100)
+#define MC_GM_GETTABLE            (MC_GM_FIRST + 100)
 
 /**
  * @brief Attaches a table to the control.
@@ -234,7 +234,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param[in] lParam (@ref MC_HTABLE) Handle of the table, or @c NULL.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETTABLE            (WM_USER + 101)
+#define MC_GM_SETTABLE            (MC_GM_FIRST + 101)
 
 /**
  * @brief Gets count of columns in table attached to the control.
@@ -243,7 +243,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c WORD) Returns count of table columns.
  */
-#define MC_GM_GETCOLUMNCOUNT      (WM_USER + 102)
+#define MC_GM_GETCOLUMNCOUNT      (MC_GM_FIRST + 102)
 
 /**
  * @brief Gets count of rows in table attached to the control.
@@ -252,7 +252,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c WORD) Returns count of table rows.
  */
-#define MC_GM_GETROWCOUNT         (WM_USER + 103)
+#define MC_GM_GETROWCOUNT         (MC_GM_FIRST + 103)
 
 /**
  * @brief Resizes table attached to the control.
@@ -262,7 +262,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_RESIZE              (WM_USER + 104)
+#define MC_GM_RESIZE              (MC_GM_FIRST + 104)
 
 /**
  * @brief Clears the table.
@@ -271,7 +271,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return Not defined, do not rely on return value.
  */
-#define MC_GM_CLEAR               (WM_USER + 109)
+#define MC_GM_CLEAR               (MC_GM_FIRST + 109)
 
 /**
  * @brief Sets a table cell.
@@ -281,7 +281,7 @@ typedef struct MC_GGEOMETRY_tag {
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETCELL             (WM_USER + 110)
+#define MC_GM_SETCELL             (MC_GM_FIRST + 110)
 
 /**
  * @brief Gets a table cell.
@@ -294,7 +294,7 @@ typedef struct MC_GGEOMETRY_tag {
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_GETCELL             (WM_USER + 111)
+#define MC_GM_GETCELL             (MC_GM_FIRST + 111)
 
 /**
  * @brief Sets geometry of the grid.
@@ -305,7 +305,7 @@ typedef struct MC_GGEOMETRY_tag {
  * If @c lParam is @c NULL, the geometry is reset to a default values.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETGEOMETRY         (WM_USER + 112)
+#define MC_GM_SETGEOMETRY         (MC_GM_FIRST + 112)
 
 /**
  * @brief Sets geometry of the grid.
@@ -315,7 +315,7 @@ typedef struct MC_GGEOMETRY_tag {
  * the geometry. Only fields specified by the member @c fMask are retrieved.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_GETGEOMETRY         (WM_USER + 113)
+#define MC_GM_GETGEOMETRY         (MC_GM_FIRST + 113)
 
 /*@}*/
 
