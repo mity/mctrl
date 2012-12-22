@@ -171,36 +171,54 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the control.
+ * @name Initialization Functions
+ */
+/*@{*/
+
+/**
+ * Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @sa @ref sec_init
  */
 BOOL MCTRL_API mcMenubar_Initialize(void);
 
 /**
- * @brief Unregisters window class of the control.
- * @sa @ref sec_init
+ * Unregisters window class of the control.
  */
 void MCTRL_API mcMenubar_Terminate(void);
+
+/*@}*/
+
+
+/**
+ * @name Related Functions
+ */
+/*@{*/
 
 /**
  * @brief Determines whether a message is intended for the specified
  * menubar control and, if it is, processes the message.
+ *
+ * The application typically calls this function in main message loop.
+ *
  * @param hwndMenubar The menubar control.
  * @param lpMsg The message.
  * @return @c TRUE, if the message has been processed; @c FALSE otherwise.
  */
 BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
 
+/*@}*/
+
 
 /**
  * @name Window Class
  */
 /*@{*/
-/** @brief Window class name (unicode variant). */
+
+/** Window class name (unicode variant). */
 #define MC_WC_MENUBARW       L"mCtrl.menubar"
-/** @brief Window class name (ANSI variant). */
+/** Window class name (ANSI variant). */
 #define MC_WC_MENUBARA        "mCtrl.menubar"
+
 /*@}*/
 
 
@@ -238,7 +256,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_WC_MENUBARW MC_WC_MENUBARA */
+/** Unicode-resolution alias. @sa MC_WC_MENUBARW MC_WC_MENUBARA */
 #define MC_WC_MENUBAR         MCTRL_NAME_AW(MC_WC_MENUBAR)
 
 /*@}*/

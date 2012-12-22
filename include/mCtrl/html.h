@@ -148,28 +148,34 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the control.
+ * @name Initialization Functions
+ */
+/*@{*/
+
+/**
+ * Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @sa @ref sec_init
  */
 BOOL MCTRL_API mcHtml_Initialize(void);
 
 /**
- * @brief Unregisters window class of the control.
- *
- * @sa @ref sec_init
+ * Unregisters window class of the control.
  */
 void MCTRL_API mcHtml_Terminate(void);
+
+/*@}*/
 
 
 /**
  * @name Window Class
  */
 /*@{*/
-/** @brief Window class name (unicode variant). */
+
+/** Window class name (unicode variant). */
 #define MC_WC_HTMLW            L"mCtrl.html"
-/** @brief Window class name (ANSI variant). */
+/** Window class name (ANSI variant). */
 #define MC_WC_HTMLA             "mCtrl.html"
+
 /*@}*/
 
 
@@ -177,8 +183,10 @@ void MCTRL_API mcHtml_Terminate(void);
  * @name Control Styles
  */
 /*@{*/
+
 /** @brief Disables context menu */
 #define MC_HS_NOCONTEXTMENU    0x0001
+
 /*@}*/
 
 
@@ -243,6 +251,11 @@ void MCTRL_API mcHtml_Terminate(void);
 
 /*@}*/
 
+
+/**
+ * @name Structures
+ */
+/*@{*/
 
 /**
  * @brief Structure used for notifications with URL parameter (unicode variant).
@@ -313,6 +326,8 @@ typedef struct MC_NMHTMLHISTORY_tag {
     /** @brief @c TRUE if going forward in history is possible. */
     BOOL bCanForward;
 } MC_NMHTMLHISTORY;
+
+/*@}*/
 
 
 /**
@@ -413,15 +428,15 @@ typedef struct MC_NMHTMLHISTORY_tag {
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_WC_HTMLW MC_WC_HTMLA */
+/** Unicode-resolution alias. @sa MC_WC_HTMLW MC_WC_HTMLA */
 #define MC_WC_HTML             MCTRL_NAME_AW(MC_WC_HTML)
-/** @brief Unicode-resolution alias. @sa MC_HM_GOTOURLW MC_HM_GOTOURLA */
+/** Unicode-resolution alias. @sa MC_HM_GOTOURLW MC_HM_GOTOURLA */
 #define MC_HM_GOTOURL          MCTRL_NAME_AW(MC_HM_GOTOURL)
-/** @brief Unicode-resolution alias. @sa MC_HM_SETTAGCONTENTSW MC_HM_SETTAGCONTENTSA*/
+/** Unicode-resolution alias. @sa MC_HM_SETTAGCONTENTSW MC_HM_SETTAGCONTENTSA */
 #define MC_HM_SETTAGCONTENTS   MCTRL_NAME_AW(MC_HM_SETTAGCONTENTS)
-/** @brief Unicode-resolution alias. @sa MC_NMHTMLURLW MC_NMHTMLURLA */
+/** Unicode-resolution alias. @sa MC_NMHTMLURLW MC_NMHTMLURLA */
 #define MC_NMHTMLURL           MCTRL_NAME_AW(MC_NMHTMLURL)
-/** @brief Unicode-resolution alias. @sa MC_NMHTMLTEXTW MC_NMHTMLTEXTA */
+/** Unicode-resolution alias. @sa MC_NMHTMLTEXTW MC_NMHTMLTEXTA */
 #define MC_NMHTMLTEXT          MCTRL_NAME_AW(MC_NMHTMLTEXT)
 
 /*@}*/

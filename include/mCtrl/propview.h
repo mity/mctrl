@@ -60,28 +60,34 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the control.
+ * @name Initialization Functions
+ */
+/*@{*/
+
+/**
+ * Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @sa @ref sec_init
  */
 BOOL MCTRL_API mcPropView_Initialize(void);
 
 /**
- * @brief Unregisters window class of the control.
- *
- * @sa @ref sec_init
+ * Unregisters window class of the control.
  */
 void MCTRL_API mcPropView_Terminate(void);
+
+/*@}*/
 
 
 /**
  * @name Window Class
  */
 /*@{*/
-/** @brief Window class name (unicode variant). */
+
+/** Window class name (unicode variant). */
 #define MC_WC_PROPVIEWW        L"mCtrl.propView"
-/** @brief Window class name (ANSI variant). */
+/** Window class name (ANSI variant). */
 #define MC_WC_PROPVIEWA         "mCtrl.propView"
+
 /*@}*/
 
 
@@ -219,32 +225,37 @@ void MCTRL_API mcPropView_Terminate(void);
 //#define MC_PVM_ISITEMVISIBLE      (WM_USER + 115)
 //#define MC_PVM_GETEDITCONTROL     (WM_USER + 126)
 //#define MC_PVM_HITTEST            (WM_USER + 127)
+
 /*@}*/
+
 
 /**
  * @name Control Notifications
  */
 /*@{*/
+
 //#define MC_PVN_BEGINITEMEDIT      ((0U-2050U) + 1)
 //#define MC_PVN_ENDITEMEDIT        ((0U-2050U) + 2)
 //#define MC_PVN_ITEMDROPDOWN       ((0U-2050U) + 3)
 //#define MC_PVN_ITEMDLGEDIT        ((0U-2050U) + 4)
+
 /*@}*/
+
 
 /**
  * @name Unicode Resolution
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_WC_PROPVIEWW MC_WC_PROPVIEWA */
+/** Unicode-resolution alias. @sa MC_WC_PROPVIEWW MC_WC_PROPVIEWA */
 #define MC_WC_PROPVIEW      MCTRL_NAME_AW(MC_WC_PROPVIEW)
-/** @brief Unicode-resolution alias. @sa MC_PVITEMW MC_PVITEMA */
+/** Unicode-resolution alias. @sa MC_PVITEMW MC_PVITEMA */
 #define MC_PVITEM           MCTRL_NAME_AW(MC_PVITEM)
-/** @brief Unicode-resolution alias. @sa MC_PVM_INSERTITEMW MC_PVM_INSERTITEMA */
+/** Unicode-resolution alias. @sa MC_PVM_INSERTITEMW MC_PVM_INSERTITEMA */
 #define MC_PVM_INSERTITEM   MCTRL_NAME_AW(MC_PVM_INSERTITEM)
-/** @brief Unicode-resolution alias. @sa MC_PVM_SETITEMW MC_PVM_SETITEMA */
+/** Unicode-resolution alias. @sa MC_PVM_SETITEMW MC_PVM_SETITEMA */
 #define MC_PVM_SETITEM      MCTRL_NAME_AW(MC_PVM_SETITEM)
-/** @brief Unicode-resolution alias. @sa MC_PVM_GETITEMW MC_PVM_GETITEMA */
+/** Unicode-resolution alias. @sa MC_PVM_GETITEMW MC_PVM_GETITEMA */
 #define MC_PVM_GETITEM      MCTRL_NAME_AW(MC_PVM_GETITEM)
 
 /*@}*/

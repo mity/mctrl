@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2012 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -131,27 +131,34 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the control.
+ * @name Initialization Functions
+ */
+/*@{*/
+
+/**
+ * Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @sa @ref sec_init
  */
 BOOL MCTRL_API mcButton_Initialize(void);
 
 /**
- * @brief Unregisters window class of the control.
- * @sa @ref sec_init
+ * Unregisters window class of the control.
  */
 void MCTRL_API mcButton_Terminate(void);
+
+/*@}*/
 
 
 /**
  * @name Window Class
  */
 /*@{*/
-/** @brief Window class name (unicode variant). */
+
+/** Window class name (unicode variant). */
 #define MC_WC_BUTTONW          L"mCtrl.button"
-/** @brief Window class name (ANSI variant). */
+/** Window class name (ANSI variant). */
 #define MC_WC_BUTTONA           "mCtrl.button"
+
 /*@}*/
 
 
@@ -161,7 +168,7 @@ void MCTRL_API mcButton_Terminate(void);
 /*@{*/
 
 /**
- * @brief Style to create a split button.
+ * @brief Style of a split button.
  *
  * It is equivalent to standard @c BS_SPLITBUTTON.
  * It is provided because the standard @c BS_SPLITBUTTON is defined only if
@@ -170,7 +177,7 @@ void MCTRL_API mcButton_Terminate(void);
 #define MC_BS_SPLITBUTTON         0x000C
 
 /**
- * @brief Style to create a default split button.
+ * @brief Style of a default split button.
  *
  * It is equivalent to standard @c BS_DEFSPLITBUTTON.
  * It is provided because the standard @c BS_SPLITBUTTON is defined only if
@@ -200,6 +207,11 @@ void MCTRL_API mcButton_Terminate(void);
 
 
 /**
+ * @name Structures
+ */
+/*@{*/
+
+/**
  * @brief Structure for notification @ref MC_BCN_DROPDOWN.
  *
  * It is equivalent to standard @c NMBCDROPDOWN.
@@ -212,6 +224,8 @@ typedef struct MC_NMBCDROPDOWN_tag {
     /** @brief Client rectangle of the dropdown button. */
     RECT rcButton;
 } MC_NMBCDROPDOWN;
+
+/*@}*/
 
 
 /**
@@ -243,12 +257,8 @@ typedef struct MC_NMBCDROPDOWN_tag {
  */
 /*@{*/
 
-#ifdef UNICODE
-    /** @brief Unicode-resolution alias. @sa MC_WC_MDITABW MC_WC_MDITABA */
-    #define MC_WC_BUTTON        MC_WC_BUTTONW
-#else
-    #define MC_WC_BUTTON        MC_WC_BUTTONA
-#endif
+/** Unicode-resolution alias. @sa MC_WC_MDITABW MC_WC_MDITABA */
+#define MC_WC_BUTTON        MCTRL_NAME_AW(MC_WC_BUTTON)
 
 /*@}*/
 

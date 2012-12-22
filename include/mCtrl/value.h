@@ -148,6 +148,7 @@ typedef void* MC_HVALUE;
  * @ref mcValueType_GetBuiltin().
  */
 /*@{*/
+
 #define MC_VALUETYPEID_UNDEFINED        0
 /** @brief ID for 32-bit signed integer value type. */
 #define MC_VALUETYPEID_INT32            1
@@ -169,8 +170,14 @@ typedef void* MC_HVALUE;
 #define MC_VALUETYPEID_COLORREF         9
 /** @brief ID for icon handle (@c HICON). */
 #define MC_VALUETYPEID_HICON           10
+
 /*@}*/
 
+
+/**
+ * @name Value Type Functions
+ */
+/*@{*/
 
 /**
  * @brief Retrieve Handle of a value type implemented in mCtrl.
@@ -180,9 +187,11 @@ typedef void* MC_HVALUE;
  */
 MC_HVALUETYPE MCTRL_API mcValueType_GetBuiltin(int id);
 
+/*@}*/
+
 
 /**
- * @name Factory Functions
+ * @name Value Factory Functions
  */
 /*@{*/
 
@@ -270,7 +279,7 @@ BOOL MCTRL_API mcValue_CreateFromHIcon(MC_HVALUE* phValue, HICON hIcon);
 
 
 /**
- * @name Getter Functions
+ * @name Value Getter Functions
  */
 /*@{*/
 
@@ -376,17 +385,17 @@ void MCTRL_API mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue);
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_VALUETYPEID_STRINGW MC_VALUETYPEID_STRINGA */
+/** Unicode-resolution alias. @sa MC_VALUETYPEID_STRINGW MC_VALUETYPEID_STRINGA */
 #define MC_VALUETYPEID_STRING        MCTRL_NAME_AW(MC_VALUETYPEID_STRING)
-/** @brief Unicode-resolution alias. @sa MC_VALUETYPEID_IMMSTRINGW MC_VALUETYPEID_IMMSTRINGA */
+/** Unicode-resolution alias. @sa MC_VALUETYPEID_IMMSTRINGW MC_VALUETYPEID_IMMSTRINGA */
 #define MC_VALUETYPEID_IMMSTRING     MCTRL_NAME_AW(MC_VALUETYPEID_IMMSTRING)
-/** @brief Unicode-resolution alias. @sa mcValue_CreateFromStringW mcValue_CreateFromStringA */
+/** Unicode-resolution alias. @sa mcValue_CreateFromStringW mcValue_CreateFromStringA */
 #define mcValue_CreateFromString     MCTRL_NAME_AW(mcValue_CreateFromString)
-/** @brief Unicode-resolution alias. @sa mcValue_CreateFromImmStringW mcValue_CreateFromImmStringA */
+/** Unicode-resolution alias. @sa mcValue_CreateFromImmStringW mcValue_CreateFromImmStringA */
 #define mcValue_CreateFromImmString  MCTRL_NAME_AW(mcValue_CreateFromImmString)
-/** @brief Unicode-resolution alias. @sa mcValue_GetStringW mcValue_GetStringA */
+/** Unicode-resolution alias. @sa mcValue_GetStringW mcValue_GetStringA */
 #define mcValue_GetString            MCTRL_NAME_AW(mcValue_GetString)
-/** @brief Unicode-resolution alias. @sa mcValue_GetImmStringW mcValue_GetImmStringA */
+/** Unicode-resolution alias. @sa mcValue_GetImmStringW mcValue_GetImmStringA */
 #define mcValue_GetImmString         MCTRL_NAME_AW(mcValue_GetImmString)
 
 /*@}*/

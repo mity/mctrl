@@ -99,13 +99,89 @@ typedef void* MC_HTABLE;
  * @sa mcTable_Create()
  */
 /*@{*/
+
 /** @brief If set, the table does not store foreground colors for each cell. */
 #define MC_TF_NOCELLFOREGROUND      0x00000001
 /** @brief If set, the table does not store background colors for each cell. */
 #define MC_TF_NOCELLBACKGROUND      0x00000002
 /** @brief If set, the table does not store flags for each cell. */
 #define MC_TF_NOCELLFLAGS           0x00000004
+
 /*@}*/
+
+
+/**
+ * @anchor MC_TCM_xxxx
+ * @name MC_TABLECELL::fMask Bits
+ */
+/*@{*/
+
+/** @brief Set if @ref MC_TABLECELL::hType and @ref MC_TABLECELL::hValue are valid. */
+#define MC_TCM_VALUE                0x00000001
+/** @brief Set if @ref MC_TABLECELL::crForeground is valid. */
+#define MC_TCM_FOREGROUND           0x00000002
+/** @brief Set if @ref MC_TABLECELL::crBackground is valid. */
+#define MC_TCM_BACKGROUND           0x00000004
+/** @brief Set if @ref MC_TABLECELL::dwFlags is valid. */
+#define MC_TCM_FLAGS                0x00000008
+
+/*@}*/
+
+
+/**
+ * @anchor MC_TCF_xxxx
+ * @name MC_TABLECELL::dwFlags Bits
+ */
+/*@{*/
+
+/** @brief Paint the cell value aligned horizontally as default for the value type. */
+#define MC_TCF_ALIGNDEFAULT         0x00000000
+/** @brief Paint the cell value aligned horizontally to left. */
+#define MC_TCF_ALIGNLEFT            0x00000001
+/** @brief Paint the cell value aligned horizontally to center. */
+#define MC_TCF_ALIGNCENTER          0x00000003
+/** @brief Paint the cell value aligned horizontally to right. */
+#define MC_TCF_ALIGNRIGHT           0x00000002
+/** @brief Paint the cell value aligned vertically as normal for the value type. */
+#define MC_TCF_ALIGNVDEFAULT        0x00000000
+/** @brief Paint the cell value aligned vertically to top. */
+#define MC_TCF_ALIGNTOP             0x00000004
+/** @brief Paint the cell value aligned vertically to center. */
+#define MC_TCF_ALIGNVCENTER         0x0000000C
+/** @brief Paint the cell value aligned vertically to bottom. */
+#define MC_TCF_ALIGNBOTTOM          0x00000008
+
+/*@}*/
+
+
+/**
+ * @brief Structure describing a table cell.
+ *
+ * Note that only members corresponding to the set bits of the @c fMask
+ * are considered valid. (@c fMask itself is always valid of course.)
+ *
+ * @sa mcTable_SetCellEx mcTable_GetCellEx
+ */
+typedef struct MC_TABLECELL_tag {
+    /** @brief Bitmask specifying what other members are valid. See @ref MC_TCM_xxxx. */
+    DWORD fMask;
+    /** @brief Handle of value type. */
+    MC_HVALUETYPE hType;
+    /** @brief Handle of value. */
+    MC_HVALUE hValue;
+    /** @brief Foreground color. It's up to the value type if it respects it. */
+    COLORREF crForeground;
+    /** @brief Background color. */
+    COLORREF crBackground;
+    /** @brief Cell flags. See @ref MC_TCF_xxxx. */
+    DWORD dwFlags;
+} MC_TABLECELL;
+
+
+/**
+ * @name Functions
+ */
+/*@{*/
 
 /**
  * @brief Create new table.
@@ -223,68 +299,6 @@ BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
                                MC_HVALUETYPE* phType, MC_HVALUE* phValue);
 
 /**
- * @anchor MC_TCM_xxxx
- * @name MC_TABLECELL::fMask Bits
- */
-/*@{*/
-/** @brief Set if @ref MC_TABLECELL::hType and @ref MC_TABLECELL::hValue are valid. */
-#define MC_TCM_VALUE                0x00000001
-/** @brief Set if @ref MC_TABLECELL::crForeground is valid. */
-#define MC_TCM_FOREGROUND           0x00000002
-/** @brief Set if @ref MC_TABLECELL::crBackground is valid. */
-#define MC_TCM_BACKGROUND           0x00000004
-/** @brief Set if @ref MC_TABLECELL::dwFlags is valid. */
-#define MC_TCM_FLAGS                0x00000008
-/*@}*/
-
-/**
- * @anchor MC_TCF_xxxx
- * @name MC_TABLECELL::dwFlags Bits
- */
-/*@{*/
-/** @brief Paint the cell value aligned horizontally as default for the value type. */
-#define MC_TCF_ALIGNDEFAULT         0x00000000
-/** @brief Paint the cell value aligned horizontally to left. */
-#define MC_TCF_ALIGNLEFT            0x00000001
-/** @brief Paint the cell value aligned horizontally to center. */
-#define MC_TCF_ALIGNCENTER          0x00000003
-/** @brief Paint the cell value aligned horizontally to right. */
-#define MC_TCF_ALIGNRIGHT           0x00000002
-/** @brief Paint the cell value aligned vertically as normal for the value type. */
-#define MC_TCF_ALIGNVDEFAULT        0x00000000
-/** @brief Paint the cell value aligned vertically to top. */
-#define MC_TCF_ALIGNTOP             0x00000004
-/** @brief Paint the cell value aligned vertically to center. */
-#define MC_TCF_ALIGNVCENTER         0x0000000C
-/** @brief Paint the cell value aligned vertically to bottom. */
-#define MC_TCF_ALIGNBOTTOM          0x00000008
-/*@}*/
-
-/**
- * @brief Structure describing a table cell.
- *
- * Note that only members corresponding to the set bits of the @c fMask
- * are considered valid. (@c fMask itself is always valid of course.)
- *
- * @sa mcTable_SetCellEx mcTable_GetCellEx
- */
-typedef struct MC_TABLECELL_tag {
-    /** @brief Bitmask specifying what other members are valid. See @ref MC_TCM_xxxx. */
-    DWORD fMask;
-    /** @brief Handle of value type. */
-    MC_HVALUETYPE hType;
-    /** @brief Handle of value. */
-    MC_HVALUE hValue;
-    /** @brief Foreground color. It's up to the value type if it respects it. */
-    COLORREF crForeground;
-    /** @brief Background color. */
-    COLORREF crBackground;
-    /** @brief Cell flags. See @ref MC_TCF_xxxx. */
-    DWORD dwFlags;
-} MC_TABLECELL;
-
-
-/**
  * @brief Set contents of a cell.
  *
  * If @c pCell->fMask includes the bit @c MC_TCM_VALUE, then
@@ -319,6 +333,8 @@ BOOL MCTRL_API mcTable_SetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow,
  */
 BOOL MCTRL_API mcTable_GetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow,
                                  MC_TABLECELL* pCell);
+
+/*@}*/
 
 
 #ifdef __cplusplus

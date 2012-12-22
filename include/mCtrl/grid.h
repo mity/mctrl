@@ -62,28 +62,34 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the control.
+ * @name Initialization Functions
+ */
+/*@{*/
+
+/**
+ * Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @sa @ref sec_init
  */
 BOOL MCTRL_API mcGrid_Initialize(void);
 
 /**
- * @brief Unregisters window class of the control.
- *
- * @sa @ref sec_init
+ * Unregisters window class of the control.
  */
 void MCTRL_API mcGrid_Terminate(void);
+
+/*@}*/
 
 
 /**
  * @name Window Class
  */
 /*@{*/
-/** @brief Window class name (unicode variant). */
+
+/** Window class name (unicode variant). */
 #define MC_WC_GRIDW            L"mCtrl.grid"
-/** @brief Window class name (ANSI variant). */
+/** Window class name (ANSI variant). */
 #define MC_WC_GRIDA             "mCtrl.grid"
+
 /*@}*/
 
 
@@ -118,6 +124,44 @@ void MCTRL_API mcGrid_Terminate(void);
 
 /*@}*/
 
+
+/**
+ * @name MC_GGEOMETRY::fMask Bits
+ * @anchor MC_GGM_xxxx
+ */
+/*@{*/
+
+/** @brief Set if @ref MC_GGEOMETRY::wColumnHeaderHeight is valid. */
+#define MC_GGM_COLUMNHEADERHEIGHT     (1 << 0)
+/** @brief Set if @ref MC_GGEOMETRY::wRowHeaderWidth is valid. */
+#define MC_GGM_ROWHEADERWIDTH         (1 << 1)
+/** @brief Set if @ref MC_GGEOMETRY::wColumnWidth is valid. */
+#define MC_GGM_COLUMNWIDTH            (1 << 2)
+/** @brief Set if @ref MC_GGEOMETRY::wRowHeight is valid. */
+#define MC_GGM_ROWHEIGHT              (1 << 3)
+/** @brief Set if @ref MC_GGEOMETRY::wPaddingHorz is valid. */
+#define MC_GGM_PADDINGHORZ            (1 << 4)
+/** @brief Set if @ref MC_GGEOMETRY::wPaddingVert is valid. */
+#define MC_GGM_PADDINGVERT            (1 << 5)
+
+#ifndef DOXYGEN  /* prevent documentation of these */
+    /* Deprecated: Use @ref MC_GGM_xxxx instead in new code. */
+    #define MC_GGF_COLUMNHEADERHEIGHT     MC_GGM_COLUMNHEADERHEIGHT
+    #define MC_GGF_ROWHEADERWIDTH         MC_GGM_ROWHEADERWIDTH
+    #define MC_GGF_COLUMNWIDTH            MC_GGM_COLUMNWIDTH
+    #define MC_GGF_ROWHEIGHT              MC_GGM_ROWHEIGHT
+    #define MC_GGF_PADDINGHORZ            MC_GGM_PADDINGHORZ
+    #define MC_GGF_PADDINGVERT            MC_GGM_PADDINGVERT
+#endif
+
+/*@}*/
+
+
+/**
+ * Structures
+ */
+/*@{*/
+
 /**
  * @brief Structure for setting and getting cell of the table.
  * @sa MC_GM_SETCELL MC_GM_GETCELL
@@ -132,35 +176,6 @@ typedef struct MC_GCELL_tag {
     /** @brief Handle of the value */
     MC_HVALUE hValue;
 } MC_GCELL;
-
-/**
- * @anchor MC_GGM_xxxx
- * @name MC_GGEOMETRY::fMask Bits
- */
-/*@{*/
-/** @brief Set if @ref MC_GGEOMETRY::wColumnHeaderHeight is valid. */
-#define MC_GGM_COLUMNHEADERHEIGHT     (1 << 0)
-/** @brief Set if @ref MC_GGEOMETRY::wRowHeaderWidth is valid. */
-#define MC_GGM_ROWHEADERWIDTH         (1 << 1)
-/** @brief Set if @ref MC_GGEOMETRY::wColumnWidth is valid. */
-#define MC_GGM_COLUMNWIDTH            (1 << 2)
-/** @brief Set if @ref MC_GGEOMETRY::wRowHeight is valid. */
-#define MC_GGM_ROWHEIGHT              (1 << 3)
-/** @brief Set if @ref MC_GGEOMETRY::wPaddingHorz is valid. */
-#define MC_GGM_PADDINGHORZ            (1 << 4)
-/** @brief Set if @ref MC_GGEOMETRY::wPaddingVert is valid. */
-#define MC_GGM_PADDINGVERT            (1 << 5)
-/*@}*/
-
-#ifndef DOXYGEN  /* prevent documentation of these */
-    /* Deprecated: Use @ref MC_GGM_xxxx instead in new code. */
-    #define MC_GGF_COLUMNHEADERHEIGHT     MC_GGM_COLUMNHEADERHEIGHT
-    #define MC_GGF_ROWHEADERWIDTH         MC_GGM_ROWHEADERWIDTH
-    #define MC_GGF_COLUMNWIDTH            MC_GGM_COLUMNWIDTH
-    #define MC_GGF_ROWHEIGHT              MC_GGM_ROWHEIGHT
-    #define MC_GGF_PADDINGHORZ            MC_GGM_PADDINGHORZ
-    #define MC_GGF_PADDINGVERT            MC_GGM_PADDINGVERT
-#endif
 
 /**
  * @brief Structure describing inner geometry of the grid.
@@ -182,6 +197,9 @@ typedef struct MC_GGEOMETRY_tag {
     /** @brief Vertical padding in cells. */
     WORD wPaddingVert;
 } MC_GGEOMETRY;
+
+/*@}*/
+
 
 /**
  * @name Control Messages
@@ -307,7 +325,7 @@ typedef struct MC_GGEOMETRY_tag {
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
+/** Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
 #define MC_WC_GRID          MCTRL_NAME_AW(MC_WC_GRID)
 
 /*@}*/

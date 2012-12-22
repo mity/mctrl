@@ -47,6 +47,7 @@ typedef void* MC_HPROPSET;
  * @name MC_PROPSETITEM::fMask Bits
  */
 /*@{*/
+
 /** @ref MC_PROPSETITEMW::pszText and @ref MC_PROPSETITEMW::cchTextMax, or
  *  @ref MC_PROPSETITEMA::pszText and @ref MC_PROPSETITEMA::cchTextMax are valid. */
 #define MC_PSIM_TEXT                 (0x00000001)
@@ -57,6 +58,7 @@ typedef void* MC_HPROPSET;
 #define MC_PSIM_LPARAM               (0x00000004)
 /** @ref MC_PROPSETITEMW::dwFlags or @ref MC_PROPSETITEMA::dwFlags is valid. */
 #define MC_PSIM_FLAGS                (0x00000008)
+
 /*@}*/
 
 
@@ -70,6 +72,11 @@ typedef void* MC_HPROPSET;
 
 /*@}*/
 
+
+/**
+ * @name Structures
+ */
+/*@{*/
 
 /**
  * @brief Structure describing a single property (unicode variant).
@@ -129,7 +136,7 @@ typedef struct MC_PROPSETITEMA_tag {
     DWORD dwFlags;
 } MC_PROPSETITEMA;
 
-
+/*@}*/
 
 
 /**
@@ -143,6 +150,11 @@ typedef struct MC_PROPSETITEMA_tag {
 
 /*@}*/
 
+
+/**
+ * @name Functions
+ */
+/*@{*/
 
 /**
  * @brief Create new property set.
@@ -266,19 +278,21 @@ BOOL MCTRL_API mcPropSet_DeleteItem(MC_HPROPSET hPropSet, int iItem);
  */
 BOOL MCTRL_API mcPropSet_DeleteAllItems(MC_HPROPSET hPropSet);
 
+/*@}*/
+
 
 /**
  * @name Unicode Resolution
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_PROPERTYW MC_PROPERTYA */
+/** Unicode-resolution alias. @sa MC_PROPERTYW MC_PROPERTYA */
 #define MC_PROPSETITEM          MCTRL_NAME_AW(MC_PROPSETITEM)
-/** @brief Unicode-resolution alias. @sa mcPropSet_InsertItemW mcPropSet_InsertItemA */
+/** Unicode-resolution alias. @sa mcPropSet_InsertItemW mcPropSet_InsertItemA */
 #define mcPropSet_InsertItem    MCTRL_NAME_AW(mcPropSet_InsertItem)
-/** @brief Unicode-resolution alias. @sa mcPropSet_SetItemW mcPropSet_SetItemA */
+/** Unicode-resolution alias. @sa mcPropSet_SetItemW mcPropSet_SetItemA */
 #define mcPropSet_SetItem       MCTRL_NAME_AW(mcPropSet_SetItem)
-/** @brief Unicode-resolution alias. @sa mcPropSet_GetItemW mcPropSet_GetItemA */
+/** Unicode-resolution alias. @sa mcPropSet_GetItemW mcPropSet_GetItemA */
 #define mcPropSet_GetItem       MCTRL_NAME_AW(mcPropSet_GetItem)
 
 /*@}*/

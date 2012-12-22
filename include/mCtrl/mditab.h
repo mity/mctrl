@@ -87,27 +87,34 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the control.
+ * @name Initialization Functions
+ */
+/*@{*/
+
+/**
+ * Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @sa @ref sec_init
  */
 BOOL MCTRL_API mcMditab_Initialize(void);
 
 /**
- * @brief Unregisters window class of the control.
- * @sa @ref sec_init
+ * Unregisters window class of the control.
  */
 void MCTRL_API mcMditab_Terminate(void);
+
+/*@}*/
 
 
 /**
  * @name Window Class
  */
 /*@{*/
-/** @brief Window class name (unicode variant). */
+
+/** Window class name (unicode variant). */
 #define MC_WC_MDITABW        L"mCtrl.mditab"
-/** @brief Window class name (ANSI variant). */
+/** Window class name (ANSI variant). */
 #define MC_WC_MDITABA         "mCtrl.mditab"
+
 /*@}*/
 
 
@@ -157,13 +164,40 @@ void MCTRL_API mcMditab_Terminate(void);
  * @name MC_MTITEM::dwMask Bits
  */
 /*@{*/
+
 /** @brief @ref MC_MTITEMW::pszText or @ref MC_MTITEMA::pszText is valid. */
 #define MC_MTIF_TEXT         (1 << 0)
 /** @brief @ref MC_MTITEMW::iImage or @ref MC_MTITEMA::iImage is valid. */
 #define MC_MTIF_IMAGE        (1 << 1)
 /** @brief @ref MC_MTITEMW::lParam or @ref MC_MTITEMA::lParam is valid. */
 #define MC_MTIF_PARAM        (1 << 2)
+
 /*@}*/
+
+
+/**
+ * @anchor MC_MTHT_xxxx
+ * @name MC_MTHITTESTINFO::flags bits
+ */
+/*@{*/
+/** @brief The hit test coordinates are outside of any tabs. */
+#define MC_MTHT_NOWHERE              (1 << 0)
+/** @brief The coordinates hit the tab on its icon. */
+#define MC_MTHT_ONITEMICON           (1 << 1)
+/** @brief The coordinates hit the tab, but its icon or close button. */
+#define MC_MTHT_ONITEMLABEL          (1 << 2)
+/** @brief The coordinates hit the tab on its close button. */
+#define MC_MTHT_ONITEMCLOSEBUTTON    (1 << 3)
+/** @brief The coordinates hit the tab anywhere in its rectangle. */
+#define MC_MTHT_ONITEM               \
+    (MC_MTHT_ONITEMICON | MC_MTHT_ONITEMLABEL | MC_MTHT_ONITEMCLOSEBUTTON)
+/*@}*/
+
+
+/**
+ * Structures
+ */
+/*@{*/
 
 /**
  * @brief Structure for manipulating with the tab item (unicode variant).
@@ -215,26 +249,6 @@ typedef struct MC_MTITEMWIDTH_tag {
     DWORD dwMinWidth;
 } MC_MTITEMWIDTH;
 
-
-/**
- * @anchor MC_MTHT_xxxx
- * @name MC_MTHITTESTINFO::flags bits
- * @relates MC_MTHITTESTINFO
- */
-/*@{*/
-/** @brief The hit test coordinates are outside of any tabs. */
-#define MC_MTHT_NOWHERE              (1 << 0)
-/** @brief The coordinates hit the tab on its icon. */
-#define MC_MTHT_ONITEMICON           (1 << 1)
-/** @brief The coordinates hit the tab, but its icon or close button. */
-#define MC_MTHT_ONITEMLABEL          (1 << 2)
-/** @brief The coordinates hit the tab on its close button. */
-#define MC_MTHT_ONITEMCLOSEBUTTON    (1 << 3)
-/** @brief The coordinates hit the tab anywhere in its rectangle. */
-#define MC_MTHT_ONITEM               \
-    (MC_MTHT_ONITEMICON | MC_MTHT_ONITEMLABEL | MC_MTHT_ONITEMCLOSEBUTTON)
-/*@}*/
-
 /**
  * @brief Structure for message @ref MC_MTM_HITTEST.
  */
@@ -244,6 +258,49 @@ typedef struct MC_MTHITTESTINFO_tag {
     /** @brief On output, set to the result of the test. */
     UINT flags;
 } MC_MTHITTESTINFO;
+
+/**
+ * @brief Structure for notification @ref MC_MTN_SELCHANGE.
+ */
+typedef struct MC_NMMTSELCHANGE_tag {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief Index of previously selected tab. */
+    int iItemOld;
+    /** @brief Data of previously selected tab, or zero. */
+    LPARAM lParamOld;
+    /** @brief Index of newly selected tab */
+    int iItemNew;
+    /** @brief Data of newly selected tab, or zero. */
+    LPARAM lParamNew;
+} MC_NMMTSELCHANGE;
+
+/**
+ * @brief Structure for notification @ref MC_MTN_DELETEITEM.
+ */
+typedef struct MC_NMMTDELETEITEM_tag {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief Index of the item being deleted. */
+    int iItem;
+    /** @brief User data of the item being deleted. */
+    LPARAM lParam;
+} MC_NMMTDELETEITEM;
+
+
+/**
+ * @brief Structure for notification @ref MC_MTN_CLOSEITEM.
+ */
+typedef struct MC_NMMTCLOSEITEM_tag {
+    /** @brief Common notification structure header. */
+    NMHDR hdr;
+    /** @brief Index of the item being closed. */
+    int iItem;
+    /** @brief User data of the control being closed. */
+    LPARAM lParam;
+} MC_NMMTCLOSEITEM;
+
+/*@}*/
 
 
 /**
@@ -428,49 +485,8 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_INITSTORAGE        (WM_USER + 118)
+
 /*@}*/
-
-
-/**
- * @brief Structure for notification @ref MC_MTN_SELCHANGE.
- */
-typedef struct MC_NMMTSELCHANGE_tag {
-    /** @brief Common notification structure header. */
-    NMHDR hdr;
-    /** @brief Index of previously selected tab. */
-    int iItemOld;
-    /** @brief Data of previously selected tab, or zero. */
-    LPARAM lParamOld;
-    /** @brief Index of newly selected tab */
-    int iItemNew;
-    /** @brief Data of newly selected tab, or zero. */
-    LPARAM lParamNew;
-} MC_NMMTSELCHANGE;
-
-/**
- * @brief Structure for notification @ref MC_MTN_DELETEITEM.
- */
-typedef struct MC_NMMTDELETEITEM_tag {
-    /** @brief Common notification structure header. */
-    NMHDR hdr;
-    /** @brief Index of the item being deleted. */
-    int iItem;
-    /** @brief User data of the item being deleted. */
-    LPARAM lParam;
-} MC_NMMTDELETEITEM;
-
-
-/**
- * @brief Structure for notification @ref MC_MTN_CLOSEITEM.
- */
-typedef struct MC_NMMTCLOSEITEM_tag {
-    /** @brief Common notification structure header. */
-    NMHDR hdr;
-    /** @brief Index of the item being closed. */
-    int iItem;
-    /** @brief User data of the control being closed. */
-    LPARAM lParam;
-} MC_NMMTCLOSEITEM;
 
 
 /**
@@ -528,15 +544,15 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_WC_MDITABW MC_WC_MDITABA */
+/** Unicode-resolution alias. @sa MC_WC_MDITABW MC_WC_MDITABA */
 #define MC_WC_MDITAB          MCTRL_NAME_AW(MC_WC_MDITAB)
-/** @brief Unicode-resolution alias. @sa MC_MTITEMW MC_MTITEMA */
+/** Unicode-resolution alias. @sa MC_MTITEMW MC_MTITEMA */
 #define MC_MTITEM             MCTRL_NAME_AW(MC_MTITEM)
-/** @brief Unicode-resolution alias. @sa MC_MTM_INSERTITEMW MC_MTM_INSERTITEMA */
+/** Unicode-resolution alias. @sa MC_MTM_INSERTITEMW MC_MTM_INSERTITEMA */
 #define MC_MTM_INSERTITEM     MCTRL_NAME_AW(MC_MTM_INSERTITEM)
-/** @brief Unicode-resolution alias. @sa MC_MTM_SETITEMW MC_MTM_SETITEMA */
+/** Unicode-resolution alias. @sa MC_MTM_SETITEMW MC_MTM_SETITEMA */
 #define MC_MTM_SETITEM        MCTRL_NAME_AW(MC_MTM_SETITEM)
-/** @brief Unicode-resolution alias. @sa MC_MTM_GETITEMW MC_MTM_GETITEMA */
+/** Unicode-resolution alias. @sa MC_MTM_GETITEMW MC_MTM_GETITEMA */
 #define MC_MTM_GETITEM        MCTRL_NAME_AW(MC_MTM_GETITEM)
 
 /*@}*/

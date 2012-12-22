@@ -89,16 +89,18 @@ extern "C" {
 
 
 /**
- * @brief Registers window class of the control.
+ * @name Initialization Functions
+ */
+/*@{*/
+
+/**
+ * Registers window class of the control.
  * @return @c TRUE on success, @c FALSE on failure.
- * @sa @ref sec_init
  */
 BOOL MCTRL_API mcExpand_Initialize(void);
 
 /**
- * @brief Unregisters window class of the control.
- *
- * @sa @ref sec_init
+ * Unregisters window class of the control.
  */
 void MCTRL_API mcExpand_Terminate(void);
 
@@ -108,9 +110,9 @@ void MCTRL_API mcExpand_Terminate(void);
  */
 /*@{*/
 
-/** @brief Window class name (unicode variant). */
+/** Window class name (unicode variant). */
 #define MC_WC_EXPANDW          L"mCtrl.expand"
-/** @brief Window class name (ANSI variant). */
+/** Window class name (ANSI variant). */
 #define MC_WC_EXPANDA           "mCtrl.expand"
 
 /*@}*/
@@ -226,7 +228,7 @@ void MCTRL_API mcExpand_Terminate(void);
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa MC_WC_EXPANDW MC_WC_EXPANDA */
+/** Unicode-resolution alias. @sa MC_WC_EXPANDW MC_WC_EXPANDA */
 #define MC_WC_EXPAND           MCTRL_NAME_AW(MC_WC_EXPAND)
 
 /*@}*/

@@ -51,7 +51,7 @@ extern "C" {
 /**
  * @name Dialog flags
  */
-/**@{*/
+/*@{*/
 
 /**
  * @brief Force a default font into the dialog template.
@@ -72,10 +72,16 @@ extern "C" {
  */
 #define MC_DF_DEFAULTFONT              0x00000001
 
-/**@}*/
+/*@}*/
+
 
 /**
- * @brief Creates modeless dialog (unicode variant).
+ * @name Modeless dialog functions
+ */
+/*@{*/
+
+/**
+ * Creates modeless dialog (unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -89,7 +95,7 @@ HWND MCTRL_API mcCreateDialogParamW(HINSTANCE hInstance, LPCWSTR lpTemplateName,
                 DWORD dwFlags);
 
 /**
- * @brief Creates modeless dialog (ANSI variant).
+ * Creates modeless dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -103,7 +109,7 @@ HWND MCTRL_API mcCreateDialogParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                 DWORD dwFlags);
 
 /**
- * @brief Creates modeless dialog (unicode variant).
+ * Creates modeless dialog (unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -116,7 +122,7 @@ HWND MCTRL_API mcCreateDialogParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                                      (lpDialogFunc),0L,(dwFlags))
 
 /**
- * @brief Creates modeless dialog (ANSI variant).
+ * Creates modeless dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -129,7 +135,7 @@ HWND MCTRL_API mcCreateDialogParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                                      (lpDialogFunc),0L,(dwFlags))
 
 /**
- * @brief Creates modeless dialog (unicode variant).
+ * Creates modeless dialog (unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -143,7 +149,7 @@ HWND MCTRL_API mcCreateDialogIndirectParamW(HINSTANCE hInstance,
                 DLGPROC lpDialogFunc, LPARAM lParamInit, DWORD dwFlags);
 
 /**
- * @brief Creates modeless dialog (ANSI variant).
+ * Creates modeless dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -157,7 +163,7 @@ HWND MCTRL_API mcCreateDialogIndirectParamA(HINSTANCE hInstance,
                 DLGPROC lpDialogFunc, LPARAM lParamInit, DWORD dwFlags);
 
 /**
- * @brief Creates modeless dialog (unicode variant).
+ * Creates modeless dialog (unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -170,7 +176,7 @@ HWND MCTRL_API mcCreateDialogIndirectParamA(HINSTANCE hInstance,
                                              (lpDialogFunc),0L,(dwFlags))
 
 /**
- * @brief Creates modeless dialog (ANSI variant).
+ * Creates modeless dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -182,9 +188,16 @@ HWND MCTRL_API mcCreateDialogIndirectParamA(HINSTANCE hInstance,
                 mcCreateDialogIndirectParamA((hInstance),(lpTemplate),(hWndParent),    \
                                              (lpDialogFunc),0L,(dwFlags))
 
+/*@}*/
+
 
 /**
- * @brief Creates and runs modal dialog (unicode variant).
+ * @name Modal dialog functions
+ */
+/*@{*/
+
+/**
+ * Creates and runs modal dialog (unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -199,7 +212,7 @@ INT_PTR MCTRL_API mcDialogBoxParamW(HINSTANCE hInstance, LPCWSTR lpTemplateName,
                 DWORD dwFlags);
 
 /**
- * @brief Creates and runs modal dialog (ANSI variant).
+ * Creates and runs modal dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -214,7 +227,7 @@ INT_PTR MCTRL_API mcDialogBoxParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                 DWORD dwFlags);
 
 /**
- * @brief Creates and runs modal dialog (unicode variant).
+ * Creates and runs modal dialog (unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -228,7 +241,7 @@ INT_PTR MCTRL_API mcDialogBoxParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                                   (lpDialogFunc),0L,(dwFlags))
 
 /**
- * @brief Creates and runs modal dialog (ANSII variant).
+ * Creates and runs modal dialog (ANSII variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -243,7 +256,7 @@ INT_PTR MCTRL_API mcDialogBoxParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
 
 
 /**
- * @brief Creates and runs modal dialog (unicode variant).
+ * Creates and runs modal dialog (unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -258,7 +271,7 @@ INT_PTR MCTRL_API mcDialogBoxIndirectParamW(HINSTANCE hInstance,
                 DLGPROC lpDialogFunc, LPARAM lParamInit, DWORD dwFlags);
 
 /**
- * @brief Creates and runs modal dialog (ANSI variant).
+ * Creates and runs modal dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -273,7 +286,7 @@ INT_PTR MCTRL_API mcDialogBoxIndirectParamA(HINSTANCE hInstance,
                 DLGPROC lpDialogFunc, LPARAM lParamInit, DWORD dwFlags);
 
 /**
- * @brief Creates and runs modal dialog (unicode variant).
+ * Creates and runs modal dialog (unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -287,7 +300,7 @@ INT_PTR MCTRL_API mcDialogBoxIndirectParamA(HINSTANCE hInstance,
                                           (lpDialogFunc),0L,(lpDialogFunc))
 
 /**
- * @brief Creates and runs modal dialog (ANSI variant).
+ * Creates and runs modal dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -300,27 +313,29 @@ INT_PTR MCTRL_API mcDialogBoxIndirectParamA(HINSTANCE hInstance,
                 mcDialogBoxIndirectParamA((hInstance),(lpTemplate),(hWndParent),     \
                                           (lpDialogFunc),0L,(lpDialogFunc))
 
+/*@}*/
+
 
 /**
  * @name Unicode Resolution
  */
 /*@{*/
 
-/** @brief Unicode-resolution alias. @sa mcCreateDialogParamW mcCreateDialogParamA */
+/** Unicode-resolution alias. @sa mcCreateDialogParamW mcCreateDialogParamA */
 #define mcCreateDialogParam            MCTRL_NAME_AW(mcCreateDialogParam)
-/** @brief Unicode-resolution alias. @sa mcCreateDialogW mcCreateDialogA */
+/** Unicode-resolution alias. @sa mcCreateDialogW mcCreateDialogA */
 #define mcCreateDialog                 MCTRL_NAME_AW(mcCreateDialog)
-/** @brief Unicode-resolution alias. @sa mcCreateDialogIndirectParamW mcCreateDialogIndirectParamA */
+/** Unicode-resolution alias. @sa mcCreateDialogIndirectParamW mcCreateDialogIndirectParamA */
 #define mcCreateDialogIndirectParam    MCTRL_NAME_AW(mcCreateDialogIndirectParam)
-/** @brief Unicode-resolution alias. @sa mcCreateDialogIndirectW mcCreateDialogIndirectA */
+/** Unicode-resolution alias. @sa mcCreateDialogIndirectW mcCreateDialogIndirectA */
 #define mcCreateDialogIndirect         MCTRL_NAME_AW(mcCreateDialogIndirect)
-/** @brief Unicode-resolution alias. @sa mcDialogBoxParamW mcDialogBoxParamA */
+/** Unicode-resolution alias. @sa mcDialogBoxParamW mcDialogBoxParamA */
 #define mcDialogBoxParam               MCTRL_NAME_AW(mcDialogBoxParam)
-/** @brief Unicode-resolution alias. @sa mcDialogBoxW mcDialogBoxA */
+/** Unicode-resolution alias. @sa mcDialogBoxW mcDialogBoxA */
 #define mcDialogBox                    MCTRL_NAME_AW(mcDialogBox)
-/** @brief Unicode-resolution alias. @sa mcDialogBoxIndirectParamW mcDialogBoxIndirectParamA */
+/** Unicode-resolution alias. @sa mcDialogBoxIndirectParamW mcDialogBoxIndirectParamA */
 #define mcDialogBoxIndirectParam       MCTRL_NAME_AW(mcDialogBoxIndirectParam)
-/** @brief Unicode-resolution alias. @sa mcDialogBoxIndirectW mcDialogBoxIndirectA */
+/** Unicode-resolution alias. @sa mcDialogBoxIndirectW mcDialogBoxIndirectA */
 #define mcDialogBoxIndirect            MCTRL_NAME_AW(mcDialogBoxIndirect)
 
 /*@}*/
