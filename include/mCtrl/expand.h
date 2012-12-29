@@ -85,6 +85,7 @@ extern "C" {
  *
  * These standard notifications are sent by the control:
  * - @c NM_OUTOFMEMORY
+ * - @c NM_RELEASEDCAPTURE
  */
 
 

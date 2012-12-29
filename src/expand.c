@@ -678,8 +678,10 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 if(toggle)
                     state ^= STATE_EXPANDED;
                 expand_set_state(expand, state);
-                if(expand->mouse_captured)
+                if(expand->mouse_captured) {
                     ReleaseCapture();
+                    mc_send_notify(expand->notify_win, expand->win, NM_RELEASEDCAPTURE);
+                }
 
                 if(toggle)
                     expand_resize_parent(expand);
@@ -697,8 +699,10 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_KEYUP:
             if(wp == VK_SPACE  &&  expand->space_pressed) {
-                if(expand->mouse_captured)
+                if(expand->mouse_captured) {
                     ReleaseCapture();
+                    mc_send_notify(expand->notify_win, expand->win, NM_RELEASEDCAPTURE);
+                }
                 expand->space_pressed = 0;
                 expand_set_state(expand, (expand->state & ~STATE_PRESSED) ^ STATE_EXPANDED);
                 expand_resize_parent(expand);

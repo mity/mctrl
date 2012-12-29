@@ -1244,8 +1244,10 @@ mditab_middle_button_up(HWND win, UINT keys, short x, short y)
     MC_MTHITTESTINFO hti;
     mditab_t* mditab = (mditab_t*) GetWindowLongPtr(win, 0);
 
-    if(GetCapture() == win)
+    if(GetCapture() == win) {
         ReleaseCapture();
+        mc_send_notify(mditab->notify_win, mditab->win, NM_RELEASEDCAPTURE);
+    }
 
     if((mditab->style & MC_MTS_CLOSEONMCLICK) == 0  ||  mditab->item_mclose < 0)
         return;
