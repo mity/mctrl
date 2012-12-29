@@ -68,13 +68,15 @@ struct expand_tag {
     WORD collapsed_h;
     WORD expanded_w;
     WORD expanded_h;
-    DWORD style        : 16;
-    DWORD no_redraw    : 1;
-    DWORD hide_accel   : 1;
-    DWORD hide_focus   : 1;
-    DWORD hot_track    : 1;
-    DWORD state        : 3;
-    DWORD old_state    : 3;  /* for painting state transitions */
+    DWORD style          : 16;
+    DWORD no_redraw      : 1;
+    DWORD hide_accel     : 1;
+    DWORD hide_focus     : 1;
+    DWORD hot_track      : 1;
+    DWORD mouse_captured : 1;
+    DWORD space_pressed  : 1;
+    DWORD state          : 3;
+    DWORD old_state      : 3;  /* for painting state transitions */
 };
 
 
@@ -644,11 +646,14 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(expand_is_mouse_in_active_rect(expand, x, y)) {
                 state |= STATE_HOT;
 
-                if((wp & MK_LBUTTON)  &&  GetCapture() == win)
+                if((wp & MK_LBUTTON) && expand->mouse_captured)
                     state |= STATE_PRESSED;
             } else if(GetFocus() == win) {
                 state |= STATE_HOT;
             }
+
+            if(expand->space_pressed)
+                state |= STATE_PRESSED;
 
             if(state != old_state)
                 expand_set_state(expand, state);
@@ -657,6 +662,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_LBUTTONDOWN:
             SetCapture(win);
+            expand->mouse_captured = 1;
             SetFocus(win);
             expand_set_state(expand, expand->state | STATE_PRESSED);
             return 0;
@@ -672,7 +678,8 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 if(toggle)
                     state ^= STATE_EXPANDED;
                 expand_set_state(expand, state);
-                ReleaseCapture();
+                if(expand->mouse_captured)
+                    ReleaseCapture();
 
                 if(toggle)
                     expand_resize_parent(expand);
@@ -681,17 +688,26 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_KEYDOWN:
             if(wp == VK_SPACE) {
-                expand_set_state(expand, expand->state | STATE_PRESSED);
                 SetCapture(win);
+                expand->mouse_captured = 1;
+                expand->space_pressed = 1;
+                expand_set_state(expand, expand->state | STATE_PRESSED);
             }
             return 0;
 
         case WM_KEYUP:
-            if(wp == VK_SPACE) {
+            if(wp == VK_SPACE  &&  expand->space_pressed) {
+                if(expand->mouse_captured)
+                    ReleaseCapture();
+                expand->space_pressed = 0;
                 expand_set_state(expand, (expand->state & ~STATE_PRESSED) ^ STATE_EXPANDED);
-                ReleaseCapture();
                 expand_resize_parent(expand);
             }
+            return 0;
+
+        case WM_CAPTURECHANGED:
+            expand->mouse_captured = 0;
+            expand_set_state(expand, (expand->state & ~STATE_PRESSED));
             return 0;
 
         case WM_SETFOCUS:
