@@ -297,12 +297,8 @@ mditab_is_item_visible(mditab_t* mditab, int index)
 static int
 mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti)
 {
-    int x, y;
     int i;
     RECT* r;
-
-    x = hti->pt.x;
-    y = hti->pt.y;
 
     for(i = mditab->item_first_visible; i < mditab_count(mditab); i++) {
         if(!mditab_is_item_visible(mditab, i))
@@ -310,7 +306,7 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti)
 
         r = &mditab_item(mditab, i)->rect;
 
-        if(r->left <= x && x <= r->right && r->top <= y && y <= r->bottom) {
+        if(mc_rect_contains_pt(r, &hti->pt)) {
             if(mditab->img_list != NULL) {
                 RECT contents;
                 RECT ico_rect;
@@ -320,9 +316,7 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti)
                 mditab_calc_contents_rect(&contents, r);
                 mditab_calc_ico_rect(&ico_rect, &contents, ico_w, ico_h);
 
-                if(ico_rect.left <= x && x <= ico_rect.right &&
-                   ico_rect.top <= y && y <= ico_rect.bottom)
-                {
+                if(mc_rect_contains_pt(&ico_rect, &hti->pt)) {
                     hti->flags = MC_MTHT_ONITEMICON;
                     return i;
                 }
@@ -662,8 +656,7 @@ mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty)
     /* Draw the selected tab */
     if(mditab->item_selected >= 0) {
         rect_item = &mditab_item(mditab, mditab->item_selected)->rect;
-        if((dirty->left <= rect_item->left && rect_item->left <= rect_item->right) ||
-           (dirty->left <= rect_item->right && rect_item->right <= rect_item->right))
+        if(dirty->right > rect_item->left  &&  dirty->left < rect_item->right)
             mditab_paint_item(mditab, dc, mditab->item_selected);
     }
 

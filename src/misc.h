@@ -36,7 +36,7 @@
 
 
 /***************************
- *** Miscelaneous macros ***
+ *** Miscelaneous Macros ***
  ***************************/
 
 /* Mininum and maximum et al. */
@@ -149,7 +149,7 @@ extern HIMAGELIST mc_bmp_glyphs;
 
 
 /*************************************
- *** Memory manipulation utilities ***
+ *** Memory Manipulation Utilities ***
  *************************************/
 
 /* memcpy/memmove can be slow because of 'call' instruction for very small
@@ -213,7 +213,7 @@ mc_inlined_memswap(void* addr0, void* addr1, size_t n)
 
 
 /************************
- *** String utilities ***
+ *** String Utilities ***
  ************************/
 
 /* String type identifier. */
@@ -365,7 +365,7 @@ mc_str(const void* from_str, mc_str_type_t from_type, mc_str_type_t to_type)
 
 
 /*********************************
- *** Atomic reference counting ***
+ *** Atomic Reference Counting ***
  *********************************/
 
 #if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40100
@@ -408,30 +408,27 @@ mc_unref(mc_ref_t* i)
 
 
 /**********************
- *** Rect utilities ***
+ *** Rect Utilities ***
  **********************/
 
 /* These are so trivial that inlining these is probably always better then
  * calling Win32API functions like InflateRect() etc. */
 
 static inline LONG
-mc_width(const RECT* r)
+mc_rect_width(const RECT* r)
 {
     return (r->right - r->left);
 }
 
 static inline LONG
-mc_height(const RECT* r)
+mc_rect_height(const RECT* r)
 {
     return (r->bottom - r->top);
 }
 
-static inline BOOL
-mc_contains(const RECT* r, const POINT* pt)
-{
-    return (r->left <= pt->x  &&  pt->x < r->right  &&
-            r->top <= pt->y  &&  pt->y < r->bottom);
-}
+/* These are too common, so lets save typing. */
+#define mc_width   mc_rect_width
+#define mc_height  mc_rect_height
 
 static inline BOOL
 mc_rect_is_empty(const RECT* r)
@@ -440,7 +437,7 @@ mc_rect_is_empty(const RECT* r)
 }
 
 static inline void
-mc_set_rect(RECT* r, LONG x0, LONG y0, LONG x1, LONG y1)
+mc_rect_set(RECT* r, LONG x0, LONG y0, LONG x1, LONG y1)
 {
     r->left = x0;
     r->top = y0;
@@ -449,7 +446,7 @@ mc_set_rect(RECT* r, LONG x0, LONG y0, LONG x1, LONG y1)
 }
 
 static inline void
-mc_copy_rect(RECT* r0, const RECT* r1)
+mc_rect_copy(RECT* r0, const RECT* r1)
 {
     r0->left = r1->left;
     r0->top = r1->top;
@@ -458,7 +455,7 @@ mc_copy_rect(RECT* r0, const RECT* r1)
 }
 
 static inline void
-mc_offset_rect(RECT* r, LONG dx, LONG dy)
+mc_rect_offset(RECT* r, LONG dx, LONG dy)
 {
     r->left += dx;
     r->top += dy;
@@ -467,7 +464,7 @@ mc_offset_rect(RECT* r, LONG dx, LONG dy)
 }
 
 static inline void
-mc_inflate_rect(RECT* r, LONG dx, LONG dy)
+mc_rect_inflate(RECT* r, LONG dx, LONG dy)
 {
     r->left -= dx;
     r->top -= dy;
@@ -475,9 +472,28 @@ mc_inflate_rect(RECT* r, LONG dx, LONG dy)
     r->bottom += dy;
 }
 
+static inline BOOL
+mc_rect_contains_xy(const RECT* r, LONG x, LONG y)
+{
+    return (r->left <= x  &&  x < r->right  &&
+            r->top <= y  &&  y < r->bottom);
+}
+
+static inline BOOL
+mc_rect_contains_pt(const RECT* r, const POINT* pt)
+{
+    return mc_rect_contains_xy(r, pt->x, pt->y);
+}
+
+static inline BOOL
+mc_rect_contains_pos(const RECT* r, DWORD pos)
+{
+    return mc_rect_contains_xy(r, GET_X_LPARAM(pos), GET_Y_LPARAM(pos));
+}
+
 
 /**************************
- *** Clipping utilities ***
+ *** Clipping Utilities ***
  **************************/
 
 static inline HRGN
@@ -519,7 +535,7 @@ mc_clip_reset(HDC dc, HRGN old_clip)
 
 
 /*****************************
- *** Mouse wheel utilities ***
+ *** Mouse Wheel Utilities ***
  *****************************/
 
 int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta);
@@ -532,7 +548,7 @@ mc_wheel_reset(void)
 
 
 /**************************
- *** Assorted utilities ***
+ *** Assorted Utilities ***
  **************************/
 
 /* Convenient wrapper of InitCommonControls/InitCommonControlsEx. */

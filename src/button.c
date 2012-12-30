@@ -192,14 +192,14 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     if(!button->theme  &&  (button->style & BS_DEFPUSHBUTTON)) {
         SelectObject(dc, GetSysColorBrush(COLOR_WINDOWFRAME));
         Rectangle(dc, rect.left, rect.top, rect.right, rect.bottom);
-        mc_inflate_rect(&rect, -1, -1);
+        mc_rect_inflate(&rect, -1, -1);
         width_right--;
     }
 
     /* Setup subrectangles (mainpart 1 and push-down part 2) */
-    mc_copy_rect(&rect_left, &rect);
+    mc_rect_copy(&rect_left, &rect);
     rect_left.right -= width_right;
-    mc_copy_rect(&rect_right, &rect);
+    mc_rect_copy(&rect_right, &rect);
     rect_right.left = rect_left.right;
 
     /* Draw background. */
@@ -297,9 +297,9 @@ button_paint_split(HWND win, button_t* button, HDC dc)
 
         /* Parts which are pushed, should have the contents moved a bit */
         if(state_left == DFCS_PUSHED)
-            mc_offset_rect(&rect_left, 1, 1);
+            mc_rect_offset(&rect_left, 1, 1);
         if(state_right == DFCS_PUSHED)
-            mc_offset_rect(&rect_right, 1, 1);
+            mc_rect_offset(&rect_right, 1, 1);
 
         /* Draw delimiter */
         if(state_left == state_right) {
@@ -311,22 +311,22 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         }
 
         /* Adjust for the outer control edges */
-        mc_inflate_rect(&rect_left, 0, -2);
+        mc_rect_inflate(&rect_left, 0, -2);
         rect_left.left += 2;
-        mc_inflate_rect(&rect_right, -2, -2);
+        mc_rect_inflate(&rect_right, -2, -2);
     }
 
     /* Draw focus rectangle. */
     if((SendMessage(win, BM_GETSTATE, 0, 0) & BST_FOCUS) && !button->hide_focus) {
         SelectClipRgn(dc, NULL);
         if(button->theme) {
-            mc_set_rect(&rect, rect_left.left, rect_left.top,
+            mc_rect_set(&rect, rect_left.left, rect_left.top,
                         rect_right.right - DROPDOWN_W, rect_right.bottom);
             DrawFocusRect(dc, &rect);
         } else {
-            mc_inflate_rect(&rect_left, -1, -2);
+            mc_rect_inflate(&rect_left, -1, -2);
             DrawFocusRect(dc, &rect_left);
-            mc_inflate_rect(&rect_left, -1, -1);
+            mc_rect_inflate(&rect_left, -1, -1);
         }
     }
 
@@ -412,7 +412,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         } else {
             SetBkMode(dc, TRANSPARENT);
             SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-            mc_offset_rect(&rect_left, text_offset, text_offset);
+            mc_rect_offset(&rect_left, text_offset, text_offset);
             DrawText(dc, buffer, n, &rect_left, flags);
         }
     }
@@ -573,7 +573,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 GetClientRect(win, &rect);
                 rect.left = rect.right - DROPDOWN_W;
 
-                if(mc_contains(&rect, &pt)) {
+                if(mc_rect_contains_pt(&rect, &pt)) {
                     /* Handle the click in the drop-down part */
                     MC_NMBCDROPDOWN notify;
 
@@ -583,7 +583,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                     notify.hdr.hwndFrom = win;
                     notify.hdr.idFrom = GetWindowLong(win, GWL_ID);
                     notify.hdr.code = MC_BCN_DROPDOWN;
-                    mc_copy_rect(&notify.rcButton, &rect);
+                    mc_rect_copy(&notify.rcButton, &rect);
                     SendMessage(GetAncestor(win, GA_PARENT), WM_NOTIFY,
                                 notify.hdr.idFrom, (LPARAM)&notify);
                     /* We unpush immediately after the parent handles the
@@ -600,14 +600,11 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_LBUTTONDBLCLK:
             if(button_needs_fake_split(button)) {
-                int x = GET_X_LPARAM(lp);
-                int y = GET_Y_LPARAM(lp);
                 RECT rect;
 
                 GetClientRect(win, &rect);
                 rect.left = rect.right - DROPDOWN_W;
-                if(rect.left <= x  &&  x <= rect.right  &&
-                   rect.top <= y  &&  y <= rect.bottom) {
+                if(mc_rect_contains_pos(&rect, lp)) {
                     /* We ignore duble-click in the drop-down part. */
                     return 0;
                 }

@@ -165,7 +165,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
     /* Paint "dead" top left cell */
     if(headerw > 0 && headerh > 0 && dirty->left <= headerw && dirty->top <= headerh) {
-        mc_set_rect(&rect, 0, 0, headerw, headerh);
+        mc_rect_set(&rect, 0, 0, headerw, headerh);
         mc_clip_set(dc, 0, 0, MC_MIN(headerw, client.right), MC_MIN(headerh, client.bottom));
 
         if(grid->theme) {
@@ -370,7 +370,7 @@ grid_refresh(void* view, void* detail)
     }
 
     /* Refresh affected contents */
-    mc_set_rect(&rect,
+    mc_rect_set(&rect,
                 headerw + MC_MAX(0, (region->col0 - layout.display_col0) * grid->cell_width - grid->scroll_x),
                 headerh + MC_MAX(0, (region->row0 - layout.display_row0) * grid->cell_height - grid->scroll_y),
                 rect.left + (region->col1 - region->col0) * grid->cell_width,

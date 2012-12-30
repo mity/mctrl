@@ -203,9 +203,8 @@ propview_paint(propview_t* pv, HDC dc)
         if(item->type != NULL) {
             int dc_state;
 
-            mc_set_rect(&value_rect,
-                    pv->label_width + PADDING_H, label_rect.top,
-                    rect.right - PADDING_H, label_rect.bottom);
+            mc_rect_set(&value_rect, pv->label_width + PADDING_H, label_rect.top,
+                                     rect.right - PADDING_H, label_rect.bottom);
 
             dc_state = SaveDC(dc);
             item->type->paint(item->value, dc, &value_rect, 0);

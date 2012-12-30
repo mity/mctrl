@@ -36,7 +36,7 @@ static void (WINAPI *fn_InitCommonControlsEx)(INITCOMMONCONTROLSEX*) = NULL;
 
 
 /************************
- *** String utilities ***
+ *** String Utilities ***
  ************************/
 
 char*
@@ -153,7 +153,7 @@ mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len)
 
 
 /*****************************
- *** Mouse wheel utilities ***
+ *** Mouse Wheel Utilities ***
  *****************************/
 
 int
@@ -196,7 +196,7 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
 
 
 /**************************
- *** Assorted utilities ***
+ *** Assorted Utilities ***
  **************************/
 
 void

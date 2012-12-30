@@ -62,7 +62,7 @@ dummy_DrawThemeParentBackground(HWND win, HDC dc, RECT* rect)
     if(parent == NULL)
         parent = win;
 
-    mc_copy_rect(&r, rect);
+    mc_rect_copy(&r, rect);
     MapWindowPoints(win, parent, (POINT*) &r, 2);
     clip = CreateRectRgn(0, 0, 1, 1);
     clip_state = GetClipRgn(dc, clip);

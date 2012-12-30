@@ -212,7 +212,7 @@ expand_do_paint(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL erase)
 
     /* Paint focus rect */
     if(!expand->hide_focus  &&  expand->win == GetFocus()) {
-        mc_inflate_rect(&layout.text_rect, FOCUS_INFLATE_H, FOCUS_INFLATE_V);
+        mc_rect_inflate(&layout.text_rect, FOCUS_INFLATE_H, FOCUS_INFLATE_V);
         DrawFocusRect(dc, &layout.text_rect);
     }
 }
@@ -324,13 +324,12 @@ expand_is_mouse_in_active_rect(expand_t* expand, int x, int y)
 {
     HDC dc;
     expand_layout_t layout;
-    POINT pt = { x, y };
 
     dc = GetDCEx(NULL, NULL, DCX_CACHE);
     expand_calc_layout(expand, dc, &layout);
     ReleaseDC(NULL, dc);
 
-    return mc_contains(&layout.active_rect, &pt);
+    return mc_rect_contains_xy(&layout.active_rect, x, y);
 }
 
 static void
@@ -477,7 +476,7 @@ expand_resize_parent(expand_t* expand)
     GetWindowRect(expand->notify_win, &entire);
     GetClientRect(expand->notify_win, &old_rect);
     MapWindowPoints(expand->notify_win, NULL, (POINT*)&old_rect, 2);
-    mc_set_rect(&new_rect, old_rect.left, old_rect.top,
+    mc_rect_set(&new_rect, old_rect.left, old_rect.top,
                            old_rect.left + size.cx, old_rect.top + size.cy);
 
     if(!(expand->style & MC_EXS_RESIZEENTIREWINDOW)) {
