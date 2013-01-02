@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Martin Mitas
+ * Copyright (c) 2012-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +23,8 @@
 
 
 COLORREF color_seq(UINT index);
+
+COLORREF color_hint(COLORREF color);
 
 
 #endif  /* MC_COLOR_H */

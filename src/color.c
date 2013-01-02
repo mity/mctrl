@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Martin Mitas
+ * Copyright (c) 2012-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -50,6 +50,23 @@ color_seq(UINT index)
     s = 80.0 + 20.0 * cosf(index / 4);
     l = 50.0 + 30.0 * sinf(index / 3);
 
+    husl_to_rgb(&r, &g, &b, h, s, l);
+    return RGB(255.0 * r, 255.0 * g, 255.0 * b);
+}
+
+COLORREF
+color_hint(COLORREF color)
+{
+    float r, g, b;
+    float h, s, l;
+
+    r = GetRValue(color) / 255.0;
+    g = GetGValue(color) / 255.0;
+    b = GetBValue(color) / 255.0;
+
+    husl_from_rgb(&h, &s, &l, r, g, b);
+    l = (l + 100.0) / 2.0;
+    s = s / 2.0;
     husl_to_rgb(&r, &g, &b, h, s, l);
     return RGB(255.0 * r, 255.0 * g, 255.0 * b);
 }
