@@ -493,6 +493,13 @@ mc_rect_contains_pos(const RECT* r, DWORD pos)
     return mc_rect_contains_xy(r, GET_X_LPARAM(pos), GET_Y_LPARAM(pos));
 }
 
+static inline BOOL
+mc_rect_overlaps_rect(const RECT* r0, const RECT* r1)
+{
+    return (r0->left < r1->right  &&  r0->top < r1->bottom  &&
+            r0->right > r1->left  &&  r0->bottom > r1->top);
+}
+
 
 /**************************
  *** Clipping Utilities ***
