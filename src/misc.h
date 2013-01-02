@@ -395,7 +395,7 @@ mc_unref(mc_ref_t* i)
 {
 #if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40700
     /* See http://stackoverflow.com/questions/10268737/c11-atomics-and-intrusive-shared-pointer-reference-count */
-    mc_ref_t ref = __atomic_add_fetch(i, 1, __ATOMIC_RELEASE);
+    mc_ref_t ref = __atomic_sub_fetch(i, 1, __ATOMIC_RELEASE);
     if(ref == 0)
         __atomic_thread_fence(__ATOMIC_ACQUIRE);
     return ref;
