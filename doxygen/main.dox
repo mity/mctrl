@@ -38,6 +38,7 @@
  *
  * @subsection toc_controls Control Reference
  * - @ref mCtrl/button.h - Enhanced button control
+ * - @ref mCtrl/chart.h - Chart control
  * - @ref mCtrl/expand.h - Expand/collapse control
  * - @ref mCtrl/grid.h - Grid control
  * - @ref mCtrl/html.h - HTML control

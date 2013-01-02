@@ -6,6 +6,11 @@
 obj/button.o: src/button.c src/button.h include/mCtrl/button.h \
  include/mCtrl/defs.h src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h src/theme.h
+obj/chart.o: src/chart.c src/chart.h include/mCtrl/chart.h \
+ include/mCtrl/defs.h src/misc.h src/compat.h src/debug.h src/resource.h \
+ src/version.h src/dsa.h src/gdix.h src/color.h
+obj/color.o: src/color.c src/color.h src/misc.h src/compat.h src/debug.h \
+ src/resource.h src/version.h src/husl.h
 obj/compat.o: src/compat.c src/compat.h src/misc.h src/debug.h src/resource.h \
  src/version.h
 obj/debug.o: src/debug.c src/debug.h src/misc.h src/compat.h src/resource.h \
@@ -17,6 +22,8 @@ obj/dsa.o: src/dsa.c src/dsa.h src/misc.h src/compat.h src/debug.h \
 obj/expand.o: src/expand.c src/expand.h include/mCtrl/expand.h \
  include/mCtrl/defs.h src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h src/theme.h
+obj/gdix.o: src/gdix.c src/gdix.h src/misc.h src/compat.h src/debug.h \
+ src/resource.h src/version.h
 obj/grid.o: src/grid.c src/grid.h include/mCtrl/grid.h include/mCtrl/defs.h \
  include/mCtrl/value.h include/mCtrl/table.h src/misc.h src/compat.h \
  src/debug.h src/resource.h src/version.h src/theme.h src/table.h \
@@ -26,6 +33,8 @@ obj/guid.o: src/guid.c src/misc.h src/compat.h src/debug.h src/resource.h \
 obj/html.o: src/html.c src/html.h include/mCtrl/html.h include/mCtrl/defs.h \
  src/misc.h src/compat.h src/debug.h src/resource.h src/version.h \
  src/theme.h
+obj/husl.o: src/husl.c src/husl.h src/misc.h src/compat.h src/debug.h \
+ src/resource.h src/version.h
 obj/mditab.o: src/mditab.c src/mditab.h include/mCtrl/mditab.h \
  include/mCtrl/defs.h src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h src/dsa.h src/theme.h
@@ -34,17 +43,19 @@ obj/menubar.o: src/menubar.c src/menubar.h include/mCtrl/menubar.h \
  src/version.h
 obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h src/module.h include/mctrl.h include/mCtrl/button.h \
- include/mCtrl/defs.h include/mCtrl/dialog.h include/mCtrl/expand.h \
- include/mCtrl/grid.h include/mCtrl/value.h include/mCtrl/table.h \
- include/mCtrl/html.h include/mCtrl/menubar.h include/mCtrl/mditab.h \
- include/mCtrl/propset.h include/mCtrl/propview.h include/mCtrl/version.h
+ include/mCtrl/defs.h include/mCtrl/chart.h include/mCtrl/dialog.h \
+ include/mCtrl/expand.h include/mCtrl/grid.h include/mCtrl/value.h \
+ include/mCtrl/table.h include/mCtrl/html.h include/mCtrl/menubar.h \
+ include/mCtrl/mditab.h include/mCtrl/propset.h include/mCtrl/propview.h \
+ include/mCtrl/version.h
 obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h src/button.h include/mCtrl/button.h \
- include/mCtrl/defs.h src/expand.h include/mCtrl/expand.h src/grid.h \
- include/mCtrl/grid.h include/mCtrl/value.h include/mCtrl/table.h \
- src/html.h include/mCtrl/html.h src/menubar.h include/mCtrl/menubar.h \
- src/mditab.h include/mCtrl/mditab.h src/propview.h \
- include/mCtrl/propview.h include/mCtrl/propset.h src/value.h src/theme.h
+ include/mCtrl/defs.h src/chart.h include/mCtrl/chart.h src/expand.h \
+ include/mCtrl/expand.h src/gdix.h src/grid.h include/mCtrl/grid.h \
+ include/mCtrl/value.h include/mCtrl/table.h src/html.h \
+ include/mCtrl/html.h src/menubar.h include/mCtrl/menubar.h src/mditab.h \
+ include/mCtrl/mditab.h src/propview.h include/mCtrl/propview.h \
+ include/mCtrl/propset.h src/value.h src/theme.h
 obj/propset.o: src/propset.c src/propset.h include/mCtrl/propset.h \
  include/mCtrl/defs.h include/mCtrl/value.h src/misc.h src/compat.h \
  src/debug.h src/resource.h src/version.h src/dsa.h src/value.h \

@@ -20,6 +20,7 @@ override LDFLAGS += -mwindows -L../lib
 override LIBS = -lmCtrl -lcomctl32
 
 EXAMPLES = $(BINDIR)/ex_button.exe          \
+		   $(BINDIR)/ex_chart.exe           \
            $(BINDIR)/ex_dllgetversion.exe   \
            $(BINDIR)/ex_expand.exe          \
            $(BINDIR)/ex_grid.exe            \
@@ -48,6 +49,7 @@ clean:
 ################
 
 $(BINDIR)/ex_button.exe: $(OBJDIR)/ex_button.o $(OBJDIR)/ex_button_rc.o
+$(BINDIR)/ex_chart.exe: $(OBJDIR)/ex_chart.o $(OBJDIR)/ex_chart_rc.o
 $(BINDIR)/ex_dllgetversion.exe: $(OBJDIR)/ex_dllgetversion.o $(OBJDIR)/ex_manifest_rc.o
 $(BINDIR)/ex_expand.exe: $(OBJDIR)/ex_expand.o $(OBJDIR)/ex_expand_rc.o
 $(BINDIR)/ex_grid.exe: $(OBJDIR)/ex_grid.o $(OBJDIR)/ex_grid_rc.o

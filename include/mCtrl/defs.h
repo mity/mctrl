@@ -109,6 +109,9 @@ extern "C" {
 #define MC_PVM_FIRST        (WM_USER+0x4000 + 500)
 #define MC_PVM_LAST         (WM_USER+0x4000 + 599)
 
+#define MC_CHM_FIRST        (WM_USER+0x4000 + 600)
+#define MC_CHM_LAST         (WM_USER+0x4000 + 699)
+
 /*@}*/
 
 
@@ -131,6 +134,9 @@ extern "C" {
 
 #define MC_PVN_FIRST        (0x40000000 + 400)
 #define MC_PVN_LAST         (0x40000000 + 499)
+
+#define MC_CHN_FIRST        (0x40000000 + 500)
+#define MC_CHN_LAST         (0x40000000 + 599)
 
 /*@}*/
 

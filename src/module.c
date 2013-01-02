@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Martin Mitas
+ * Copyright (c) 2009-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -139,8 +139,14 @@ DEFINE_MODULE(mc)
 #include "button.h"
 DEFINE_MODULE(button)
 
+#include "chart.h"
+DEFINE_MODULE(chart)
+
 #include "expand.h"
 DEFINE_MODULE(expand)
+
+#include "gdix.h"
+DEFINE_MODULE(gdix)
 
 #include "grid.h"
 DEFINE_MODULE(grid)
@@ -165,6 +171,9 @@ DEFINE_MODULE(theme)
 
 static module_t* mod_button_deps[] = { &mod_mc, &mod_theme, &mod_button };
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
+
+static module_t* mod_chart_deps[] = { &mod_mc, &mod_gdix, &mod_chart };
+DEFINE_PUBLIC_IFACE(chart, Chart, mod_chart_deps)
 
 static module_t* mod_expand_deps[] = { &mod_mc, &mod_theme, &mod_expand };
 DEFINE_PUBLIC_IFACE(expand, Expand, mod_expand_deps);

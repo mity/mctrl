@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 Martin Mitas
+ * Copyright (c) 2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,32 +16,16 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MCTRL_H
-#define MCTRL_H
+#ifndef MC_CHART_H
+#define MC_CHART_H
 
-#include <mCtrl/button.h>
-#include <mCtrl/chart.h>
-#include <mCtrl/defs.h>
-#include <mCtrl/dialog.h>
-#include <mCtrl/expand.h>
-#include <mCtrl/grid.h>
-#include <mCtrl/html.h>
-#include <mCtrl/menubar.h>
-#include <mCtrl/mditab.h>
-#include <mCtrl/propset.h>
-#include <mCtrl/propview.h>
-#include <mCtrl/table.h>
-#include <mCtrl/value.h>
-#include <mCtrl/version.h>
+#include "mCtrl/chart.h"
+
+#include "misc.h"
 
 
-/**
- * @file
- *
- * This header is provided only for convenience. It just includes all the
- * other mCtrl headers, so application developers have the option to include
- * just one header file instead of many.
- */
+int chart_init(void);
+void chart_fini(void);
 
 
-#endif  /* MCTRL_H */
+#endif  /* MC_CHART_H */
