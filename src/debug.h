@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2009-2012 Martin Mitas
+ * Copyright (c) 2009-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -24,17 +24,17 @@
     #include <windows.h>
     #include <stdlib.h>
     #include <stdio.h>  /* _snprintf() */
-    
+
     void debug_dump(void* addr, size_t n);
 
     /* Assertion */
-    #define MC_ASSERT(condition)                                              \
+    #define MC_ASSERT(cond)                                                   \
         do {                                                                  \
-            if(!(condition)) {                                                \
+            if(!(cond)) {                                                     \
                 OutputDebugStringA(__FILE__ ":" MC_STRINGIZE(__LINE__) ": "   \
-                                   "Assertion '" #condition "' failed.");     \
+                                   "Assertion '" #cond "' failed.");          \
                 MessageBoxA(NULL, __FILE__ ":" MC_STRINGIZE(__LINE__) ": "    \
-                                   "Assertion '" #condition "' failed.",      \
+                                   "Assertion '" #cond "' failed.",           \
                                    "Assert", MB_OK);                          \
                 if(IsDebuggerPresent())                                       \
                     DebugBreak();                                             \
@@ -42,6 +42,18 @@
                     exit(EXIT_FAILURE);                                       \
             }                                                                 \
         } while(0)
+
+    /* Static assertion */
+    #if defined(MC_COMPILER_GCC)  &&  (MC_COMPILER_GCC >= 40600)
+        #define MC_STATIC_ASSERT(cond)                                        \
+                _Static_assert(cond, "Static assertion '" #cond "' failed.")
+    #elif defined(__COUNTER__)
+        #define MC_STATIC_ASSERT__(a, b)         a##b
+        #define MC_STATIC_ASSERT_(a, b)          MC_STATIC_ASSERT__(a, b)
+        #define MC_STATIC_ASSERT(cond)                                        \
+                extern int MC_STATIC_ASSERT_(mc_static_assert_,               \
+                                             __COUNTER__)[(cond) ? 1 : -1]
+    #endif
 
     /* Unreachable branch */
     #define MC_UNREACHABLE               do { MC_ASSERT(FALSE); } while(0)
@@ -66,10 +78,13 @@
 #ifndef MC_ASSERT
     #ifdef _MSC_VER
         #include <intrin.h>
-        #define MC_ASSERT(condition)     do { __assume(condition); } while(0)
+        #define MC_ASSERT(cond)          do { __assume(cond); } while(0)
     #else
-        #define MC_ASSERT(condition)     do { } while(0)
+        #define MC_ASSERT(cond)          do { } while(0)
     #endif
+#endif
+#ifndef MC_STATIC_ASSERT
+    #define MC_STATIC_ASSERT(cond)       /* empty */
 #endif
 #ifndef MC_TRACE
     #define MC_TRACE(...)                do { } while(0)
@@ -97,19 +112,19 @@
              (guid)->Data4[6], (guid)->Data4[7])
 
 
-/* Functions debug_malloc() and debug_free() are used for debugging internal 
- * mCtrl memory management. When used instead of malloc/free, they track 
+/* Functions debug_malloc() and debug_free() are used for debugging internal
+ * mCtrl memory management. When used instead of malloc/free, they track
  * each allocation and deallocation, and perform some checks. Finally when
  * MCTRL.DLL is unloaded, it traces out report about detected leaks. */
 #if defined DEBUG && DEBUG >= 2
     void* debug_malloc(const char* fname, int line, size_t size);
     void* debug_realloc(const char* fname, int line, void* ptr, size_t size);
     void debug_free(const char* fname, int line, void* mem);
-    
+
     #define malloc(size)       debug_malloc(__FILE__, __LINE__, (size))
     #define realloc(ptr, size) debug_realloc(__FILE__, __LINE__, (ptr), (size))
     #define free(ptr)          debug_free(__FILE__, __LINE__, (ptr))
-    
+
     void debug_init(void);
     void debug_fini(void);
 #endif
