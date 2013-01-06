@@ -51,8 +51,7 @@ typedef void* MC_HPROPSET;
 /** @ref MC_PROPSETITEMW::pszText and @ref MC_PROPSETITEMW::cchTextMax, or
  *  @ref MC_PROPSETITEMA::pszText and @ref MC_PROPSETITEMA::cchTextMax are valid. */
 #define MC_PSIMF_TEXT                 (0x00000001)
-/** @ref  @ref MC_PROPSETITEMW::hValue, or @ref @ref MC_PROPSETITEMA::hValue is
- *  valid. */
+/** @ref MC_PROPSETITEMW::hValue, or @ref MC_PROPSETITEMA::hValue is valid. */
 #define MC_PSIMF_VALUE                (0x00000002)
 /** @ref MC_PROPSETITEMW::lParam or @ref MC_PROPSETITEMA::lParam is valid. */
 #define MC_PSIMF_LPARAM               (0x00000004)
