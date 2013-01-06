@@ -249,7 +249,6 @@ typedef struct MC_CHDATASET_tag {
 
 /**
  * @brief Structure for notification @c MC_CHN_GETDISPINFO.
- *
  */
 typedef struct MC_NMCHDISPINFO_tag {
     /** @brief Common notification structure header. */
@@ -262,7 +261,7 @@ typedef struct MC_NMCHDISPINFO_tag {
     int iValueFirst;
     /** @brief Index of last value the controls asks for. */
     int iValueLast;
-    /** @brief Pointer to a buffer where application */
+    /** @brief Pointer to a buffer where application fills the value. */
     int* piValues;
 } MC_NMCHDISPINFO;
 
