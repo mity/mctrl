@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -39,8 +39,7 @@ struct propset_tag {
 typedef struct propset_item_tag propset_item_t;
 struct propset_item_tag {
     TCHAR* text;
-    value_type_t* type;
-    value_t value;
+    value_t* value;
     LPARAM lp;
     DWORD flags;
 };

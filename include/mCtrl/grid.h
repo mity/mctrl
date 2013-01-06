@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012 Martin Mitas
+ * Copyright (c) 2010-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -127,32 +127,22 @@ void MCTRL_API mcGrid_Terminate(void);
 
 /**
  * @name MC_GGEOMETRY::fMask Bits
- * @anchor MC_GGM_xxxx
+ * @anchor MC_GGF_xxxx
  */
 /*@{*/
 
 /** @brief Set if @ref MC_GGEOMETRY::wColumnHeaderHeight is valid. */
-#define MC_GGM_COLUMNHEADERHEIGHT     (1 << 0)
+#define MC_GGF_COLUMNHEADERHEIGHT     (1 << 0)
 /** @brief Set if @ref MC_GGEOMETRY::wRowHeaderWidth is valid. */
-#define MC_GGM_ROWHEADERWIDTH         (1 << 1)
+#define MC_GGF_ROWHEADERWIDTH         (1 << 1)
 /** @brief Set if @ref MC_GGEOMETRY::wColumnWidth is valid. */
-#define MC_GGM_COLUMNWIDTH            (1 << 2)
+#define MC_GGF_COLUMNWIDTH            (1 << 2)
 /** @brief Set if @ref MC_GGEOMETRY::wRowHeight is valid. */
-#define MC_GGM_ROWHEIGHT              (1 << 3)
+#define MC_GGF_ROWHEIGHT              (1 << 3)
 /** @brief Set if @ref MC_GGEOMETRY::wPaddingHorz is valid. */
-#define MC_GGM_PADDINGHORZ            (1 << 4)
+#define MC_GGF_PADDINGHORZ            (1 << 4)
 /** @brief Set if @ref MC_GGEOMETRY::wPaddingVert is valid. */
-#define MC_GGM_PADDINGVERT            (1 << 5)
-
-#ifndef DOXYGEN  /* prevent documentation of these */
-    /* Deprecated: Use @ref MC_GGM_xxxx instead in new code. */
-    #define MC_GGF_COLUMNHEADERHEIGHT     MC_GGM_COLUMNHEADERHEIGHT
-    #define MC_GGF_ROWHEADERWIDTH         MC_GGM_ROWHEADERWIDTH
-    #define MC_GGF_COLUMNWIDTH            MC_GGM_COLUMNWIDTH
-    #define MC_GGF_ROWHEIGHT              MC_GGM_ROWHEIGHT
-    #define MC_GGF_PADDINGHORZ            MC_GGM_PADDINGHORZ
-    #define MC_GGF_PADDINGVERT            MC_GGM_PADDINGVERT
-#endif
+#define MC_GGF_PADDINGVERT            (1 << 5)
 
 /*@}*/
 
@@ -163,26 +153,11 @@ void MCTRL_API mcGrid_Terminate(void);
 /*@{*/
 
 /**
- * @brief Structure for setting and getting cell of the table.
- * @sa MC_GM_SETCELL MC_GM_GETCELL
- */
-typedef struct MC_GCELL_tag {
-    /** @brief Column index */
-    WORD wCol;
-    /** @brief Row index */
-    WORD wRow;
-    /** @brief Handle of value type */
-    MC_HVALUETYPE hType;
-    /** @brief Handle of the value */
-    MC_HVALUE hValue;
-} MC_GCELL;
-
-/**
  * @brief Structure describing inner geometry of the grid.
  * @sa MC_GM_SETGEOMETRY MC_GM_GETGEOMETRY
  */
 typedef struct MC_GGEOMETRY_tag {
-    /** @brief Bitmask specifying what other members are valid. See @ref MC_GGM_xxxx. */
+    /** @brief Bitmask specifying what other members are valid. See @ref MC_GGF_xxxx. */
     DWORD fMask;
     /** @brief Height of column header cells. */
     WORD wColumnHeaderHeight;
@@ -276,8 +251,9 @@ typedef struct MC_GGEOMETRY_tag {
 /**
  * @brief Sets a table cell.
  *
- * @param wParam Reserved, set to zero.
- * @param[in] lParam (@ref MC_GCELL*) Pointer to structure describing
+ * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
+ * row.
+ * @param[in] lParam (@ref MC_TABLECELL*) Pointer to structure describing
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
@@ -289,8 +265,9 @@ typedef struct MC_GGEOMETRY_tag {
  * Caller has to fill @c MC_GCELL::wCol and @c MC_GCELL::wRow before sending
  * this message.
  *
- * @param wParam Reserved, set to zero.
- * @param[in,out] lParam (@ref MC_GCELL*) Pointer to structure describing
+ * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
+ * row.
+ * @param[in,out] lParam (@ref MC_TABLECELL*) Pointer to structure describing
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
@@ -316,6 +293,29 @@ typedef struct MC_GGEOMETRY_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_GM_GETGEOMETRY         (MC_GM_FIRST + 113)
+
+/**
+ * @brief Sets a table value.
+ *
+ * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
+ * row.
+ * @param[in] lParam (@ref MC_HVALUE) Pointer to the value.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ */
+#define MC_GM_SETVALUE           (MC_GM_FIRST + 114)
+
+/**
+ * @brief Gets a table value.
+ *
+ * Caller has to fill @c MC_GCELL::wCol and @c MC_GCELL::wRow before sending
+ * this message.
+ *
+ * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
+ * row.
+ * @param lParam Reserved, set to zero.
+ * @return (@c MC_HVALUE) The value, @c NULL on failure.
+ */
+#define MC_GM_GETVALUE            (MC_GM_FIRST + 115)
 
 /*@}*/
 

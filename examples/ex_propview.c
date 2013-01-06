@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This file contains example code for mCtrl library. Code of this example
  * (but not the library itself) has been placed in the public domain.
@@ -28,18 +28,16 @@ SetupPropView(void)
 {
     int i;
     TCHAR buffer[32];
-
     MC_PROPSETITEM item;
 
     /* Insert few items */
-    item.fMask = MC_PSIM_TEXT | MC_PSIM_VALUE;
-    item.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_INT32);
+    item.fMask = MC_PSIMF_TEXT | MC_PSIMF_VALUE;
     srand(GetTickCount());
     for(i = 0; i < 16; i++) {
-        _sntprintf(buffer, sizeof(buffer)/sizeof(buffer[0]), _T("Value %d"), i+1);
         item.iItem = i;
+        _sntprintf(buffer, sizeof(buffer)/sizeof(buffer[0]), _T("Value %d"), i+1);
         item.pszText = buffer;
-        mcValue_CreateFromInt32(&item.hValue, rand() % 200);
+        item.hValue = mcValue_CreateInt32(rand() % 200);
         SendMessage(hwndPropView, MC_PVM_INSERTITEM, 0, (LPARAM) &item);
     }
 }

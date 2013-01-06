@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,8 @@
 
 
 #define PROPSET_SUPPORTED_FLAGS        ((DWORD)(MC_PSF_SORTITEMS))
-#define PROPSET_SUPPORTED_ITEM_MASK    ((DWORD)(MC_PSIM_TEXT | MC_PSIM_VALUE | MC_PSIM_LPARAM | MC_PSIM_FLAGS))
+#define PROPSET_SUPPORTED_ITEM_MASK                                           \
+        ((DWORD)(MC_PSIMF_TEXT | MC_PSIMF_VALUE | MC_PSIMF_LPARAM | MC_PSIMF_FLAGS))
 #define PROPSET_SUPPORTED_ITEM_FLAGS   ((DWORD)(0))  // TODO
 
 
@@ -94,19 +95,13 @@ propset_apply(propset_item_t* item, MC_PROPSETITEM* pi, BOOL unicode)
         return -1;
     }
 
-    if(MC_ERR((pi->fMask & MC_PSIM_FLAGS)  &&  (pi->dwFlags & ~PROPSET_SUPPORTED_ITEM_FLAGS))) {
+    if(MC_ERR((pi->fMask & MC_PSIMF_FLAGS)  &&  (pi->dwFlags & ~PROPSET_SUPPORTED_ITEM_FLAGS))) {
         MC_TRACE("propset_apply: Unsupported MC_PROPSETITEM::dwFlags.");
         SetLastError(ERROR_INVALID_PARAMETER);
         return -1;
     }
 
-    if(MC_ERR((pi->fMask & MC_PSIM_VALUE)  &&  pi->hValue != NULL  &&  pi->hType == NULL)) {
-        MC_TRACE("propset_apply: hValue != NULL but hType == NULL");
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return -1;
-    }
-
-    if(pi->fMask & MC_PSIM_TEXT) {
+    if(pi->fMask & MC_PSIMF_TEXT) {
         TCHAR* text;
 
         text = mc_str(pi->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
@@ -120,18 +115,16 @@ propset_apply(propset_item_t* item, MC_PROPSETITEM* pi, BOOL unicode)
         item->text = text;
     }
 
-    if(pi->fMask & MC_PSIM_VALUE) {
+    if(pi->fMask & MC_PSIMF_VALUE) {
         if(item->value != NULL)
-            item->type->destroy(item->value);
-
-        item->type = (value_type_t*) pi->hType;
-        item->value = (value_t) pi->hValue;
+            value_destroy(item->value);
+        item->value = (value_t*) pi->hValue;
     }
 
-    if(pi->fMask & MC_PSIM_LPARAM)
+    if(pi->fMask & MC_PSIMF_LPARAM)
         item->lp = pi->lParam;
 
-    if(pi->fMask & MC_PSIM_FLAGS)
+    if(pi->fMask & MC_PSIMF_FLAGS)
         item->flags = pi->dwFlags;
 
     return 0;
@@ -189,7 +182,7 @@ propset_set(propset_t* propset, MC_PROPSETITEM* pi, BOOL unicode)
 
     /* When sorted, we may need to move the item to new location if its
      * name has changed */
-    if((propset->flags & MC_PSF_SORTITEMS)  &&  (pi->fMask & MC_PSIM_TEXT))
+    if((propset->flags & MC_PSF_SORTITEMS)  &&  (pi->fMask & MC_PSIMF_TEXT))
         index = dsa_move_sorted(&propset->items, index, propset_item_cmp);
 
     return index;
@@ -221,20 +214,18 @@ propset_get(propset_t* propset, MC_PROPSETITEM* pi, BOOL unicode)
 
     item = propset_item(propset, pi->iItem);
 
-    if(pi->fMask & MC_PSIM_TEXT) {
+    if(pi->fMask & MC_PSIMF_TEXT) {
         mc_str_inbuf(item->text, MC_STRT, pi->pszText,
                      (unicode ? MC_STRW : MC_STRA), pi->cchTextMax);
     }
 
-    if(pi->fMask & MC_PSIM_VALUE) {
-        pi->hType = (MC_HVALUETYPE) item->type;
+    if(pi->fMask & MC_PSIMF_VALUE)
         pi->hValue = (MC_HVALUE) item->value;
-    }
 
-    if(pi->fMask & MC_PSIM_LPARAM)
+    if(pi->fMask & MC_PSIMF_LPARAM)
         pi->lParam = item->lp;
 
-    if(pi->fMask & MC_PSIM_FLAGS)
+    if(pi->fMask & MC_PSIMF_FLAGS)
         pi->dwFlags = item->flags;
 
     return 0;

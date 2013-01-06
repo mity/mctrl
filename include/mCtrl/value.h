@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Martin Mitas
+ * Copyright (c) 2010-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,7 +38,7 @@ extern "C" {
  * @c MC_HVALUETYPE and @c MC_HVALUE is exactly the abstraction bringing this
  * power to mCtrl. On one side @c MC_HVALUE can contain various kinds of data
  * (according to some @c MC_HVALUETYPE), on the other side the abstraction
- * allows the grid control to manage the values through single interface.
+ * allows the grid control to manage the values through a single interface.
  *
  * The type @c MC_HVALUE is just an opaque type. It is in effect a handle of
  * the particular piece of data. Therefore the application code cannot
@@ -46,60 +46,47 @@ extern "C" {
  *
  * @c MC_HVALUETYPE is also an opaque type which determines how the values of
  * that type behave. If you are familiar with object oriented programming you
- * can imagine the type is a virtual method table, with the exception that
- * here a pointer to the vtable is not part of the @c MC_HVALUE data itself.
- *
- * @c MC_HVALUETYPE determines how the data of that type exactly behave.
- * Almost all functions manipulating with some data take both, the @c MC_HVALUE
- * and @c MC_HVALUETYPE as their parameters.
- *
- * @note This is because @c MC_HVALUE does not keep reference to its
- * @c MC_HVALUETYPE. On one side it would be more comfortable but it would make
- * many useful value types much more memory hungry. Often some collections
- * of data require all of their data to be of single type and in such cases
- * tere can be only one variable of @c MC_HVALUETYPE determining type of all
- * data in the collection.
- *
- * If you are familiar with object-oriented programming, you can roughly
- * understand the @c MC_HVALUETYPE as a class and @c MC_HVALUE as an instance.
+ * can imagine the type is a virtual method table (or vtable in short).
  *
  * After the value is no longer needed, @ref mcValue_Destroy() can be used to
  * release any resources taken by the value.
  *
  *
+ * @section sec_value_lifetime Value Life Time
+ *
+ * As said above, from applications point of view the values are represented
+ * by an opaque type @c MC_HVALUE. It is just an handle to the value.
+ *
+ * It is usually usewful to pass the handle here or there in application but
+ * the applcation has to be designed in a way that it is clear who owns the
+ * handle, i.e. when it can be safely destroyed.
+ *
+ * Also note the when an application asks for a value from some control
+ * (e.g. grid, @c ref MC_WC_GRID) or a data model (e.g. table, @ref MC_HTABLE),
+ * it usually gets a <tt>const MC_HVALUE</tt>. It is directly the handle managed
+ * by the control, not its copy. The application should not store the value
+ * handle as there is no guaranty when the control or data model respectivelly
+ * will reset the value, or even destroy it.
+ *
+ * If the application needs to store the information represented by the value,
+ * it is supposed to make a duplicate of the value with @c mcValue_Duplicate(),
+ * or call (appropriate) getter value and store the information itself.
+ *
+ *
  * @section sec_value_builtin Built-in Value Types
  *
- * mCtrl provides value types for some very common kinds of data (e.g. integer
- * numbers, strings etc.).
+ * mCtrl provides value types for some very common kinds of data like integer
+ * numbers, strings etc.
  *
- * Values of each of these built-in value types can be created by the
- * corresponding factory function. There is also a corresponding getter
- * function which allows to get the data held by the value.
- *
- * Note that for any given value you can only use the getter function
- * corresponding to the value's type. Otherwise the behavior is undefined: it
- * can even lead to an application crash.
- *
- * <table>
- * <tr><th>ID</th><th>Factory function</th><th>Getter function</th></tr><th>Description</th>
- * <tr><td>@c MC_VALUETYPEID_UNDEFINED</td><td></td><td></td><td>Invalid type</td>
- * <tr><td>@ref MC_VALUETYPEID_INT32</td><td>@ref mcValue_CreateFromInt32()</td><td>@ref mcValue_GetInt32()</td><td>32-bit signed integer</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_UINT32</td><td>@ref mcValue_CreateFromUInt32()</td><td>@ref mcValue_GetUInt32()</td><td>32-bit unsigned integer</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_INT64</td><td>@ref mcValue_CreateFromInt64()</td><td>@ref mcValue_GetInt64()</td><td>64-bit signed integer</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_UINT64</td><td>@ref mcValue_CreateFromUInt64()</td><td>@ref mcValue_GetUInt64()</td><td>64-bit unsigned integer</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_STRINGW</td><td>@ref mcValue_CreateFromStringW()</td><td>@ref mcValue_GetStringW()</td><td>Unicode string</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_STRINGA</td><td>@ref mcValue_CreateFromStringA()</td><td>@ref mcValue_GetStringA()</td><td>ANSI string</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_IMMSTRINGW</td><td>@ref mcValue_CreateFromImmStringW()</td><td>@ref mcValue_GetImmStringW()</td><td>Unicode immutable string</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_IMMSTRINGA</td><td>@ref mcValue_CreateFromImmStringA()</td><td>@ref mcValue_GetImmStringA()</td><td>ANSI immutable string</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_COLORREF</td><td>@ref mcValue_CreateFromColorref()</td><td>@ref mcValue_GetColorref()</td><td>Color RGB triplet</td></tr>
- * <tr><td>@ref MC_VALUETYPEID_HICON</td><td>@ref mcValue_CreateFromHIcon()</td><td>@ref mcValue_GetHIcon()</td><td>Icon handle</td></tr>
- * </table>
+ * Values of each of these built-in value types can be created by its factory
+ * function. There is also a corresponding getter function which allows to get
+ * the data held by the value.
  *
  *
  * @section sec_value_strings String Values
  *
- * As the table of built-in value types above shows, there are four value types
- * designed to hold strings, identified by the constants:
+ * There are four value types designed to hold strings, identified by the
+ * constants:
  *  -- "Ordinary strings" @ref MC_VALUETYPEID_STRINGW and @ref MC_VALUETYPEID_STRINGA
  *  -- "Immutable strings" @ref MC_VALUETYPEID_IMMSTRINGW and @ref MC_VALUETYPEID_IMMSTRINGA
  *
@@ -113,20 +100,9 @@ extern "C" {
  * value.
  *
  * As it is obvious from the description, the ordinary strings can be used
- * for any strings, while work with the immutable strings can be much more
- * effective but the application is responsible to guarantee immutability
- * of the underlying string buffers pointed by them.
- *
- *
- * @section sec_value_null Values and @c NULL
- *
- * Each value type guarantees that @c NULL is valid value of that type.
- * Furthermore all the value types provide a guaranty that calling
- * @c mcValue_Destroy() for @c NULL values is noop.
- *
- * However it depends on the particular value type, how @c NULL values are
- * interpreted. For the built-in types, it usually corresponds to @c 0 (zero),
- * an empty string or @c NULL handle, depending on the nature of the value type.
+ * for any strings but can bring a penalty of higher memory usage, while work
+ * with the immutable strings make the application responsible to guarantee
+ * immutability of the underlying string buffers pointed by them.
  */
 
 
@@ -167,9 +143,9 @@ typedef void* MC_HVALUE;
 /** @brief ID for immutable ANSI string value type. */
 #define MC_VALUETYPEID_IMMSTRINGA       8
 /** @brief ID for color RGB triplet. */
-#define MC_VALUETYPEID_COLORREF         9
-/** @brief ID for icon handle (@c HICON). */
-#define MC_VALUETYPEID_HICON           10
+#define MC_VALUETYPEID_COLOR            9
+/** @brief ID for icon (@c HICON). */
+#define MC_VALUETYPEID_ICON            10
 
 /*@}*/
 
@@ -191,193 +167,264 @@ MC_HVALUETYPE MCTRL_API mcValueType_GetBuiltin(int id);
 
 
 /**
- * @name Value Factory Functions
+ * @name Value Functions
  */
 /*@{*/
 
 /**
- * @brief Create a value holding 32-bit signed integer.
- * @param[out] phValue Filled with new value handle.
- * @param[in] iValue The integer.
- * @return @c TRUE on success, @c FALSE on failure.
+ * @brief Gets a type of the value.
+ * @param[in] hValue The value.
+ * @return The value type handle, or @c NULL on failure.
  */
-BOOL MCTRL_API mcValue_CreateFromInt32(MC_HVALUE* phValue, INT iValue);
+MC_HVALUETYPE MCTRL_API mcValue_Type(const MC_HVALUE hValue);
 
 /**
- * @brief Create a value holding 32-bit unsigned integer.
- * @param[out] phValue Filled with new value handle.
- * @param[in] uValue The integer.
- * @return @c TRUE on success, @c FALSE on failure.
+ * @brief Creates a duplicate of the value.
+ * @param[in] hValue The value.
+ * @return Duplicate of the value, or @c NULL on failure.
  */
-BOOL MCTRL_API mcValue_CreateFromUInt32(MC_HVALUE* phValue, UINT uValue);
+MC_HVALUE MCTRL_API mcValue_Duplicate(const MC_HVALUE hValue);
 
 /**
- * @brief Create a value holding 64-bit signed integer.
- * @param[out] phValue Filled with new value handle.
- * @param[in] i64Value The integer.
- * @return @c TRUE on success, @c FALSE on failure.
+ * @brief Destroys a value.
+ * @param[in] hValue The value.
  */
-BOOL MCTRL_API mcValue_CreateFromInt64(MC_HVALUE* phValue, INT64 i64Value);
-
-/**
- * @brief Create a value holding 64-bit unsigned integer.
- * @param[out] phValue Filled with new value handle.
- * @param[in] u64Value The integer.
- * @return @c TRUE on success, @c FALSE on failure.
- */
-BOOL MCTRL_API mcValue_CreateFromUInt64(MC_HVALUE* phValue, UINT64 u64Value);
-
-/**
- * @brief Create a value holding unicode string.
- * @param[out] phValue Filled with new value handle.
- * @param[in] lpStr The string.
- * @return @c TRUE on success, @c FALSE on failure.
- */
-BOOL MCTRL_API mcValue_CreateFromStringW(MC_HVALUE* phValue, LPCWSTR lpStr);
-
-/**
- * @brief Create a value holding ANSI string.
- * @param[out] phValue Filled with new value handle.
- * @param[in] lpStr The string.
- * @return @c TRUE on success, @c FALSE on failure.
- */
-BOOL MCTRL_API mcValue_CreateFromStringA(MC_HVALUE* phValue, LPCSTR lpStr);
-
-/**
- * @brief Create a value holding immutable Unicode string.
- * @param[out] phValue Filled with new value handle.
- * @param[in] lpStr The string.
- * @return @c TRUE on success, @c FALSE on failure.
- */
-BOOL MCTRL_API mcValue_CreateFromImmStringW(MC_HVALUE* phValue, LPCWSTR lpStr);
-
-/**
- * @brief Create a value holding immutable ANSI string.
- * @param[out] phValue Filled with new value handle.
- * @param[in] lpStr The string.
- * @return @c TRUE on success, @c FALSE on failure.
- */
-BOOL MCTRL_API mcValue_CreateFromImmStringA(MC_HVALUE* phValue, LPCSTR lpStr);
-
-/**
- * @brief Create a value holding immutable RGB triplet (@c COLORREF).
- * @param[out] phValue Filled with new value handle.
- * @param[in] crColor The RGB triplet.
- * @return @c TRUE on success, @c FALSE on failure.
- */
-BOOL MCTRL_API mcValue_CreateFromColorref(MC_HVALUE* phValue, COLORREF crColor);
-
-/**
- * @brief Create a value holding a handle to icon (@c HICON).
- * @param[out] phValue Filled with new value handle.
- * @param[in] hIcon The icon handle.
- * @return @c TRUE on success, @c FALSE on failure.
- */
-BOOL MCTRL_API mcValue_CreateFromHIcon(MC_HVALUE* phValue, HICON hIcon);
+void MCTRL_API mcValue_Destroy(MC_HVALUE hValue);
 
 /*@}*/
 
 
 /**
- * @name Value Getter Functions
+ * @name Int32 Value Functions
  */
 /*@{*/
 
 /**
- * @brief Getter for 32-bit signed integer values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_INT32.
- * @return The integer.
+ * @brief Int32 factory function.
+ * @param[in] iValue The integer.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateInt32(INT iValue);
+
+/**
+ * @brief Int32 getter function.
+ * @param[in] hValue The value.
+ * @return The integer, or @c -1 on failure.
+ *
+ * @note You may need to call @c GetLastError() to distinguish whether @c -1
+ * is the value or an error indication.
  */
 INT MCTRL_API mcValue_GetInt32(const MC_HVALUE hValue);
 
-/**
- * @brief Getter for 32-bit unsigned integer values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_UINT32.
- * @return The integer.
- */
-UINT MCTRL_API mcValue_GetUInt32(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for 64-bit signed integer values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_INT64.
- * @return The integer.
- */
-INT64 MCTRL_API mcValue_GetInt64(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for 64-bit unsigned integer values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_UINT64.
- * @return The integer.
- */
-UINT64 MCTRL_API mcValue_GetUInt64(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for unicode string values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_STRINGW.
- * @return Pointer to the buffer of the string.
- */
-LPCWSTR MCTRL_API mcValue_GetStringW(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for ANSI string values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_STRINGA.
- * @return Pointer to the buffer of the string.
- */
-LPCSTR MCTRL_API mcValue_GetStringA(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for immutable unicode string values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_IMMSTRINGW.
- * @return Pointer to the buffer of the string.
- */
-LPCWSTR MCTRL_API mcValue_GetImmStringW(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for immutable ANSI string values.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_IMMSTRINGA.
- * @return Pointer to the buffer of the string.
- */
-LPCSTR MCTRL_API mcValue_GetImmStringA(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for color RGB triplet.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_COLORREF.
- * @return The color RGB triplet.
- */
-COLORREF MCTRL_API mcValue_GetColorref(const MC_HVALUE hValue);
-
-/**
- * @brief Getter for icon handle.
- * @param[in] hValue The value. It must be of type @ref MC_VALUETYPEID_HICON.
- * @return The icon handle.
- */
-HICON MCTRL_API mcValue_GetHIcon(const MC_HVALUE hValue);
-
 /*@}*/
 
 
 /**
- * @name Other Value Functions
+ * @name UInt32 Value Functions
  */
 /*@{*/
 
 /**
- * @brief Duplicates a value.
- * @param[in] hType Type of both the source and target value handles.
- * @param[out] phDest Filled with new value handle.
- * @param[in] hSrc Source value handle.
- * @return @c TRUE on success, @c FALSE on failure.
+ * @brief UInt32 factory function.
+ * @param[in] uValue The integer.
+ * @return The value or @c NULL on failure.
  */
-BOOL MCTRL_API mcValue_Duplicate(MC_HVALUETYPE hType, MC_HVALUE* phDest, const MC_HVALUE hSrc);
+MC_HVALUE MCTRL_API mcValue_CreateUInt32(UINT uValue);
 
 /**
- * @brief Destroys a value handle.
- * @param[in] hType Type of the source value.
+ * @brief UInt32 getter function.
  * @param[in] hValue The value.
+ * @return The integer, or @c 0xffffffff on failure.
+ *
+ * @note You may need to call @c GetLastError() to distinguish whether
+ * @c 0xffffffff is the value or an error indication.
  */
-void MCTRL_API mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue);
+UINT MCTRL_API mcValue_GetUInt32(const MC_HVALUE hValue);
 
 /*@}*/
+
+
+/**
+ * @name Int64 Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief Int64 factory function.
+ * @param[in] iValue The integer.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateInt64(INT iValue);
+
+/**
+ * @brief Int64 getter function.
+ * @param[in] hValue The value.
+ * @return The integer, or @c -1 on failure.
+ *
+ * @note You may need to call @c GetLastError() to distinguish whether @c -1
+ * is the value or an error indication.
+ */
+INT MCTRL_API mcValue_GetInt64(const MC_HVALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name UInt64 Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief UInt64 factory function.
+ * @param[in] uValue The integer.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateUInt64(UINT uValue);
+
+/**
+ * @brief UInt64 getter function.
+ * @param[in] hValue The value.
+ * @return The integer, or @c 0xffffffff on failure.
+ *
+ * @note You may need to call @c GetLastError() to distinguish whether
+ * @c 0xffffffff is the value or an error indication.
+ */
+UINT MCTRL_API mcValue_GetUInt64(const MC_HVALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name Unicode String Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief Unicode string factory function.
+ * @param[in] lpszStr The string.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateStringW(const WCHAR* lpszStr);
+
+/**
+ * @brief Unicode string getter function.
+ * @param[in] hValue The value.
+ * @return The string, or @c NULL on failure.
+ */
+const WCHAR* MCTRL_API mcValue_GetStringW(const MC_HVALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name @c ANSII String Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief ANSII string factory function.
+ * @param[in] lpszStr The string.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateStringA(const char* lpszStr);
+
+/**
+ * @brief ANSII string getter function.
+ * @param[in] hValue The value.
+ * @return The string, or @c NULL on failure.
+ */
+const char* MCTRL_API mcValue_GetStringA(const MC_HVALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name Unicode Immutable String Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief Unicode immutable string factory function.
+ * @param[in] lpszStr The string.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateImmStringW(const WCHAR* lpszStr);
+
+/**
+ * @brief Unicode immutable string getter function.
+ * @param[in] hValue The value.
+ * @return The string, or @c NULL on failure.
+ */
+const WCHAR* MCTRL_API mcValue_GetImmStringW(const MC_HVALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name ANSII Immutable String Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief ANSII immutable string factory function.
+ * @param[in] lpszStr The string.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateImmStringA(const char* lpszStr);
+
+/**
+ * @brief ANSII immutable string getter function.
+ * @param[in] hValue The value.
+ * @return The string, or @c NULL on failure.
+ */
+const char* MCTRL_API mcValue_GetImmStringA(const MC_HVALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name Color Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief Color factory function.
+ * @param[in] color The color.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateColor(COLORREF color);
+
+/**
+ * @brief Color getter function.
+ * @param[in] hValue The value.
+ * @return The color, or @c MC_CLR_NONE on failure.
+ */
+COLORREF MCTRL_API mcValue_GetColor(const MC_HVALUE hValue);
+
+/*@}*/
+
+
+/**
+ * @name Icon Value Functions
+ */
+/*@{*/
+
+/**
+ * @brief Icon factory function.
+ * @param[in] hIcon The icon.
+ * @return The value or @c NULL on failure.
+ */
+MC_HVALUE MCTRL_API mcValue_CreateIcon(HICON hIcon);
+
+/**
+ * @brief Icon getter function.
+ * @param[in] hValue The value.
+ * @return The icon, or @c NULL on failure.
+ */
+HICON MCTRL_API mcValue_GetIcon(const MC_HVALUE hValue);
+
+/*@}*/
+
 
 
 /**
@@ -389,12 +436,12 @@ void MCTRL_API mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue);
 #define MC_VALUETYPEID_STRING        MCTRL_NAME_AW(MC_VALUETYPEID_STRING)
 /** Unicode-resolution alias. @sa MC_VALUETYPEID_IMMSTRINGW MC_VALUETYPEID_IMMSTRINGA */
 #define MC_VALUETYPEID_IMMSTRING     MCTRL_NAME_AW(MC_VALUETYPEID_IMMSTRING)
-/** Unicode-resolution alias. @sa mcValue_CreateFromStringW mcValue_CreateFromStringA */
-#define mcValue_CreateFromString     MCTRL_NAME_AW(mcValue_CreateFromString)
-/** Unicode-resolution alias. @sa mcValue_CreateFromImmStringW mcValue_CreateFromImmStringA */
-#define mcValue_CreateFromImmString  MCTRL_NAME_AW(mcValue_CreateFromImmString)
+/** Unicode-resolution alias. @sa mcValue_CreateStringW mcValue_CreateStringA */
+#define mcValue_CreateString         MCTRL_NAME_AW(mcValue_CreateString)
 /** Unicode-resolution alias. @sa mcValue_GetStringW mcValue_GetStringA */
 #define mcValue_GetString            MCTRL_NAME_AW(mcValue_GetString)
+/** Unicode-resolution alias. @sa mcValue_CreateImmStringW mcValue_CreateImmStringA */
+#define mcValue_CreateImmString      MCTRL_NAME_AW(mcValue_CreateImmString)
 /** Unicode-resolution alias. @sa mcValue_GetImmStringW mcValue_GetImmStringA */
 #define mcValue_GetImmString         MCTRL_NAME_AW(mcValue_GetImmString)
 

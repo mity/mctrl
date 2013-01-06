@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This file contains example code for mCtrl library. Code of this example
  * (but not the library itself) has been placed in the public domain.
@@ -26,115 +26,75 @@ static HWND hwndGrid;
 static void
 LoadGrid(void)
 {
-    MC_GCELL cell;
+    int row;
+    HICON hIcon;
     MC_HTABLE hTable;
     MC_TABLECELL tc;
 
     /* Set size of the table to 8 columns and 16 rows. */
     SendMessage(hwndGrid, MC_GM_RESIZE, MAKEWPARAM(8, 16), 0);
 
-    /* Setup first column which serves as row headers. */
-    cell.wCol = 0;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_STRING);
-    for(cell.wRow = 0; cell.wRow < 16; cell.wRow++) {
+    /* Setup first column which serves as row headers. This is due the style
+     * MC_GS_ROWHEADERCUSTOM. */
+    for(row = 0; row < 16; row++) {
         TCHAR buffer[32];
-        _sntprintf(buffer, 32, _T("Row %d"), (int)cell.wRow+1);
-        mcValue_CreateFromString(&cell.hValue, buffer);
-        SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+        _sntprintf(buffer, 32, _T("Row %d"), row);
+        SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(0, row),
+                    (LPARAM) mcValue_CreateString(buffer));
     }
 
     /* Setup few cells and show that the table can contain various kinds
      * of data. */
-    cell.wCol = 1;
-    cell.wRow = 0;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_IMMSTRING);
-    mcValue_CreateFromImmString(&cell.hValue, _T("imm string"));
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(1, 0),
+                (LPARAM) mcValue_CreateImmString(_T("imm string")));
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(1, 1),
+                (LPARAM) mcValue_CreateString(_T("string")));
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(1, 2),
+                (LPARAM) mcValue_CreateColor(RGB(200, 0, 0)));
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(2, 2),
+                (LPARAM) mcValue_CreateColor(RGB(0, 200, 0)));
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(3, 2),
+                (LPARAM) mcValue_CreateColor(RGB(0, 0, 200)));
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(1, 3),
+                (LPARAM) mcValue_CreateInt32(42));
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(1, 4),
+                (LPARAM) mcValue_CreateImmString(_T("This is very long string "
+                "which does not fit in the cell.")));
+    hIcon = LoadImage(hInst, MAKEINTRESOURCE(IDI_BEAR), IMAGE_ICON, 0, 0, LR_SHARED);
+    SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(6, 14),
+                (LPARAM) mcValue_CreateIcon(hIcon));
 
-    cell.wCol = 1;
-    cell.wRow = 1;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_STRING);
-    mcValue_CreateFromString(&cell.hValue, _T("string"));
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
-
-    cell.wCol = 1;
-    cell.wRow = 2;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
-    mcValue_CreateFromColorref(&cell.hValue, RGB(200,0,0));
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
-
-    cell.wCol = 2;
-    cell.wRow = 2;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
-    mcValue_CreateFromColorref(&cell.hValue, RGB(0,200,0));
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
-
-    cell.wCol = 3;
-    cell.wRow = 2;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_COLORREF);
-    mcValue_CreateFromColorref(&cell.hValue, RGB(0,0,200));
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
-
-    cell.wCol = 1;
-    cell.wRow = 3;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_INT32);
-    mcValue_CreateFromInt32(&cell.hValue, 42);
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
-
-    cell.wCol = 1;
-    cell.wRow = 4;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_IMMSTRING);
-    mcValue_CreateFromImmString(&cell.hValue, _T("This is very long string which does not fit in the cell."));
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
-
-    cell.wCol = 6;
-    cell.wRow = 14;
-    cell.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_HICON);
-    mcValue_CreateFromHIcon(&cell.hValue, LoadImage(hInst, MAKEINTRESOURCE(IDI_BEAR), IMAGE_ICON, 0, 0, LR_SHARED));
-    SendMessage(hwndGrid, MC_GM_SETCELL, 0, (LPARAM)&cell);
-
-    /* We can also use API of the table presented by the control directly.
-     * first we need a handle of the grid's table. */
-    hTable = (MC_HTABLE)SendMessage(hwndGrid, MC_GM_GETTABLE, 0, 0);
-
-    tc.fMask = MC_TCM_VALUE | MC_TCM_FLAGS;
-    tc.hType = mcValueType_GetBuiltin(MC_VALUETYPEID_IMMSTRING);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("top left"));
+    /* We can also get the data model of the grid control and manipulate it
+     * directly. */
+    hTable = (MC_HTABLE) SendMessage(hwndGrid, MC_GM_GETTABLE, 0, 0);
+    tc.fMask = MC_TCMF_VALUE | MC_TCMF_FLAGS;
+    tc.hValue = mcValue_CreateImmString(_T("top left"));
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNTOP;
-    mcTable_SetCellEx(hTable, 4, 6, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("top"));
+    mcTable_SetCell(hTable, 4, 6, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("top center"));
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNTOP;
-    mcTable_SetCellEx(hTable, 5, 6, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("top right"));
+    mcTable_SetCell(hTable, 5, 6, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("top right"));
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNTOP;
-    mcTable_SetCellEx(hTable, 6, 6, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("left"));
+    mcTable_SetCell(hTable, 6, 6, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("middle left"));
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNVCENTER;
-    mcTable_SetCellEx(hTable, 4, 7, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("center"));
+    mcTable_SetCell(hTable, 4, 7, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("middle center"));
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNVCENTER;
-    mcTable_SetCellEx(hTable, 5, 7, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("right"));
+    mcTable_SetCell(hTable, 5, 7, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("middle right"));
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNVCENTER;
-    mcTable_SetCellEx(hTable, 6, 7, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("bottom left"));
+    mcTable_SetCell(hTable, 6, 7, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("bottom left"));
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNBOTTOM;
-    mcTable_SetCellEx(hTable, 4, 8, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("bottom"));
+    mcTable_SetCell(hTable, 4, 8, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("bottom center"));
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNBOTTOM;
-    mcTable_SetCellEx(hTable, 5, 8, &tc);
-
-    mcValue_CreateFromImmString(&tc.hValue, _T("bottom right"));
+    mcTable_SetCell(hTable, 5, 8, &tc);
+    tc.hValue = mcValue_CreateImmString(_T("bottom right"));
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNBOTTOM;
-    mcTable_SetCellEx(hTable, 6, 8, &tc);
+    mcTable_SetCell(hTable, 6, 8, &tc);
 }
 
 
@@ -161,9 +121,11 @@ win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             SendMessage(hwndGrid, WM_SETFONT, wParam, lParam);
             /* Reset grid's geometry to defaults according to the font. */
             SendMessage(hwndGrid, MC_GM_SETGEOMETRY, 0, 0);
-            /* We use custom row headers so we need more space there. */
-            geom.fMask = MC_GGF_ROWHEADERWIDTH;
-            geom.wRowHeaderWidth = 48;
+            /* Make it to use a bit more space. */
+            geom.fMask = MC_GGF_ROWHEADERWIDTH | MC_GGF_COLUMNWIDTH;
+            SendMessage(hwndGrid, MC_GM_GETGEOMETRY, 0, (LPARAM)&geom);
+            geom.wRowHeaderWidth = 50;
+            geom.wColumnWidth += geom.wColumnWidth / 2;
             SendMessage(hwndGrid, MC_GM_SETGEOMETRY, 0, (LPARAM)&geom);
             return 0;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Martin Mitas
+ * Copyright (c) 2010-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,238 +23,258 @@ static UINT
 draw_text_format(DWORD flags, UINT defaults)
 {
     UINT format = 0;
-
     switch(flags & VALUE_PF_ALIGNMASKHORZ) {
-        case VALUE_PF_ALIGNLEFT:   format |= DT_LEFT; break;
+        case VALUE_PF_ALIGNLEFT: format |= DT_LEFT; break;
         case VALUE_PF_ALIGNCENTER: format |= DT_CENTER; break;
-        case VALUE_PF_ALIGNRIGHT:  format |= DT_RIGHT; break;
-        default:                   format |= defaults & (DT_LEFT | DT_CENTER | DT_RIGHT); break;
+        case VALUE_PF_ALIGNRIGHT: format |= DT_RIGHT; break;
+        default: format |= defaults & (DT_LEFT | DT_CENTER | DT_RIGHT); break;
     }
-
     switch(flags & VALUE_PF_ALIGNMASKVERT) {
-        case VALUE_PF_ALIGNTOP:     format |= DT_TOP; break;
+        case VALUE_PF_ALIGNTOP: format |= DT_TOP; break;
         case VALUE_PF_ALIGNVCENTER: format |= DT_VCENTER; break;
-        case VALUE_PF_ALIGNBOTTOM:  format |= DT_BOTTOM; break;
-        default:                    format |= defaults & (DT_TOP | DT_VCENTER | DT_BOTTOM); break;
+        case VALUE_PF_ALIGNBOTTOM: format |= DT_BOTTOM; break;
+        default: format |= defaults & (DT_TOP | DT_VCENTER | DT_BOTTOM); break;
     }
-
     return format;
 }
 
 
-/************************
- *** Reusable methods ***
- ************************/
+/***************************************
+ *** Reusable Method Implementations ***
+ ***************************************/
 
-static void
-default_destroy(value_t v)
+static value_t* __stdcall
+flat32_ctor_val(const value_t* v)
+{
+    value_t* copy;
+
+    copy = (value_t*) malloc(sizeof(value_t) + sizeof(uint32_t));
+    if(copy)
+        memcpy(copy, v, sizeof(value_t) + sizeof(uint32_t));
+    return copy;
+}
+
+static value_t* __stdcall
+flat64_ctor_val(const value_t* v)
+{
+    value_t* copy;
+
+    copy = (value_t*) malloc(sizeof(value_t) + sizeof(uint64_t));
+    if(copy)
+        memcpy(copy, v, sizeof(value_t) + sizeof(uint64_t));
+    return copy;
+}
+
+#ifdef _WIN64
+    MC_STATIC_ASSERT(sizeof(void*) == sizeof(uint64_t));
+    #define flatptr_ctor_val   flat64_ctor_val
+#else
+    MC_STATIC_ASSERT(sizeof(void*) == sizeof(uint32_t));
+    #define flatptr_ctor_val   flat32_ctor_val
+#endif
+
+static void __stdcall
+flat_dtor(value_t* v)
 {
     free(v);
 }
 
-static void
-scalar_destroy(value_t v)
+static void __stdcall
+ptr_dtor(value_t* v)
 {
-    /* noop */
-}
-
-static int
-scalar_copy(value_t* dest, const value_t src)
-{
-    *dest = src;
-    return 0;
+    if(VALUE_PTR(v) != NULL)
+        free(VALUE_PTR(v));
+    free(v);
 }
 
 
-/*********************************
- *** Int32 type implementation ***
- *********************************/
+/****************************
+ *** Int32 Implementation ***
+ ****************************/
 
-void
-value_set_int32(value_t* v, int32_t i)
+static __stdcall value_t*
+int32_ctor_str(const TCHAR* str)
 {
-    *v = (value_t)(intptr_t) i;
-}
-
-int32_t
-value_get_int32(const value_t v)
-{
-    return (int32_t)(intptr_t) v;
-}
-
-static int
-int32_cmp(const value_t v1, const value_t v2)
-{
-    int32_t i1 = (int32_t)(intptr_t) v1;
-    int32_t i2 = (int32_t)(intptr_t) v2;
-
-    if(i1 < i2)  return -1;
-    if(i1 > i2)  return +1;
-    return 0;
-}
-
-static int
-int32_from_string(value_t* v, const TCHAR* str)
-{
+    int sign = +1;
     int32_t i;
-    TCHAR* end;
 
-    MC_ASSERT(sizeof(long) == sizeof(int32_t));
+    if(MC_ERR(*str == _T('\0')))  /* empty string? */
+        goto err_invalid;
 
-    /* _tcstol() accepts leading whitespaces, we do not */
-    if(MC_ERR(_istspace(str[0])))
+    if(*str == _T('-')) {
+        sign = -1;
+        str++;
+    } else if(*str == _T('+')) {
+        str++;
+    }
+
+    if(MC_ERR(*str == _T('\0')))  /* no digits? */
+        goto err_invalid;
+
+    i = 0;
+    while(_T('0') <= *str  &&  *str <=  _T('9')) {
+        i = i * 10 + (*str-_T('0'));
+        str++;
+    }
+
+    if(MC_ERR(*str != _T('\0')))  /* unexpected chars? */
+        goto err_invalid;
+
+    return (value_t*) mcValue_CreateInt32(sign * i);
+
+err_invalid:
+    SetLastError(ERROR_INVALID_PARAMETER);
+    return NULL;
+}
+
+static __stdcall int
+int32_cmp(const value_t* v1, const value_t* v2)
+{
+    if(VALUE_DATA(v1, int32_t) < VALUE_DATA(v2, int32_t))
         return -1;
-
-    i = _tcstol(str, &end, 10);
-    if(MC_ERR(end == str || *end != _T('\0')))
-        return -1;
-
-    *v = (value_t)(intptr_t) i;
+    if(VALUE_DATA(v1, int32_t) > VALUE_DATA(v2, int32_t))
+        return +1;
     return 0;
 }
 
-static size_t
-int32_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
+static __stdcall size_t
+int32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
-    int32_t i = (int32_t)(intptr_t) v;
-    int32_t limit;
 
     if(bufsize > 0) {
-        n = _sntprintf(buffer, bufsize, _T("%I32d"), i);
-        if(n >= 0)
-            return n + 1;  /* +1 for '\0' */
+        n = _sntprintf(buffer, bufsize, _T("%d"), VALUE_DATA(v, int32_t));
+        buffer[bufsize-1] = '\0';
     }
-
-    /* Buffer too small: return required buffer size. */
-    if(i >= 0) {
-        n = 1;  /* +1 for '\0' */
-        for(limit = 10; limit < 1000000000; limit *= 10) {
-            n++;
-            if(i < limit)
-                return n;
-        }
-        return n+1;
-    } else {
-        n = 2;  /* +2 for '-' and '\0' */
-        for(limit = -10; limit > -1000000000; limit *= 10) {
-            n++;
-            if(i > limit)
-                return n;
-        }
-        return n+1;
+    if(MC_ERR(n < 0)) {
+        /* Buffer too small: Return required buffer size. */
+        TCHAR tmp[16];
+        n = _stprintf(tmp, _T("%d"), VALUE_DATA(v, int32_t));
     }
+    return n+1;  /* +1 for '\0' */
 }
 
-static void
-int32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
+static __stdcall void
+int32_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
     int old_bkmode;
     COLORREF old_color;
 
-    _stprintf(buffer, _T("%I32d"), (int32_t)(intptr_t) v);
-
+    _stprintf(buffer, _T("%d"), VALUE_DATA(v, int32_t));
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+    DrawText(dc, buffer, -1, (RECT*) rect, DT_SINGLELINE | DT_END_ELLIPSIS |
              draw_text_format(flags, DT_RIGHT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
 
-
-static const struct value_type_tag int32_type = {
-    scalar_destroy,
-    scalar_copy,
+static const type_t int32_type = {
+    int32_ctor_str,
+    flat32_ctor_val,
+    flat_dtor,
     int32_cmp,
-    int32_from_string,
-    int32_to_string,
+    int32_dump,
     int32_paint
 };
 
-const value_type_t* VALUE_TYPE_INT32 = &int32_type;
-
-
-/**********************************
- *** UInt32 type implementation ***
- **********************************/
-
-void
-value_set_uint32(value_t* v, uint32_t u)
+MC_HVALUE MCTRL_API
+mcValue_CreateInt32(INT iValue)
 {
-    *v = (value_t)(uintptr_t) u;
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(int32_t));
+    if(v) {
+        v->type = &int32_type;
+        VALUE_DATA(v, int32_t) = iValue;
+    }
+    return (MC_HVALUE) v;
 }
 
-uint32_t
-value_get_uint32(const value_t v)
+INT MCTRL_API
+mcValue_GetInt32(const MC_HVALUE hValue)
 {
-    return (uint32_t)(uintptr_t) v;
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &int32_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return -1;
+    }
+
+    return VALUE_DATA(v, int32_t);
 }
 
-static int
-uint32_cmp(const value_t v1, const value_t v2)
-{
-    uint32_t u1 = (uint32_t)(uintptr_t) v1;
-    uint32_t u2 = (uint32_t)(uintptr_t) v2;
 
-    if(u1 < u2)  return -1;
-    if(u1 > u2)  return +1;
-    return 0;
-}
+/*****************************
+ *** UInt32 Implementation ***
+ *****************************/
 
-static int
-uint32_from_string(value_t* v, const TCHAR* str)
+static __stdcall value_t*
+uint32_ctor_str(const TCHAR* str)
 {
     uint32_t u;
-    WCHAR* end;
 
-    MC_ASSERT(sizeof(unsigned long) == sizeof(uint32_t));
+    if(MC_ERR(*str == _T('\0')))  /* empty string? */
+        goto err_invalid;
 
-    /* _tcstoul() accepts leading whitespaces, we do not */
-    if(MC_ERR(_istspace(str[0])))
+    if(*str == _T('+'))
+        str++;
+
+    if(MC_ERR(*str == _T('\0')))  /* no digits? */
+        goto err_invalid;
+
+    u = 0;
+    while(_T('0') <= *str  &&  *str <=  _T('9')) {
+        u = u * 10 + (*str-_T('0'));
+        str++;
+    }
+
+    if(MC_ERR(*str != _T('\0')))  /* unexpected chars? */
+        goto err_invalid;
+
+    return (value_t*) mcValue_CreateUInt32(u);
+
+err_invalid:
+    SetLastError(ERROR_INVALID_PARAMETER);
+    return NULL;
+}
+
+static __stdcall int
+uint32_cmp(const value_t* v1, const value_t* v2)
+{
+    if(VALUE_DATA(v1, uint32_t) < VALUE_DATA(v2, uint32_t))
         return -1;
-
-    u = _tcstoul(str, &end, 10);
-    if(MC_ERR(end == str || *end != _T('\0')))
-        return -1;
-
-    *v = (value_t)(uintptr_t) u;
+    if(VALUE_DATA(v1, uint32_t) > VALUE_DATA(v2, uint32_t))
+        return +1;
     return 0;
 }
 
-static size_t
-uint32_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
+static __stdcall size_t
+uint32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
-    uint32_t u = (uint32_t)(uintptr_t) v;
-    uint32_t limit;
 
     if(bufsize > 0) {
-        n = _sntprintf(buffer, bufsize, _T("%I32u"), u);
-        if(n >= 0)
-            return n + 1;  /* +1 for '\0' */
+        n = _sntprintf(buffer, bufsize, _T("%u"), VALUE_DATA(v, uint32_t));
+        buffer[bufsize-1] = '\0';
     }
-
-    /* Buffer too small: return required buffer size. */
-    n = 1;  /* +1 for '\0' */
-    for(limit = 10U; limit < 1000000000U; limit *= 10U) {
-        n++;
-        if(u < limit)
-            return n;
+    if(MC_ERR(n < 0)) {
+        /* Buffer too small: Return required buffer size. */
+        TCHAR tmp[16];
+        n = _stprintf(tmp, _T("%u"), VALUE_DATA(v, uint32_t));
     }
-    return n+1;
+    return n+1;  /* +1 for '\0' */
 }
 
-static void
-uint32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
+static __stdcall void
+uint32_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
     int old_bkmode;
     COLORREF old_color;
 
-    _stprintf(buffer, _T("%I32u"), (uint32_t)(uintptr_t) v);
-
+    _stprintf(buffer, _T("%u"), VALUE_DATA(v, uint32_t));
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
     DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
@@ -263,130 +283,116 @@ uint32_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
     SetBkMode(dc, old_bkmode);
 }
 
-
-static const struct value_type_tag uint32_type = {
-    scalar_destroy,
-    scalar_copy,
+static const type_t uint32_type = {
+    uint32_ctor_str,
+    flat32_ctor_val,
+    flat_dtor,
     uint32_cmp,
-    uint32_from_string,
-    uint32_to_string,
+    uint32_dump,
     uint32_paint
 };
 
-const value_type_t* VALUE_TYPE_UINT32 = &uint32_type;
-
-
-/*********************************
- *** Int64 type implementation ***
- *********************************/
-
-int
-value_set_int64(value_t* v, int64_t i64)
+MC_HVALUE MCTRL_API
+mcValue_CreateUInt32(UINT uValue)
 {
-#ifdef _WIN64
-    *v = (value_t)(intptr_t) i64;
-    return 0;
-#else
-    *v = malloc(sizeof(int64_t));
-    if(MC_ERR(*v == NULL)) {
-        MC_TRACE("value_set_int64: malloc() failed.");
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(uint32_t));
+    if(v) {
+        v->type = &uint32_type;
+        VALUE_DATA(v, uint32_t) = uValue;
+    }
+    return (MC_HVALUE) v;
+}
+
+UINT MCTRL_API
+mcValue_GetUInt32(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &uint32_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
         return -1;
     }
-    *((int64_t*)*v) = i64;
-    return 0;
-#endif
+
+    return VALUE_DATA(v, uint32_t);
 }
 
-int64_t
-value_get_int64(const value_t v)
+
+/****************************
+ *** Int64 Implementation ***
+ ****************************/
+
+static __stdcall value_t*
+int64_ctor_str(const TCHAR* str)
 {
-#ifdef _WIN64
-    return (int64_t)(intptr_t) v;
-#else
-    return *((int64_t*) v);
-#endif
+    int sign = +1;
+    int64_t i;
+
+    if(MC_ERR(*str == _T('\0')))  /* empty string? */
+        goto err_invalid;
+
+    if(*str == _T('-')) {
+        sign = -1;
+        str++;
+    } else if(*str == _T('+')) {
+        str++;
+    }
+
+    if(MC_ERR(*str == _T('\0')))  /* no digits? */
+        goto err_invalid;
+
+    i = 0;
+    while(_T('0') <= *str  &&  *str <=  _T('9')) {
+        i = i * 10 + (*str-_T('0'));
+        str++;
+    }
+
+    if(MC_ERR(*str != _T('\0')))  /* unexpected chars? */
+        goto err_invalid;
+
+    return (value_t*) mcValue_CreateInt64(sign * i);
+
+err_invalid:
+    SetLastError(ERROR_INVALID_PARAMETER);
+    return NULL;
 }
 
-#ifndef _WIN64
-static int
-int64_copy(value_t* dest, const value_t src)
+static __stdcall int
+int64_cmp(const value_t* v1, const value_t* v2)
 {
-    return value_set_int64(dest, value_get_int64(src));
-}
-#endif
-
-static int
-int64_cmp(const value_t v1, const value_t v2)
-{
-    int64_t i64_1, i64_2;
-
-    i64_1 = value_get_int64(v1);
-    i64_2 = value_get_int64(v2);
-
-    if(i64_1 < i64_2)  return -1;
-    if(i64_1 > i64_2)  return +1;
-    return 0;
-}
-
-static int
-int64_from_string(value_t* v, const TCHAR* str)
-{
-    int64_t i64;
-    TCHAR* end;
-
-    /* _tcstoi64() accepts leading whitespaces, we do not */
-    if(MC_ERR(_istspace(str[0])))
+    if(VALUE_DATA(v1, int64_t) < VALUE_DATA(v2, int64_t))
         return -1;
-
-    i64 = _tcstoi64(str, &end, 10);
-    if(MC_ERR(end == str || *end != _T('\0')))
-        return -1;
-
-    return value_set_int64(v, i64);
+    if(VALUE_DATA(v1, int64_t) > VALUE_DATA(v2, int64_t))
+        return +1;
+    return 0;
 }
 
-static size_t
-int64_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
+static __stdcall size_t
+int64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
-    int64_t i64 = value_get_int64(v);
-    int64_t limit;
 
     if(bufsize > 0) {
-        n = _sntprintf(buffer, bufsize, _T("%I64d"), i64);
-        if(n >= 0)
-            return n + 1;  /* +1 for '\0' */
+        n = _sntprintf(buffer, bufsize, _T("%d"), VALUE_DATA(v, int64_t));
+        buffer[bufsize-1] = '\0';
     }
-
-    /* Buffer too small: return required buffer size. */
-    if(i64 >= 0) {
-        n = 1;  /* +1 for '\0' */
-        for(limit = 10; limit < 1000000000000000000; limit *= 10) {
-            n++;
-            if(i64 < limit)
-                return n;
-        }
-        return n+1;
-    } else {
-        n = 2;  /* +2 for '-' and '\0' */
-        for(limit = -10; limit > -1000000000000000000; limit *= 10) {
-            n++;
-            if(i64 > limit)
-                return n;
-        }
-        return n+1;
+    if(MC_ERR(n < 0)) {
+        /* Buffer too small: Return required buffer size. */
+        TCHAR tmp[16];
+        n = _stprintf(tmp, _T("%d"), VALUE_DATA(v, int64_t));
     }
+    return n+1;  /* +1 for '\0' */
 }
 
-static void
-int64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
+static __stdcall void
+int64_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
-    TCHAR buffer[24];
+    TCHAR buffer[16];
     int old_bkmode;
     COLORREF old_color;
 
-    _stprintf(buffer, _T("%I64d"), value_get_int64(v));
-
+    _stprintf(buffer, _T("%d"), VALUE_DATA(v, int64_t));
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
     DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
@@ -395,128 +401,111 @@ int64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
     SetBkMode(dc, old_bkmode);
 }
 
-
-static const struct value_type_tag int64_type = {
-#ifdef _WIN64
-    scalar_destroy,
-#else
-    default_destroy,
-#endif
-#ifdef _WIN64
-    scalar_copy,
-#else
-    int64_copy,
-#endif
+static const type_t int64_type = {
+    int64_ctor_str,
+    flat64_ctor_val,
+    flat_dtor,
     int64_cmp,
-    int64_from_string,
-    int64_to_string,
+    int64_dump,
     int64_paint
 };
 
-const value_type_t* VALUE_TYPE_INT64 = &int64_type;
-
-
-/**********************************
- *** UInt64 type implementation ***
- **********************************/
-
-int
-value_set_uint64(value_t* v, uint64_t u64)
+MC_HVALUE MCTRL_API
+mcValue_CreateInt64(INT iValue)
 {
-#ifdef _WIN64
-    *v = (value_t)(uintptr_t) u64;
-    return 0;
-#else
-    *v = malloc(sizeof(uint64_t));
-    if(MC_ERR(*v == NULL)) {
-        MC_TRACE("value_set_uint64: malloc() failed.");
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(int64_t));
+    if(v) {
+        v->type = &int64_type;
+        VALUE_DATA(v, int64_t) = iValue;
+    }
+    return (MC_HVALUE) v;
+}
+
+INT MCTRL_API
+mcValue_GetInt64(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &int64_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
         return -1;
     }
-    *((uint64_t*)*v) = u64;
-    return 0;
-#endif
+
+    return VALUE_DATA(v, int64_t);
 }
 
-uint64_t
-value_get_uint64(const value_t v)
+
+/*****************************
+ *** UInt64 Implementation ***
+ *****************************/
+
+static __stdcall value_t*
+uint64_ctor_str(const TCHAR* str)
 {
-#ifdef _WIN64
-    return (uint64_t)(uintptr_t) v;
-#else
-    return *((uint64_t*) v);
-#endif
+    uint64_t u;
+
+    if(MC_ERR(*str == _T('\0')))  /* empty string? */
+        goto err_invalid;
+
+    if(*str == _T('+'))
+        str++;
+
+    if(MC_ERR(*str == _T('\0')))  /* no digits? */
+        goto err_invalid;
+
+    u = 0;
+    while(_T('0') <= *str  &&  *str <=  _T('9')) {
+        u = u * 10 + (*str-_T('0'));
+        str++;
+    }
+
+    if(MC_ERR(*str != _T('\0')))  /* unexpected chars? */
+        goto err_invalid;
+
+    return (value_t*) mcValue_CreateUInt64(u);
+
+err_invalid:
+    SetLastError(ERROR_INVALID_PARAMETER);
+    return NULL;
 }
 
-#ifndef _WIN64
-static int
-uint64_copy(value_t* dest, const value_t src)
+static __stdcall int
+uint64_cmp(const value_t* v1, const value_t* v2)
 {
-    return value_set_uint64(dest, value_get_uint64(src));
-}
-#endif
-
-static int
-uint64_cmp(const value_t v1, const value_t v2)
-{
-    uint64_t u64_1, u64_2;
-
-    u64_1 = value_get_uint64(v1);
-    u64_2 = value_get_uint64(v2);
-
-    if(u64_1 < u64_2)  return -1;
-    if(u64_1 > u64_2)  return +1;
-    return 0;
-}
-
-static int
-uint64_from_string(value_t* v, const TCHAR* str)
-{
-    uint64_t u64;
-    TCHAR* end;
-
-    /* _tcstoi64() accepts leading whitespaces, we do not */
-    if(MC_ERR(_istspace(str[0])))
+    if(VALUE_DATA(v1, uint64_t) < VALUE_DATA(v2, uint64_t))
         return -1;
-
-    u64 = _tcstoui64(str, &end, 10);
-    if(MC_ERR(end == str || *end != _T('\0')))
-        return -1;
-
-    return value_set_uint64(v, u64);
+    if(VALUE_DATA(v1, uint64_t) > VALUE_DATA(v2, uint64_t))
+        return +1;
+    return 0;
 }
 
-static size_t
-uint64_to_string(const value_t v, TCHAR* buffer, size_t bufsize)
+static __stdcall size_t
+uint64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
-    uint64_t u64 = value_get_uint64(v);
-    uint64_t limit;
 
     if(bufsize > 0) {
-        n = _sntprintf(buffer, bufsize, _T("%I64u"), u64);
-        if(n >= 0)
-            return n + 1;  /* +1 for '\0' */
+        n = _sntprintf(buffer, bufsize, _T("%u"), VALUE_DATA(v, uint64_t));
+        buffer[bufsize-1] = '\0';
     }
-
-    /* Buffer too small: return required buffer size. */
-    n = 1;  /* +1 for '\0' */
-    for(limit = 10; limit < 1000000000000000000; limit *= 10) {
-        n++;
-        if(u64 < limit)
-            return n;
+    if(MC_ERR(n < 0)) {
+        /* Buffer too small: Return required buffer size. */
+        TCHAR tmp[16];
+        n = _stprintf(tmp, _T("%u"), VALUE_DATA(v, uint64_t));
     }
-    return n+1;
+    return n+1;  /* +1 for '\0' */
 }
 
-static void
-uint64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
+static __stdcall void
+uint64_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
-    TCHAR buffer[24];
+    TCHAR buffer[16];
     int old_bkmode;
     COLORREF old_color;
 
-    _stprintf(buffer, _T("%I64u"), value_get_uint64(v));
-
+    _stprintf(buffer, _T("%u"), VALUE_DATA(v, uint64_t));
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
     DrawText(dc, buffer, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
@@ -525,399 +514,471 @@ uint64_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
     SetBkMode(dc, old_bkmode);
 }
 
-
-static const struct value_type_tag uint64_type = {
-#ifdef _WIN64
-    scalar_destroy,
-#else
-    default_destroy,
-#endif
-#ifdef _WIN64
-    scalar_copy,
-#else
-    uint64_copy,
-#endif
+static const type_t uint64_type = {
+    uint64_ctor_str,
+    flat64_ctor_val,
+    flat_dtor,
     uint64_cmp,
-    uint64_from_string,
-    uint64_to_string,
+    uint64_dump,
     uint64_paint
 };
 
-const value_type_t* VALUE_TYPE_UINT64 = &uint64_type;
+MC_HVALUE MCTRL_API
+mcValue_CreateUInt64(UINT uValue)
+{
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(uint64_t));
+    if(v) {
+        v->type = &uint64_type;
+        VALUE_DATA(v, uint64_t) = uValue;
+    }
+    return (MC_HVALUE) v;
+}
+
+UINT MCTRL_API
+mcValue_GetUInt64(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &uint64_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return -1;
+    }
+
+    return VALUE_DATA(v, uint64_t);
+}
 
 
 /***********************************
  *** StringW type implementation ***
  ***********************************/
 
-static const WCHAR str_empty_w[] = L"";
+static const WCHAR strw_empty[] = L"";
 
-int
-value_set_string_W(value_t* v, const WCHAR* str)
+static __stdcall value_t*
+strw_ctor_str(const TCHAR* str)
 {
-    WCHAR* s;
-    size_t size;
+    value_t* v;
 
-    if(str == NULL  ||  str[0] == L'\0') {
-        *v = NULL;
-        return 0;
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(WCHAR*));
+    if(MC_ERR(v == NULL))
+        return NULL;
+
+    VALUE_DATA(v, WCHAR*) = mc_str(str, MC_STRT, MC_STRW);
+    if(MC_ERR(VALUE_DATA(v, WCHAR*) == NULL)) {
+        free(v);
+        return NULL;
     }
 
-    size = sizeof(WCHAR) * (wcslen(str)+1);
-    s = (WCHAR*) malloc(size);
-    if(MC_ERR(s == NULL)) {
-        MC_TRACE("value_set_string_w: malloc() failed.");
-        return -1;
-    }
-
-    memcpy(s, str, size);
-    *v = (value_t) s;
-    return 0;
+    return (MC_HVALUE) v;
 }
 
-const WCHAR*
-value_get_string_W(const value_t v)
+static __stdcall value_t*
+strw_ctor_val(const value_t* v)
 {
-    return (v != NULL ? (const WCHAR*)v : str_empty_w);
+    return mcValue_CreateStringW(VALUE_PTR(v));
 }
 
-static int
-str_copy_W(value_t* dest, const value_t src)
+static __stdcall int
+strw_cmp(const value_t* v1, const value_t* v2)
 {
-    return value_set_string_W(dest, value_get_string_W(src));
+    const WCHAR* s1 = VALUE_PTR(v1);
+    const WCHAR* s2 = VALUE_PTR(v2);
+
+    return wcscmp((s1 != NULL ? s1 : strw_empty), (s2 != NULL ? s2 : strw_empty));
 }
 
-static int
-str_cmp_W(const value_t v1, const value_t v2)
+static __stdcall size_t
+strw_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
-    return _wcsicmp(value_get_string_W(v1), value_get_string_W(v2));
-}
+    const WCHAR* s = VALUE_PTR(v);
 
-static int
-str_from_string_W(value_t* v, const TCHAR* str)
-{
-#ifdef UNICODE
-    return value_set_string_W(v, str);
-#else
-    if(str == NULL || str[0] == L'\0') {
-        *v = NULL;
-        return 0;
-    }
+    if(s == NULL)
+        s = strw_empty;
 
-    *v = mc_str(str, MC_STRA, MC_STRW);
-    if(MC_ERR(*v == NULL))
-        return -1;
-
-    return 0;
-#endif
-}
-
-static size_t
-str_to_string_W(const value_t v, TCHAR* buffer, size_t bufsize)
-{
-    const WCHAR* s = value_get_string_W(v);
-#ifdef UNICODE
-    size_t len;
-
-    len = wcslen(s);
     if(bufsize > 0)
-        wcsncpy(buffer, s, MC_MIN(len + 1, bufsize));
-    return len + 1;
+        mc_str_inbuf(s, MC_STRW, buffer, MC_STRT, bufsize);
+
+#ifdef UNICODE
+    return wcslen(s) + 1;
 #else
-    WideCharToMultiByte(CP_ACP, 0, s, -1, buffer, bufsize, NULL, NULL);
-    return WideCharToMultiByte(CP_ACP, 0, s, -1, buffer, 0, NULL, NULL);
+    return WideCharToMultiByte(CP_ACP, 0, s, -1, NULL, 0, NULL, NULL);
 #endif
 }
 
-static void
-str_paint_W(const value_t v, HDC dc, RECT* rect, DWORD flags)
+static __stdcall void
+strw_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
     COLORREF old_color;
+    const WCHAR* s = VALUE_DATA(v, const WCHAR*);
 
-    if(v == NULL)
+    if(s == NULL)
         return;
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawTextW(dc, value_get_string_W(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+    DrawTextW(dc, s, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
               draw_text_format(flags, DT_LEFT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
 
-
-static const struct value_type_tag str_type_w = {
-    default_destroy,
-    str_copy_W,
-    str_cmp_W,
-    str_from_string_W,
-    str_to_string_W,
-    str_paint_W
+static const type_t strw_type = {
+    strw_ctor_str,
+    strw_ctor_val,
+    ptr_dtor,
+    strw_cmp,
+    strw_dump,
+    strw_paint
 };
 
-const value_type_t* VALUE_TYPE_STRING_W = &str_type_w;
+MC_HVALUE MCTRL_API
+mcValue_CreateStringW(const WCHAR* lpszStr)
+{
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(WCHAR*));
+    if(!v)
+        return NULL;
+
+    v->type = &strw_type;
+    if(lpszStr != NULL) {
+        VALUE_DATA(v, WCHAR*) = mc_str_W2W(lpszStr);
+        if(MC_ERR(VALUE_DATA(v, WCHAR*) == NULL)) {
+            free(v);
+            return NULL;
+        }
+    } else {
+        VALUE_DATA(v, WCHAR*) = NULL;
+    }
+
+    return (MC_HVALUE) v;
+}
+
+const WCHAR* MCTRL_API
+mcValue_GetStringW(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &strw_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return NULL;
+    }
+
+    return VALUE_DATA(v, WCHAR*);
+}
 
 
 /***********************************
  *** StringA type implementation ***
  ***********************************/
 
-static const char str_empty_a[] = "";
+static const char stra_empty[] = "";
 
-int
-value_set_string_A(value_t* v, const char* str)
+static __stdcall value_t*
+stra_ctor_str(const TCHAR* str)
 {
-    char* s;
-    size_t size;
+    value_t* v;
 
-    if(str == NULL  ||  str[0] == '\0') {
-        *v = NULL;
-        return 0;
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(char*));
+    if(MC_ERR(v == NULL))
+        return NULL;
+
+    VALUE_DATA(v, char*) = mc_str(str, MC_STRT, MC_STRA);
+    if(MC_ERR(VALUE_DATA(v, char*) == NULL)) {
+        free(v);
+        return NULL;
     }
 
-    size = strlen(str)+1;
-    s = (char*) malloc(size);
-    if(MC_ERR(s == NULL)) {
-        MC_TRACE("value_set_string_a: malloc() failed.");
-        return -1;
-    }
-
-    memcpy(s, str, size);
-    *v = (value_t) s;
-    return 0;
+    return (MC_HVALUE) v;
 }
 
-const char*
-value_get_string_A(const value_t v)
+static __stdcall value_t*
+stra_ctor_val(const value_t* v)
 {
-    return (v != NULL ? (const char*)v : str_empty_a);
+    return mcValue_CreateStringA(VALUE_PTR(v));
 }
 
-static int
-str_copy_A(value_t* dest, const value_t src)
+static __stdcall int
+stra_cmp(const value_t* v1, const value_t* v2)
 {
-    return value_set_string_A(dest, value_get_string_A(src));
+    const char* s1 = VALUE_PTR(v1);
+    const char* s2 = VALUE_PTR(v2);
+
+    return strcmp((s1 != NULL ? s1 : stra_empty), (s2 != NULL ? s2 : stra_empty));
 }
 
-static int
-str_cmp_A(const value_t v1, const value_t v2)
+static __stdcall size_t
+stra_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
-    return stricmp(value_get_string_A(v1), value_get_string_A(v2));
-}
+    const char* s = VALUE_PTR(v);
 
-static int
-str_from_string_A(value_t* v, const TCHAR* str)
-{
+    if(s == NULL)
+        s = stra_empty;
+
+    if(bufsize > 0)
+        mc_str_inbuf(s, MC_STRA, buffer, MC_STRT, bufsize);
+
 #ifdef UNICODE
-    if(str == NULL || str[0] == L'\0') {
-        *v = NULL;
-        return 0;
-    }
-
-    *v = mc_str(str, MC_STRA, MC_STRW);
-    if(MC_ERR(*v == NULL))
-        return -1;
-
-    return 0;
-#else
-    return value_set_string_A(v, str);
-#endif
-}
-
-static size_t
-str_to_string_A(const value_t v, TCHAR* buffer, size_t bufsize)
-{
-    const char* s = value_get_string_A(v);
-#ifdef UNICODE
-    MultiByteToWideChar(CP_ACP, 0, s, -1, buffer, bufsize);
     return MultiByteToWideChar(CP_ACP, 0, s, -1, NULL, 0);
 #else
-    size_t len;
-
-    len = strlen(s);
-    if(bufsize > 0)
-        strncpy(buffer, s, MC_MIN(len + 1, bufsize));
-    return len + 1;
+    return strlen(s) + 1;
 #endif
 }
 
-static void
-str_paint_A(const value_t v, HDC dc, RECT* rect, DWORD flags)
+static __stdcall void
+stra_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
     COLORREF old_color;
+    const char* s = VALUE_DATA(v, const char*);
 
-    if(v == NULL)
+    if(s == NULL)
         return;
 
     old_bkmode = SetBkMode(dc, TRANSPARENT);
     old_color = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-    DrawTextA(dc, value_get_string_A(v), -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
+    DrawTextA(dc, s, -1, rect, DT_SINGLELINE | DT_END_ELLIPSIS |
               draw_text_format(flags, DT_LEFT | DT_VCENTER));
     SetTextColor(dc, old_color);
     SetBkMode(dc, old_bkmode);
 }
 
-
-static const struct value_type_tag str_type_a = {
-    default_destroy,
-    str_copy_A,
-    str_cmp_A,
-    str_from_string_A,
-    str_to_string_A,
-    str_paint_A
+static const type_t stra_type = {
+    stra_ctor_str,
+    stra_ctor_val,
+    ptr_dtor,
+    stra_cmp,
+    stra_dump,
+    stra_paint
 };
 
-const value_type_t* VALUE_TYPE_STRING_A = &str_type_a;
+MC_HVALUE MCTRL_API
+mcValue_CreateStringA(const char* lpszStr)
+{
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(char*));
+    if(!v)
+        return NULL;
+
+    v->type = &stra_type;
+
+    if(lpszStr != NULL) {
+        VALUE_DATA(v, char*) = mc_str_A2A(lpszStr);
+        if(MC_ERR(VALUE_DATA(v, char*) == NULL)) {
+            free(v);
+            return NULL;
+        }
+    } else {
+        VALUE_DATA(v, char*) = NULL;
+    }
+
+    return (MC_HVALUE) v;
+}
+
+const char* MCTRL_API
+mcValue_GetStringA(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &stra_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return NULL;
+    }
+
+    return VALUE_DATA(v, char*);
+}
 
 
 /**************************************
  *** ImmStringW type implementation ***
  **************************************/
 
-void
-value_set_immstring_W(value_t* v, const WCHAR* str)
-{
-    *v = (value_t) str;
-}
-
-static const struct value_type_tag immstr_type_w = {
-    scalar_destroy,
-    scalar_copy,
-    str_cmp_W,
+static const type_t immstrw_type = {
     NULL,
-    str_to_string_W,
-    str_paint_W
+    flatptr_ctor_val,
+    flat_dtor,
+    strw_cmp,
+    strw_dump,
+    strw_paint
 };
 
-const value_type_t* VALUE_TYPE_IMMSTRING_W = &immstr_type_w;
+MC_HVALUE MCTRL_API
+mcValue_CreateImmStringW(const WCHAR* lpszStr)
+{
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(const WCHAR*));
+    if(v) {
+        v->type = &immstrw_type;
+        VALUE_DATA(v, const WCHAR*) = lpszStr;
+    }
+    return (MC_HVALUE) v;
+}
+
+const WCHAR* MCTRL_API
+mcValue_GetImmStringW(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &immstrw_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return NULL;
+    }
+
+    return VALUE_DATA(v, const WCHAR*);
+}
 
 
 /**************************************
  *** ImmStringA type implementation ***
  **************************************/
 
-void
-value_set_immstring_A(value_t* v, const char* str)
-{
-    *v = (value_t) str;
-}
-
-static const struct value_type_tag immstr_type_a = {
-    scalar_destroy,
-    scalar_copy,
-    str_cmp_A,
+static const type_t immstra_type = {
     NULL,
-    str_to_string_A,
-    str_paint_A
+    flatptr_ctor_val,
+    flat_dtor,
+    stra_cmp,
+    stra_dump,
+    stra_paint
 };
 
-const value_type_t* VALUE_TYPE_IMMSTRING_A = &immstr_type_a;
+MC_HVALUE MCTRL_API
+mcValue_CreateImmStringA(const char* lpszStr)
+{
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(const char*));
+    if(v) {
+        v->type = &immstra_type;
+        VALUE_DATA(v, const char*) = lpszStr;
+    }
+    return (MC_HVALUE) v;
+}
+
+const char* MCTRL_API
+mcValue_GetImmStringA(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &immstra_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return NULL;
+    }
+
+    return VALUE_DATA(v, const char*);
+}
 
 
 /*********************************
  *** Color type implementation ***
  *********************************/
 
-void
-value_set_colorref(value_t* v, COLORREF cref)
+static value_t* __stdcall
+color_ctor_str(const TCHAR* str)
 {
-    *v = (value_t)(uintptr_t) cref;
-}
-
-COLORREF
-value_get_colorref(const value_t v)
-{
-    return (COLORREF)(uintptr_t) v;
-}
-
-static int
-colorref_from_string(value_t* v, const WCHAR* str)
-{
-    const WCHAR* ptr = str;
-    WCHAR* end;
+    const TCHAR* ptr = str;
+    TCHAR* end;
     ULONG rgb;
     UCHAR r, g, b;
 
     /* We expect "#rrggbb" */
     if(*ptr != _T('#'))
-        return -1;
+        goto err_parse;
     ptr++;
     rgb = _tcstoul(ptr, &end, 16);
     if(end - ptr != 6  ||  *end != _T('\0'))
-        return -1;
+        goto err_parse;
 
     r = (rgb & 0xff0000) >> 16;
     g = (rgb & 0xff00) >> 8;
     b = (rgb & 0xff);
-    v = (value_t)(uintptr_t) RGB(r, g, b);
-    return 0;
+    return mcValue_CreateColor(RGB(r, g, b));
+
+err_parse:
+    SetLastError(ERROR_INVALID_PARAMETER);
+    return NULL;
 }
 
-static size_t
-colorref_to_string(const value_t v, WCHAR* buffer, size_t bufsize)
+static size_t __stdcall
+color_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
-    COLORREF clr = (COLORREF)(uintptr_t) v;
-
+    COLORREF color = VALUE_DATA(v, COLORREF);
     if(bufsize > 0) {
-        _sntprintf(buffer, bufsize, _T("#02x02x02x"),
-                   (UINT)GetRValue(clr), (UINT)GetGValue(clr), (UINT)GetBValue(clr));
+        _sntprintf(buffer, bufsize, _T("#%02x%02x%02x"), (UINT)GetRValue(color),
+                   (UINT)GetGValue(color), (UINT)GetBValue(color));
     }
     return sizeof("#rrggbb");
 }
 
-static void
-colorref_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
+static void __stdcall
+color_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
-    COLORREF clr = (COLORREF)(uintptr_t) v;
+    COLORREF color = VALUE_DATA(v, COLORREF);
     HBRUSH brush;
     HBRUSH old_brush;
     HPEN old_pen;
 
-    brush = CreateSolidBrush(clr);
+    brush = CreateSolidBrush(color);
     old_brush = SelectObject(dc, brush);
     old_pen = SelectObject(dc, GetStockObject(BLACK_PEN));
 
-    Rectangle(dc, rect->left, rect->top, rect->right, rect->bottom);
+    Rectangle(dc, rect->left + 2, rect->top + 2, rect->right - 2, rect->bottom - 2);
 
     SelectObject(dc, old_brush);
     SelectObject(dc, old_pen);
     DeleteObject(brush);
 }
 
-static const struct value_type_tag colorref_type = {
-    scalar_destroy,
-    scalar_copy,
+MC_STATIC_ASSERT(sizeof(COLORREF) == sizeof(uint32_t));
+
+static const type_t color_type = {
+    color_ctor_str,
+    flat32_ctor_val,
+    flat_dtor,
     NULL,
-    colorref_from_string,
-    colorref_to_string,
-    colorref_paint
+    color_dump,
+    color_paint
 };
 
-const value_type_t* VALUE_TYPE_COLORREF = &colorref_type;
-
-
-/*********************************
- *** HICON type implementation ***
- *********************************/
-
-void
-value_set_hicon(value_t* v, HICON icon)
+MC_HVALUE MCTRL_API
+mcValue_CreateColor(COLORREF color)
 {
-    *v = (value_t)icon;
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(COLORREF));
+    if(v) {
+        v->type = &color_type;
+        VALUE_DATA(v, COLORREF) = color;
+    }
+    return (MC_HVALUE) v;
 }
 
-HICON
-value_get_hicon(const value_t v)
+COLORREF MCTRL_API
+mcValue_GetColor(const MC_HVALUE hValue)
 {
-    return (HICON)v;
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &color_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return MC_CLR_NONE;
+    }
+
+    return VALUE_DATA(v, COLORREF);
 }
 
-static void
-hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
+
+/********************************
+ *** Icon type implementation ***
+ ********************************/
+
+static void __stdcall
+icon_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
-    HICON icon = (HICON)v;
+    HICON icon = VALUE_DATA(v, HICON);
     SIZE icon_size;
     int x, y;
 
@@ -925,6 +986,7 @@ hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
         return;
 
     mc_icon_size(icon, &icon_size);
+
     switch(flags & VALUE_PF_ALIGNMASKHORZ) {
         case VALUE_PF_ALIGNLEFT:    x = rect->left; break;
         case VALUE_PF_ALIGNDEFAULT:
@@ -932,6 +994,7 @@ hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
         case VALUE_PF_ALIGNRIGHT:   x = rect->right - icon_size.cx; break;
         default:                    MC_UNREACHABLE;
     }
+
     switch(flags & VALUE_PF_ALIGNMASKVERT) {
         case VALUE_PF_ALIGNTOP:      y = rect->top; break;
         case VALUE_PF_ALIGNVDEFAULT:
@@ -943,36 +1006,62 @@ hicon_paint(const value_t v, HDC dc, RECT* rect, DWORD flags)
     DrawIconEx(dc, x, y, icon, 0, 0, 0, NULL, DI_NORMAL);
 }
 
-static const struct value_type_tag hicon_type = {
-    scalar_destroy,
-    scalar_copy,
+MC_STATIC_ASSERT(sizeof(HICON) == sizeof(void*));
+
+static const type_t icon_type = {
+    NULL,
+    flatptr_ctor_val,
+    flat_dtor,
     NULL,
     NULL,
-    NULL,
-    hicon_paint
+    icon_paint
 };
 
-const value_type_t* VALUE_TYPE_HICON = &hicon_type;
+MC_HVALUE MCTRL_API
+mcValue_CreateIcon(HICON hIcon)
+{
+    value_t* v;
+
+    v = (value_t*) malloc(sizeof(value_t) + sizeof(HICON));
+    if(v) {
+        v->type = &icon_type;
+        VALUE_DATA(v, HICON) = hIcon;
+    }
+    return (MC_HVALUE) v;
+}
+
+HICON MCTRL_API
+mcValue_GetIcon(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL  ||  v->type != &icon_type)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return NULL;
+    }
+
+    return VALUE_DATA(v, HICON);
+}
 
 
-/**************************
- *** Exported functions ***
- **************************/
+/************************
+ *** Common Functions ***
+ ************************/
 
 MC_HVALUETYPE MCTRL_API
 mcValueType_GetBuiltin(int id)
 {
     switch(id) {
-        case MC_VALUETYPEID_INT32:      return VALUE_TYPE_INT32;
-        case MC_VALUETYPEID_UINT32:     return VALUE_TYPE_UINT32;
-        case MC_VALUETYPEID_INT64:      return VALUE_TYPE_INT64;
-        case MC_VALUETYPEID_UINT64:     return VALUE_TYPE_UINT64;
-        case MC_VALUETYPEID_STRINGW:    return VALUE_TYPE_STRING_W;
-        case MC_VALUETYPEID_STRINGA:    return VALUE_TYPE_STRING_A;
-        case MC_VALUETYPEID_IMMSTRINGW: return VALUE_TYPE_IMMSTRING_W;
-        case MC_VALUETYPEID_IMMSTRINGA: return VALUE_TYPE_IMMSTRING_A;
-        case MC_VALUETYPEID_COLORREF:   return VALUE_TYPE_COLORREF;
-        case MC_VALUETYPEID_HICON:      return VALUE_TYPE_HICON;
+        case MC_VALUETYPEID_INT32:      return (MC_HVALUETYPE) &int32_type;
+        case MC_VALUETYPEID_UINT32:     return (MC_HVALUETYPE) &uint32_type;
+        case MC_VALUETYPEID_INT64:      return (MC_HVALUETYPE) &int64_type;
+        case MC_VALUETYPEID_UINT64:     return (MC_HVALUETYPE) &uint64_type;
+        case MC_VALUETYPEID_STRINGW:    return (MC_HVALUETYPE) &strw_type;
+        case MC_VALUETYPEID_STRINGA:    return (MC_HVALUETYPE) &stra_type;
+        case MC_VALUETYPEID_IMMSTRINGW: return (MC_HVALUETYPE) &immstrw_type;
+        case MC_VALUETYPEID_IMMSTRINGA: return (MC_HVALUETYPE) &immstra_type;
+        case MC_VALUETYPEID_COLOR:      return (MC_HVALUETYPE) &color_type;
+        case MC_VALUETYPEID_ICON:       return (MC_HVALUETYPE) &icon_type;
     }
 
     MC_TRACE("mcValueType_GetBuiltin: id %d unknown", id);
@@ -980,152 +1069,41 @@ mcValueType_GetBuiltin(int id)
     return NULL;
 }
 
-
-BOOL MCTRL_API
-mcValue_CreateFromInt32(MC_HVALUE* phValue, INT iValue)
+MC_HVALUETYPE MCTRL_API
+mcValue_Type(const MC_HVALUE hValue)
 {
-    value_set_int32((value_t*) phValue, (int32_t) iValue);
-    return TRUE;
-}
+    const value_t* v = (const value_t*) hValue;
 
-BOOL MCTRL_API
-mcValue_CreateFromUInt32(MC_HVALUE* phValue, UINT uValue)
-{
-    value_set_uint32((value_t*) phValue, (uint32_t) uValue);
-    return TRUE;
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromInt64(MC_HVALUE* phValue, INT64 i64Value)
-{
-    value_set_int64((value_t*) phValue, (int64_t) i64Value);
-    return TRUE;
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromUInt64(MC_HVALUE* phValue, UINT64 u64Value)
-{
-    value_set_uint64((value_t*) phValue, (uint64_t) u64Value);
-    return TRUE;
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromStringW(MC_HVALUE* phValue, LPCWSTR lpStr)
-{
-    return (value_set_string_W((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromStringA(MC_HVALUE* phValue, LPCSTR lpStr)
-{
-    return (value_set_string_A((value_t*) phValue, lpStr) == 0 ? TRUE : FALSE);
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromImmStringW(MC_HVALUE* phValue, LPCWSTR lpStr)
-{
-    value_set_immstring_W((value_t*) phValue, lpStr);
-    return TRUE;
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromImmStringA(MC_HVALUE* phValue, LPCSTR lpStr)
-{
-    value_set_immstring_A((value_t*) phValue, lpStr);
-    return TRUE;
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromColorref(MC_HVALUE* phValue, COLORREF crColor)
-{
-    value_set_colorref((value_t*) phValue, crColor);
-    return TRUE;
-}
-
-BOOL MCTRL_API
-mcValue_CreateFromHIcon(MC_HVALUE* phValue, HICON hIcon)
-{
-    value_set_hicon((value_t*) phValue, hIcon);
-    return TRUE;
-}
-
-
-INT MCTRL_API
-mcValue_GetInt32(const MC_HVALUE hValue)
-{
-    return (INT) value_get_int32((value_t)hValue);
-}
-
-UINT MCTRL_API
-mcValue_GetUInt32(const MC_HVALUE hValue)
-{
-    return (UINT) value_get_uint32((value_t)hValue);
-}
-
-INT64 MCTRL_API
-mcValue_GetInt64(const MC_HVALUE hValue)
-{
-    return (INT64) value_get_int64((value_t)hValue);
-}
-
-UINT64 MCTRL_API
-mcValue_GetUInt64(const MC_HVALUE hValue)
-{
-    return (UINT64) value_get_uint64((value_t)hValue);
-}
-
-LPCWSTR MCTRL_API
-mcValue_GetStringW(const MC_HVALUE hValue)
-{
-    return value_get_string_W((value_t)hValue);
-}
-
-LPCSTR MCTRL_API
-mcValue_GetStringA(const MC_HVALUE hValue)
-{
-    return value_get_string_A((value_t)hValue);
-}
-
-LPCWSTR MCTRL_API
-mcValue_GetImmStringW(const MC_HVALUE hValue)
-{
-    return value_get_immstring_W((value_t)hValue);
-}
-
-LPCSTR MCTRL_API
-mcValue_GetImmStringA(const MC_HVALUE hValue)
-{
-    return value_get_immstring_A((value_t)hValue);
-}
-
-COLORREF MCTRL_API
-mcValue_GetColorref(const MC_HVALUE hValue)
-{
-    return value_get_colorref((value_t)hValue);
-}
-
-HICON MCTRL_API
-mcValue_GetHIcon(const MC_HVALUE hValue)
-{
-    return value_get_hicon((value_t)hValue);
-}
-
-
-BOOL MCTRL_API
-mcValue_Duplicate(MC_HVALUETYPE hType, MC_HVALUE* phDest, const MC_HVALUE hSrc)
-{
-    if(MC_ERR(hType == NULL)) {
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return FALSE;
+    if(MC_ERR(v == NULL)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return NULL;
     }
 
-    return (((value_type_t*)hType)->copy((value_t*)phDest, (value_t)hSrc)
-            ? TRUE : FALSE);
+    return (MC_HVALUETYPE) v->type;
+}
+
+MC_HVALUE MCTRL_API
+mcValue_Duplicate(const MC_HVALUE hValue)
+{
+    const value_t* v = (const value_t*) hValue;
+
+    if(MC_ERR(v == NULL)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return NULL;
+    }
+
+    return (MC_HVALUE) v->type->ctor_val(v);
 }
 
 void MCTRL_API
-mcValue_Destroy(MC_HVALUETYPE hType, MC_HVALUE hValue)
+mcValue_Destroy(MC_HVALUE hValue)
 {
-    if(hType != NULL)
-        ((value_type_t*)hType)->destroy((value_t)hValue);
+    value_t* v = (value_t*) hValue;
+
+    if(MC_ERR(v == NULL)) {
+        SetLastError(ERROR_INVALID_HANDLE);
+        return;
+    }
+
+    v->type->dtor(v);
 }
