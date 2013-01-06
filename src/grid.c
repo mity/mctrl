@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2012 Martin Mitas
+ * Copyright (c) 2010-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -111,8 +111,8 @@ grid_calc_layout(grid_t* grid, grid_layout_t* layout)
     WORD row_count;
 
     if(grid->table) {
-        col_count = table_col_count(grid->table);
-        row_count = table_row_count(grid->table);
+        col_count = grid->table->col_count;
+        row_count = grid->table->row_count;
     } else {
         col_count = 0;
         row_count = 0;
@@ -488,7 +488,7 @@ grid_set_table(grid_t* grid, table_t* table)
     if(table != NULL) {
         table_ref(table);
     } else if(!(grid->style & MC_GS_NOTABLECREATE)) {
-        table = table_create(0, 0, NULL, 0);
+        table = table_create(0, 0);
         if(MC_ERR(table == NULL)) {
             MC_TRACE("grid_set_table: table_create() failed.");
             return -1;
@@ -744,24 +744,25 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case MC_GM_SETCELL:
-        {
-            MC_GCELL* cell = (MC_GCELL*) lp;
-            return mcTable_SetCell(grid->table, cell->wCol, cell->wRow,
-                                                cell->hType, cell->hValue);
-        }
+            return mcTable_SetCell(grid->table, LOWORD(wp), HIWORD(wp),
+                                   (MC_TABLECELL*) lp);
 
         case MC_GM_GETCELL:
-        {
-            MC_GCELL* cell = (MC_GCELL*) lp;
-            return mcTable_GetCell(grid->table, cell->wCol, cell->wRow,
-                                   &cell->hType, &cell->hValue);
-        }
+            return mcTable_GetCell(grid->table, LOWORD(wp), HIWORD(wp),
+                                   (MC_TABLECELL*) lp);
 
         case MC_GM_SETGEOMETRY:
             return (grid_set_geometry(grid, (MC_GGEOMETRY*)lp, TRUE) == 0 ? TRUE : FALSE);
 
         case MC_GM_GETGEOMETRY:
             return (grid_get_geometry(grid, (MC_GGEOMETRY*)lp) == 0 ? TRUE : FALSE);
+
+        case MC_GM_SETVALUE:
+            return mcTable_SetValue(grid->table, LOWORD(wp), HIWORD(wp),
+                                    (MC_HVALUE*) lp);
+
+        case MC_GM_GETVALUE:
+            return (LRESULT) mcTable_GetValue(grid->table, LOWORD(wp), HIWORD(wp));
 
         case WM_VSCROLL:
         case WM_HSCROLL:

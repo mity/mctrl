@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Martin Mitas
+ * Copyright (c) 2010-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,266 +29,110 @@
 #endif
 
 
-
-#define MC_TCM_ALL    (MC_TCM_VALUE | MC_TCM_FOREGROUND | MC_TCM_BACKGROUND | MC_TCM_FLAGS)
-
-
-
-/**********************
- *** Table contents ***
- **********************/
-
-#define TABLE_CONTENTS_VALUES              0x01
-#define TABLE_CONTENTS_TYPES               0x02
-#define TABLE_CONTENTS_FOREGROUNDS         0x04
-#define TABLE_CONTENTS_BACKGROUNDS         0x08
-#define TABLE_CONTENTS_FLAGS               0x10
-
-typedef struct table_contents_tag table_contents_t;
-struct table_contents_tag {
-    DWORD mask;
-    WORD col_count;
-    WORD row_count;
-    value_t* values;
-    union {
-        value_type_t* type;    /* if homogenous */
-        value_type_t** types;  /* if heterogenous */
-    };
-    COLORREF* foregrounds;
-    COLORREF* backgrounds;
-    BYTE* flags;               /* Now all public cell bits fit into single byte. In future we may need to extend this to WORD or DWORD. */
-};
-
-#define IS_HOMOGENOUS(contents)      \
-     (!((contents)->mask & TABLE_CONTENTS_TYPES))
-
-
-static int
-table_contents_alloc(table_contents_t* contents, value_type_t* homotype,
-                     WORD col_count, WORD row_count, DWORD mask)
+static void
+table_init_cells_helper(table_cell_t* cells, size_t cell_count)
 {
-    static const struct {
-        DWORD mask_bit;
-        size_t size;
-    } SIZE_MAP[] = {
-        { TABLE_CONTENTS_VALUES,      sizeof(value_t*) },
-        { TABLE_CONTENTS_TYPES,       sizeof(value_type_t*) },
-        { TABLE_CONTENTS_FOREGROUNDS, sizeof(COLORREF) },
-        { TABLE_CONTENTS_BACKGROUNDS, sizeof(COLORREF) },
-        { TABLE_CONTENTS_FLAGS,       sizeof(BYTE) }
-    };
-    size_t partsize[MC_ARRAY_SIZE(SIZE_MAP)];
-    void** partptr[MC_ARRAY_SIZE(SIZE_MAP)];
-    int i;
-    size_t size = 0;
-    BYTE* mem;
+    static const table_cell_t cell_empty = { NULL, RGB(0,0,0), MC_CLR_NONE, 0 };
+    size_t n;
 
-    MC_ASSERT(mask & TABLE_CONTENTS_VALUES);
-    MC_ASSERT( ((mask & TABLE_CONTENTS_TYPES)  &&  homotype == NULL) ||
-              !((mask & TABLE_CONTENTS_TYPES)  &&  homotype != NULL));
-
-    contents->mask = mask;
-    contents->col_count = col_count;
-    contents->row_count = row_count;
-
-    partptr[0] = (void**) &contents->values;
-    partptr[1] = (void**) &contents->types;
-    partptr[2] = (void**) &contents->foregrounds;
-    partptr[3] = (void**) &contents->backgrounds;
-    partptr[4] = (void**) &contents->flags;
-
-    /* Zero-sized table is simple */
-    if(col_count == 0  ||  row_count == 0) {
-        for(i = 0; i < MC_ARRAY_SIZE(SIZE_MAP); i++)
-            *partptr[i] = NULL;
-        contents->type = homotype;
-        return 0;
-    }
-
-    /* Calculate byte sizes for each needed property and their sume. */
-    for(i = 0; i < MC_ARRAY_SIZE(SIZE_MAP); i++) {
-        if(mask & SIZE_MAP[i].mask_bit) {
-            partsize[i] = SIZE_MAP[i].size * col_count * row_count;
-            size += partsize[i];
-        } else {
-            partsize[i] = 0;
-        }
-    }
-
-    /* Allocation */
-    mem = (BYTE*) malloc(size);
-    if(MC_ERR(mem == NULL)) {
-        MC_TRACE("table_contents_alloc: malloc() failed.");
-        return -1;
-    }
-
-    /* Setup all pointers to the inside of the allocated chunk */
-    for(i = 0; i < MC_ARRAY_SIZE(SIZE_MAP); i++) {
-        if(partsize[i] > 0) {
-            *partptr[i] = mem;
-            mem += partsize[i];
-        } else {
-            *partptr[i] = NULL;
-        }
-    }
-
-    /* If needed, setup homogenous table type */
-    if(IS_HOMOGENOUS(contents)) {
-        MC_ASSERT(contents->types == NULL);
-        contents->type = homotype;
-    }
-
-    return 0;
+    mc_inlined_memcpy(cells, &cell_empty, sizeof(table_cell_t));
+    for(n = 1; 2*n < cell_count; n = 2*n)
+        memcpy(cells + n, cells, n * sizeof(table_cell_t));
+    if(n < cell_count)
+        memcpy(cells + n, cells, (cell_count - n) * sizeof(table_cell_t));
 }
 
 static void
-table_contents_free(table_contents_t* contents)
+table_init_cells(table_cell_t* cells, WORD col_count, WORD row_count,
+                 const table_region_t* reg)
 {
-    /* Buffers for all table attributes share one allocated chunk
-     * and ->values is the first of them. */
-    if(contents->values)
-        free(contents->values);
-}
-
-static void
-table_contents_init_region(table_contents_t* contents, table_region_t* region)
-{
+    DWORD offset0, offset, count;
     WORD row;
 
-    /* Case 0: empty region */
-    if(region->col1 - region->col0 == 0 || region->row1 - region->row0 == 0)
+    TABLE_TRACE("table_init_cells: Region %d,%d,%d,%d",
+                reg->col0, reg->row0, reg->col1, reg->row1);
+
+    if(reg->col1 - reg->col0 == 0  ||  reg->row1 - reg->row0 == 0)
         return;
 
-    /* Case 1: region contains complete lines */
-    if(region->col0 == 0 && region->col1 == contents->col_count) {
-        DWORD cell0 = region->row0 * (DWORD)contents->col_count;
-        DWORD cell_count = (region->row1 - region->row0) * (DWORD)contents->col_count;
-
-        if(contents->mask & TABLE_CONTENTS_VALUES)
-            memset(&contents->values[cell0], 0, cell_count * sizeof(value_t));
-        if(contents->mask & TABLE_CONTENTS_TYPES)
-            memset(&contents->types[cell0], 0, cell_count * sizeof(value_type_t*));
-        if(contents->mask & TABLE_CONTENTS_FOREGROUNDS)
-            memset(&contents->foregrounds[cell0], 0, cell_count * sizeof(COLORREF));
-        if(contents->mask & TABLE_CONTENTS_BACKGROUNDS)
-            mc_stosd((uint32_t*) &contents->backgrounds[cell0], MC_CLR_NONE, cell_count);
-        if(contents->mask & TABLE_CONTENTS_FLAGS)
-            mc_stosd((uint32_t*) &contents->backgrounds[cell0], MC_CLR_DEFAULT, cell_count);
-
+    /* Optimized case if the region contains complete lines */
+    if(reg->col0 == 0  &&  reg->col1 == col_count) {
+        offset0 = reg->row0 * col_count;
+        count = (reg->row1 - reg->row0) * col_count;
+        table_init_cells_helper(cells + offset0, count);
         return;
     }
 
-    /* Case 2: general case */
-    for(row = region->row0; row < region->row1; row++) {
-        DWORD cell0 = row * (DWORD)contents->col_count + region->col0;
-        DWORD cell_count = region->col1 - region->col0;
+    /* Setup 1st row */
+    offset0 = reg->row0 * col_count + reg->col0;
+    count = reg->col1 - reg->col0;
+    table_init_cells_helper(cells + offset0, count);
 
-        if(contents->mask & TABLE_CONTENTS_VALUES)
-            memset(&contents->values[cell0], 0, cell_count * sizeof(value_t));
-        if(contents->mask & TABLE_CONTENTS_TYPES)
-            memset(&contents->types[cell0], 0, cell_count * sizeof(value_type_t*));
-        if(contents->mask & TABLE_CONTENTS_FOREGROUNDS)
-            memset(&contents->foregrounds[cell0], 0, cell_count * sizeof(COLORREF));
-        if(contents->mask & TABLE_CONTENTS_BACKGROUNDS)
-            mc_stosd((uint32_t*) &contents->backgrounds[cell0], MC_CLR_NONE, cell_count);
-        if(contents->mask & TABLE_CONTENTS_FLAGS)
-            mc_stosd((uint32_t*) &contents->backgrounds[cell0], MC_CLR_DEFAULT, cell_count);
+    /* Copy it into all the other rows */
+    for(row = reg->row0 + 1; row < reg->row1; row++) {
+        offset = row * col_count + reg->col0;
+        memcpy(cells + offset, cells + offset0, count * sizeof(table_cell_t));
     }
 }
 
 static void
-table_contents_free_region(table_contents_t* contents, table_region_t* region)
+table_free_cells(table_cell_t* cells, WORD col_count, WORD row_count,
+                 const table_region_t* reg)
 {
-    WORD row, col;
+    WORD col, row;
+    value_t* value;
 
-    for(row = region->row0; row < region->row1; row++) {
-        for(col = region->col0; col < region->col1; col++) {
-            DWORD index = row * (DWORD)contents->col_count + col;
-            value_type_t* t;
+    TABLE_TRACE("table_free_cells: Region %d,%d,%d,%d",
+                reg->col0, reg->row0, reg->col1, reg->row1);
 
-            if(contents->values[index] == NULL)
-                continue;
-
-            if(IS_HOMOGENOUS(contents))
-                t = contents->type;
-            else
-                t = contents->types[index];
-
-            MC_ASSERT(t != NULL);
-            t->destroy(contents->values[index]);
+    for(row = reg->row0; row < reg->row1; row++) {
+        for(col = reg->col0; col < reg->col1; col++) {
+            value = cells[row * col_count + col].value;
+            if(value != NULL)
+                value_destroy(value);
         }
     }
 }
 
 static void
-table_contents_move_region(table_contents_t* contents_from, table_region_t* region_from,
-                           table_contents_t* contents_to, table_region_t* region_to)
+table_move_cells(table_cell_t* dst_cells, WORD dst_col_count, WORD dst_row_count,
+                 const table_region_t* dst_reg,
+                 table_cell_t* src_cells, WORD src_col_count, WORD src_row_count,
+                 const table_region_t* src_reg)
 {
+    DWORD src_offset, dst_offset, count;
     WORD i;
 
-    MC_ASSERT(contents_from->mask == contents_to->mask);
+    TABLE_TRACE("table_move_cells: Region %d,%d,%d,%d -> %d,%d,%d,%d",
+                src_reg->col0, src_reg->row0, src_reg->col1, src_reg->row1,
+                dst_reg->col0, dst_reg->row0, dst_reg->col1, dst_reg->row1);
 
-    /* Size of both regions must be the same */
-    MC_ASSERT(region_from->col1 - region_from->col0 == region_to->col1 - region_to->col0);
-    MC_ASSERT(region_from->row1 - region_from->row0 == region_to->row1 - region_to->row0);
+    MC_ASSERT(src_reg->col1 - src_reg->col0 == dst_reg->col1 - dst_reg->col0);
+    MC_ASSERT(src_reg->row1 - src_reg->row0 == dst_reg->row1 - dst_reg->row0);
 
-    /* Case 0: zero-sized regions */
-    if(region_from->col1 - region_from->col0 == 0  ||
-       region_from->row1 - region_from->row0 == 0)
+    if(src_reg->col1 - src_reg->col0 == 0  || src_reg->row1 - src_reg->row0 == 0)
         return;
 
-    /* Case 1: both regions contain complete lines */
-    if(region_from->col0 == 0  &&  region_to->col0 == 0  &&
-       region_from->col1 == contents_from->col_count  &&
-       region_to->col1 == contents_from->col_count) {
-        DWORD cellfrom0 = region_from->row0 * (DWORD)contents_from->col_count;
-        DWORD cellto0 = region_to->row0 * (DWORD)contents_to->col_count;
-        DWORD cell_count = (region_from->row1 - region_from->row0) * (DWORD)contents_from->col_count;
-
-        if(contents_from->mask & TABLE_CONTENTS_VALUES)
-            memcpy(&contents_to->values[cellto0], &contents_from->values[cellfrom0], cell_count * sizeof(value_t));
-        if(contents_from->mask & TABLE_CONTENTS_TYPES)
-            memcpy(&contents_to->types[cellto0], &contents_from->types[cellfrom0], cell_count * sizeof(value_type_t*));
-        if(contents_from->mask & TABLE_CONTENTS_FOREGROUNDS)
-            memcpy(&contents_to->foregrounds[cellto0], &contents_from->foregrounds[cellfrom0], cell_count * sizeof(COLORREF));
-        if(contents_from->mask & TABLE_CONTENTS_BACKGROUNDS)
-            memcpy(&contents_to->backgrounds[cellto0], &contents_from->backgrounds[cellfrom0], cell_count * sizeof(COLORREF));
-        if(contents_from->mask & TABLE_CONTENTS_FLAGS)
-            memcpy(&contents_to->flags[cellto0], &contents_from->flags[cellfrom0], cell_count * sizeof(BYTE));
-
+    /* Optimized case if the region contains complete lines
+     * (in both the source and the destination) */
+    if(src_col_count == dst_col_count  &&
+       src_reg->col0 == 0  &&  src_reg->col1 == src_col_count)
+    {
+        src_offset = src_reg->row0 * src_col_count;
+        count = (src_reg->row1 - src_reg->row0) * src_col_count;
+        memcpy(dst_cells + src_offset, src_cells + src_offset, count * sizeof(table_cell_t));
         return;
     }
 
-    /* Case 2: general case */
-    for(i = 0; i < region_from->row1 - region_from->row0; i++) {
-        DWORD cellfrom0 = (region_from->row0 + i) * (DWORD)contents_from->col_count + region_from->col0;
-        DWORD cellto0 = (region_to->row0 + i) * (DWORD)contents_to->col_count + region_to->col0;
-        DWORD cell_count = region_from->col1 - region_from->col0;
-
-        if(contents_from->mask & TABLE_CONTENTS_VALUES)
-            memcpy(&contents_to->values[cellto0], &contents_from->values[cellfrom0], cell_count * sizeof(value_t));
-        if(contents_from->mask & TABLE_CONTENTS_TYPES)
-            memcpy(&contents_to->types[cellto0], &contents_from->types[cellfrom0], cell_count * sizeof(value_type_t*));
-        if(contents_from->mask & TABLE_CONTENTS_FOREGROUNDS)
-            memcpy(&contents_to->foregrounds[cellto0], &contents_from->foregrounds[cellfrom0], cell_count * sizeof(COLORREF));
-        if(contents_from->mask & TABLE_CONTENTS_BACKGROUNDS)
-            memcpy(&contents_to->backgrounds[cellto0], &contents_from->backgrounds[cellfrom0], cell_count * sizeof(COLORREF));
-        if(contents_from->mask & TABLE_CONTENTS_FLAGS)
-            memcpy(&contents_to->flags[cellto0], &contents_from->flags[cellfrom0], cell_count * sizeof(BYTE));
+    /* General case */
+    count = src_reg->col1 - src_reg->col0;
+    for(i = 0; i < src_reg->col1 - src_reg->col0; i++) {
+        src_offset = (src_reg->row0 + i) * src_col_count + src_reg->col0;
+        dst_offset = (dst_reg->row0 + i) * dst_col_count + dst_reg->col0;
+        count = src_reg->col1 - src_reg->col0;
+        memcpy(dst_cells + dst_offset, src_cells + src_offset, count * sizeof(table_cell_t));
     }
 }
-
-
-/****************************
- *** Table implementation ***
- ****************************/
-
-struct table_tag {
-    mc_ref_t refs;
-    table_contents_t contents;
-    view_list_t vlist;
-};
-
 
 static inline void
 table_refresh_views(table_t* table, table_region_t* region)
@@ -297,21 +141,12 @@ table_refresh_views(table_t* table, table_region_t* region)
 }
 
 table_t*
-table_create(WORD col_count, WORD row_count, value_type_t* cell_type, DWORD flags)
+table_create(WORD col_count, WORD row_count)
 {
     table_t* table;
-    table_region_t region;
-    DWORD mask = TABLE_CONTENTS_VALUES | TABLE_CONTENTS_TYPES;
+    table_region_t reg;
 
-    if(!(flags & MC_TF_NOCELLFOREGROUND))
-        mask |= TABLE_CONTENTS_FOREGROUNDS;
-    if(!(flags & MC_TF_NOCELLBACKGROUND))
-        mask |= TABLE_CONTENTS_BACKGROUNDS;
-    if(!(flags & MC_TF_NOCELLFLAGS))
-        mask |= TABLE_CONTENTS_FLAGS;
-
-    TABLE_TRACE("table_create(%d, %d, %p, 0x%x)",
-                (int)col_count, (int)row_count, cell_type, mask);
+    TABLE_TRACE("table_create(%d, %d)", col_count, row_count);
 
     table = (table_t*) malloc(sizeof(table_t));
     if(MC_ERR(table == NULL)) {
@@ -319,138 +154,111 @@ table_create(WORD col_count, WORD row_count, value_type_t* cell_type, DWORD flag
         return NULL;
     }
 
-    if(MC_ERR(table_contents_alloc(&table->contents, cell_type,
-                                   col_count, row_count, mask) != 0)) {
-        MC_TRACE("table_create: table_contents_alloc() failed.");
-        free(table);
-        return NULL;
+    if(col_count > 0  &&  row_count > 0) {
+        table->cells = (table_cell_t*) malloc(col_count * row_count * sizeof(table_cell_t));
+        if(MC_ERR(table->cells == NULL)) {
+            MC_TRACE("table_create: malloc() failed.");
+            free(table);
+            return NULL;
+        }
+    } else {
+        table->cells = NULL;
     }
 
-    region.col0 = 0;
-    region.row0 = 0;
-    region.col1 = col_count;
-    region.row1 = row_count;
-    table_contents_init_region(&table->contents, &region);
+    reg.col0 = 0;
+    reg.row0 = 0;
+    reg.col1 = col_count;
+    reg.row1 = row_count;
+    table_init_cells(table->cells, col_count, row_count, &reg);
 
     table->refs = 1;
+    table->col_count = col_count;
+    table->row_count = row_count;
+
     view_list_init(&table->vlist);
+
     return table;
 }
 
 void
-table_ref(table_t* table)
+table_destroy(table_t* table)
 {
-    TABLE_TRACE("table_ref(%p): %u -> %u", table, table->refs, table->refs+1);
+    TABLE_TRACE("table_destroy");
 
-    mc_ref(&table->refs);
-}
+    if(table->cells) {
+        table_region_t reg;
 
-void
-table_unref(table_t* table)
-{
-    TABLE_TRACE("table_unref(%p): %u -> %u", table, table->refs, table->refs-1);
+        reg.col0 = 0;
+        reg.row0 = 0;
+        reg.col1 = table->col_count;
+        reg.row1 = table->row_count;
+        table_free_cells(table->cells, table->col_count, table->row_count, &reg);
 
-    if(mc_unref(&table->refs) == 0) {
-        table_region_t region;
-
-        TABLE_TRACE("table_unref(%p): Freeing", table);
-        MC_ASSERT(VIEW_LIST_IS_EMPTY(&table->vlist));
-
-        region.col0 = 0;
-        region.row0 = 0;
-        region.col1 = table->contents.col_count;
-        region.row1 = table->contents.row_count;
-        table_contents_free_region(&table->contents, &region);
-
-        table_contents_free(&table->contents);
-        free(table);
-    }
-}
-
-WORD
-table_col_count(const table_t* table)
-{
-    return table->contents.col_count;
-}
-
-WORD
-table_row_count(const table_t* table)
-{
-    return table->contents.row_count;
-}
-
-void
-table_paint_cell(const table_t* table, WORD col, WORD row, HDC dc, RECT* rect)
-{
-    DWORD index = row * (DWORD)table->contents.col_count + col;
-    value_t* value = table->contents.values[index];
-    value_type_t* type;
-    DWORD flags = 0;
-
-    if(IS_HOMOGENOUS(&table->contents)) {
-        type = table->contents.type;
-        MC_ASSERT(type != NULL);
-    } else {
-        type = table->contents.types[index];
-        if(type == NULL)
-            return;
+        free(table->cells);
     }
 
-    if(table->contents.mask & TABLE_CONTENTS_FLAGS)
-        flags |= table->contents.flags[index] & 0xf;  /* alignment */
-
-    type->paint(value, dc, rect, flags);
+    free(table);
 }
 
 int
 table_resize(table_t* table, WORD col_count, WORD row_count)
 {
-    table_contents_t contents;
-    value_type_t* homotype;
-    table_region_t region;
+    table_cell_t* cells;
+    table_region_t reg;
 
-    if(col_count == table->contents.col_count && row_count == table->contents.row_count)
+    TABLE_TRACE("table_resize: %dx%d -> %dx%d",
+                table->col_count, table->row_count, col_count, row_count);
+
+    if(col_count == table->col_count  &&  row_count == table->row_count)
         return 0;
 
-    homotype = IS_HOMOGENOUS(&table->contents) ? table->contents.type : NULL;
-
-    if(MC_ERR(table_contents_alloc(&contents, homotype, col_count, row_count,
-                                   table->contents.mask) != 0)) {
-        MC_TRACE("table_resize: table_contents_alloc() failed.");
-        return -1;
+    if(col_count > 0  &&  row_count > 0) {
+        cells = (table_cell_t*) malloc(col_count * row_count * sizeof(table_cell_t));
+        if(MC_ERR(cells == NULL)) {
+            MC_TRACE("table_resize: malloc() failed.");
+            return -1;
+        }
+    } else {
+        cells = NULL;
     }
 
     /* Move intersected contents */
-    region.col0 = 0;
-    region.row0 = 0;
-    region.col1 = MC_MIN(col_count, table->contents.col_count);
-    region.row1 = MC_MIN(row_count, table->contents.row_count);
-    table_contents_move_region(&table->contents, &region, &contents, &region);
+    reg.col0 = 0;
+    reg.row0 = 0;
+    reg.col1 = MC_MIN(col_count, table->col_count);
+    reg.row1 = MC_MIN(row_count, table->row_count);
+    table_move_cells(cells, col_count, row_count, &reg,
+                     table->cells, table->col_count, table->row_count, &reg);
 
     /* Handle difference in col_count */
-    region.col0 = region.col1;
-    if(col_count > table->contents.col_count) {
-        region.col1 = col_count;
-        table_contents_init_region(&contents, &region);
-    } else if(col_count < table->contents.col_count) {
-        region.col1 = table->contents.col_count;
-        table_contents_free_region(&contents, &region);
+    reg.col0 = reg.col1;
+    if(col_count > table->col_count) {
+        reg.col1 = col_count;
+        table_init_cells(cells, col_count, row_count, &reg);
+    } else if(col_count < table->col_count) {
+        reg.col1 = table->col_count;
+        table_free_cells(table->cells, table->col_count, table->row_count, &reg);
     }
 
     /* Handle difference in row_count */
-    region.col0 = 0;
-    region.row0 = region.row1;
-    if(row_count > table->contents.row_count) {
-        region.row1 = row_count;
-        table_contents_init_region(&contents, &region);
-    } else if(row_count < table->contents.row_count) {
-        region.row1 = table->contents.row_count;
-        table_contents_free_region(&contents, &region);
+    reg.col0 = 0;
+    reg.row0 = reg.row1;
+    if(row_count > table->row_count) {
+        reg.col1 = col_count;
+        reg.row1 = row_count;
+        table_init_cells(cells, col_count, row_count, &reg);
+    } else if(row_count < table->row_count) {
+        reg.col1 = table->col_count;
+        reg.row1 = table->row_count;
+        table_free_cells(table->cells, table->col_count, table->row_count, &reg);
     }
 
     /* Install new contents */
-    table_contents_free(&table->contents);
-    memcpy(&table->contents, &contents, sizeof(table_contents_t));
+    if(table->cells)
+        free(table->cells);
+    table->cells = cells;
+    table->col_count = col_count;
+    table->row_count = row_count;
 
     table_refresh_views(table, NULL);
     return 0;
@@ -459,117 +267,82 @@ table_resize(table_t* table, WORD col_count, WORD row_count)
 void
 table_clear(table_t* table)
 {
-    table_region_t region;
+    table_region_t reg;
 
-    region.col0 = 0;
-    region.row0 = 0;
-    region.col1 = table->contents.col_count;
-    region.row1 = table->contents.row_count;
-    table_contents_free_region(&table->contents, &region);
-    table_contents_init_region(&table->contents, &region);
+    TABLE_TRACE("table_clear");
 
-    table_refresh_views(table, &region);
+    reg.col0 = 0;
+    reg.row0 = 0;
+    reg.col1 = table->col_count;
+    reg.row1 = table->row_count;
+    table_free_cells(table->cells, table->col_count, table->row_count, &reg);
+    table_init_cells(table->cells, table->col_count, table->row_count, &reg);
 }
 
 void
 table_get_cell(const table_t* table, WORD col, WORD row, MC_TABLECELL* cell)
 {
-    DWORD index = row * table->contents.col_count + col;
+    table_cell_t* c;
 
-    if(cell->fMask & MC_TCM_VALUE) {
-        if(IS_HOMOGENOUS(&table->contents))
-            cell->hType = table->contents.type;
-        else
-            cell->hType = table->contents.types[index];
-        cell->hValue = table->contents.values[index];
-    }
+    c = &table->cells[row * table->col_count + col];
 
-    if(cell->fMask & MC_TCM_FOREGROUND) {
-        if(table->contents.mask & TABLE_CONTENTS_FOREGROUNDS)
-            cell->crForeground = table->contents.foregrounds[index];
-        else
-            cell->crForeground = MC_CLR_DEFAULT;
-    }
+    if(cell->fMask & MC_TCMF_VALUE)
+        cell->hValue = c->value;
 
-    if(cell->fMask & MC_TCM_BACKGROUND) {
-        if(table->contents.mask & TABLE_CONTENTS_BACKGROUNDS)
-            cell->crBackground = table->contents.backgrounds[index];
-        else
-            cell->crBackground = MC_CLR_NONE;
-    }
+    if(cell->fMask & MC_TCMF_FOREGROUND)
+        cell->crForeground = c->fg_color;
 
-    if(cell->fMask & MC_TCM_FLAGS) {
-        if(table->contents.mask & TABLE_CONTENTS_FLAGS)
-            cell->dwFlags = table->contents.flags[index];
-        else
-            cell->dwFlags = 0;
-    }
+    if(cell->fMask & MC_TCMF_BACKGROUND)
+        cell->crBackground = c->bg_color;
+
+    if(cell->fMask & MC_TCMF_FLAGS)
+        cell->dwFlags = c->flags;
 }
 
 void
 table_set_cell(table_t* table, WORD col, WORD row, MC_TABLECELL* cell)
 {
-    DWORD index = row * table->contents.col_count + col;
-    table_region_t region;
+    table_cell_t* c;
+    table_region_t reg;
 
-    if(cell->fMask & MC_TCM_VALUE) {
-        if(IS_HOMOGENOUS(&table->contents)) {
-            MC_ASSERT(cell->hType == NULL  ||  cell->hType == table->contents.type);
-            if(table->contents.values[index] != NULL)
-                table->contents.type->destroy(table->contents.values[index]);
-        } else {
-            if(table->contents.values[index] != NULL)
-                table->contents.types[index]->destroy(table->contents.values[index]);
-            table->contents.types[index] = (value_type_t*) cell->hType;
-        }
+    TABLE_TRACE("table_set_cell(%dx%d)", col, row);
 
-        table->contents.values[index] = (value_t) cell->hValue;
+    c = &table->cells[row * table->col_count + col];
+
+    if(cell->fMask & MC_TCMF_VALUE) {
+        if(c->value != NULL)
+            value_destroy(c->value);
+        c->value = cell->hValue;
     }
 
-    if(cell->fMask & MC_TCM_FOREGROUND) {
-        if(table->contents.mask & TABLE_CONTENTS_FOREGROUNDS)
-            table->contents.foregrounds[index] = cell->crForeground;
-    }
+    if(cell->fMask & MC_TCMF_FOREGROUND)
+        c->fg_color = cell->crForeground;
 
-    if(cell->fMask & MC_TCM_BACKGROUND) {
-        if(table->contents.mask & TABLE_CONTENTS_BACKGROUNDS)
-            table->contents.backgrounds[index] = cell->crBackground;
-    }
+    if(cell->fMask & MC_TCMF_BACKGROUND)
+        c->bg_color = cell->crBackground;
 
-    if(cell->fMask & MC_TCM_FLAGS) {
-        if(table->contents.mask & TABLE_CONTENTS_FLAGS)
-            table->contents.flags[index] = cell->dwFlags;
-    }
+    if(cell->fMask & MC_TCMF_FLAGS)
+        c->flags = cell->dwFlags;
 
-    region.col0 = col;
-    region.row0 = row;
-    region.col1 = col+1;
-    region.row1 = row+1;
-    table_refresh_views(table, &region);
+    reg.col0 = col;
+    reg.row0 = row;
+    reg.col1 = col + 1;
+    reg.row1 = row + 1;
+    table_refresh_views(table, &reg);
 }
-
-int
-table_install_view(table_t* table, void* view, view_refresh_t refresh)
-{
-    return view_list_install_view(&table->vlist, view, refresh);
-}
-
-void
-table_uninstall_view(table_t* table, void* view)
-{
-    view_list_uninstall_view(&table->vlist, view);
-}
-
 
 
 /**************************
  *** Exported functions ***
  **************************/
 
+#define MC_TCMF_ALL    (MC_TCMF_VALUE | MC_TCMF_FOREGROUND | MC_TCMF_BACKGROUND | MC_TCMF_FLAGS)
+
+
 MC_HTABLE MCTRL_API
-mcTable_Create(WORD wColumnCount, WORD wRowCount, MC_HVALUETYPE hType, DWORD dwFlags)
+mcTable_Create(WORD wColumnCount, WORD wRowCount, DWORD dwReserved)
 {
-    return (MC_HTABLE) table_create(wColumnCount, wRowCount, (value_type_t*)hType, dwFlags);
+    return (MC_HTABLE) table_create(wColumnCount, wRowCount);
 }
 
 void MCTRL_API
@@ -589,63 +362,82 @@ mcTable_Release(MC_HTABLE hTable)
 WORD MCTRL_API
 mcTable_ColumnCount(MC_HTABLE hTable)
 {
-    return (hTable ? table_col_count((table_t*)hTable) : 0);
+    table_t* table = (table_t*) hTable;
+
+    if(MC_ERR(table == NULL)) {
+        MC_TRACE("mcTable_ColumnCount: hTable == NULL");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return table->col_count;
 }
 
 WORD MCTRL_API
 mcTable_RowCount(MC_HTABLE hTable)
 {
-    return (hTable ? table_row_count((table_t*)hTable) : 0);
+    table_t* table = (table_t*) hTable;
+
+    if(MC_ERR(table == NULL)) {
+        MC_TRACE("mcTable_RowCount: hTable == NULL");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return table->row_count;
 }
 
 BOOL MCTRL_API
 mcTable_Resize(MC_HTABLE hTable, WORD wColumnCount, WORD wRowCount)
 {
-    if(MC_ERR(hTable == NULL)) {
+    table_t* table = (table_t*) hTable;
+
+    if(MC_ERR(table == NULL)) {
         MC_TRACE("mcTable_Resize: hTable == NULL");
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
 
-    return (table_resize((table_t*)hTable, wColumnCount, wRowCount) == 0 ?
-            TRUE : FALSE);
+    return (table_resize(table, wColumnCount, wRowCount) == 0 ? TRUE : FALSE);
 }
 
 void MCTRL_API
 mcTable_Clear(MC_HTABLE hTable)
 {
-    if(hTable)
-        table_clear((table_t*)hTable);
+    table_t* table = (table_t*) hTable;
+
+    if(MC_ERR(table == NULL)) {
+        MC_TRACE("mcTable_Clear: hTable == NULL");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    table_clear(table);
 }
 
 BOOL MCTRL_API
-mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
-                MC_HVALUETYPE hType, MC_HVALUE hValue)
+mcTable_SetValue(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_HVALUE hValue)
 {
     MC_TABLECELL cell;
 
-    cell.fMask = MC_TCM_VALUE;
-    cell.hType = hType;
+    cell.fMask = MC_TCMF_VALUE;
     cell.hValue = hValue;
-    return mcTable_SetCellEx(hTable, wCol, wRow, &cell);
+    return mcTable_SetCell(hTable, wCol, wRow, &cell);
 }
 
-BOOL MCTRL_API
-mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
-                MC_HVALUETYPE* phType, MC_HVALUE* phValue)
+const MC_HVALUE MCTRL_API
+mcTable_GetValue(MC_HTABLE hTable, WORD wCol, WORD wRow)
 {
     MC_TABLECELL cell;
 
-    cell.fMask = MC_TCM_VALUE;
-    if(MC_ERR(!mcTable_GetCellEx(hTable, wCol, wRow, &cell)))
-        return FALSE;
-    if(phType) *phType = cell.hType;
-    if(phValue) *phValue = cell.hValue;
-    return TRUE;
+    cell.fMask = MC_TCMF_VALUE;
+    if(MC_ERR(!mcTable_GetCell(hTable, wCol, wRow, &cell)))
+        return NULL;
+    return cell.hValue;
 }
 
 BOOL MCTRL_API
-mcTable_SetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
+mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
 {
     table_t* table = (table_t*) hTable;
 
@@ -655,22 +447,14 @@ mcTable_SetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
         return FALSE;
     }
 
-    if(MC_ERR(wCol >= table->contents.col_count || wRow >= table->contents.row_count)) {
+    if(MC_ERR(wCol >= table->col_count || wRow >= table->row_count)) {
         MC_TRACE("mcTable_SetCell: [wCol, wRow] out of range.");
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
 
-    if(MC_ERR(pCell->fMask & ~MC_TCM_ALL)) {
+    if(MC_ERR(pCell->fMask & ~MC_TCMF_ALL)) {
         MC_TRACE("mcTable_SetCell: Unsupported pCell->fMask");
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return FALSE;
-    }
-
-    if(MC_ERR((pCell->fMask & MC_TCM_VALUE)  &&
-              IS_HOMOGENOUS(&table->contents)  &&
-              pCell->hType != table->contents.type)) {
-        MC_TRACE("mcTable_SetCell: Value type mismatch in homogenous table.");
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
@@ -680,7 +464,7 @@ mcTable_SetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
 }
 
 BOOL MCTRL_API
-mcTable_GetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
+mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
 {
     table_t* table = (table_t*) hTable;
 
@@ -690,18 +474,44 @@ mcTable_GetCellEx(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_TABLECELL* pCell)
         return FALSE;
     }
 
-    if(MC_ERR(wCol >= table->contents.col_count || wRow >= table->contents.row_count)) {
+    if(MC_ERR(wCol >= table->col_count || wRow >= table->row_count)) {
         MC_TRACE("mcTable_GetCell: [wCol, wRow] out of range.");
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
 
-    if(MC_ERR(pCell->fMask & ~MC_TCM_ALL)) {
-        MC_TRACE("mcTable_SetCell: Unsupported pCell->fMask");
+    if(MC_ERR(pCell->fMask & ~MC_TCMF_ALL)) {
+        MC_TRACE("mcTable_GetCell: Unsupported pCell->fMask");
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
 
     table_get_cell(table, wCol, wRow, pCell);
     return TRUE;
+}
+
+MC_HVALUE MCTRL_API
+mcTable_SwapValue(MC_HTABLE hTable, WORD wCol, WORD wRow, MC_HVALUE value)
+{
+    table_t* table = (table_t*) hTable;
+    table_cell_t* c;
+    value_t* old_value;
+
+    if(MC_ERR(hTable == NULL)) {
+        MC_TRACE("mcTable_SwapValue: hTable == NULL");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return NULL;
+    }
+
+    if(MC_ERR(wCol >= table->col_count || wRow >= table->row_count)) {
+        MC_TRACE("mcTable_SwapValue: [wCol, wRow] out of range.");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return NULL;
+    }
+
+    c = &table->cells[wRow * table->col_count + wCol];
+    old_value = c->value;
+    c->value = (value_t*) value;
+
+    return (MC_HVALUE) old_value;
 }

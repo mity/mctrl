@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -200,14 +200,14 @@ propview_paint(propview_t* pv, HDC dc)
                  DT_SINGLELINE | DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER);
 
         /* Paint value */
-        if(item->type != NULL) {
+        if(item->value != NULL) {
             int dc_state;
 
             mc_rect_set(&value_rect, pv->label_width + PADDING_H, label_rect.top,
                                      rect.right - PADDING_H, label_rect.bottom);
 
             dc_state = SaveDC(dc);
-            item->type->paint(item->value, dc, &value_rect, 0);
+            value_paint(item->value, dc, &value_rect, 0);
             RestoreDC(dc, dc_state);
         }
 

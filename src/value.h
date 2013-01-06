@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011 Martin Mitas
+ * Copyright (c) 2010-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,18 +22,28 @@
 #include "mCtrl/value.h"
 #include "misc.h"
 
-#ifndef MC_DEBUG_H
-    #error shit
-#endif
+
+typedef struct value_tag value_t;
+typedef struct type_tag type_t;
+
+struct value_tag {
+    const type_t* type;
+};
+
+struct type_tag {
+    value_t* (__stdcall *ctor_str)(const TCHAR*);                      /* optional */
+    value_t* (__stdcall *ctor_val)(const value_t*);                    /* mandatory */
+    void     (__stdcall *dtor)    (value_t*);                          /* mandatory */
+    int      (__stdcall *cmp)     (const value_t*, const value_t*);    /* optional */
+    size_t   (__stdcall *dump)    (const value_t*, TCHAR*, size_t);    /* optional */
+    void     (__stdcall *paint)   (const value_t*, HDC, RECT*, DWORD); /* mandatory */
+};
+
+#define VALUE_PTR(v)         ((void*) ((v)+1))
+#define VALUE_DATA(v, type)  (*(type*) VALUE_PTR(v))
 
 
-
-
-typedef void* value_t;
-
-
-/* Flags for value_type_t::paint().
- * (We define them to match public table cell flags) */
+/* Flags for type_t::paint() */
 #define VALUE_PF_ALIGNDEFAULT              0x00000000
 #define VALUE_PF_ALIGNLEFT                 0x00000001
 #define VALUE_PF_ALIGNCENTER               0x00000003
@@ -48,66 +58,17 @@ typedef void* value_t;
 #define VALUE_PF_ALIGNMASK                 0x0000000f
 
 
-typedef struct value_type_tag value_type_t;
-struct value_type_tag {
-    void   (*destroy)(value_t);
-    int    (*copy)(value_t*, const value_t);
-    int    (*cmp)(const value_t, const value_t);
-    int    (*from_string)(value_t*, const TCHAR*);
-    size_t (*to_string)(const value_t, TCHAR*, size_t);
-    void   (*paint)(const value_t, HDC, RECT*, DWORD);
-};
+static inline void
+value_destroy(value_t* v)
+{
+    v->type->dtor(v);
+}
 
-
-extern const value_type_t* VALUE_TYPE_INT32;
-extern const value_type_t* VALUE_TYPE_UINT32;
-extern const value_type_t* VALUE_TYPE_INT64;
-extern const value_type_t* VALUE_TYPE_UINT64;
-extern const value_type_t* VALUE_TYPE_STRING_W;
-extern const value_type_t* VALUE_TYPE_STRING_A;
-extern const value_type_t* VALUE_TYPE_IMMSTRING_W;
-extern const value_type_t* VALUE_TYPE_IMMSTRING_A;
-extern const value_type_t* VALUE_TYPE_COLORREF;
-extern const value_type_t* VALUE_TYPE_HICON;
-
-#define VALUE_TYPE_STRING             MC_NAME_AW(VALUE_TYPE_STRING_)
-#define VALUE_TYPE_IMMUTABLE_STRING   MC_NAME_AW(VALUE_TYPE_IMMUTABLE_STRING_)
-
-
-void value_set_int32(value_t* v, int32_t i);
-int32_t value_get_int32(const value_t v);
-
-void value_set_uint32(value_t* v, uint32_t u);
-uint32_t value_get_uint32(const value_t v);
-
-int value_set_int64(value_t* v, int64_t i64);
-int64_t value_get_int64(const value_t v);
-
-int  value_set_uint64(value_t* v, uint64_t u64);
-uint64_t value_get_uint64(const value_t v);
-
-int value_set_string_W(value_t* v, const WCHAR* str);
-const WCHAR* value_get_string_W(const value_t v);
-
-int value_set_string_A(value_t* v, const char* str);
-const char* value_get_string_A(const value_t v);
-
-void value_set_immstring_W(value_t* v, const WCHAR* str);
-#define value_get_immstring_W value_get_string_W
-
-void value_set_immstring_A(value_t* v, const char* str);
-#define value_get_immstring_A value_get_string_A
-
-void value_set_colorref(value_t* v, COLORREF cref);
-COLORREF value_get_colorref(const value_t v);
-
-void value_set_hicon(value_t* v, HICON icon);
-HICON value_get_hicon(const value_t v);
-
-#define value_set_string             MC_NAME_AW(value_set_string_)
-#define value_get_string             MC_NAME_AW(value_get_string_)
-#define value_set_immutable_string   MC_NAME_AW(value_set_immutable_string_)
-#define value_get_immutable_string   MC_NAME_AW(value_get_immutable_string_)
+static inline void
+value_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
+{
+    v->type->paint(v, dc, rect, flags);
+}
 
 
 #endif  /* MC_VALUE_H */

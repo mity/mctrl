@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,21 +43,21 @@ typedef void* MC_HPROPSET;
 
 
 /**
- * @anchor MC_PSIM_xxxx
+ * @anchor MC_PSIMF_xxxx
  * @name MC_PROPSETITEM::fMask Bits
  */
 /*@{*/
 
 /** @ref MC_PROPSETITEMW::pszText and @ref MC_PROPSETITEMW::cchTextMax, or
  *  @ref MC_PROPSETITEMA::pszText and @ref MC_PROPSETITEMA::cchTextMax are valid. */
-#define MC_PSIM_TEXT                 (0x00000001)
-/** @ref MC_PROPSETITEMW::hType and @ref MC_PROPSETITEMW::hValue, or
- *  @ref MC_PROPSETITEMA::hType and @ref MC_PROPSETITEMA::hValue are valid. */
-#define MC_PSIM_VALUE                (0x00000002)
+#define MC_PSIMF_TEXT                 (0x00000001)
+/** @ref  @ref MC_PROPSETITEMW::hValue, or @ref @ref MC_PROPSETITEMA::hValue is
+ *  valid. */
+#define MC_PSIMF_VALUE                (0x00000002)
 /** @ref MC_PROPSETITEMW::lParam or @ref MC_PROPSETITEMA::lParam is valid. */
-#define MC_PSIM_LPARAM               (0x00000004)
+#define MC_PSIMF_LPARAM               (0x00000004)
 /** @ref MC_PROPSETITEMW::dwFlags or @ref MC_PROPSETITEMA::dwFlags is valid. */
-#define MC_PSIM_FLAGS                (0x00000008)
+#define MC_PSIMF_FLAGS                (0x00000008)
 
 /*@}*/
 
@@ -89,7 +89,7 @@ typedef void* MC_HPROPSET;
  * @sa mcPropSet_InsertItemW mcPropSet_SetItemW mcPropSet_GetItemW
  */
 typedef struct MC_PROPSETITEMW_tag {
-    /** @brief Bitmask specifying what members are valid. See @ref MC_PSIM_xxxx. */
+    /** @brief Bitmask specifying what members are valid. See @ref MC_PSIMF_xxxx. */
     DWORD fMask;
     /** @brief Index of the property. */
     int iItem;
@@ -97,8 +97,6 @@ typedef struct MC_PROPSETITEMW_tag {
     LPWSTR pszText;
     /** @brief Maximal number of characters in @c pszText. Used only on output. */
     int cchTextMax;
-    /** @brief Handle of property value type. */
-    MC_HVALUETYPE hType;
     /** @brief Handle of property value. */
     MC_HVALUE hValue;
     /** @brief User data. */
@@ -118,7 +116,7 @@ typedef struct MC_PROPSETITEMW_tag {
  * @sa mcPropSet_InsertItemA mcPropSet_SetItemA mcPropSet_GetItemA
  */
 typedef struct MC_PROPSETITEMA_tag {
-    /** @brief Bitmask specifying what members are valid. See @ref MC_PSIM_xxxx. */
+    /** @brief Bitmask specifying what members are valid. See @ref MC_PSIMF_xxxx. */
     DWORD fMask;
     /** @brief Index of the property. */
     int iItem;
@@ -127,8 +125,6 @@ typedef struct MC_PROPSETITEMA_tag {
     /** @brief Maximal number of characters in @c pszText. Used only on output. */
     int cchTextMax;
     /** @brief Handle of property value type. */
-    MC_HVALUETYPE hType;
-    /** @brief Handle of property value. */
     MC_HVALUE hValue;
     /** @brief User data. */
     LPARAM lParam;
