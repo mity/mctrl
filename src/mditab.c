@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -598,7 +598,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
 }
 
 static void
-mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty)
+mditab_do_paint(mditab_t* mditab, HDC dc, RECT* dirty, BOOL erase)
 {
     RECT rect;
     RECT* rect_item;
@@ -614,7 +614,7 @@ mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty)
 
     GetClientRect(mditab->win, &rect);
 
-    if(mditab->theme)
+    if(erase)
         theme_DrawThemeParentBackground(mditab->win, dc, &rect);
 
     /* Draw unselected tabs */
@@ -663,6 +663,45 @@ mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty)
     SelectObject(dc, old_font);
     SetBkMode(dc, old_bk_mode);
     SetTextColor(dc, old_text_color);
+}
+
+static void
+mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty, BOOL erase)
+{
+    int w, h;
+    HDC mem_dc;
+    HBITMAP bmp;
+    HBITMAP old_bmp;
+    POINT old_origin;
+
+    w = mc_width(dirty);
+    h = mc_height(dirty);
+
+    mem_dc = CreateCompatibleDC(dc);
+    if(MC_ERR(mem_dc == NULL))
+        goto fallback;
+
+    bmp = CreateCompatibleBitmap(dc, w, h);
+    if(MC_ERR(bmp == NULL)) {
+        DeleteDC(mem_dc);
+        goto fallback;
+    }
+
+    old_bmp = SelectObject(mem_dc, bmp);
+    OffsetViewportOrgEx(mem_dc, -dirty->left, -dirty->top, &old_origin);
+    mditab_do_paint(mditab, mem_dc, dirty, TRUE);
+    SetViewportOrgEx(mem_dc, old_origin.x, old_origin.y, NULL);
+
+    BitBlt(dc, dirty->left, dirty->top, w, h, mem_dc, 0, 0, SRCCOPY);
+
+    SelectObject(mem_dc, old_bmp);
+    DeleteObject(bmp);
+    DeleteDC(mem_dc);
+    return;
+
+fallback:
+    /* Direct simple paint */
+    mditab_do_paint(mditab, dc, dirty, erase);
 }
 
 static void
@@ -1370,26 +1409,27 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(mditab->no_redraw  &&  wp == 0) {
-                ValidateRect(win, NULL);
-                return 0;
-            }
-            /* no break */
-        case WM_PRINTCLIENT:
-            {
+            if(!mditab->no_redraw) {
                 PAINTSTRUCT ps;
-
-                if(wp == 0) {
-                    BeginPaint(win, &ps);
-                } else {
-                    ps.hdc = (HDC) wp;
-                    GetClientRect(win, &ps.rcPaint);
-                }
-                mditab_paint(mditab, ps.hdc, &ps.rcPaint);
-                if(wp == 0)
-                    EndPaint(win, &ps);
+                BeginPaint(win, &ps);
+                mditab_paint(mditab, ps.hdc, &ps.rcPaint, ps.fErase);
+                EndPaint(win, &ps);
+            } else {
+                ValidateRect(win, NULL);
             }
             return 0;
+
+        case WM_PRINTCLIENT:
+        {
+            RECT rect;
+            GetClientRect(win, &rect);
+            mditab_do_paint(mditab, (HDC) wp, &rect, TRUE);
+            return 0;
+        }
+
+        case WM_ERASEBKGND:
+            /* Keep it on WM_PAINT */
+            return FALSE;
 
         case MC_MTM_GETITEMCOUNT:
             return mditab_count(mditab);
@@ -1582,7 +1622,6 @@ mditab_init(void)
     wc.lpfnWndProc = mditab_proc;
     wc.cbWndExtra = sizeof(mditab_t*);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE+1);
     wc.lpszClassName = mditab_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
         MC_TRACE("mditab_init: RegisterClass() failed [%lu]", GetLastError());
