@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -234,21 +234,7 @@ enum mc_str_type_tag {
 
 /* Loading strings from resources */
 
-static inline TCHAR*
-mc_str_load(UINT id)
-{
-#ifdef UNICODE
-    WCHAR* str;
-    LoadStringW(mc_instance, id, (WCHAR*) &str, 0);
-    return str;
-#else
-    /* Well, this is probably the end of non-unicode MCTRL.DLL builds.
-     * Because I am reluctant to implement any dynamic management of buffers
-     * for the strings just because of the ANSI compatibility.
-     */
-    #error Not implemented.
-#endif
-}
+TCHAR* mc_str_load(UINT id);
 
 
 /* Copying/converting strings into provided buffer */

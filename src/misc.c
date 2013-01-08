@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,6 +38,54 @@ static void (WINAPI *fn_InitCommonControlsEx)(INITCOMMONCONTROLSEX*) = NULL;
 /************************
  *** String Utilities ***
  ************************/
+
+TCHAR*
+mc_str_load(UINT id)
+{
+#ifndef UNICODE
+    #error mc_str_load() is not (yet?) implemented for ANSII build.
+#endif
+
+    const UINT lang_id[2] = { MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                              MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT) };
+    TCHAR* rsrc_id = MAKEINTRESOURCE(id/16 + 1);
+    int str_num = (id & 15);
+    HRSRC rsrc;
+    HGLOBAL handle;
+    WCHAR* str;
+    UINT len;
+    int i, j;
+
+    for(i = 0; i < MC_ARRAY_SIZE(lang_id); i++) {
+        rsrc = FindResourceEx(mc_instance, RT_STRING, rsrc_id, lang_id[i]);
+        if(MC_ERR(rsrc == NULL))
+            goto not_found;
+        handle = LoadResource(mc_instance, rsrc);
+        if(MC_ERR(handle == NULL))
+            goto not_found;
+        str = (WCHAR*) LockResource(handle);
+        if(MC_ERR(str == NULL))
+            goto not_found;
+
+        for(j = 0; j < str_num; j++)
+            str += 1 + (UINT) *str;
+
+        len = (UINT) *str;
+        if(MC_ERR(len == 0))
+            goto not_found;
+        str++;
+
+        MC_ASSERT(str[len - 1] == L'\0');
+        return str;
+
+not_found:
+        MC_TRACE("mc_str_load: String %u missing [language 0x%x].", id,
+                 (DWORD)(lang_id[i] == MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)
+                    ? LANGIDFROMLCID(GetThreadLocale()) : lang_id[i]));
+    }
+
+    return _T("");
+}
 
 char*
 mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len)
