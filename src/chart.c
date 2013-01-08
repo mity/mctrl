@@ -955,6 +955,339 @@ scatter_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 }
 
 
+/********************
+ *** Column Chart ***
+ ********************/
+
+typedef struct column_geometry_tag column_geometry_t;
+struct column_geometry_tag {
+    RectF core_rect;
+
+    int min_count;
+
+    int min_y;
+    int max_y;
+    int step_y;
+    int min_step_y;
+
+    REAL column_width;
+    REAL column_padding;
+    REAL group_padding;
+};
+
+static inline REAL
+column_map_y(int y, column_geometry_t* geom)
+{
+    return chart_map_y(y, geom->min_y, geom->max_y, &geom->core_rect);
+}
+
+static void
+column_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
+                     cache_t* cache, column_geometry_t* geom)
+{
+    int set_ix, n, i;
+    chart_data_t* data;
+    int label_x_w, label_x_h;
+    int label_y_w, label_y_h;
+    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+    int tw;
+
+    n = dsa_size(&chart->data);
+
+    if(n > 0) {
+        /* Find extreme values */
+        geom->min_count = INT32_MAX;
+        geom->min_y = INT32_MAX;
+        geom->max_y = INT32_MIN;
+        for(set_ix = 0; set_ix < n; set_ix++) {
+            data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+
+            if(data->count < geom->min_count)
+                geom->min_count = data->count;
+
+            for(i = 0; i < data->count; i++) {
+                int y;
+
+                if(stacked)
+                    y = cache_stack(cache, set_ix, i);
+                else
+                    y = CACHE_VALUE(cache, set_ix, i);
+
+                if(y < geom->min_y)
+                    geom->min_y = y;
+                if(y > geom->max_y)
+                    geom->max_y = y;
+            }
+        }
+
+        /* We want tche chart to include the axis */
+        if(geom->min_y > 0)        geom->min_y = 0;
+        else if(geom->max_y < 0)   geom->max_y = 0;
+    } else {
+        geom->min_count = 0;
+        geom->min_y = 0;
+        geom->max_y = 0;
+    }
+
+    /* Avoid singularity */
+    if(geom->min_y == geom->max_y)   geom->max_y++;
+
+    /* Round to nice values */
+    geom->min_y = chart_round_value(geom->min_y, FALSE);
+    geom->max_y = chart_round_value(geom->max_y, TRUE);
+
+    /* Compute space for labels of horizontal axis */
+    label_x_w = 3 * layout->font_size.cx;
+    chart_str_value(&chart->primary_axis, 0, buffer);
+    tw = chart_text_width(buffer, chart->font);
+    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
+    chart_str_value(&chart->primary_axis, geom->min_count, buffer);
+    tw = chart_text_width(buffer, chart->font);
+    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
+    label_x_h = (3 * layout->font_size.cy + 1) / 2;
+
+    /* Compute space for labels of verical axis */
+    label_y_w = 6 * layout->font_size.cx;
+    chart_str_value(&chart->secondary_axis, geom->min_y, buffer);
+    tw = chart_text_width(buffer, chart->font);
+    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
+    chart_str_value(&chart->secondary_axis, geom->max_y, buffer);
+    tw = chart_text_width(buffer, chart->font);
+    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
+    label_y_h = layout->font_size.cy;
+
+    /* Compute core area */
+    geom->core_rect.X = layout->body_rect.left + label_y_w;
+    geom->core_rect.Y = layout->body_rect.top + (label_y_h+1) / 2;
+    geom->core_rect.Width = layout->body_rect.right - geom->core_rect.X;
+    geom->core_rect.Height = layout->body_rect.bottom - label_x_h - geom->core_rect.Y;
+
+    /* Steps for painting secondary lines */
+    geom->step_y = chart_round_value(
+            (geom->max_y - geom->min_y) * label_y_h / geom->core_rect.Height, TRUE);
+    if(geom->step_y < 1)
+        geom->step_y = 1;
+
+    /* Fix-up the core rect so that painting secondary lines does mot lead
+     * to anti-aliasing to neiberhood pixels as it looks too ugly. */
+    chart_fixup_rect_v(&geom->core_rect, geom->min_y, geom->max_y, geom->step_y);
+    geom->min_step_y = ((geom->min_y + geom->step_y - 1) / geom->step_y) * geom->step_y;
+
+    if(stacked) {
+        geom->column_width = geom->core_rect.Width / ((1+0.61) * geom->min_count);
+        geom->group_padding = (0.61 * geom->column_width) / 2;
+        geom->column_padding = 0;
+    } else {
+        if(n > 0) {
+            geom->column_width = geom->core_rect.Width / ((n+0.5) * geom->min_count);
+            geom->group_padding = (0.5 * geom->column_width) / 2;
+            geom->column_padding = 0.15 * geom->column_width;
+            geom->column_width -= 2 * geom->column_padding;
+        } else {
+            geom->column_width = 0;
+            geom->column_padding = 0;
+            geom->group_padding = 0;
+        }
+    }
+}
+
+static void
+column_paint_grid(chart_t* chart, chart_paint_t* ctx, column_geometry_t* geom)
+{
+    REAL ry;
+    int x, y;
+    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+
+    /* Secondary lines */
+    gdix_SetPenColor(ctx->pen, gdix_RGB(191,191,191));
+    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
+        if(y == 0)
+            continue;
+        ry = column_map_y(y, geom);
+        gdix_DrawLine(ctx->gfx, ctx->pen, geom->core_rect.X, ry,
+                      geom->core_rect.X + geom->core_rect.Width, ry);
+    }
+
+    /* Primary lines (axis) */
+    gdix_SetPenColor(ctx->pen, gdix_RGB(0, 0, 0));
+    ry = column_map_y(0, geom);
+    gdix_DrawLine(ctx->gfx, ctx->pen, geom->core_rect.X, ry,
+                  geom->core_rect.X + geom->core_rect.Width, ry);
+
+    /* Labels */
+    for(x = 0; x < geom->min_count; x++) {
+        RectF rc;
+
+        rc.X = geom->core_rect.X + (x + 0.5) * geom->core_rect.Width / geom->min_count;
+        rc.Y = geom->core_rect.Y + geom->core_rect.Height + (ctx->layout.font_size.cy+1) / 2;
+        rc.Width = 0.0;
+        rc.Height = ctx->layout.font_size.cy;
+        chart_str_value(&chart->primary_axis, x, buffer);
+        gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
+    }
+
+    gdix_SetStringFormatAlign(ctx->format, StringAlignmentFar);
+    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
+        RectF rc;
+
+        rc.X = geom->core_rect.X - (ctx->layout.font_size.cx+1) / 2;
+        rc.Y = column_map_y(y, geom) - (ctx->layout.font_size.cy+1) / 2;
+        rc.Width = 0.0;
+        rc.Height = ctx->layout.font_size.cy;
+        chart_str_value(&chart->secondary_axis, y, buffer);
+        gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
+    }
+}
+
+static void
+column_paint(chart_t* chart, BOOL stacked, chart_paint_t* ctx)
+{
+    cache_t cache;
+    column_geometry_t geom;
+    int set_ix, n, i;
+    REAL rx, ry0, ry1;
+
+    n = dsa_size(&chart->data);
+
+    CACHE_INIT(&cache, chart);
+
+    column_calc_geometry(chart, stacked, &ctx->layout, &cache, &geom);
+    column_paint_grid(chart, ctx, &geom);
+
+    /* Paint all data sets */
+    if(stacked) {
+        rx = geom.core_rect.X;
+        for(i = 0; i < geom.min_count; i++) {
+            rx += geom.group_padding + geom.column_padding;
+            ry0 = column_map_y(0, &geom);
+            for(set_ix = 0; set_ix < n; set_ix++) {
+                ry1 = column_map_y(cache_stack(&cache, set_ix, i), &geom);
+
+                if(chart->hot_set_ix == set_ix  &&
+                   (chart->hot_i == i  ||  chart->hot_i < 0))
+                {
+                    /* Paint aura */
+                    COLORREF c = color_hint(chart_data_color(chart, set_ix));
+                    gdix_SetSolidFillColor(ctx->brush, gdix_Color(c));
+                    gdix_FillRectangle(ctx->gfx, ctx->brush, rx - 0.75*geom.group_padding, ry1,
+                                       geom.column_width + 1.5*geom.group_padding, ry0-ry1);
+                }
+
+                gdix_SetSolidFillColor(ctx->brush, chart_data_ARGB(chart, set_ix));
+                gdix_FillRectangle(ctx->gfx, ctx->brush, rx, ry1, geom.column_width, ry0-ry1);
+
+                ry0 = ry1;
+            }
+            rx += geom.column_width;
+            rx += geom.group_padding + geom.column_padding;
+        }
+    } else {
+        rx = geom.core_rect.X;
+        ry0 = column_map_y(0, &geom);
+        for(i = 0; i < geom.min_count; i++) {
+            rx += geom.group_padding;
+            for(set_ix = n-1; set_ix >= 0; set_ix--) {
+                rx += geom.column_padding;
+                ry1 = column_map_y(CACHE_VALUE(&cache, set_ix, i), &geom);
+
+                if(chart->hot_set_ix == set_ix  &&
+                   (chart->hot_i == i  ||  chart->hot_i < 0))
+                {
+                    /* Paint aura */
+                    COLORREF c = color_hint(chart_data_color(chart, set_ix));
+                    gdix_SetSolidFillColor(ctx->brush, gdix_Color(c));
+                    gdix_FillRectangle(ctx->gfx, ctx->brush, rx - 0.8*geom.column_padding, ry1,
+                                       geom.column_width + 1.6*geom.column_padding, ry0-ry1);
+                }
+
+                gdix_SetSolidFillColor(ctx->brush, chart_data_ARGB(chart, set_ix));
+                gdix_FillRectangle(ctx->gfx, ctx->brush, rx, ry1, geom.column_width, ry0-ry1);
+                rx += geom.column_width + geom.column_padding;
+            }
+            rx += geom.group_padding;
+        }
+    }
+
+    CACHE_FINI(&cache);
+}
+
+static void
+column_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
+             int* p_set_ix, int* p_i)
+{
+    cache_t cache;
+    column_geometry_t geom;
+    int set_ix, n, i;
+    REAL rx, ry0, ry1;
+
+    n = dsa_size(&chart->data);
+
+    CACHE_INIT(&cache, chart);
+    column_calc_geometry(chart, stacked, &ctx->layout, &cache, &geom);
+
+    if(stacked) {
+        rx = geom.core_rect.X;
+        for(i = 0; i < geom.min_count; i++) {
+            rx += geom.group_padding + geom.column_padding;
+            ry0 = column_map_y(0, &geom);
+            for(set_ix = 0; set_ix < n; set_ix++) {
+                ry1 = column_map_y(cache_stack(&cache, set_ix, i), &geom);
+
+                if(rx <= x  &&  x <= rx + geom.column_width  &&
+                   ry1 <= y  &&  y <= ry0)
+                {
+                    *p_set_ix = set_ix;
+                    *p_i = i;
+                    return;
+                }
+
+                ry0 = ry1;
+            }
+            rx += geom.column_width;
+            rx += geom.group_padding + geom.column_padding;
+        }
+    } else {
+        rx = geom.core_rect.X;
+        ry0 = column_map_y(0, &geom);
+        for(i = 0; i < geom.min_count; i++) {
+            rx += geom.group_padding;
+            for(set_ix = n-1; set_ix >= 0; set_ix--) {
+                rx += geom.column_padding;
+                ry1 = column_map_y(CACHE_VALUE(&cache, set_ix, i), &geom);
+
+                if(rx <= x  &&  x <= rx + geom.column_width  &&
+                   ry1 <= y  &&  y <= ry0)
+                {
+                    *p_set_ix = set_ix;
+                    *p_i = i;
+                    return;
+                }
+
+                rx += geom.column_width + geom.column_padding;
+            }
+            rx += geom.group_padding;
+        }
+    }
+
+    CACHE_FINI(&cache);
+}
+
+static void
+column_tooltip_text(chart_t* chart, BOOL stacked, TCHAR* buffer, UINT bufsize)
+{
+    if(chart->hot_set_ix >= 0  &&  chart->hot_i >= 0) {
+        int v;
+        WCHAR str[CHART_STR_VALUE_MAX_LEN];
+
+        v = chart_value(chart, chart->hot_set_ix, chart->hot_i);
+        chart_str_value(&chart->secondary_axis, v, str);
+
+        _sntprintf(buffer, bufsize, _T("%ls"), str);
+        buffer[bufsize-1] = _T('\0');
+    }
+}
+
+
 /*****************
  *** Bar Chart ***
  *****************/
@@ -1039,7 +1372,7 @@ bar_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     /* Compute space for labels of horizontal axis
      * (note for BAR chart this is secondary!!!) */
     label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->secondary_axis, geom->max_x, buffer);
+    chart_str_value(&chart->secondary_axis, geom->min_x, buffer);
     tw = chart_text_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     chart_str_value(&chart->secondary_axis, geom->max_x, buffer);
@@ -1156,8 +1489,6 @@ bar_paint(chart_t* chart, BOOL stacked, chart_paint_t* ctx)
 
     bar_calc_geometry(chart, stacked, &ctx->layout, &cache, &geom);
     bar_paint_grid(chart, ctx, &geom);
-
-    gdix_SetPenWidth(ctx->pen, 2.5);
 
     /* Paint all data sets */
     if(stacked) {
@@ -1320,7 +1651,7 @@ chart_calc_layout(chart_t* chart, chart_layout_t* layout)
         mc_rect_set(&layout->title_rect, 0, 0, 0, 0);
     }
 
-    layout->legend_rect.left = rect.right - margin - 15 * layout->font_size.cx;
+    layout->legend_rect.left = rect.right - margin - 12 * layout->font_size.cx;
     layout->legend_rect.top = layout->title_rect.bottom + margin;
     layout->legend_rect.right = rect.right - margin;
     layout->legend_rect.bottom = rect.bottom - margin;
@@ -1514,8 +1845,8 @@ chart_do_paint(chart_t* chart, HDC dc, RECT* dirty, BOOL erase)
             case MC_CHS_STACKEDLINE:    /* TODO */ break;
             case MC_CHS_AREA:           /* TODO */ break;
             case MC_CHS_STACKEDAREA:    /* TODO */ break;
-            case MC_CHS_COLUMN:         /* TODO */ break;
-            case MC_CHS_STACKEDCOLUMN:  /* TODO */ break;
+            case MC_CHS_COLUMN:         column_paint(chart, FALSE, &ctx); break;
+            case MC_CHS_STACKEDCOLUMN:  column_paint(chart, TRUE, &ctx); break;
             case MC_CHS_BAR:            bar_paint(chart, FALSE, &ctx); break;
             case MC_CHS_STACKEDBAR:     bar_paint(chart, TRUE, &ctx); break;
         }
@@ -1630,8 +1961,8 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
             case MC_CHS_STACKEDLINE:    /* TODO */ break;
             case MC_CHS_AREA:           /* TODO */ break;
             case MC_CHS_STACKEDAREA:    /* TODO */ break;
-            case MC_CHS_COLUMN:         /* TODO */ break;
-            case MC_CHS_STACKEDCOLUMN:  /* TODO */ break;
+            case MC_CHS_COLUMN:         column_hit_test(chart, FALSE, &ctx, x, y, set_ix, i); break;
+            case MC_CHS_STACKEDCOLUMN:  column_hit_test(chart, TRUE, &ctx, x, y, set_ix, i); break;
             case MC_CHS_BAR:            bar_hit_test(chart, FALSE, &ctx, x, y, set_ix, i); break;
             case MC_CHS_STACKEDBAR:     bar_hit_test(chart, TRUE, &ctx, x, y, set_ix, i); break;
         }
@@ -1669,8 +2000,8 @@ chart_update_tooltip(chart_t* chart)
         case MC_CHS_STACKEDLINE:    /* TODO */ break;
         case MC_CHS_AREA:           /* TODO */ break;
         case MC_CHS_STACKEDAREA:    /* TODO */ break;
-        case MC_CHS_COLUMN:         /* TODO */ break;
-        case MC_CHS_STACKEDCOLUMN:  /* TODO */ break;
+        case MC_CHS_COLUMN:         column_tooltip_text(chart, FALSE, buffer, MC_ARRAY_SIZE(buffer)); break;
+        case MC_CHS_STACKEDCOLUMN:  column_tooltip_text(chart, TRUE, buffer, MC_ARRAY_SIZE(buffer)); break;
         case MC_CHS_BAR:            bar_tooltip_text(chart, FALSE, buffer, MC_ARRAY_SIZE(buffer)); break;
         case MC_CHS_STACKEDBAR:     bar_tooltip_text(chart, TRUE, buffer, MC_ARRAY_SIZE(buffer)); break;
     }

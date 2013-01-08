@@ -75,11 +75,11 @@ SetupScatterChart(HWND hwndChart)
 }
 
 static void
-SetupBarChart(HWND hwndChart)
+SetupBarOrColumnChart(HWND hwndChart)
 {
-    const int austriaData[] =  { 1336060, 1538156, 1576579, 1600652, 1968113, 1901067 };
-    const int denmarkData[] =  { 1001582, 1119450,  993360, 1004163,  979198,  916965 };
-    const int greeceData[] =   {  997974,  941795,  930593,  897127, 1080887, 1056036 };
+    const int austriaData[] = { 1336060, 1538156, 1576579, 1600652, 1968113 };
+    const int denmarkData[] = { 1001582, 1119450,  993360, 1004163,  979198 };
+    const int greeceData[] =  {  997974,  941795,  930593,  897127, 1080887 };
 
     MC_CHDATASET dataSet;
 
@@ -117,8 +117,10 @@ DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             SetupPieChart(GetDlgItem(hwndDlg, IDC_CHART_PIE));
             SetupScatterChart(GetDlgItem(hwndDlg, IDC_CHART_SCATTER));
 
-            SetupBarChart(GetDlgItem(hwndDlg, IDC_CHART_BAR));
-            SetupBarChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDBAR));
+            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_COLUMN));
+            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDCOLUMN));
+            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_BAR));
+            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDBAR));
             return TRUE;
 
         default:

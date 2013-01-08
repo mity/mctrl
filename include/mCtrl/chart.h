@@ -111,8 +111,37 @@ extern "C" {
  *
  * The data sets are expected to have even count of values. The scatter chart
  * interprets each data set as a set of value pairs. Each value with odd index
- * corresponds with the primary (X) axe, and even index with secondary (Y) axe
+ * corresponds with the primary (X) axis, and even index with secondary (Y) axis
  * respectivelly.
+ *
+ *
+ * @subsection chart_scatter Column Chart
+ *
+ * Column chart has only one expectations for the data: All the data sets should
+ * be of the same size.
+ *
+ *
+ * @subsection chart_scatter Stacked Column Chart
+ *
+ * The stacked column chart is the same as the (unstacked) column chart, but
+ * the values of different data sets are painted on top of each other.
+ *
+ *
+ * @subsection chart_scatter Bar Chart
+ *
+ * Generally the chart is equivalent to the column chart, but the primary
+ * and secondary axes are swapped; i.e. unlike fpr majority of the
+ * other chart types, the vertical axis is primary for this chart type,
+ * and the horizontal is secondary.
+ *
+ * Bar chart has only one expectations for the data: All the data sets should
+ * be of the same size.
+ *
+ *
+ * @subsection chart_scatter Stacked Bar Chart
+ *
+ * The stacked bar chart is the same as the (unstacked) bar chart, but the
+ * values of different data sets are painted on top of each other.
  *
  *
  * @section std_msgs Standard Messages
