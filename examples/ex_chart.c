@@ -74,6 +74,36 @@ SetupScatterChart(HWND hwndChart)
     SendMessage(hwndChart, MC_CHM_SETDATASETCOLOR, 1, RGB(200,0,0));
 }
 
+static void
+SetupBarChart(HWND hwndChart)
+{
+    const int austriaData[] =  { 1336060, 1538156, 1576579, 1600652, 1968113, 1901067 };
+    const int denmarkData[] =  { 1001582, 1119450,  993360, 1004163,  979198,  916965 };
+    const int greeceData[] =   {  997974,  941795,  930593,  897127, 1080887, 1056036 };
+
+    MC_CHDATASET dataSet;
+
+    SetWindowText(hwndChart, _T("Yearly Coffee Consumption by Country"));
+
+    /* The data are since year 2003 */
+    SendMessage(hwndChart, MC_CHM_SETAXISOFFSET, 1, 2003);
+
+    dataSet.dwCount = sizeof(austriaData) / sizeof(austriaData[0]);
+    dataSet.piValues = (int*) austriaData;
+    SendMessage(hwndChart, MC_CHM_INSERTDATASET, 0, (LPARAM) &dataSet);
+    SendMessage(hwndChart, MC_CHM_SETDATASETLEGEND, 0, (LPARAM) _T("Austria"));
+
+    dataSet.dwCount = sizeof(denmarkData) / sizeof(denmarkData[0]);
+    dataSet.piValues = (int*) denmarkData;
+    SendMessage(hwndChart, MC_CHM_INSERTDATASET, 0, (LPARAM) &dataSet);
+    SendMessage(hwndChart, MC_CHM_SETDATASETLEGEND, 0, (LPARAM) _T("Denmark"));
+
+    dataSet.dwCount = sizeof(greeceData) / sizeof(greeceData[0]);
+    dataSet.piValues = (int*) greeceData;
+    SendMessage(hwndChart, MC_CHM_INSERTDATASET, 0, (LPARAM) &dataSet);
+    SendMessage(hwndChart, MC_CHM_SETDATASETLEGEND, 0, (LPARAM) _T("Greece"));
+}
+
 /* Main window procedure */
 static INT_PTR CALLBACK
 DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -86,6 +116,9 @@ DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_INITDIALOG:
             SetupPieChart(GetDlgItem(hwndDlg, IDC_CHART_PIE));
             SetupScatterChart(GetDlgItem(hwndDlg, IDC_CHART_SCATTER));
+
+            SetupBarChart(GetDlgItem(hwndDlg, IDC_CHART_BAR));
+            SetupBarChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDBAR));
             return TRUE;
 
         default:

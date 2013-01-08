@@ -356,7 +356,14 @@ typedef struct MC_NMCHDISPINFO_tag {
  */
 #define MC_CHM_SETDATASETCOLOR        (MC_CHM_FIRST + 7)
 
+/**
+ * Not yet implemented.
+ */
 #define MC_CHM_GETDATASETLEGENDW      (MC_CHM_FIRST + 8)
+
+/**
+ * Not yet implemented.
+ */
 #define MC_CHM_GETDATASETLEGENDA      (MC_CHM_FIRST + 9)
 
 /**
@@ -393,6 +400,24 @@ typedef struct MC_NMCHDISPINFO_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_SETFACTOREXPONENT      (MC_CHM_FIRST + 13)
+
+/**
+ * @brief Gets offset of a primary or secondary axis.
+ * @param[in] wParam (@c int) Set to @c 1 to retrieve the exponent of primary
+ * axis, or @c 2 to set secondary axis.
+ * @param lParam Reserved, set to zero.
+ * @return (@c int) The offset, or @c -666 on failure.
+ */
+#define MC_CHM_GETAXISOFFSET          (MC_CHM_FIRST + 14)
+
+/**
+ * @brief Sets offset of a primary or secondary axis.
+ * @param[in] wParam (@c int) Set to @c 1 to set primary axis, or @c 2 to set
+ * secondary axis.
+ * @param[in] lParam (@c int) The offset.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_CHM_SETAXISOFFSET          (MC_CHM_FIRST + 15)
 
 /*@}*/
 
