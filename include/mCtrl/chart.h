@@ -220,12 +220,15 @@ void MCTRL_API mcChart_Terminate(void);
 #define MC_CHS_TYPEMASK        0x003f
 
 /**
- * @brief Create a tooltip window.
+ * @brief Disables a tooltip window.
  *
- * The control displays more detailed information about the value pointed
- * with mouse in the tooltip window.
+ * When having a tooltip window associated, the control uses to show additional
+ * information about the pointed value in the chart. By default the control
+ * creates its own control when this style is not set.
+ *
+ * @sa MC_CHM_SETTOOLTIPS
  */
-#define MC_CHS_TOOLTIPS        0x0040
+#define MC_CHS_NOTOOLTIPS      0x0040
 
 /*@}*/
 
@@ -447,6 +450,25 @@ typedef struct MC_NMCHDISPINFO_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_SETAXISOFFSET          (MC_CHM_FIRST + 15)
+
+/**
+ * @brief Associate a tooltip window with the chart control.
+ * @param[in] wParam (@c HWND) Handle of the tooltip window.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of previous tooltip window or @c NULL if no tooltip
+ * was associated with the control.
+ * @sa MC_CHS_NOTOOLTIPS
+ */
+#define MC_CHM_SETTOOLTIPS            (MC_CHM_FIRST + 16)
+
+/**
+ * @brief Get tooltip associated with the control
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of thetooltip window or @c NULL if no tooltip
+ * is associated with the control.
+ */
+#define MC_CHM_GETTOOLTIPS            (MC_CHM_FIRST + 17)
 
 /*@}*/
 

@@ -1993,6 +1993,7 @@ chart_update_tooltip(chart_t* chart)
     }
 
     buffer[0] = _T('\0');
+
     switch(chart->style & MC_CHS_TYPEMASK) {
         case MC_CHS_PIE:            pie_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer)); break;
         case MC_CHS_SCATTER:        scatter_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer)); break;
@@ -2397,10 +2398,16 @@ chart_set_axis_offset(chart_t* chart, int axis_id, int offset)
 static void
 chart_style_changed(chart_t* chart, STYLESTRUCT* ss)
 {
+    if((chart->style & TVS_NOTOOLTIPS) != (ss->styleNew & TVS_NOTOOLTIPS)) {
+        if(!(ss->styleNew & TVS_NOTOOLTIPS))
+            tooltip_create(chart);
+        else
+            tooltip_destroy(chart);
+    }
+
     chart->style = ss->styleNew;
 
     chart_setup_hot(chart);
-
     if(!chart->no_redraw)
         InvalidateRect(chart->win, NULL, TRUE);
 }
@@ -2432,7 +2439,7 @@ chart_create(chart_t* chart)
 {
     chart_setup_hot(chart);
 
-    if(chart->style & MC_CHS_TOOLTIPS)
+    if(!(chart->style & MC_CHS_NOTOOLTIPS))
         tooltip_create(chart);
 
     return 0;
@@ -2441,7 +2448,7 @@ chart_create(chart_t* chart)
 static void
 chart_destroy(chart_t* chart)
 {
-    if(chart->tooltip_win != NULL)
+    if(chart->tooltip_win != NULL  &&  !(chart->style & MC_CHS_NOTOOLTIPS))
         tooltip_destroy(chart);
 }
 
@@ -2537,6 +2544,16 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_CHM_SETAXISOFFSET:
             return chart_set_axis_offset(chart, wp, lp);
+
+        case MC_CHM_SETTOOLTIPS:
+        {
+            HWND old_tooltip = chart->tooltip_win;
+            chart->tooltip_win = (HWND) wp;
+            return (LRESULT) old_tooltip;
+        }
+
+        case MC_CHM_GETTOOLTIPS:
+            return (LRESULT) chart->tooltip_win;
 
         case WM_SETTEXT:
         {
