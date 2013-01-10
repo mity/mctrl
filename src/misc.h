@@ -81,7 +81,7 @@
  * this kind of prediction. */
 #if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 30000
     #define MC_LIKELY(condition)       __builtin_expect(!!(condition), !0)
-    #define MC_UNLIKELY(condition)     __builtin_expect((condition), 0)
+    #define MC_UNLIKELY(condition)     __builtin_expect(!!(condition), 0)
 #else
     #define MC_LIKELY(condition)       (condition)
     #define MC_UNLIKELY(condition)     (condition)
