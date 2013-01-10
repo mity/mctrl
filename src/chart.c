@@ -303,13 +303,25 @@ static void
 tooltip_create(chart_t* chart)
 {
     TTTOOLINFO info = { 0 };
+    NMTOOLTIPSCREATED ttc = { 0 };
 
     chart->tooltip_win = CreateWindow(TOOLTIPS_CLASS, NULL, WS_POPUP,
                                       0, 0, 0, 0, chart->win, 0, 0, 0);
+    if(MC_ERR(chart->tooltip_win != NULL)) {
+        MC_TRACE("tooltip_create: CreateWindow() failed [%lu]", GetLastError());
+        return;
+    }
+
     info.cbSize = sizeof(TTTOOLINFO);
     info.uFlags = TTF_IDISHWND | TTF_TRACK | TTF_ABSOLUTE;
     info.hwnd = chart->win;
     SendMessage(chart->tooltip_win, TTM_ADDTOOL, 0, (LPARAM) &info);
+
+    ttc.hdr.hwndFrom = chart->win;
+    ttc.hdr.idFrom = GetWindowLong(chart->win, GWL_ID);
+    ttc.hdr.code = NM_TOOLTIPSCREATED;
+    ttc.hwndToolTips = chart->tooltip_win;
+    SendMessage(chart->notify_win, WM_NOTIFY, ttc.hdr.idFrom, (LPARAM) &ttc);
 }
 
 static void
