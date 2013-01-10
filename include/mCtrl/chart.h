@@ -407,7 +407,7 @@ typedef struct MC_NMCHDISPINFO_tag {
 #define MC_CHM_SETDATASETLEGENDW      (MC_CHM_FIRST + 10)
 
 /**
- * @brief Set legend text of the data set (ANSII variant).
+ * @brief Set legend text of the data set (ANSI variant).
  * @param[in] wParam (@c int) Index of the data set.
  * @param[in] lParam (@c WCHAR*) The legend string.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
