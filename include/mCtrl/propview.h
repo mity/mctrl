@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,7 +36,7 @@ extern "C" {
  * properties in a relatively condensed way.
  *
  * Each property has a textual label, a current value (@ref MC_HVALUE) and
- * few other attributes. Few ways how the proprty can be edited by the user
+ * few other attributes. Few ways how the property can be edited by the user
  * are supported and the particular way is selected by flags of each item.
  *
  * The collection of properties are managed by a property set
