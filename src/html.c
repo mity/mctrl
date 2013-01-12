@@ -1495,7 +1495,7 @@ html_init(void)
     wc.cbWndExtra = sizeof(html_t*);
     wc.lpszClassName = html_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
-        MC_TRACE("html_init: RegisterClass() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("html_init: RegisterClass() failed");
         SysFreeString(url_blank);
         return -1;
     }

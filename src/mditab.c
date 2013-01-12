@@ -1624,7 +1624,7 @@ mditab_init(void)
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = mditab_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE("mditab_init: RegisterClass() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("mditab_init: RegisterClass() failed");
         return -1;
     }
 

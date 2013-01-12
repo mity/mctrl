@@ -824,7 +824,7 @@ expand_init(void)
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = expand_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE("expand_init: RegisterClass() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("expand_init: RegisterClass() failed");
         return -1;
     }
 

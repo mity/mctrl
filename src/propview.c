@@ -494,7 +494,7 @@ propview_init(void)
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.lpszClassName = propview_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE("propview_init: RegisterClass() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("propview_init: RegisterClass() failed");
         return -1;
     }
 

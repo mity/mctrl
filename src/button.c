@@ -704,8 +704,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_NCCREATE:
             if(MC_ERR(!CallWindowProc(orig_button_proc, win, WM_NCCREATE, wp, lp))) {
-                MC_TRACE("button_proc(WM_NCCREATE): orig_button_proc() failed "
-                         "[%lu]", GetLastError());
+                MC_TRACE_ERR("button_proc(WM_NCCREATE): orig_button_proc() failed");
                 return FALSE;
             }
             button = (button_t*) malloc(sizeof(button_t));
@@ -720,8 +719,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_CREATE:
             if(MC_ERR(CallWindowProc(orig_button_proc, win, WM_CREATE, wp, lp) != 0)) {
-                MC_TRACE("button_proc(WM_CREATE): orig_button_proc() failed "
-                         "[%lu]", GetLastError());
+                MC_TRACE_ERR("button_proc(WM_CREATE): orig_button_proc() failed");
                 return -1;
             }
             button->theme = theme_OpenThemeData(win, button_tc);
@@ -757,7 +755,7 @@ button_init(void)
     mc_init_common_controls(ICC_STANDARD_CLASSES);
 
     if(MC_ERR(!GetClassInfo(NULL, _T("BUTTON"), &wc))) {
-        MC_TRACE("button_init: GetClassInfo() failed [%lu].", GetLastError());
+        MC_TRACE_ERR("button_init: GetClassInfo() failed");
         return -1;
     }
 
@@ -775,8 +773,7 @@ button_init(void)
     wc.hInstance = NULL;
     wc.lpszClassName = button_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
-        MC_TRACE("button_init: RegisterClass() failed [%lu].",
-                 GetLastError());
+        MC_TRACE_ERR("button_init: RegisterClass() failed");
         return -1;
     }
 

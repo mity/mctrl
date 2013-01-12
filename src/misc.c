@@ -433,7 +433,7 @@ mc_init(void)
     mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance, MAKEINTRESOURCE(
                            IDR_GLYPHS), MC_BMP_GLYPH_W, 1, RGB(255,0,255));
     if(MC_ERR(mc_bmp_glyphs == NULL)) {
-        MC_TRACE("mc_init: ImageList_LoadBitmap() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("mc_init: ImageList_LoadBitmap() failed");
         return -1;
     }
 

@@ -62,14 +62,20 @@
     #define MC_TRACE(...)                                                     \
         do {                                                                  \
             char mc_trace_buf_[512];                                          \
+            DWORD mc_last_err_;                                               \
+            mc_last_err_ = GetLastError();                                    \
             _snprintf(mc_trace_buf_, sizeof(mc_trace_buf_), __VA_ARGS__);     \
             OutputDebugStringA(mc_trace_buf_);                                \
+            SetLastError(mc_last_err_);                                       \
         } while(0)
 
     #define MC_DUMP(msg,addr,n)                                               \
         do {                                                                  \
+            DWORD mc_last_err_;                                               \
+            mc_last_err_ = GetLastError();                                    \
             MC_TRACE(msg);                                                    \
             debug_dump((void*)(addr), (size_t)(n));                           \
+            SetLastError(mc_last_err_);                                       \
         } while(0)
 #endif
 
@@ -102,6 +108,9 @@
     #endif
 #endif
 
+/* Helper for tracing message with GetLastError() */
+#define MC_TRACE_ERR(msg)                                                     \
+    MC_TRACE(msg " [%lu]", GetLastError())
 
 /* Helper for tracing GUIDs */
 #define MC_TRACE_GUID(msg, guid)                                              \

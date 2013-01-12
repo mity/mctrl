@@ -844,7 +844,7 @@ grid_init(void)
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.lpszClassName = grid_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE("grid_init: RegisterClass() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("grid_init: RegisterClass() failed");
         return -1;
     }
 

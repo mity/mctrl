@@ -286,19 +286,19 @@ dlg_direct(HINSTANCE instance, const void* templ_name, HWND parent,
     else
         rsrc = FindResourceA(instance, (char*)templ_name, (char*)RT_DIALOG);
     if(MC_ERR(rsrc == NULL)) {
-        MC_TRACE("dlg_load: FindResource() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("dlg_load: FindResource() failed");
         goto err;
     }
 
     glob = LoadResource(instance, rsrc);
     if(MC_ERR(glob == NULL)) {
-        MC_TRACE("dlg_load: LoadResource() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("dlg_load: LoadResource() failed");
         goto err;
     }
 
     templ = (DLGTEMPLATE*) LockResource(glob);
     if(MC_ERR(templ == NULL)) {
-        MC_TRACE("dlg_load: LockResource() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("dlg_load: LockResource() failed");
         goto err;
     }
 

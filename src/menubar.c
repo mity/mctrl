@@ -347,7 +347,7 @@ menubar_create(menubar_t* mb, CREATESTRUCT *cs)
     MENUBAR_TRACE("menubar_create(%p, %p)", mb, cs);
 
     if(MC_ERR(MENUBAR_SENDMSG(mb->win, WM_CREATE, 0, cs) != 0)) {
-        MC_TRACE("menubar_create: CallWindowProc() failed [%lu]", GetLastError());
+        MC_TRACE_ERR("menubar_create: CallWindowProc() failed");
         return -1;
     }
 
@@ -447,8 +447,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_NCCREATE:
             if(MC_ERR(MENUBAR_SENDMSG(win, msg, wp, lp) == FALSE)) {
-                MC_TRACE("menubar_proc: MENUBAR_SENDMSG(WM_NCCREATE) failed "
-                         "[%ld]", GetLastError());
+                MC_TRACE_ERR("menubar_proc: MENUBAR_SENDMSG(WM_NCCREATE) failed");
                 return FALSE;
             }
             mb = menubar_nccreate(win, (CREATESTRUCT*) lp);
@@ -651,7 +650,7 @@ menubar_ht_enable(menubar_t* mb)
 
     menubar_ht_hook = SetWindowsHookEx(WH_MSGFILTER, menubar_ht_proc, mc_instance, GetCurrentThreadId());
     if(MC_ERR(menubar_ht_hook == NULL)) {
-        MC_TRACE("menubar_ht_enable: SetWindowsHookEx() failed [%ld]", GetLastError());
+        MC_TRACE_ERR("menubar_ht_enable: SetWindowsHookEx() failed");
         goto err_hook;
     }
 
@@ -689,7 +688,7 @@ menubar_init(void)
     mc_init_common_controls(ICC_BAR_CLASSES | ICC_COOL_CLASSES);
 
     if(MC_ERR(!GetClassInfo(NULL, _T("ToolbarWindow32"), &wc))) {
-        MC_TRACE("menubar_init: GetClassInfo() failed [%lu].", GetLastError());
+        MC_TRACE_ERR("menubar_init: GetClassInfo() failed");
         return -1;
     }
 
@@ -704,8 +703,7 @@ menubar_init(void)
     wc.hInstance = NULL;
     wc.lpszClassName = menubar_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
-        MC_TRACE("menubar_init: RegisterClass() failed [%lu].",
-                 GetLastError());
+        MC_TRACE_ERR("menubar_init: RegisterClass() failed");
         return -1;
     }
 
