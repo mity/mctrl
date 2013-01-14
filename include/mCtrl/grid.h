@@ -194,7 +194,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@ref MC_HTABLE) Handle of the table, or @c NULL.
  */
-#define MC_GM_GETTABLE            (MC_GM_FIRST + 100)
+#define MC_GM_GETTABLE            (MC_GM_FIRST + 0)
 
 /**
  * @brief Attaches a table to the control.
@@ -209,7 +209,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param[in] lParam (@ref MC_HTABLE) Handle of the table, or @c NULL.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETTABLE            (MC_GM_FIRST + 101)
+#define MC_GM_SETTABLE            (MC_GM_FIRST + 1)
 
 /**
  * @brief Gets count of columns in table attached to the control.
@@ -218,7 +218,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c WORD) Returns count of table columns.
  */
-#define MC_GM_GETCOLUMNCOUNT      (MC_GM_FIRST + 102)
+#define MC_GM_GETCOLUMNCOUNT      (MC_GM_FIRST + 2)
 
 /**
  * @brief Gets count of rows in table attached to the control.
@@ -227,7 +227,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c WORD) Returns count of table rows.
  */
-#define MC_GM_GETROWCOUNT         (MC_GM_FIRST + 103)
+#define MC_GM_GETROWCOUNT         (MC_GM_FIRST + 3)
 
 /**
  * @brief Resizes table attached to the control.
@@ -237,7 +237,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_RESIZE              (MC_GM_FIRST + 104)
+#define MC_GM_RESIZE              (MC_GM_FIRST + 4)
 
 /**
  * @brief Clears the table.
@@ -246,7 +246,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return Not defined, do not rely on return value.
  */
-#define MC_GM_CLEAR               (MC_GM_FIRST + 109)
+#define MC_GM_CLEAR               (MC_GM_FIRST + 5)
 
 /**
  * @brief Sets a table cell.
@@ -257,7 +257,7 @@ typedef struct MC_GGEOMETRY_tag {
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETCELL             (MC_GM_FIRST + 110)
+#define MC_GM_SETCELL             (MC_GM_FIRST + 6)
 
 /**
  * @brief Gets a table cell.
@@ -271,7 +271,7 @@ typedef struct MC_GGEOMETRY_tag {
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_GETCELL             (MC_GM_FIRST + 111)
+#define MC_GM_GETCELL             (MC_GM_FIRST + 7)
 
 /**
  * @brief Sets geometry of the grid.
@@ -282,7 +282,7 @@ typedef struct MC_GGEOMETRY_tag {
  * If @c lParam is @c NULL, the geometry is reset to a default values.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETGEOMETRY         (MC_GM_FIRST + 112)
+#define MC_GM_SETGEOMETRY         (MC_GM_FIRST + 8)
 
 /**
  * @brief Sets geometry of the grid.
@@ -292,7 +292,7 @@ typedef struct MC_GGEOMETRY_tag {
  * the geometry. Only fields specified by the member @c fMask are retrieved.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_GETGEOMETRY         (MC_GM_FIRST + 113)
+#define MC_GM_GETGEOMETRY         (MC_GM_FIRST + 9)
 
 /**
  * @brief Sets a table value.
@@ -302,7 +302,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param[in] lParam (@ref MC_HVALUE) Pointer to the value.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETVALUE           (MC_GM_FIRST + 114)
+#define MC_GM_SETVALUE           (MC_GM_FIRST + 10)
 
 /**
  * @brief Gets a table value.
@@ -315,7 +315,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @param lParam Reserved, set to zero.
  * @return (@c MC_HVALUE) The value, @c NULL on failure.
  */
-#define MC_GM_GETVALUE            (MC_GM_FIRST + 115)
+#define MC_GM_GETVALUE            (MC_GM_FIRST + 11)
 
 /*@}*/
 

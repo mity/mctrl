@@ -120,7 +120,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param lParam Reserved, set to zero.
  * @return (@c MC_HPROPSET) Handle of the property set.
  */
-#define MC_PVM_GETPROPSET         (MC_PVM_FIRST + 100)
+#define MC_PVM_GETPROPSET         (MC_PVM_FIRST + 0)
 
 /**
  * @brief Installs another property set into the control.
@@ -135,7 +135,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param[in] lParam (@c MC_HPROPSET) Handle of the property set.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_PVM_SETPROPSET         (MC_PVM_FIRST + 101)
+#define MC_PVM_SETPROPSET         (MC_PVM_FIRST + 1)
 
 /**
  * @brief Inserts an item into the underlying property set (unicode variant).
@@ -144,7 +144,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param[in] lParam (@ref MC_PROPSETITEMW) The item.
  * @return (@c int) Index of the item, or @c -1 on failure.
  */
-#define MC_PVM_INSERTITEMW        (MC_PVM_FIRST + 102)
+#define MC_PVM_INSERTITEMW        (MC_PVM_FIRST + 2)
 
 /**
  * @brief Inserts an item into the underlying property set (ANSI variant).
@@ -153,7 +153,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param[in] lParam (@ref MC_PROPSETITEMA) The item.
  * @return (@c int) Index of the item, or @c -1 on failure.
  */
-#define MC_PVM_INSERTITEMA        (MC_PVM_FIRST + 103)
+#define MC_PVM_INSERTITEMA        (MC_PVM_FIRST + 3)
 
 /**
  * @brief Sets an item in the underlying property set (unicode variant).
@@ -162,7 +162,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param[in] lParam (@ref MC_PROPSETITEMW) The item.
  * @return (@c int) Index of the item, or @c -1 on failure.
  */
-#define MC_PVM_SETITEMW           (MC_PVM_FIRST + 104)
+#define MC_PVM_SETITEMW           (MC_PVM_FIRST + 4)
 
 /**
  * @brief Sets an item in the underlying property set (ANSI variant).
@@ -171,7 +171,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param[in] lParam (@ref MC_PROPSETITEMA) The item.
  * @return (@c int) Index of the item, or @c -1 on failure.
  */
-#define MC_PVM_SETITEMA           (MC_PVM_FIRST + 105)
+#define MC_PVM_SETITEMA           (MC_PVM_FIRST + 5)
 
 /**
  * @brief Gets an item from the underlying property set (unicode variant).
@@ -180,7 +180,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param[in,out] lParam (@ref MC_PROPSETITEMW) The item.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_PVM_GETITEMW           (MC_PVM_FIRST + 106)
+#define MC_PVM_GETITEMW           (MC_PVM_FIRST + 6)
 
 /**
  * @brief Gets an item from the underlying property set (ANSI variant).
@@ -189,7 +189,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param[in,out] lParam (@ref MC_PROPSETITEMA) The item.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_PVM_GETITEMA           (MC_PVM_FIRST + 107)
+#define MC_PVM_GETITEMA           (MC_PVM_FIRST + 7)
 
 /**
  * @brief Delete an item from the underlying property set.
@@ -198,7 +198,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_PVM_DELETEITEM         (MC_PVM_FIRST + 108)
+#define MC_PVM_DELETEITEM         (MC_PVM_FIRST + 8)
 
 /**
  * @brief Delete all items from the underlying property set.
@@ -207,7 +207,7 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_PVM_DELETEALLITEMS     (MC_PVM_FIRST + 109)
+#define MC_PVM_DELETEALLITEMS     (MC_PVM_FIRST + 9)
 
 /**
  * @brief Gets count of items in the underlying property set.
@@ -216,15 +216,15 @@ void MCTRL_API mcPropView_Terminate(void);
  * @param lParam Reserved, set to zero.
  * @return (@c int) Count of items, or @c -1 on failure.
  */
-#define MC_PVM_GETITEMCOUNT       (MC_PVM_FIRST + 110)
+#define MC_PVM_GETITEMCOUNT       (MC_PVM_FIRST + 10)
 
-//#define MC_PVM_SETITEMCOUNT       (MC_PVM_FIRST + 111)
-//#define MC_PVM_SETHOTITEM         (MC_PVM_FIRST + 112)
-//#define MC_PVM_GETHOTITEM         (MC_PVM_FIRST + 113)
-//#define MC_PVM_ENSUREVISIBLE      (MC_PVM_FIRST + 114)
-//#define MC_PVM_ISITEMVISIBLE      (MC_PVM_FIRST + 115)
-//#define MC_PVM_GETEDITCONTROL     (MC_PVM_FIRST + 126)
-//#define MC_PVM_HITTEST            (MC_PVM_FIRST + 127)
+//#define MC_PVM_SETITEMCOUNT       (MC_PVM_FIRST + 11)
+//#define MC_PVM_SETHOTITEM         (MC_PVM_FIRST + 12)
+//#define MC_PVM_GETHOTITEM         (MC_PVM_FIRST + 13)
+//#define MC_PVM_ENSUREVISIBLE      (MC_PVM_FIRST + 14)
+//#define MC_PVM_ISITEMVISIBLE      (MC_PVM_FIRST + 15)
+//#define MC_PVM_GETEDITCONTROL     (MC_PVM_FIRST + 16)
+//#define MC_PVM_HITTEST            (MC_PVM_FIRST + 17)
 
 /*@}*/
 

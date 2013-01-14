@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Martin Mitas
+ * Copyright (c) 2012-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -234,7 +234,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
  * @param[in] lParam (@c HMENU) The menu to install.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MBM_SETMENU            (MC_MBM_FIRST + 1000)
+#define MC_MBM_SETMENU            (MC_MBM_FIRST + 0)
 
 /**
  * @brief Updates the menubar to reflect changes in the installed menu.
@@ -246,7 +246,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
-#define MC_MBM_REFRESH            (MC_MBM_FIRST + 1001)
+#define MC_MBM_REFRESH            (MC_MBM_FIRST + 1)
 
 /*@}*/
 
