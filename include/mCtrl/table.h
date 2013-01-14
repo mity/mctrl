@@ -262,7 +262,7 @@ BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
  * @brief Get contents of a cell.
  *
  * Before calling this function, the member @c pCell->fMask must specify what
- * members of the structure to retrieve.
+ * attributes of the cell to retrieve.
  *
  * @param[in] hTable The table.
  * @param[in] wCol Column index.

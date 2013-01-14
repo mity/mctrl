@@ -176,8 +176,14 @@ void MCTRL_API mcPropView_Terminate(void);
 /**
  * @brief Gets an item from the underlying property set (unicode variant).
  *
+ * Application has to set @c MC_PROPSETITEM::dwMask prior sending the message
+ * to indicate what attributes of the item to retrieve. If the application uses
+ * @c MC_PSIMF_TEXT, then it also has to set @c MC_PROPSETITEM::pszText to
+ * point to a buffer where the text will be stored and set
+ * @c MC_PROPSETITEM::cchTextMax to specify size of the buffer.
+ *
  * @param wParam Reserved, set to to zero.
- * @param[in,out] lParam (@ref MC_PROPSETITEMW) The item.
+ * @param[out] lParam (@ref MC_PROPSETITEMW) The item.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_PVM_GETITEMW           (MC_PVM_FIRST + 6)
@@ -185,8 +191,14 @@ void MCTRL_API mcPropView_Terminate(void);
 /**
  * @brief Gets an item from the underlying property set (ANSI variant).
  *
+ * Application has to set @c MC_PROPSETITEM::dwMask prior sending the message
+ * to indicate what attributes of the item to retrieve. If the application uses
+ * @c MC_PSIMF_TEXT, then it also has to set @c MC_PROPSETITEM::pszText to
+ * point to a buffer where the text will be stored and set
+ * @c MC_PROPSETITEM::cchTextMax to specify size of the buffer.
+ *
  * @param wParam Reserved, set to to zero.
- * @param[in,out] lParam (@ref MC_PROPSETITEMA) The item.
+ * @param[out] lParam (@ref MC_PROPSETITEMA) The item.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_PVM_GETITEMA           (MC_PVM_FIRST + 7)

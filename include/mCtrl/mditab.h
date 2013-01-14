@@ -355,6 +355,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 
 /**
  * @brief Inserts new tab into the tab control (unicode variant).
+ *
  * @param[in] wParam (@c int) Index of the new item.
  * @param[in] lParam (@ref MC_MTITEM*) Pointer to detailed data of the new
  * tab.
@@ -389,8 +390,15 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 
 /**
  * @brief Gets tab data from the tab control (unicode variant).
+ *
+ * Application has to set @c MC_MTITEM::dwMask prior sending the message to
+ * indicate what attributes of the item to retrieve. If the application uses
+ * @c MC_MTIF_TEXT, then it also has to set @c MC_MTITEM::pszText to point
+ * to a buffer where the text will be stored and set @c MC_MTITEM::cchTextMax
+ * to specify size of the buffer.
+ *
  * @param[in] wParam (@c int) Index of the item.
- * @param[in,out] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the
+ * @param[out] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
@@ -398,6 +406,13 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 
 /**
  * @brief Gets tab data from the tab control (ANSI variant).
+ *
+ * Application has to set @c MC_MTITEM::dwMask prior sending the message to
+ * indicate what attributes of the item to retrieve. If the application uses
+ * @c MC_MTIF_TEXT, then it also has to set @c MC_MTITEM::pszText to point
+ * to a buffer where the text will be stored and set @c MC_MTITEM::cchTextMax
+ * to specify size of the buffer.
+ *
  * @param[in] wParam (@c int) Index of the item.
  * @param[in,out] lParam (@ref MC_MTITEMA*) Pointer to detailed data of the
  * tab, receiving the data according to @c MC_MTITEM::dwMask.
@@ -477,7 +492,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_GETITEMWIDTH       (MC_MTM_FIRST + 16)
 
 /**
- * @brief Preallocate anough memory for requested number of items.
+ * @brief Preallocate enough memory for requested number of items.
  *
  * You may want to use this message before adding higher number of items
  * into the controls to speed it up by avoiding multiple reallocations.

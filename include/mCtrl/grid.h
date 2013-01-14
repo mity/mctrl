@@ -262,12 +262,12 @@ typedef struct MC_GGEOMETRY_tag {
 /**
  * @brief Gets a table cell.
  *
- * Caller has to fill @c MC_GCELL::wCol and @c MC_GCELL::wRow before sending
- * this message.
+ * Before calling this function, the member @c MC_TABLECELL::fMask must specify
+ * what attributes of the cell to retrieve.
  *
  * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
  * row.
- * @param[in,out] lParam (@ref MC_TABLECELL*) Pointer to structure describing
+ * @param[out] lParam (@ref MC_TABLECELL*) Pointer to structure describing
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */

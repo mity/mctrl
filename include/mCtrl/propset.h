@@ -215,8 +215,14 @@ int MCTRL_API mcPropSet_InsertItemA(MC_HPROPSET hPropSet, MC_PROPSETITEMA* pItem
 /**
  * @brief Get some attributes of an item in the property set (unicode variant).
  *
+ * Application has to set @c pItem->dwMask prior sending the message to
+ * indicate what attributes of the item to retrieve. If the application uses
+ * @c MC_PSIMF_TEXT, then it also has to set @c pItem->pszText to point
+ * to a buffer where the text will be stored and set @c pItem->cchTextMax
+ * to specify size of the buffer.
+ *
  * @param[in] hPropSet The property set.
- * @param[in,out] pItem Item structure.
+ * @param[out] pItem Item structure.
  * @return @c TRUE on success, @c FALSE on failure.
  */
 BOOL MCTRL_API mcPropSet_GetItemW(MC_HPROPSET hPropSet, MC_PROPSETITEMW* pItem);
@@ -224,8 +230,14 @@ BOOL MCTRL_API mcPropSet_GetItemW(MC_HPROPSET hPropSet, MC_PROPSETITEMW* pItem);
 /**
  * @brief Get some attributes of an item in the property set (ANSI variant).
  *
+ * Application has to set @c pItem->dwMask prior sending the message to
+ * indicate what attributes of the item to retrieve. If the application uses
+ * @c MC_PSIMF_TEXT, then it also has to set @c pItem->pszText to point
+ * to a buffer where the text will be stored and set @c pItem->cchTextMax
+ * to specify size of the buffer.
+ *
  * @param[in] hPropSet The property set.
- * @param[in,out] pItem Item structure to be filled.
+ * @param[out] pItem Item structure to be filled.
  * @return @c TRUE on success, @c FALSE on failure.
  */
 BOOL MCTRL_API mcPropSet_GetItemA(MC_HPROPSET hPropSet, MC_PROPSETITEMA* pItem);
