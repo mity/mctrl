@@ -768,7 +768,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 
     /* Setup the new item */
     item->text = item_text;
-    item->img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : -1);
+    item->img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : MC_I_IMAGENONE);
     /*item->rect is setup later in mditab_layout() */
     item->lp = ((id->dwMask & MC_MTIF_PARAM) ? id->lParam : 0);
 

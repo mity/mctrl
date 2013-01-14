@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -211,7 +211,8 @@ typedef struct MC_MTITEMW_tag {
     LPWSTR pszText;
     /** @brief Number of characters in @c pszText. Used only on output. */
     int cchTextMax;
-    /** @brief Index into control image list. */
+    /** @brief Index into control image list.
+     *  @details Set to @c MC_I_IMAGENONE if no image is associated with the item. */
     int iImage;
     /** @brief User data. */
     LPARAM lParam;
@@ -228,7 +229,8 @@ typedef struct MC_MTITEMA_tag {
     LPSTR pszText;
     /** @brief Number of characters in @c psxText. Used only on output. */
     int cchTextMax;
-    /** @brief Index into control image list. */
+    /** @brief Index into control image list.
+     *  @details Set to @c MC_I_IMAGENONE if no image is associated with the item. */
     int iImage;
     /** @brief User data. */
     LPARAM lParam;

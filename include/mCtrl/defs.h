@@ -76,6 +76,14 @@ extern "C" {
 #define MC_CLR_DEFAULT      ((COLORREF)0xff000000L)
 
 /**
+ * @brief Index of no image in an image list.
+ * @details This is defined to have the same value and meaning as the constant
+ * @c I_IMAGENONE from @c <commctrl.h> and applications can use these two
+ * macros interchangeably.
+ */
+#define MC_I_IMAGENONE      (-2)
+
+/**
  * @brief Index of no group.
  * @details This is defined to have the same value and meaning as the constant
  * @c I_GROUPIDNONE from @c <commctrl.h> and applications can use these two
@@ -112,6 +120,9 @@ extern "C" {
 #define MC_CHM_FIRST        (WM_USER+0x4000 + 600)
 #define MC_CHM_LAST         (WM_USER+0x4000 + 699)
 
+#define MC_TLM_FIRST        (WM_USER+0x4000 + 700)
+#define MC_TLM_LAST         (WM_USER+0x4000 + 799)
+
 /*@}*/
 
 
@@ -137,6 +148,9 @@ extern "C" {
 
 #define MC_CHN_FIRST        (0x40000000 + 500)
 #define MC_CHN_LAST         (0x40000000 + 599)
+
+#define MC_TLN_FIRST        (0x40000000 + 600)
+#define MC_TLN_LAST         (0x40000000 + 699)
 
 /*@}*/
 
