@@ -313,7 +313,7 @@ tooltip_create(chart_t* chart)
 
     chart->tooltip_win = CreateWindow(TOOLTIPS_CLASS, NULL, WS_POPUP,
                                       0, 0, 0, 0, chart->win, 0, 0, 0);
-    if(MC_ERR(chart->tooltip_win != NULL)) {
+    if(MC_ERR(chart->tooltip_win == NULL)) {
         MC_TRACE_ERR("tooltip_create: CreateWindow() failed");
         return;
     }
