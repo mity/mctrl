@@ -76,7 +76,10 @@ extern "C" {
  * Usually (for chart types where it gives any sense), the primary axis
  * corresponds to the index of data set and in most cases is displayed as the
  * horizontal (X) axis, and the secondary one corresponds to values in a data
- * set and in most cases is displayed as the vertical (Y) axis.
+ * set and in most cases is displayed as the vertical (Y) axis. An important
+ * exception to this rule of thumb are bar (@c MC_CHS_BAR) and stacked bar
+ * (@c MC_CHS_STACKEDBAR) charts which are similar to the (stacked) column
+ * chart, but with horizontal and vertical axes swapped.
  *
  * The factor exponent is an integer value in the range (@c -9 to @c +9),
  * and it it is used when painting values for the given axis. An ineteger value
@@ -96,52 +99,29 @@ extern "C" {
  * data and if the application does not follow these requirements, the chart
  * can just display gibberish, or change the output in future mCtrl versions.
  *
- * @subsection chart_pie Pie Chart
- *
- * The pie chart expects each data set consisting of a single non-negative
- * value. It does not display any axis, but factor exponent of the primary one
- * is used for displaying data set values.
+ * The pie chart (@c MC_CHS_PIE) expects each data set consisting of a single
+ * non-negative value. It does not display any axis, but factor exponent of
+ * the primary one is used for displaying data set values.
  *
  * @note The pie chart visually differs quite a lot from majority of the other
  * chart types this control provides. Many control attibutes settable by
  * control messages actually have no impact to the pie chart.
  *
+ * The scatter chart (@c MC_CHS_SCATTER) expects to have all data set sizes of
+ * even count of values. Unlike the other chart types, tyhe sizes of the data
+ * sets can differ. The scatter chart interprets each data set as a set of
+ * value pairs. Each value with odd index corresponds with the primary (X) axis,
+ * and even index with secondary (Y) axis respectivelly.
  *
- * @subsection chart_scatter Scatter Chart
+ * The line chart (@c MC_CHS_LINE), the area chart (@c MC_CHS_AREA), the column
+ * chart (@c MC_CHS_COLUMN) and the bar chart (@c MC_CHS_BAR) only expect that
+ * all the data sets are of the same size.
  *
- * The data sets are expected to have even count of values. The scatter chart
- * interprets each data set as a set of value pairs. Each value with odd index
- * corresponds with the primary (X) axis, and even index with secondary (Y) axis
- * respectivelly.
- *
- *
- * @subsection chart_scatter Column Chart
- *
- * Column chart has only one expectations for the data: All the data sets should
- * be of the same size.
- *
- *
- * @subsection chart_scatter Stacked Column Chart
- *
- * The stacked column chart is the same as the (unstacked) column chart, but
- * the values of different data sets are painted on top of each other.
- *
- *
- * @subsection chart_scatter Bar Chart
- *
- * Generally the chart is equivalent to the column chart, but the primary
- * and secondary axes are swapped; i.e. unlike fpr majority of the
- * other chart types, the vertical axis is primary for this chart type,
- * and the horizontal is secondary.
- *
- * Bar chart has only one expectations for the data: All the data sets should
- * be of the same size.
- *
- *
- * @subsection chart_scatter Stacked Bar Chart
- *
- * The stacked bar chart is the same as the (unstacked) bar chart, but the
- * values of different data sets are painted on top of each other.
+ * Stacked variants of the charts above (@c MC_CHS_STACKEDLINE,
+ * @c MC_CHS_STACKEDAREA, @c MC_CHS_STCKEDCOLUMN and @c MC_CHS_STACKEDBAR)
+ * additionaly expect all the data in all data sets are positive. Actually the
+ * charts work for negative values, but the result can be confusing for the
+ * user.
  *
  *
  * @section std_msgs Standard Messages

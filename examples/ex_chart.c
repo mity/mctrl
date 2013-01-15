@@ -75,7 +75,7 @@ SetupScatterChart(HWND hwndChart)
 }
 
 static void
-SetupBarOrColumnChart(HWND hwndChart)
+SetupCommonChart(HWND hwndChart)
 {
     const int austriaData[] = { 1336060, 1538156, 1576579, 1600652, 1968113 };
     const int denmarkData[] = { 1001582, 1119450,  993360, 1004163,  979198 };
@@ -116,11 +116,13 @@ DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_INITDIALOG:
             SetupPieChart(GetDlgItem(hwndDlg, IDC_CHART_PIE));
             SetupScatterChart(GetDlgItem(hwndDlg, IDC_CHART_SCATTER));
-
-            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_COLUMN));
-            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDCOLUMN));
-            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_BAR));
-            SetupBarOrColumnChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDBAR));
+            SetupCommonChart(GetDlgItem(hwndDlg, IDC_CHART_LINE));
+            SetupCommonChart(GetDlgItem(hwndDlg, IDC_CHART_AREA));
+            SetupCommonChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDAREA));
+            SetupCommonChart(GetDlgItem(hwndDlg, IDC_CHART_COLUMN));
+            SetupCommonChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDCOLUMN));
+            SetupCommonChart(GetDlgItem(hwndDlg, IDC_CHART_BAR));
+            SetupCommonChart(GetDlgItem(hwndDlg, IDC_CHART_STACKEDBAR));
             return TRUE;
 
         default:
