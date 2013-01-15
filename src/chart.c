@@ -300,6 +300,20 @@ chart_fixup_rect_h(RectF* rect, int min_x, int max_x, int step_x)
     rect->X = roundf(rect->X);
 }
 
+static void
+chart_tooltip_text_common(chart_t* chart, chart_axis_t* axis,
+                          TCHAR* buffer, UINT bufsize)
+{
+    if(chart->hot_set_ix >= 0  &&  chart->hot_i >= 0) {
+        WCHAR val_str[CHART_STR_VALUE_MAX_LEN];
+        int val;
+
+        val = chart_value(chart, chart->hot_set_ix, chart->hot_i);
+        chart_str_value(axis, val, val_str);
+        mc_str_inbuf(val_str, MC_STRW, buffer, MC_STRT, bufsize);
+    }
+}
+
 
 /***************
  *** Tooltip ***
@@ -655,17 +669,10 @@ pie_hit_test(chart_t* chart, chart_paint_t* ctx, int x, int y,
     }
 }
 
-static void
+static inline void
 pie_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    if(chart->hot_set_ix >= 0  &&  chart->hot_i >= 0) {
-        WCHAR val_str[CHART_STR_VALUE_MAX_LEN];
-        int val;
-
-        val = chart_value(chart, chart->hot_set_ix, chart->hot_i);
-        chart_str_value(&chart->primary_axis, val, val_str);
-        mc_str_inbuf(val_str, MC_STRW, buffer, MC_STRT, bufsize);
-    }
+    chart_tooltip_text_common(chart, &chart->primary_axis, buffer, bufsize);
 }
 
 
@@ -1294,19 +1301,10 @@ line_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
     CACHE_FINI(&cache);
 }
 
-static void
-line_tooltip_text(chart_t* chart, BOOL stacked, TCHAR* buffer, UINT bufsize)
+static inline void
+line_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    if(chart->hot_set_ix >= 0  &&  chart->hot_i >= 0) {
-        int v;
-        WCHAR str[CHART_STR_VALUE_MAX_LEN];
-
-        v = chart_value(chart, chart->hot_set_ix, chart->hot_i);
-        chart_str_value(&chart->secondary_axis, v, str);
-
-        _sntprintf(buffer, bufsize, _T("%ls"), str);
-        buffer[bufsize-1] = _T('\0');
-    }
+    chart_tooltip_text_common(chart, &chart->secondary_axis, buffer, bufsize);
 }
 
 
@@ -1627,19 +1625,10 @@ column_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
     CACHE_FINI(&cache);
 }
 
-static void
-column_tooltip_text(chart_t* chart, BOOL stacked, TCHAR* buffer, UINT bufsize)
+static inline void
+column_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    if(chart->hot_set_ix >= 0  &&  chart->hot_i >= 0) {
-        int v;
-        WCHAR str[CHART_STR_VALUE_MAX_LEN];
-
-        v = chart_value(chart, chart->hot_set_ix, chart->hot_i);
-        chart_str_value(&chart->secondary_axis, v, str);
-
-        _sntprintf(buffer, bufsize, _T("%ls"), str);
-        buffer[bufsize-1] = _T('\0');
-    }
+    chart_tooltip_text_common(chart, &chart->secondary_axis, buffer, bufsize);
 }
 
 
@@ -1964,19 +1953,10 @@ bar_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
     CACHE_FINI(&cache);
 }
 
-static void
-bar_tooltip_text(chart_t* chart, BOOL stacked, TCHAR* buffer, UINT bufsize)
+static inline void
+bar_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    if(chart->hot_set_ix >= 0  &&  chart->hot_i >= 0) {
-        int v;
-        WCHAR str[CHART_STR_VALUE_MAX_LEN];
-
-        v = chart_value(chart, chart->hot_set_ix, chart->hot_i);
-        chart_str_value(&chart->secondary_axis, v, str);
-
-        _sntprintf(buffer, bufsize, _T("%ls"), str);
-        buffer[bufsize-1] = _T('\0');
-    }
+    chart_tooltip_text_common(chart, &chart->secondary_axis, buffer, bufsize);
 }
 
 
@@ -2350,16 +2330,28 @@ chart_update_tooltip(chart_t* chart)
     buffer[0] = _T('\0');
 
     switch(chart->style & MC_CHS_TYPEMASK) {
-        case MC_CHS_PIE:            pie_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer)); break;
-        case MC_CHS_SCATTER:        scatter_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer)); break;
-        case MC_CHS_LINE:           line_tooltip_text(chart, FALSE, buffer, MC_ARRAY_SIZE(buffer)); break;
-        case MC_CHS_STACKEDLINE:    line_tooltip_text(chart, TRUE, buffer, MC_ARRAY_SIZE(buffer)); break;
-        case MC_CHS_AREA:           /* TODO */ break;
-        case MC_CHS_STACKEDAREA:    /* TODO */ break;
-        case MC_CHS_COLUMN:         column_tooltip_text(chart, FALSE, buffer, MC_ARRAY_SIZE(buffer)); break;
-        case MC_CHS_STACKEDCOLUMN:  column_tooltip_text(chart, TRUE, buffer, MC_ARRAY_SIZE(buffer)); break;
-        case MC_CHS_BAR:            bar_tooltip_text(chart, FALSE, buffer, MC_ARRAY_SIZE(buffer)); break;
-        case MC_CHS_STACKEDBAR:     bar_tooltip_text(chart, TRUE, buffer, MC_ARRAY_SIZE(buffer)); break;
+        case MC_CHS_PIE:
+            pie_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+            break;
+        case MC_CHS_SCATTER:
+            scatter_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+            break;
+        case MC_CHS_LINE:
+        case MC_CHS_STACKEDLINE:
+            line_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+            break;
+        case MC_CHS_AREA:
+        case MC_CHS_STACKEDAREA:
+            /* TODO */
+            break;
+        case MC_CHS_COLUMN:
+        case MC_CHS_STACKEDCOLUMN:
+            column_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+            break;
+        case MC_CHS_BAR:
+        case MC_CHS_STACKEDBAR:
+            bar_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+            break;
     }
 
     if(buffer[0] == _T('\0')) {
