@@ -124,6 +124,12 @@ chart_data_ARGB(chart_t* chart, int set_ix)
     return gdix_Color(chart_data_color(chart, set_ix));
 }
 
+static inline ARGB
+chart_data_ARGB_with_alpha(chart_t* chart, int set_ix, BYTE alpha)
+{
+    return gdix_AColor(alpha, chart_data_color(chart, set_ix));
+}
+
 static int
 chart_value_from_parent(chart_t* chart, int set_ix, int i)
 {
@@ -980,9 +986,9 @@ scatter_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 }
 
 
-/******************
- *** Line Chart ***
- ******************/
+/*************************
+ *** Line & Area Chart ***
+ *************************/
 
 typedef struct line_geometry_tag line_geometry_t;
 struct line_geometry_tag {
@@ -1176,7 +1182,7 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx, line_geometry_t* geom)
 }
 
 static void
-line_paint(chart_t* chart, BOOL stacked, chart_paint_t* ctx)
+line_paint(chart_t* chart, BOOL area, BOOL stacked, chart_paint_t* ctx)
 {
     cache_t cache;
     line_geometry_t geom;
@@ -1190,6 +1196,64 @@ line_paint(chart_t* chart, BOOL stacked, chart_paint_t* ctx)
 
     line_calc_geometry(chart, stacked, &ctx->layout, &cache, &geom);
     line_paint_grid(chart, ctx, &geom);
+
+    /* Paint area */
+    if(area  &&  geom.min_count > 1) {
+        GpStatus status;
+        GpPath* path;
+
+        status = gdix_CreatePath(FillModeAlternate, &path);
+        if(MC_ERR(status != Ok)) {
+            MC_TRACE("line_paint: gdix_CreatePath() failed [%ld]", status);
+        } else {
+            int rx0, rx1, ry0;
+
+            rx0 = line_map_x(0, &geom);
+            rx1 = line_map_x(geom.min_count-1, &geom);
+            ry0 = line_map_y(0, &geom);
+
+            for(set_ix = 0; set_ix < n; set_ix++) {
+                BYTE alpha;
+                if(set_ix == chart->hot_set_ix  &&  chart->hot_i < 0)
+                    alpha = 0x60;
+                else
+                    alpha = 0x3f;
+                gdix_SetSolidFillColor(ctx->brush,
+                            chart_data_ARGB_with_alpha(chart, set_ix, alpha));
+
+                for(x = 0; x < geom.min_count; x++) {
+                    if(stacked)
+                        y = cache_stack(&cache, set_ix, x);
+                    else
+                        y = CACHE_VALUE(&cache, set_ix, x);
+                    rx = line_map_x(x, &geom);
+                    ry = line_map_y(y, &geom);
+                    if(x > 0)
+                        gdix_AddPathLine(path, prev_rx, prev_ry, rx, ry);
+                    prev_rx = rx;
+                    prev_ry = ry;
+                }
+
+                if(!stacked || set_ix == 0) {
+                    gdix_AddPathLine(path, rx1, ry0, rx0, ry0);
+                } else {
+                    for(x = geom.min_count - 1; x >= 0; x--) {
+                        y = cache_stack(&cache, set_ix-1, x);
+                        rx = line_map_x(x, &geom);
+                        ry = line_map_y(y, &geom);
+                        gdix_AddPathLine(path, prev_rx, prev_ry, rx, ry);
+                        prev_rx = rx;
+                        prev_ry = ry;
+                    }
+                }
+
+                gdix_FillPath(ctx->gfx, ctx->brush, path);
+                gdix_ResetPath(path);
+            }
+
+            gdix_DeletePath(path);
+        }
+    }
 
     /* Paint hot aura */
     if(chart->hot_set_ix >= 0) {
@@ -2173,17 +2237,42 @@ chart_do_paint(chart_t* chart, HDC dc, RECT* dirty, BOOL erase)
     }
 
     if(mc_rect_overlaps_rect(dirty, &ctx.layout.body_rect)) {
-        switch(chart->style & MC_CHS_TYPEMASK) {
-            case MC_CHS_PIE:            pie_paint(chart, &ctx); break;
-            case MC_CHS_SCATTER:        scatter_paint(chart, &ctx); break;
-            case MC_CHS_LINE:           line_paint(chart, FALSE, &ctx); break;
-            case MC_CHS_STACKEDLINE:    line_paint(chart, TRUE, &ctx); break;
-            case MC_CHS_AREA:           /* TODO */ break;
-            case MC_CHS_STACKEDAREA:    /* TODO */ break;
-            case MC_CHS_COLUMN:         column_paint(chart, FALSE, &ctx); break;
-            case MC_CHS_STACKEDCOLUMN:  column_paint(chart, TRUE, &ctx); break;
-            case MC_CHS_BAR:            bar_paint(chart, FALSE, &ctx); break;
-            case MC_CHS_STACKEDBAR:     bar_paint(chart, TRUE, &ctx); break;
+        DWORD type = (chart->style & MC_CHS_TYPEMASK);
+        switch(type) {
+            case MC_CHS_PIE:
+                pie_paint(chart, &ctx);
+                break;
+
+            case MC_CHS_SCATTER:
+                scatter_paint(chart, &ctx);
+                break;
+
+            case MC_CHS_LINE:
+            case MC_CHS_STACKEDLINE:
+            case MC_CHS_AREA:
+            case MC_CHS_STACKEDAREA:
+            {
+                BOOL stacked = (type == MC_CHS_STACKEDLINE  ||  type == MC_CHS_STACKEDAREA);
+                BOOL area = (type == MC_CHS_AREA  ||  type == MC_CHS_STACKEDAREA);
+                line_paint(chart, area, stacked, &ctx);
+                break;
+            }
+
+            case MC_CHS_COLUMN:
+            case MC_CHS_STACKEDCOLUMN:
+            {
+                BOOL stacked = (type == MC_CHS_STACKEDCOLUMN);
+                column_paint(chart, stacked, &ctx);
+                break;
+            }
+
+            case MC_CHS_BAR:
+            case MC_CHS_STACKEDBAR:
+            {
+                BOOL stacked = (type == MC_CHS_STACKEDBAR);
+                bar_paint(chart, stacked, &ctx);
+                break;
+            }
         }
     }
 
@@ -2289,17 +2378,41 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
         *set_ix = chart_hit_test_legend(chart, &ctx, x, y);
         *i = -1;
     } else if(in_body) {
-        switch(chart->style & MC_CHS_TYPEMASK) {
-            case MC_CHS_PIE:            pie_hit_test(chart, &ctx, x, y, set_ix, i); break;
-            case MC_CHS_SCATTER:        scatter_hit_test(chart, &ctx, x, y, set_ix, i); break;
-            case MC_CHS_LINE:           line_hit_test(chart, FALSE, &ctx, x, y, set_ix, i); break;
-            case MC_CHS_STACKEDLINE:    line_hit_test(chart, TRUE, &ctx, x, y, set_ix, i); break;
-            case MC_CHS_AREA:           /* TODO */ break;
-            case MC_CHS_STACKEDAREA:    /* TODO */ break;
-            case MC_CHS_COLUMN:         column_hit_test(chart, FALSE, &ctx, x, y, set_ix, i); break;
-            case MC_CHS_STACKEDCOLUMN:  column_hit_test(chart, TRUE, &ctx, x, y, set_ix, i); break;
-            case MC_CHS_BAR:            bar_hit_test(chart, FALSE, &ctx, x, y, set_ix, i); break;
-            case MC_CHS_STACKEDBAR:     bar_hit_test(chart, TRUE, &ctx, x, y, set_ix, i); break;
+        DWORD type = (chart->style & MC_CHS_TYPEMASK);
+        switch(type) {
+            case MC_CHS_PIE:
+                pie_hit_test(chart, &ctx, x, y, set_ix, i);
+                break;
+
+            case MC_CHS_SCATTER:
+                scatter_hit_test(chart, &ctx, x, y, set_ix, i);
+                break;
+
+            case MC_CHS_STACKEDLINE:
+            case MC_CHS_STACKEDAREA:
+            case MC_CHS_LINE:
+            case MC_CHS_AREA:
+            {
+                BOOL stacked = (type == MC_CHS_STACKEDLINE || type == MC_CHS_STACKEDAREA);
+                line_hit_test(chart, stacked, &ctx, x, y, set_ix, i);
+                break;
+            }
+
+            case MC_CHS_STACKEDCOLUMN:
+            case MC_CHS_COLUMN:
+            {
+                BOOL stacked = (type == MC_CHS_STACKEDCOLUMN);
+                column_hit_test(chart, stacked, &ctx, x, y, set_ix, i);
+                break;
+            }
+
+            case MC_CHS_STACKEDBAR:
+            case MC_CHS_BAR:
+            {
+                BOOL stacked = (type == MC_CHS_STACKEDBAR);
+                bar_hit_test(chart, stacked, &ctx, x, y, set_ix, i);
+                break;
+            }
         }
     }
 
@@ -2333,21 +2446,23 @@ chart_update_tooltip(chart_t* chart)
         case MC_CHS_PIE:
             pie_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
             break;
+
         case MC_CHS_SCATTER:
             scatter_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
             break;
+
         case MC_CHS_LINE:
         case MC_CHS_STACKEDLINE:
-            line_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
-            break;
         case MC_CHS_AREA:
         case MC_CHS_STACKEDAREA:
-            /* TODO */
+            line_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
             break;
+
         case MC_CHS_COLUMN:
         case MC_CHS_STACKEDCOLUMN:
             column_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
             break;
+
         case MC_CHS_BAR:
         case MC_CHS_STACKEDBAR:
             bar_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
