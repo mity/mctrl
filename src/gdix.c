@@ -52,7 +52,9 @@ GpStatus (WINAPI* gdix_SetStringFormatAlign)(GpStringFormat*,StringAlignment);
 
 GpStatus (WINAPI* gdix_CreatePath)(GpFillMode,GpPath**);
 GpStatus (WINAPI* gdix_DeletePath)(GpPath*);
+GpStatus (WINAPI* gdix_ResetPath)(GpPath*);
 GpStatus (WINAPI* gdix_AddPathArc)(GpPath*,REAL,REAL,REAL,REAL,REAL,REAL);
+GpStatus (WINAPI* gdix_AddPathLine)(GpPath*,REAL,REAL,REAL,REAL);
 GpStatus (WINAPI* gdix_AddPathRectangle)(GpPath*,REAL,REAL,REAL,REAL);
 
 GpStatus (WINAPI* gdix_DrawLine)(GpGraphics*,GpPen*,REAL,REAL,REAL,REAL);
@@ -134,7 +136,9 @@ gdix_init(void)
 
     GPA(CreatePath,           (GpFillMode,GpPath**));
     GPA(DeletePath,           (GpPath*));
+    GPA(ResetPath,            (GpPath*));
     GPA(AddPathArc,           (GpPath*,REAL,REAL,REAL,REAL,REAL,REAL));
+    GPA(AddPathLine,          (GpPath*,REAL,REAL,REAL,REAL));
     GPA(AddPathRectangle,     (GpPath*,REAL,REAL,REAL,REAL));
 
     GPA(CreateStringFormat,   (INT,LANGID,GpStringFormat**));

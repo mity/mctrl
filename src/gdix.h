@@ -53,7 +53,9 @@ extern GpStatus (WINAPI* gdix_SetStringFormatAlign)(GpStringFormat*,StringAlignm
 /* Path management */
 extern GpStatus (WINAPI* gdix_CreatePath)(GpFillMode,GpPath**);
 extern GpStatus (WINAPI* gdix_DeletePath)(GpPath*);
+extern GpStatus (WINAPI* gdix_ResetPath)(GpPath*);
 extern GpStatus (WINAPI* gdix_AddPathArc)(GpPath*,REAL,REAL,REAL,REAL,REAL,REAL);
+extern GpStatus (WINAPI* gdix_AddPathLine)(GpPath*,REAL,REAL,REAL,REAL);
 extern GpStatus (WINAPI* gdix_AddPathRectangle)(GpPath*,REAL,REAL,REAL,REAL);
 
 /* Draw methods */
