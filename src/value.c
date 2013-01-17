@@ -82,8 +82,10 @@ flat_dtor(value_t* v)
 static void __stdcall
 ptr_dtor(value_t* v)
 {
-    if(VALUE_PTR(v) != NULL)
-        free(VALUE_PTR(v));
+    void* ptr = VALUE_DATA(v, void*);
+
+    if(ptr)
+        free(ptr);
     free(v);
 }
 
