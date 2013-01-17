@@ -186,8 +186,8 @@ debug_free(const char* fname, int line, void* mem)
 {
     mem_info_t* mi_prev = NULL;
     mem_info_t* mi;
-    DWORD* head;
-    DWORD* tail;
+    BYTE* head;
+    BYTE* tail;
 
     MC_ASSERT(mem != NULL);
 
@@ -195,13 +195,17 @@ debug_free(const char* fname, int line, void* mem)
 
     /* Find memory info for the memory chunk */
     mi = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
-    while(mi->mem != mem) {
+    while(TRUE) {
         if(MC_ERR(mi == NULL)) {
             /* Not registered? */
             MC_TRACE("%s:%d: \tdebug_free(%p): Attempting to release "
                      "non-allocated memory.", fname, line, mem);
             MC_ASSERT(1 == 0);
         }
+
+        if(mi->mem == mem)
+            break;
+
         mi_prev = mi;
         mi = mi->next;
     }
@@ -209,8 +213,8 @@ debug_free(const char* fname, int line, void* mem)
     DEBUG_TRACE("%s:%d: \tdebug_free(%p) [size=%lu]", fname, line, mem, mi->size);
 
     /* Check that the over/underrun guards are intact */
-    head = (DWORD*)((BYTE*)mem - sizeof(head_guard));
-    tail = (DWORD*)((BYTE*)mem + mi->size);
+    head = ((BYTE*)mem) - sizeof(head_guard);
+    tail = ((BYTE*)mem) + mi->size;
     if(memcmp(head, head_guard, sizeof(head_guard)) != 0) {
         MC_TRACE("%s:%d: \tdebug_free(%p) detected buffer underrun "
                  "[guard={%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x}, "
@@ -232,9 +236,9 @@ debug_free(const char* fname, int line, void* mem)
         MC_ASSERT(3 == 0);
     }
 
-    /* Rewrite all the memory with 'invalid-memory' mark.
+    /* Rewrite all the memory with 'invalid-memory' mark, including the guards.
      * (this can help to debug (mis)uses of released memory) */
-    memset(mem, 0xee, mi->size);
+    memset(head, 0xee, mi->size + 2 * sizeof(head_guard));
 
     /* Unregister the memory info */
     if(mi_prev != NULL)
