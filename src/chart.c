@@ -105,7 +105,6 @@ chart_data_dtor(dsa_t* dsa, void* item)
         free(data->name);
     if(data->values)
         free(data->values);
-    free(data);
 }
 
 static inline COLORREF
