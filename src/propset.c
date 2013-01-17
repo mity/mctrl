@@ -42,6 +42,8 @@ propset_item_dtor(dsa_t* dsa, void* dsa_item)
     propset_item_t* item = (propset_item_t*) dsa_item;
     if(item->text != NULL)
         free(item->text);
+    if(item->value != NULL)
+        value_destroy(item->value);
 }
 
 static int
