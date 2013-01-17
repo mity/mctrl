@@ -301,7 +301,7 @@ debug_fini(void)
     LeaveCriticalSection(&mem_lock);
     if(n > 0) {
         MC_TRACE("debug_fini: --------------------------------------------------");
-        MC_TRACE("debug_fini: Lost %ul bytes in %d leaks.", size, n);
+        MC_TRACE("debug_fini: Lost %lu bytes in %d leaks.", size, n);
         MC_TRACE("");
     }
 
