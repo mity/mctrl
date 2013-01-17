@@ -47,7 +47,14 @@ dsa_init(dsa_t* dsa, WORD item_size)
 void
 dsa_fini(dsa_t* dsa, dsa_dtor_t dtor_func)
 {
+    WORD index;
+
     DSA_TRACE("dsa_fini(%p)", dsa);
+
+    if(dtor_func != NULL) {
+        for(index = 0; index < dsa_size(dsa); index++)
+            dtor_func(dsa, dsa_item(dsa, index));
+    }
 
     if(dsa->buffer != NULL)
         free(dsa->buffer);
