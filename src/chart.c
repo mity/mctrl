@@ -539,14 +539,7 @@ pie_rect_in_sweep(REAL angle, REAL sweep, REAL x0, REAL y0, RectF* rect)
 static inline int
 pie_value(chart_t* chart, int set_ix)
 {
-    int value;
-
-    chart_data_t* data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-    if(data->values != NULL)
-        value = data->values[0];
-    else
-        chart_value_from_parent(chart, set_ix, 0);
-    return MC_ABS(value);
+    return MC_ABS(chart_value(chart, set_ix, 0));
 }
 
 typedef struct pie_geometry_tag pie_geometry_t;
@@ -1187,7 +1180,7 @@ line_paint(chart_t* chart, BOOL area, BOOL stacked, chart_paint_t* ctx)
     line_geometry_t geom;
     int set_ix, n, x, y;
     REAL rx, ry;
-    REAL prev_rx, prev_ry;
+    REAL prev_rx = 0, prev_ry = 0;
 
     n = dsa_size(&chart->data);
 
@@ -2177,7 +2170,7 @@ chart_do_paint(chart_t* chart, HDC dc, RECT* dirty, BOOL erase)
 {
     chart_paint_t ctx;
     GpStatus status;
-    HFONT old_font;
+    HFONT old_font = NULL;
     ARGB black = gdix_RGB(0,0,0);
 
     if(erase)
@@ -2337,7 +2330,7 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
     BOOL in_legend;
     BOOL in_body;
     HDC dc;
-    HFONT old_font;
+    HFONT old_font = NULL;
     GpStatus status;
 
     *set_ix = -1;
@@ -2356,17 +2349,17 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
 
     status = gdix_CreateFromHDC(dc, &ctx.gfx);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreateFromHDC() failed [%d]", (int)status);
+        MC_TRACE("chart_hit_test: gdix_CreateFromHDC() failed [%d]", (int)status);
         goto err_CreateFromHDC;
     }
     status = gdix_CreateStringFormat(0, LANG_NEUTRAL, &ctx.format);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreateStringFormat() failed [%d]", (int)status);
+        MC_TRACE("chart_hit_test: gdix_CreateStringFormat() failed [%d]", (int)status);
         goto err_CreateStringFormat;
     }
     status = gdix_CreateFontFromDC(dc, &ctx.font);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreateFontFromDC() failed [%d]", (int)status);
+        MC_TRACE("chart_hit_test: gdix_CreateFontFromDC() failed [%d]", (int)status);
         goto err_CreateFontFromDC;
     }
     ctx.pen = NULL;
