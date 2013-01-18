@@ -508,7 +508,7 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
             MC_TRACE("***************************************"
                      "***************************************");
             MC_TRACE("DllMain(DLL_PROCESS_ATTACH): MCTRL.DLL version %hs (%d bit)",
-                     MC_VERSION_STR, (sizeof(void*) == 8) ? 64 : 32);
+                     MC_VERSION_STR, 8 * sizeof(void*));
 
             debug_init();
             mc_instance = instance;
