@@ -134,6 +134,15 @@
     #define realloc(ptr, size) debug_realloc(__FILE__, __LINE__, (ptr), (size))
     #define free(ptr)          debug_free(__FILE__, __LINE__, (ptr))
 
+    #ifdef _malloca
+        #undef _malloca
+    #endif
+    #ifdef _freea
+        #undef _freea
+    #endif
+    #define _malloca(size)     malloc(size)
+    #define _freea(size)       free(size)
+
     void debug_init(void);
     void debug_fini(void);
 #endif
