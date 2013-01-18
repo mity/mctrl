@@ -141,7 +141,7 @@
         #undef _freea
     #endif
     #define _malloca(size)     malloc(size)
-    #define _freea(size)       free(size)
+    #define _freea(ptr)        free(ptr)
 
     void debug_init(void);
     void debug_fini(void);
