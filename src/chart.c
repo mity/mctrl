@@ -456,7 +456,7 @@ cache_init_(cache_t* cache, int n)
         }                                                                     \
                                                                               \
         (cache)->chart = (chart);                                             \
-        (cache)->values = (int**) _malloca(n + sizeof(int*) +                 \
+        (cache)->values = (int**) _malloca(n * sizeof(int*) +                 \
                                            cache_size * sizeof(int));         \
         if(MC_ERR((cache)->values == NULL))                                   \
             MC_TRACE("CACHE_INIT: _malloca() failed.");                       \
