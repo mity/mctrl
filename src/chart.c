@@ -1654,7 +1654,7 @@ column_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
                 {
                     *p_set_ix = set_ix;
                     *p_i = i;
-                    return;
+                    goto done;
                 }
 
                 ry0 = ry1;
@@ -1676,7 +1676,7 @@ column_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
                 {
                     *p_set_ix = set_ix;
                     *p_i = i;
-                    return;
+                    goto done;
                 }
 
                 rx += geom.column_width + geom.column_padding;
@@ -1685,6 +1685,7 @@ column_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
         }
     }
 
+done:
     CACHE_FINI(&cache);
 }
 
@@ -1982,7 +1983,7 @@ bar_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
                 {
                     *p_set_ix = set_ix;
                     *p_i = i;
-                    return;
+                    goto done;
                 }
 
                 rx0 = rx1;
@@ -2004,7 +2005,7 @@ bar_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
                 {
                     *p_set_ix = set_ix;
                     *p_i = i;
-                    return;
+                    goto done;
                 }
 
                 ry -= geom.bar_height + geom.bar_padding;
@@ -2013,6 +2014,7 @@ bar_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
         }
     }
 
+done:
     CACHE_FINI(&cache);
 }
 
