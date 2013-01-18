@@ -598,8 +598,9 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index)
 }
 
 static void
-mditab_do_paint(mditab_t* mditab, HDC dc, RECT* dirty, BOOL erase)
+mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 {
+    mditab_t* mditab = (mditab_t*) control;
     RECT rect;
     RECT* rect_item;
     RECT r;
@@ -663,45 +664,6 @@ mditab_do_paint(mditab_t* mditab, HDC dc, RECT* dirty, BOOL erase)
     SelectObject(dc, old_font);
     SetBkMode(dc, old_bk_mode);
     SetTextColor(dc, old_text_color);
-}
-
-static void
-mditab_paint(mditab_t* mditab, HDC dc, RECT* dirty, BOOL erase)
-{
-    int w, h;
-    HDC mem_dc;
-    HBITMAP bmp;
-    HBITMAP old_bmp;
-    POINT old_origin;
-
-    w = mc_width(dirty);
-    h = mc_height(dirty);
-
-    mem_dc = CreateCompatibleDC(dc);
-    if(MC_ERR(mem_dc == NULL))
-        goto fallback;
-
-    bmp = CreateCompatibleBitmap(dc, w, h);
-    if(MC_ERR(bmp == NULL)) {
-        DeleteDC(mem_dc);
-        goto fallback;
-    }
-
-    old_bmp = SelectObject(mem_dc, bmp);
-    OffsetViewportOrgEx(mem_dc, -dirty->left, -dirty->top, &old_origin);
-    mditab_do_paint(mditab, mem_dc, dirty, TRUE);
-    SetViewportOrgEx(mem_dc, old_origin.x, old_origin.y, NULL);
-
-    BitBlt(dc, dirty->left, dirty->top, w, h, mem_dc, 0, 0, SRCCOPY);
-
-    SelectObject(mem_dc, old_bmp);
-    DeleteObject(bmp);
-    DeleteDC(mem_dc);
-    return;
-
-fallback:
-    /* Direct simple paint */
-    mditab_do_paint(mditab, dc, dirty, erase);
 }
 
 static void
@@ -1412,7 +1374,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(!mditab->no_redraw) {
                 PAINTSTRUCT ps;
                 BeginPaint(win, &ps);
-                mditab_paint(mditab, ps.hdc, &ps.rcPaint, ps.fErase);
+                mc_doublebuffer(mditab, &ps, mditab_paint);
                 EndPaint(win, &ps);
             } else {
                 ValidateRect(win, NULL);
@@ -1423,7 +1385,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         {
             RECT rect;
             GetClientRect(win, &rect);
-            mditab_do_paint(mditab, (HDC) wp, &rect, TRUE);
+            mditab_paint(mditab, (HDC) wp, &rect, TRUE);
             return 0;
         }
 

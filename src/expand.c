@@ -150,7 +150,7 @@ expand_calc_layout(expand_t* expand, HDC dc, expand_layout_t* layout)
 }
 
 static void
-expand_do_paint(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL erase)
+expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL erase)
 {
     expand_layout_t layout;
 
@@ -170,7 +170,7 @@ expand_do_paint(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL erase)
      * for more info.
      */
     if(!IsWindowEnabled(expand->win)) {
-        MC_TRACE("expand_paint: Control disabled, do not paint at all.");
+        MC_TRACE("expand_paint_state: Control disabled, do not paint at all.");
         return;
     }
 
@@ -215,6 +215,13 @@ expand_do_paint(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL erase)
         mc_rect_inflate(&layout.text_rect, FOCUS_INFLATE_H, FOCUS_INFLATE_V);
         DrawFocusRect(dc, &layout.text_rect);
     }
+}
+
+static void
+expand_do_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
+{
+    expand_t* expand = (expand_t*) control;
+    expand_paint_state(expand, expand->state, dc, dirty, erase);
 }
 
 static inline int
@@ -266,8 +273,8 @@ expand_paint(expand_t* expand)
             buf = theme_BeginBufferedAnimation(expand->win, ps.hdc, &rect,
                     BPBF_COMPATIBLEBITMAP, NULL, &params, &old_dc, &new_dc);
             if(buf != NULL) {
-                expand_do_paint(expand, expand->old_state, old_dc, &rect, TRUE);
-                expand_do_paint(expand, expand->state, new_dc, &rect, TRUE);
+                expand_paint_state(expand, expand->old_state, old_dc, &rect, TRUE);
+                expand_paint_state(expand, expand->state, new_dc, &rect, TRUE);
                 EXPAND_TRACE("expand_paint: Transition start (%lu ms)", duration);
                 theme_EndBufferedAnimation(buf, TRUE);
                 goto done;
@@ -276,44 +283,7 @@ expand_paint(expand_t* expand)
     }
 
     /* If need to erase background, use double-buffering to avoid flicker */
-    if(ps.fErase) {
-        int w, h;
-        HDC mem_dc;
-        HBITMAP bmp;
-        HBITMAP old_bmp;
-        POINT old_origin;
-
-        w = mc_width(&ps.rcPaint);
-        h = mc_height(&ps.rcPaint);
-
-        mem_dc = CreateCompatibleDC(ps.hdc);
-        if(MC_ERR(mem_dc == NULL))
-            goto fallback;
-
-        bmp = CreateCompatibleBitmap(ps.hdc, w, h);
-        if(MC_ERR(bmp == NULL)) {
-            DeleteDC(mem_dc);
-            goto fallback;
-        }
-
-        old_bmp = SelectObject(mem_dc, bmp);
-        OffsetViewportOrgEx(mem_dc, -ps.rcPaint.left, -ps.rcPaint.top, &old_origin);
-        expand_do_paint(expand, expand->state, mem_dc, &ps.rcPaint, TRUE);
-        SetViewportOrgEx(mem_dc, old_origin.x, old_origin.y, NULL);
-
-        EXPAND_TRACE("expand_paint: Double-buffered paint");
-        BitBlt(ps.hdc, ps.rcPaint.left, ps.rcPaint.top, w, h, mem_dc, 0, 0, SRCCOPY);
-
-        SelectObject(mem_dc, old_bmp);
-        DeleteObject(bmp);
-        DeleteDC(mem_dc);
-        goto done;
-    }
-
-fallback:
-    /* Direct simple paint */
-    EXPAND_TRACE("expand_paint: Direct paint");
-    expand_do_paint(expand, expand->state, ps.hdc, &ps.rcPaint, ps.fErase);
+    mc_doublebuffer(expand, &ps, expand_do_paint);
 
 done:
     EndPaint(expand->win, &ps);
@@ -589,7 +559,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             RECT rect;
 
             GetClientRect(win, &rect);
-            expand_do_paint(expand, expand->state, dc, &rect, TRUE);
+            expand_paint_state(expand, expand->state, dc, &rect, TRUE);
             return 0;
         }
 

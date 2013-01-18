@@ -2166,8 +2166,9 @@ chart_hit_test_legend(chart_t* chart, chart_paint_t* ctx, int x, int y)
 }
 
 static void
-chart_do_paint(chart_t* chart, HDC dc, RECT* dirty, BOOL erase)
+chart_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 {
+    chart_t* chart = (chart_t*) control;
     chart_paint_t ctx;
     GpStatus status;
     HFONT old_font = NULL;
@@ -2182,27 +2183,27 @@ chart_do_paint(chart_t* chart, HDC dc, RECT* dirty, BOOL erase)
     chart_calc_layout(chart, &ctx.layout);
     status = gdix_CreateFromHDC(dc, &ctx.gfx);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreateFromHDC() failed [%d]", (int)status);
+        MC_TRACE("chart_paint: gdix_CreateFromHDC() failed [%d]", (int)status);
         goto err_CreateFromHDC;
     }
     status = gdix_CreatePen1(black, 1.0, UnitWorld, &ctx.pen);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreatePen1() failed [%d]", (int)status);
+        MC_TRACE("chart_paint: gdix_CreatePen1() failed [%d]", (int)status);
         goto err_CreatePen1;
     }
     status = gdix_CreateSolidFill(black, &ctx.brush);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreateSolidFill() failed [%d]", (int)status);
+        MC_TRACE("chart_paint: gdix_CreateSolidFill() failed [%d]", (int)status);
         goto err_CreateSolidFill;
     }
     status = gdix_CreateStringFormat(0, LANG_NEUTRAL, &ctx.format);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreateStringFormat() failed [%d]", (int)status);
+        MC_TRACE("chart_paint: gdix_CreateStringFormat() failed [%d]", (int)status);
         goto err_CreateStringFormat;
     }
     status = gdix_CreateFontFromDC(dc, &ctx.font);
     if(MC_ERR(status != Ok)) {
-        MC_TRACE("chart_do_paint: gdix_CreateFontFromDC() failed [%d]", (int)status);
+        MC_TRACE("chart_paint: gdix_CreateFontFromDC() failed [%d]", (int)status);
         goto err_CreateFontFromDC;
     }
 
@@ -2282,45 +2283,6 @@ err_CreatePen1:
 err_CreateFromHDC:
     if(chart->font)
         SelectObject(dc, old_font);
-}
-
-static void
-chart_paint(chart_t* chart, HDC dc, RECT* dirty, BOOL erase)
-{
-    int w, h;
-    HDC mem_dc;
-    HBITMAP bmp;
-    HBITMAP old_bmp;
-    POINT old_origin;
-
-    w = mc_width(dirty);
-    h = mc_height(dirty);
-
-    mem_dc = CreateCompatibleDC(dc);
-    if(MC_ERR(mem_dc == NULL))
-        goto fallback;
-
-    bmp = CreateCompatibleBitmap(dc, w, h);
-    if(MC_ERR(bmp == NULL)) {
-        DeleteDC(mem_dc);
-        goto fallback;
-    }
-
-    old_bmp = SelectObject(mem_dc, bmp);
-    OffsetViewportOrgEx(mem_dc, -dirty->left, -dirty->top, &old_origin);
-    chart_do_paint(chart, mem_dc, dirty, TRUE);
-    SetViewportOrgEx(mem_dc, old_origin.x, old_origin.y, NULL);
-
-    BitBlt(dc, dirty->left, dirty->top, w, h, mem_dc, 0, 0, SRCCOPY);
-
-    SelectObject(mem_dc, old_bmp);
-    DeleteObject(bmp);
-    DeleteDC(mem_dc);
-    return;
-
-fallback:
-    /* Direct simple paint */
-    chart_do_paint(chart, dc, dirty, erase);
 }
 
 static void
@@ -2925,7 +2887,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(!chart->no_redraw) {
                 PAINTSTRUCT ps;
                 BeginPaint(win, &ps);
-                chart_paint(chart, ps.hdc, &ps.rcPaint, ps.fErase);
+                mc_doublebuffer(chart, &ps, chart_paint);
                 EndPaint(win, &ps);
             } else {
                 ValidateRect(win, NULL);
@@ -2936,7 +2898,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         {
             RECT rect;
             GetClientRect(win, &rect);
-            chart_do_paint(chart, (HDC) wp, &rect, TRUE);
+            chart_paint(chart, (HDC) wp, &rect, TRUE);
             return 0;
         }
 
