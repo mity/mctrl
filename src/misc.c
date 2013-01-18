@@ -466,8 +466,8 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
 #endif
             MC_TRACE("***************************************"
                      "***************************************");
-            MC_TRACE("DllMain(DLL_PROCESS_ATTACH): MCTRL.DLL version %hs",
-                     MC_VERSION_STR);
+            MC_TRACE("DllMain(DLL_PROCESS_ATTACH): MCTRL.DLL version %hs (%d bit)",
+                     MC_VERSION_STR, (sizeof(void*) == 8) ? 64 : 32);
 
             mc_instance = instance;
             DisableThreadLibraryCalls(mc_instance);
