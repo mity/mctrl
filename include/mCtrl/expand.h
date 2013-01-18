@@ -139,6 +139,13 @@ void MCTRL_API mcExpand_Terminate(void);
  */
 #define MC_EXS_RESIZEENTIREWINDOW   0x0002
 
+/**
+ * @brief Enable painting with double buffering.
+ *
+ * It prevents flickering when the control is being continuously resized.
+ */
+#define MC_EXS_DOUBLEBUFFER         0x0004
+
 /*@}*/
 
 

@@ -211,6 +211,13 @@ void MCTRL_API mcChart_Terminate(void);
  */
 #define MC_CHS_NOTOOLTIPS      0x0040
 
+/**
+ * @brief Enable painting with double buffering.
+ *
+ * It prevents flickering when the control is being continuously resized.
+ */
+#define MC_CHS_DOUBLEBUFFER   0x0080
+
 /*@}*/
 
 

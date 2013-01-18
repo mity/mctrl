@@ -282,8 +282,11 @@ expand_paint(expand_t* expand)
         }
     }
 
-    /* If need to erase background, use double-buffering to avoid flicker */
-    mc_doublebuffer(expand, &ps, expand_do_paint);
+    /* Normal paint. We do not need double buffering without background erase. */
+    if((expand->style & MC_EXS_DOUBLEBUFFER)  &&  ps.fErase)
+        mc_doublebuffer(expand, &ps, expand_do_paint);
+    else
+        expand_do_paint(expand, ps.hdc, &ps.rcPaint, ps.fErase);
 
 done:
     EndPaint(expand->win, &ps);

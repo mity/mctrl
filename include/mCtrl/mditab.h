@@ -136,26 +136,31 @@ void MCTRL_API mcMditab_Terminate(void);
 #define MC_MTS_CBMASK                0x0003
 
 /** @brief Popup tab list button is shown always. This is default. */
-#define MC_MTS_TLBALWAYS            0x0000
+#define MC_MTS_TLBALWAYS             0x0000
 /** @brief Popup tab list button is shown if scrolling is triggered on. */
-#define MC_MTS_TLBONSCROLL          0x0004
+#define MC_MTS_TLBONSCROLL           0x0004
 /** @brief Popup tab list button is never displayed. */
-#define MC_MTS_TLBNEVER             0x0008
+#define MC_MTS_TLBNEVER              0x0008
 /** @brief This is not valid style, but bitmask of @c MC_NTS_TLBxxx styles. */
-#define MC_MTS_TLBMASK              0x000C
+#define MC_MTS_TLBMASK               0x000C
 
 /** @brief Always shows scrolling buttons. */
-#define MC_MTS_SCROLLALWAYS         0x0010
+#define MC_MTS_SCROLLALWAYS          0x0010
 
 /** @brief Middle click closes a tab. */
-#define MC_MTS_CLOSEONMCLICK        0x0020
+#define MC_MTS_CLOSEONMCLICK         0x0020
 
 /** @brief Mouse button down gains focus. */
-#define MC_MTS_FOCUSONBUTTONDOWN    0x0040
+#define MC_MTS_FOCUSONBUTTONDOWN     0x0040
 /** @brief Never gains focus */
-#define MC_MTS_FOCUSNEVER           0x0080
+#define MC_MTS_FOCUSNEVER            0x0080
 /** @brief This is not valid style, but bitmask of @c MC_NTS_FOCUSxxx styles. */
-#define MC_MTS_FOCUSMASK            0x00C0
+#define MC_MTS_FOCUSMASK             0x00C0
+
+/** @brief Enable painting with double buffering.
+ *  @details It prevents flickering when the control is being continuously
+ *  resized. */
+#define MC_MTS_DOUBLEBUFFER          0x0100
 
 /*@}*/
 
