@@ -461,14 +461,12 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
 {
     switch(reason) {
         case DLL_PROCESS_ATTACH:
-#if defined DEBUG && DEBUG >= 2
-            debug_init();
-#endif
             MC_TRACE("***************************************"
                      "***************************************");
             MC_TRACE("DllMain(DLL_PROCESS_ATTACH): MCTRL.DLL version %hs (%d bit)",
                      MC_VERSION_STR, (sizeof(void*) == 8) ? 64 : 32);
 
+            debug_init();
             mc_instance = instance;
             DisableThreadLibraryCalls(mc_instance);
             module_init();
@@ -477,9 +475,7 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
         case DLL_PROCESS_DETACH:
         {
             module_fini();
-#if defined DEBUG && DEBUG >= 2
             debug_fini();
-#endif
             MC_TRACE("DllMain(DLL_PROCESS_DETACH)");
             break;
         }

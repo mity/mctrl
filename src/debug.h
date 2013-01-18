@@ -145,6 +145,9 @@
 
     void debug_init(void);
     void debug_fini(void);
+#else
+    #define debug_init()   /* noop */
+    #define debug_fini()   /* noop */
 #endif
 
 
