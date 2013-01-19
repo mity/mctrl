@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -454,56 +454,32 @@ button_update_ui_state(button_t* button, WORD action, WORD flags)
 }
 
 static BOOL
-button_needs_fake_split(button_t* button)
+button_is_fake_split(button_t* button)
 {
-    /* button == NULL when called form button_init() */
-    if(button != NULL) {
-        if((button->style & BS_TYPEMASK) != MC_BS_SPLITBUTTON  &&
-           (button->style & BS_TYPEMASK) != MC_BS_DEFSPLITBUTTON) {
-            return FALSE;
-        }
-    }
+    DWORD type;
 
-    /* Windows support split buttons naturally starting with Windows Vista,
-     * if comctrl32.dll of version 6.0 or newer is used. So lets check the
-     * verisons, and if it is supproted by system, we will rely on the
-     * natural split button support.
-     *
-     * This should guarantee good compatibility if MS will make some changes
-     * to split buttons in future comctl32.dll versions.
-     */
-    if(mc_win_version < MC_WIN_VISTA)
-        return TRUE;
+    type = (button->style & BS_TYPEMASK);
+    if(type != MC_BS_SPLITBUTTON  &&  type != MC_BS_DEFSPLITBUTTON)
+        return FALSE;
 
     if(mc_comctl32_version < MC_DLL_VER(6, 0))
         return TRUE;
-
-    /* According to some my testing, (BS_SPLITBUTTON | BS_ICON) is not
-     * supported well on Vista, so in this case we need to use our fake
-     * implementation even on Vista. Windows 7 have fixed that.
-     */
-    if(button != NULL) {
-        if((button->style & BS_ICON) && mc_win_version < MC_WIN_7)
-            return TRUE;
-    }
+    if(mc_win_version < MC_WIN_VISTA)
+        return TRUE;
+    if(mc_win_version < MC_WIN_7  &&  (button->style & BS_ICON))
+        return TRUE;
 
     return FALSE;
 }
 
 static BOOL
-button_needs_fake_icon(button_t* button)
+button_is_fake_icon(button_t* button)
 {
-    /* button == NULL when called form button_init() */
-    if(button != NULL) {
-        if(!(button->style & BS_ICON)  ||  button->theme == NULL)
-            return FALSE;
-    }
+    if(!(button->style & BS_ICON))
+        return FALSE;
 
-    /* Windows XP do not support themed button with BS_ICON style. */
-    if(mc_win_version < MC_WIN_VISTA)
-        return TRUE;
-
-    return FALSE;
+    /* Win XP do not paint BS_ICON with themes even when themes enabled. */
+    return (mc_win_version < MC_WIN_VISTA  &&  button->theme != NULL);
 }
 
 static LRESULT CALLBACK
@@ -529,8 +505,8 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             PAINTSTRUCT ps;
             HDC dc;
 
-            fake_split = button_needs_fake_icon(button);
-            fake_icon = button_needs_fake_icon(button);
+            fake_split = button_is_fake_icon(button);
+            fake_icon = button_is_fake_icon(button);
             if(!fake_split  &&  !fake_icon) {
                 /* Keep it on original proc */
                 break;
@@ -554,7 +530,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_LBUTTONDOWN:
-            if(button_needs_fake_split(button)) {
+            if(button_is_fake_split(button)) {
                 POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
                 RECT rect;
 
@@ -588,7 +564,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_LBUTTONDBLCLK:
-            if(button_needs_fake_split(button)) {
+            if(button_is_fake_split(button)) {
                 RECT rect;
 
                 GetClientRect(win, &rect);
@@ -605,7 +581,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
              * as default, as it is done for normal push buttons. Unfortunately
              * it causes other problems. See the comment in WM_STYLECHANGING.
              */
-            if(button_needs_fake_split(button)) {
+            if(button_is_fake_split(button)) {
                 if((button->style & BS_TYPEMASK) == MC_BS_DEFSPLITBUTTON) {
                     BUTTON_TRACE("button_proc(WM_GETDLGCODE): -> DLGC_DEFPUSHBUTTON");
                     return DLGC_BUTTON | DLGC_DEFPUSHBUTTON;
@@ -618,7 +594,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case BM_SETSTATE:
-            if(button_needs_fake_split(button)) {
+            if(button_is_fake_split(button)) {
                 CallWindowProc(orig_button_proc, win, msg, wp, lp);
                 /* USER32.DLL does some painting in BM_SETSTATE. Repaint
                  * the split button. */
@@ -628,7 +604,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case BM_GETSTATE:
-            if(button_needs_fake_split(button)) {
+            if(button_is_fake_split(button)) {
                 DWORD s = CallWindowProc(orig_button_proc, win, msg, wp, lp);
                 if(button->is_dropdown_pushed)
                     s |= MC_BST_DROPDOWNPUSHED;
@@ -637,7 +613,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case BM_SETSTYLE:
-            if(button_needs_fake_split(button)) {
+            if(button_is_fake_split(button)) {
                 BUTTON_TRACE("button_proc(BM_SETSTYLE): split style fixup");
                 wp &= ~(BS_TYPEMASK & ~BS_DEFPUSHBUTTON);
                 wp |= MC_BS_SPLITBUTTON;
@@ -652,7 +628,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_STYLECHANGING:
-            if(button_needs_fake_split(button)) {
+            if(button_is_fake_split(button)) {
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
                 if((ss->styleOld & BS_TYPEMASK) == MC_BS_SPLITBUTTON  ||
                    (ss->styleOld & BS_TYPEMASK) == MC_BS_DEFSPLITBUTTON) {
@@ -752,9 +728,9 @@ button_init(void)
     orig_button_proc = wc.lpfnWndProc;
     extra_offset = wc.cbWndExtra;
 
-    /* Create our subclass. We only use our proc only when it might be needed
-     * for some button styles. */
-    if(button_needs_fake_split(NULL) || button_needs_fake_icon(NULL)) {
+    /* On Win7 we do not need to emulate anzthing, so we are just alias class
+     * of teh standard button. */
+    if(mc_win_version < MC_WIN_7  ||  mc_comctl32_version < MC_DLL_VER(6, 0)) {
         wc.lpfnWndProc = button_proc;
         wc.cbWndExtra += sizeof(button_t*);
     }
