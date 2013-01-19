@@ -261,9 +261,9 @@ void MCTRL_API mcChart_Terminate(void);
  * @sa MC_CHM_INSERTDATASET MC_CHM_GETDATASET MC_CHM_SETDATASET
  */
 typedef struct MC_CHDATASET_tag {
-    /** @brief Count of values in the data set. */
+    /** Count of values in the data set. */
     DWORD dwCount;
-    /** @brief Pointer to an array of values in the data set. */
+    /** Pointer to an array of values in the data set. */
     int* piValues;
 } MC_CHDATASET;
 
@@ -271,17 +271,17 @@ typedef struct MC_CHDATASET_tag {
  * @brief Structure for notification @c MC_CHN_GETDISPINFO.
  */
 typedef struct MC_NMCHDISPINFO_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief Mask of members the control asks for. */
+    /** Mask of members the control asks for. See @ref MC_CHDIF_xxxx. */
     DWORD fMask;
-    /** @brief Data set index. */
+    /** Data set index. */
     int iDataSet;
-    /** @brief Index of a first value the controls asks for. */
+    /** Index of a first value the controls asks for. */
     int iValueFirst;
-    /** @brief Index of last value the controls asks for. */
+    /** Index of last value the controls asks for. */
     int iValueLast;
-    /** @brief Pointer to a buffer where application fills the value. */
+    /** Pointer to a buffer where application fills the value. */
     int* piValues;
 } MC_NMCHDISPINFO;
 

@@ -157,19 +157,19 @@ void MCTRL_API mcGrid_Terminate(void);
  * @sa MC_GM_SETGEOMETRY MC_GM_GETGEOMETRY
  */
 typedef struct MC_GGEOMETRY_tag {
-    /** @brief Bitmask specifying what other members are valid. See @ref MC_GGF_xxxx. */
+    /** Bitmask specifying what other members are valid. See @ref MC_GGF_xxxx. */
     DWORD fMask;
-    /** @brief Height of column header cells. */
+    /** Height of column header cells. */
     WORD wColumnHeaderHeight;
-    /** @brief Width of row header cells. */
+    /** Width of row header cells. */
     WORD wRowHeaderWidth;
-    /** @brief Width of regular contents cells. */
+    /** Width of regular contents cells. */
     WORD wColumnWidth;
-    /** @brief Height of regular contents cells. */
+    /** Height of regular contents cells. */
     WORD wRowHeight;
-    /** @brief Horizontal padding in cells. */
+    /** Horizontal padding in cells. */
     WORD wPaddingHorz;
-    /** @brief Vertical padding in cells. */
+    /** Vertical padding in cells. */
     WORD wPaddingVert;
 } MC_GGEOMETRY;
 

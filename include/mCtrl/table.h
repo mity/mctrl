@@ -102,15 +102,15 @@ typedef void* MC_HTABLE;
  * @sa mcTable_SetCell mcTable_GetCell
  */
 typedef struct MC_TABLECELL_tag {
-    /** @brief Bitmask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
+    /** Bitmask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
     DWORD fMask;
-    /** @brief Cell value. */
+    /** Cell value. */
     MC_HVALUE hValue;
-    /** @brief Foreground color. It's up to the value type if it respects it. */
+    /** Foreground color. It's up to the value type if it respects it. */
     COLORREF crForeground;
-    /** @brief Background color. */
+    /** Background color. */
     COLORREF crBackground;
-    /** @brief Cell flags. See @ref MC_TCF_xxxx. */
+    /** Cell flags. See @ref MC_TCF_xxxx. */
     DWORD dwFlags;
 } MC_TABLECELL;
 

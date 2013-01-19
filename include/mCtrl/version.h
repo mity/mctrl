@@ -62,9 +62,12 @@ extern "C" {
  * @sa @ref mcVersion
  */
 typedef struct MC_VERSION_tag {
-    DWORD dwMajor;      /**< @brief Major version number. */
-    DWORD dwMinor;      /**< @brief Minor version number. */
-    DWORD dwRelease;    /**< @brief Release version number. */
+    /** Major version number. */
+    DWORD dwMajor;
+    /** Minor version number. */
+    DWORD dwMinor;
+    /** Release version number. */
+    DWORD dwRelease;
 } MC_VERSION;
 
 /*@}*/

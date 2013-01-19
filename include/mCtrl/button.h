@@ -219,9 +219,9 @@ void MCTRL_API mcButton_Terminate(void);
  * <tt>_WIN32_WINNT >= 0x0600</tt>.
  */
 typedef struct MC_NMBCDROPDOWN_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief Client rectangle of the dropdown button. */
+    /** Client rectangle of the dropdown button. */
     RECT rcButton;
 } MC_NMBCDROPDOWN;
 

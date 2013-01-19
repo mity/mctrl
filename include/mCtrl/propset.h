@@ -88,19 +88,19 @@ typedef void* MC_HPROPSET;
  * @sa mcPropSet_InsertItemW mcPropSet_SetItemW mcPropSet_GetItemW
  */
 typedef struct MC_PROPSETITEMW_tag {
-    /** @brief Bitmask specifying what members are valid. See @ref MC_PSIMF_xxxx. */
+    /** Bitmask specifying what members are valid. See @ref MC_PSIMF_xxxx. */
     DWORD fMask;
-    /** @brief Index of the property. */
+    /** Index of the property. */
     int iItem;
-    /** @brief Text label of the property. */
+    /** Text label of the property. */
     LPWSTR pszText;
-    /** @brief Maximal number of characters in @c pszText. Used only on output. */
+    /** Maximal number of characters in @c pszText. Used only on output. */
     int cchTextMax;
-    /** @brief Handle of property value. */
+    /** Handle of property value. */
     MC_HVALUE hValue;
-    /** @brief User data. */
+    /** User data. */
     LPARAM lParam;
-    /** @brief Property flags. */
+    /** Property flags. */
     DWORD dwFlags;
 } MC_PROPSETITEMW;
 
@@ -115,19 +115,19 @@ typedef struct MC_PROPSETITEMW_tag {
  * @sa mcPropSet_InsertItemA mcPropSet_SetItemA mcPropSet_GetItemA
  */
 typedef struct MC_PROPSETITEMA_tag {
-    /** @brief Bitmask specifying what members are valid. See @ref MC_PSIMF_xxxx. */
+    /** Bitmask specifying what members are valid. See @ref MC_PSIMF_xxxx. */
     DWORD fMask;
-    /** @brief Index of the property. */
+    /** Index of the property. */
     int iItem;
-    /** @brief Text label of the property. */
+    /** Text label of the property. */
     LPSTR pszText;
-    /** @brief Maximal number of characters in @c pszText. Used only on output. */
+    /** Maximal number of characters in @c pszText. Used only on output. */
     int cchTextMax;
-    /** @brief Handle of property value type. */
+    /** Handle of property value type. */
     MC_HVALUE hValue;
-    /** @brief User data. */
+    /** User data. */
     LPARAM lParam;
-    /** @brief Property flags. */
+    /** Property flags. */
     DWORD dwFlags;
 } MC_PROPSETITEMA;
 

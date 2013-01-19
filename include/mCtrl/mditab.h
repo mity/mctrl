@@ -210,16 +210,17 @@ void MCTRL_API mcMditab_Terminate(void);
  * @sa MC_MTM_INSERTITEM MC_MTM_SETITEM MC_MTM_GETITEM
  */
 typedef struct MC_MTITEMW_tag {
-    /** @brief Bit mask indicating which members of the structure are valid. */
+    /** Bit mask indicating which members of the structure are valid.
+     *  See @ref MC_MTIF_xxxx. */
     DWORD dwMask;
-    /** @brief Text label of the tab. */
+    /** Text label of the tab. */
     LPWSTR pszText;
-    /** @brief Number of characters in @c pszText. Used only on output. */
+    /** Number of characters in @c pszText. Used only on output. */
     int cchTextMax;
-    /** @brief Index into control image list.
-     *  @details Set to @c MC_I_IMAGENONE if no image is associated with the item. */
+    /** Index into control image list.
+     *  Set to @c MC_I_IMAGENONE if no image is associated with the item. */
     int iImage;
-    /** @brief User data. */
+    /** User data. */
     LPARAM lParam;
 } MC_MTITEMW;
 
@@ -228,16 +229,17 @@ typedef struct MC_MTITEMW_tag {
  * @sa MC_MTM_INSERTITEM MC_MTM_SETITEM MC_MTM_GETITEM
  */
 typedef struct MC_MTITEMA_tag {
-    /** @brief Bit mask indicating which members of the structure are valid. */
+    /** Bit mask indicating which members of the structure are valid.
+     *  See @ref MC_MTIF_xxxx. */
     DWORD dwMask;
-    /** @brief Text label of the tab. */
+    /** Text label of the tab. */
     LPSTR pszText;
-    /** @brief Number of characters in @c psxText. Used only on output. */
+    /** Number of characters in @c psxText. Used only on output. */
     int cchTextMax;
-    /** @brief Index into control image list.
-     *  @details Set to @c MC_I_IMAGENONE if no image is associated with the item. */
+    /** Index into control image list.
+     *  Set to @c MC_I_IMAGENONE if no image is associated with the item. */
     int iImage;
-    /** @brief User data. */
+    /** User data. */
     LPARAM lParam;
 } MC_MTITEMA;
 
@@ -251,9 +253,9 @@ typedef struct MC_MTITEMA_tag {
  * without using the scrolling buttons.
  */
 typedef struct MC_MTITEMWIDTH_tag {
-    /** @brief Default width for tabs, in pixels. */
+    /** Default width for tabs, in pixels. */
     DWORD dwDefWidth;
-    /** @brief Minimal width for tabs, in pixels. */
+    /** Minimal width for tabs, in pixels. */
     DWORD dwMinWidth;
 } MC_MTITEMWIDTH;
 
@@ -261,9 +263,9 @@ typedef struct MC_MTITEMWIDTH_tag {
  * @brief Structure for message @ref MC_MTM_HITTEST.
  */
 typedef struct MC_MTHITTESTINFO_tag {
-    /** @brief Coordinates to test. */
+    /** Coordinates to test. */
     POINT pt;
-    /** @brief On output, set to the result of the test. */
+    /** On output, set to the result of the test. */
     UINT flags;
 } MC_MTHITTESTINFO;
 
@@ -271,15 +273,15 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @brief Structure for notification @ref MC_MTN_SELCHANGE.
  */
 typedef struct MC_NMMTSELCHANGE_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief Index of previously selected tab. */
+    /** Index of previously selected tab. */
     int iItemOld;
-    /** @brief Data of previously selected tab, or zero. */
+    /** Data of previously selected tab, or zero. */
     LPARAM lParamOld;
-    /** @brief Index of newly selected tab */
+    /** Index of newly selected tab */
     int iItemNew;
-    /** @brief Data of newly selected tab, or zero. */
+    /** Data of newly selected tab, or zero. */
     LPARAM lParamNew;
 } MC_NMMTSELCHANGE;
 
@@ -287,11 +289,11 @@ typedef struct MC_NMMTSELCHANGE_tag {
  * @brief Structure for notification @ref MC_MTN_DELETEITEM.
  */
 typedef struct MC_NMMTDELETEITEM_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief Index of the item being deleted. */
+    /** Index of the item being deleted. */
     int iItem;
-    /** @brief User data of the item being deleted. */
+    /** User data of the item being deleted. */
     LPARAM lParam;
 } MC_NMMTDELETEITEM;
 
@@ -300,11 +302,11 @@ typedef struct MC_NMMTDELETEITEM_tag {
  * @brief Structure for notification @ref MC_MTN_CLOSEITEM.
  */
 typedef struct MC_NMMTCLOSEITEM_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief Index of the item being closed. */
+    /** Index of the item being closed. */
     int iItem;
-    /** @brief User data of the control being closed. */
+    /** User data of the control being closed. */
     LPARAM lParam;
 } MC_NMMTCLOSEITEM;
 

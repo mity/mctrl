@@ -262,9 +262,9 @@ void MCTRL_API mcHtml_Terminate(void);
  * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLW_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief String representation of the URL. */
+    /** String representation of the URL. */
     LPCWSTR pszUrl;
 } MC_NMHTMLURLW;
 
@@ -273,9 +273,9 @@ typedef struct MC_NMHTMLURLW_tag {
  * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLA_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief String representation of the URL. */
+    /** String representation of the URL. */
     LPCSTR pszUrl;
 } MC_NMHTMLURLA;
 
@@ -284,11 +284,11 @@ typedef struct MC_NMHTMLURLA_tag {
  * @sa MC_HN_PROGRESS
  */
 typedef struct MC_NMHTMLPROGRESS_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief Current progress. */
+    /** Current progress. */
     LONG lProgress;
-    /** @brief Progress maximum. */
+    /** Progress maximum. */
     LONG lProgressMax;
 } MC_NMHTMLPROGRESS;
 
@@ -297,9 +297,9 @@ typedef struct MC_NMHTMLPROGRESS_tag {
  * @sa MC_HN_STATUSTEXT MC_HN_TITLETEXT
  */
 typedef struct MC_NMHTMLTEXTW_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief The string. */
+    /** The string. */
     LPCWSTR pszText;
 } MC_NMHTMLTEXTW;
 
@@ -308,9 +308,9 @@ typedef struct MC_NMHTMLTEXTW_tag {
  * @sa MC_HN_STATUSTEXT MC_HN_TITLETEXT
  */
 typedef struct MC_NMHTMLTEXTA_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief The string. */
+    /** The string. */
     LPCSTR pszText;
 } MC_NMHTMLTEXTA;
 
@@ -319,11 +319,11 @@ typedef struct MC_NMHTMLTEXTA_tag {
  * @sa MC_HN_HISTORY
  */
 typedef struct MC_NMHTMLHISTORY_tag {
-    /** @brief Common notification structure header. */
+    /** Common notification structure header. */
     NMHDR hdr;
-    /** @brief @c TRUE if going back in history is possible. */
+    /** @c TRUE if going back in history is possible. */
     BOOL bCanBack;
-    /** @brief @c TRUE if going forward in history is possible. */
+    /** @c TRUE if going forward in history is possible. */
     BOOL bCanForward;
 } MC_NMHTMLHISTORY;
 
