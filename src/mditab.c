@@ -1371,18 +1371,18 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            BeginPaint(win, &ps);
             if(!mditab->no_redraw) {
-                PAINTSTRUCT ps;
-                BeginPaint(win, &ps);
                 if(mditab->style & MC_MTS_DOUBLEBUFFER)
                     mc_doublebuffer(mditab, &ps, mditab_paint);
                 else
                     mditab_paint(mditab, ps.hdc, &ps.rcPaint, ps.fErase);
-                EndPaint(win, &ps);
-            } else {
-                ValidateRect(win, NULL);
             }
+            EndPaint(win, &ps);
             return 0;
+        }
 
         case WM_PRINTCLIENT:
         {

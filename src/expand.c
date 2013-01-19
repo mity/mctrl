@@ -247,6 +247,9 @@ expand_paint(expand_t* expand)
         goto done;
     }
 
+    if(expand->no_redraw)
+        goto done;
+
     /* If painting because of state change, start new transition animation */
     old_theme_state = expand_theme_state(expand->old_state);
     new_theme_state = expand_theme_state(expand->state);
@@ -550,19 +553,14 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(!expand->no_redraw)
-                expand_paint(expand);
-            else
-                ValidateRect(win, NULL);
+            expand_paint(expand);
             return 0;
 
         case WM_PRINTCLIENT:
         {
-            HDC dc = (HDC) wp;
             RECT rect;
-
             GetClientRect(win, &rect);
-            expand_paint_state(expand, expand->state, dc, &rect, TRUE);
+            expand_paint_state(expand, expand->state, (HDC) wp, &rect, TRUE);
             return 0;
         }
 

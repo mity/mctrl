@@ -92,8 +92,9 @@ button_send_ctlcolorbtn(HWND win, HDC dc)
 }
 
 static void
-button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
+button_paint_icon(HWND win, button_t* button, HDC dc)
 {
+    HICON icon;
     RECT rect;
     RECT content;
     int state;
@@ -109,6 +110,8 @@ button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
     MC_ASSERT(button->theme != NULL);
 
     GetClientRect(win, &rect);
+
+    icon = (HICON) SendMessage(win, BM_GETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) 0);
 
     font = (HFONT)SendMessage(win, WM_GETFONT, 0, 0);
     if(font == NULL)
@@ -148,12 +151,14 @@ button_paint_icon(HWND win, button_t* button, HDC dc, HICON icon)
     }
 
     /* Draw the contents (i.e. the icon) */
-    mc_icon_size(icon, &size);
-    flags = DST_ICON;
-    if(button->style & WS_DISABLED)
-        flags |= DSS_DISABLED;
-    DrawState(dc, NULL, NULL, (LPARAM) icon, 0, (rect.right + rect.left - size.cx) / 2,
-              (rect.bottom + rect.top - size.cy) / 2, size.cx, size.cy, flags);
+    if(icon != NULL) {
+        mc_icon_size(icon, &size);
+        flags = DST_ICON;
+        if(button->style & WS_DISABLED)
+            flags |= DSS_DISABLED;
+        DrawState(dc, NULL, NULL, (LPARAM) icon, 0, (rect.right + rect.left - size.cx) / 2,
+                  (rect.bottom + rect.top - size.cy) / 2, size.cx, size.cy, flags);
+    }
 
     /* Revert DC into original state */
     SelectObject(dc, old_font);
@@ -451,6 +456,7 @@ button_update_ui_state(button_t* button, WORD action, WORD flags)
 static BOOL
 button_needs_fake_split(button_t* button)
 {
+    /* button == NULL when called form button_init() */
     if(button != NULL) {
         if((button->style & BS_TYPEMASK) != MC_BS_SPLITBUTTON  &&
            (button->style & BS_TYPEMASK) != MC_BS_DEFSPLITBUTTON) {
@@ -487,6 +493,7 @@ button_needs_fake_split(button_t* button)
 static BOOL
 button_needs_fake_icon(button_t* button)
 {
+    /* button == NULL when called form button_init() */
     if(button != NULL) {
         if(!(button->style & BS_ICON)  ||  button->theme == NULL)
             return FALSE;
@@ -515,54 +522,36 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(button->no_redraw  &&  wp == 0) {
-                ValidateRect(win, NULL);
-                return 0;
-            }
-            /* no break */
         case WM_PRINTCLIENT:
-            if(button_needs_fake_split(button)) {
-                PAINTSTRUCT ps;
+        {
+            BOOL fake_split;
+            BOOL fake_icon;
+            PAINTSTRUCT ps;
+            HDC dc;
 
-                BUTTON_TRACE("button_proc(WM_PAINT): painting split button");
+            fake_split = button_needs_fake_icon(button);
+            fake_icon = button_needs_fake_icon(button);
+            if(!fake_split  &&  !fake_icon) {
+                /* Keep it on original proc */
+                break;
+            }
 
-                if(wp == 0)
-                    BeginPaint(win, &ps);
+            if(msg == WM_PAINT)
+                dc = BeginPaint(win, &ps);
+            else
+                dc = (HDC) wp;
+
+            if(!button->no_redraw) {
+                if(fake_split)
+                    button_paint_split(win, button, dc);
                 else
-                    ps.hdc = (HDC) wp;
-                button_paint_split(win, button, ps.hdc);
-                if(wp == 0)
-                    EndPaint(win, &ps);
-                return 0;
+                    button_paint_icon(win, button, dc);
             }
 
-            if(button_needs_fake_icon(button)) {
-                /* Draw icon button using themes. (Without the themes we keep
-                 * it on the starndard "BUTTON" proc.) */
-                HICON icon;
-
-                BUTTON_TRACE("button_proc(WM_PAINT): painting icon button");
-
-                /* This should be handled in the condition above... */
-                MC_ASSERT((button->style & BS_TYPEMASK) != MC_BS_SPLITBUTTON);
-                MC_ASSERT((button->style & BS_TYPEMASK) != MC_BS_DEFSPLITBUTTON);
-
-                icon = (HICON) SendMessage(win, BM_GETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) 0);
-                if(icon != NULL) {
-                    PAINTSTRUCT ps;
-
-                    if(wp == 0)
-                        BeginPaint(win, &ps);
-                    else
-                        ps.hdc = (HDC) wp;
-                    button_paint_icon(win, button, ps.hdc, icon);
-                    if(wp == 0)
-                        EndPaint(win, &ps);
-                    return 0;
-                }
-            }
-            BUTTON_TRACE("button_proc(WM_PAINT): fallback to std. procedure");
-            break;
+            if(msg == WM_PAINT)
+                EndPaint(win, &ps);
+            return 0;
+        }
 
         case WM_LBUTTONDOWN:
             if(button_needs_fake_split(button)) {

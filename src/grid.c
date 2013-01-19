@@ -697,26 +697,22 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            if(grid->no_redraw  &&  wp == 0) {
-                ValidateRect(win, NULL);
-                return 0;
-            }
-            /* no break */
-        case WM_PRINTCLIENT:
-            {
-                PAINTSTRUCT ps;
-
-                if(wp == 0) {
-                    BeginPaint(win, &ps);
-                } else {
-                    ps.hdc = (HDC) wp;
-                    GetClientRect(win, &ps.rcPaint);
-                }
+        {
+            PAINTSTRUCT ps;
+            BeginPaint(win, &ps);
+            if(!grid->no_redraw)
                 grid_paint(grid, ps.hdc, &ps.rcPaint);
-                if(wp == 0)
-                    EndPaint(win, &ps);
-            }
+            EndPaint(win, &ps);
             return 0;
+        }
+
+        case WM_PRINTCLIENT:
+        {
+            RECT rect;
+            GetClientRect(win, &rect);
+            grid_paint(grid, (HDC) wp, &rect);
+            return 0;
+        }
 
         case WM_SETREDRAW:
             grid->no_redraw = !wp;
