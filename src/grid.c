@@ -379,7 +379,7 @@ grid_refresh(void* view, void* detail)
 }
 
 static void
-grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
+grid_scroll(grid_t* grid, BOOL is_vertical, WORD opcode, int factor)
 {
     SCROLLINFO si;
     int old_scroll_x = grid->scroll_x;
@@ -447,6 +447,21 @@ grid_scroll(grid_t* grid, WORD opcode, int factor, BOOL is_vertical)
                        old_scroll_y - grid->scroll_y, &rect, &rect, NULL, NULL,
                        SW_ERASE | SW_INVALIDATE);
     }
+}
+
+static void
+grid_mouse_wheel(grid_t* grid, BOOL is_vertical, int wheel_delta)
+{
+    SCROLLINFO si;
+    int line_delta;
+
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_PAGE;
+    GetScrollInfo(grid->win, (is_vertical ? SB_VERT : SB_HORZ), &si);
+
+    line_delta = mc_wheel_scroll(grid->win, is_vertical, wheel_delta, si.nPage);
+    if(line_delta != 0)
+        grid_scroll(grid, is_vertical, SB_LINEDOWN, line_delta);
 }
 
 static void
@@ -762,18 +777,13 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_VSCROLL:
         case WM_HSCROLL:
-            grid_scroll(grid, LOWORD(wp), 1, (msg == WM_VSCROLL));
+            grid_scroll(grid, (msg == WM_VSCROLL), LOWORD(wp), 1);
             return 0;
 
         case WM_MOUSEWHEEL:
         case WM_MOUSEHWHEEL:
-        {
-            int delta;
-            delta = mc_wheel_scroll(win, (msg == WM_MOUSEWHEEL), (SHORT)HIWORD(wp));
-            if(delta != 0)
-                grid_scroll(grid, SB_LINEDOWN, delta, (msg == WM_MOUSEWHEEL));
+            grid_mouse_wheel(grid, (msg == WM_MOUSEWHEEL), (int)(SHORT)HIWORD(wp));
             return 0;
-        }
 
         case WM_SIZE:
             if(!grid->no_redraw) {

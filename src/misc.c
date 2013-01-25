@@ -205,7 +205,7 @@ mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len)
  *****************************/
 
 int
-mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
+mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta, int lines_per_page)
 {
     /* We accumulate the wheel_delta until there is enough to scroll for
      * at least a single line. This improves the feel for strange values
@@ -213,10 +213,11 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
     static HWND last_win = NULL;
     static int wheel[2] = { 0, 0 };  /* horizontal, vertical */
 
-    int dir;
-    int lines_per_WHEEL_DELTA;
+    int dir = (is_vertical ? 1 : 0);
+    UINT lines_per_WHEEL_DELTA;
     int lines_to_scroll;
 
+    /* Do not carry accumulated values between windows */
     if(win != last_win) {
         last_win = win;
         wheel[0] = 0;
@@ -226,18 +227,28 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta)
             return 0;
     }
 
-    if(MC_ERR(!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines_per_WHEEL_DELTA, 0)))
-        lines_per_WHEEL_DELTA = 3;
-
-    dir = (is_vertical ? 1 : 0);
-
+    /* On a direction change, reset the accumulated value */
     if((wheel_delta > 0 && wheel[dir] < 0) || (wheel_delta < 0 && wheel[dir] > 0))
         wheel[dir] = 0;
 
+    if(lines_per_page > 0) {
+        /* Ask the system for scroll speed */
+        if(MC_ERR(!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines_per_WHEEL_DELTA, 0)))
+            lines_per_WHEEL_DELTA = 3;
+
+        /* But never scroll more then complete page */
+        if(lines_per_WHEEL_DELTA == WHEEL_PAGESCROLL  ||  lines_per_WHEEL_DELTA >= lines_per_page)
+            lines_per_WHEEL_DELTA = MC_MAX(1, lines_per_page);
+    } else {
+        /* The caller does not know what page is: The control probably only has
+         * few discrete values to iterate over. */
+        lines_per_WHEEL_DELTA = 1;
+    }
+
+    /* Compute lines to scroll */
     wheel[dir] += wheel_delta;
-    lines_to_scroll = (wheel[dir] * lines_per_WHEEL_DELTA) / WHEEL_DELTA;
-    if(lines_to_scroll != 0)
-        wheel[dir] = 0;
+    lines_to_scroll = (wheel[dir] * (int)lines_per_WHEEL_DELTA) / WHEEL_DELTA;
+    wheel[dir] -= (lines_to_scroll * WHEEL_DELTA) / (int)lines_per_WHEEL_DELTA;
 
     return (is_vertical ? -lines_to_scroll : lines_to_scroll);
 }

@@ -137,6 +137,21 @@ propview_vscroll(propview_t* pv, WORD opcode)
 }
 
 static void
+propview_mouse_wheel(propview_t* pv, int wheel_delta)
+{
+    SCROLLINFO si;
+    int line_delta;
+
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_PAGE;
+    GetScrollInfo(pv->win, SB_VERT, &si);
+
+    line_delta = mc_wheel_scroll(pv->win, TRUE, wheel_delta, si.nPage);
+    if(line_delta != 0)
+        propview_vscroll_rel(pv, line_delta);
+}
+
+static void
 propview_setup_scrollbars(propview_t* pv)
 {
     RECT rect;
@@ -410,7 +425,7 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_MOUSEWHEEL:
-            propview_vscroll_rel(pv, mc_wheel_scroll(win, TRUE, (SHORT)HIWORD(wp)));
+            propview_mouse_wheel(pv, (int)(SHORT)HIWORD(wp));
             return 0;
 
         case WM_KILLFOCUS:
