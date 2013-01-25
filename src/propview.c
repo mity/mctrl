@@ -53,41 +53,12 @@ struct propview_tag {
 
 
 static void
-propview_refresh(void* view, void* refresh_data)
+propview_do_vscroll(propview_t* pv, SCROLLINFO* si, int scroll_y)
 {
-    propview_t* pv = (propview_t*) view;
-    propset_refresh_data_t* data = (propset_refresh_data_t*) refresh_data;
-
-    if(pv->no_redraw)
-        return;
-
-    if(data == NULL) {
-        InvalidateRect(pv->win, NULL, TRUE);
-        return;
-    }
-
-    // TODO -- invalidate rect(s) for affected items
-}
-
-static void
-propview_vscroll_rel(propview_t* pv, int row_delta)
-{
-    SCROLLINFO si;
-    int scroll_y = pv->scroll_y + row_delta;
-
-    PROPVIEW_TRACE("propview_vscroll_rel(%p, %d)", pv, (int)row_delta);
-
-    if(row_delta == 0)
-        return;
-
-    si.cbSize = sizeof(SCROLLINFO);
-    si.fMask = SIF_RANGE | SIF_PAGE;
-    GetScrollInfo(pv->win, SB_VERT, &si);
-
-    if(scroll_y > si.nMax - (int)si.nPage + 1)
-        scroll_y = si.nMax - (int)si.nPage + 1;
-    if(scroll_y < si.nMin)
-        scroll_y = si.nMin;
+    if(scroll_y > si->nMax - (int)si->nPage + 1)
+        scroll_y = si->nMax - (int)si->nPage + 1;
+    if(scroll_y < si->nMin)
+        scroll_y = si->nMin;
 
     if(scroll_y == pv->scroll_y)
         return;
@@ -97,6 +68,19 @@ propview_vscroll_rel(propview_t* pv, int row_delta)
         ScrollWindowEx(pv->win, 0, (pv->scroll_y - scroll_y) * pv->row_height,
                        NULL, NULL, NULL, NULL, SW_ERASE | SW_INVALIDATE);
     pv->scroll_y = scroll_y;
+}
+
+static void
+propview_vscroll_rel(propview_t* pv, int row_delta)
+{
+    SCROLLINFO si;
+
+    PROPVIEW_TRACE("propview_vscroll_rel(%p, %d)", pv, (int)row_delta);
+
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_RANGE | SIF_PAGE;
+    GetScrollInfo(pv->win, SB_VERT, &si);
+    propview_do_vscroll(pv, &si, pv->scroll_y + row_delta);
 }
 
 static void
@@ -120,20 +104,7 @@ propview_vscroll(propview_t* pv, WORD opcode)
         case SB_THUMBTRACK:      scroll_y = si.nTrackPos; break;
         case SB_TOP:             scroll_y = 0; break;
     }
-
-    if(scroll_y > si.nMax - (int)si.nPage + 1)
-        scroll_y = si.nMax - (int)si.nPage + 1;
-    if(scroll_y < si.nMin)
-        scroll_y = si.nMin;
-
-    if(scroll_y == pv->scroll_y)
-        return;
-
-    SetScrollPos(pv->win, SB_VERT, scroll_y, TRUE);
-    if(!pv->no_redraw)
-        ScrollWindowEx(pv->win, 0, (pv->scroll_y - scroll_y) * pv->row_height,
-                       NULL, NULL, NULL, NULL, SW_ERASE | SW_INVALIDATE);
-    pv->scroll_y = scroll_y;
+    propview_do_vscroll(pv, &si, scroll_y);
 }
 
 static void
@@ -156,6 +127,7 @@ propview_setup_scrollbars(propview_t* pv)
 {
     RECT rect;
     SCROLLINFO si;
+    int scroll_y;
 
     PROPVIEW_TRACE("propview_setup_scrollbars(%p)", pv);
 
@@ -170,9 +142,31 @@ propview_setup_scrollbars(propview_t* pv)
     si.fMask = SIF_RANGE | SIF_PAGE;
     si.nMin = 0;
     si.nMax = dsa_size(&pv->propset->items) - 1;
-    si.nPage = MC_MAX(1, mc_width(&rect) / pv->row_height);
+    si.nPage = MC_MAX(1, mc_height(&rect) / pv->row_height);
 
-    SetScrollInfo(pv->win, SB_VERT, &si, TRUE);
+    scroll_y = SetScrollInfo(pv->win, SB_VERT, &si, TRUE);
+    propview_do_vscroll(pv, &si, scroll_y);
+    pv->dirty_scrollbars = 0;
+}
+
+static void
+propview_refresh(void* view, void* refresh_data)
+{
+    propview_t* pv = (propview_t*) view;
+    propset_refresh_data_t* data = (propset_refresh_data_t*) refresh_data;
+
+    if(pv->no_redraw)
+        return;
+
+    if(data == NULL  ||  data->size_delta != 0)
+        propview_setup_scrollbars(pv);
+
+    if(data != NULL) {
+        // TODO -- invalidate rect(s) for affected items only instead of everything
+        //return;
+    }
+
+    InvalidateRect(pv->win, NULL, TRUE);
 }
 
 static void
@@ -271,10 +265,9 @@ propview_set_propset(propview_t* pv, propset_t* propset)
 
     pv->propset = propset;
 
-    if(!pv->no_redraw) {
-        propview_setup_scrollbars(pv);
+    propview_setup_scrollbars(pv);
+    if(!pv->no_redraw)
         InvalidateRect(pv->win, NULL, TRUE);
-    }
     return 0;
 }
 
@@ -292,11 +285,10 @@ propview_style_changed(propview_t* pv, int style_type, STYLESTRUCT* ss)
         }
     }
 
-    if(!pv->no_redraw) {
-        propview_setup_scrollbars(pv);
+    propview_setup_scrollbars(pv);
+    if(!pv->no_redraw)
         RedrawWindow(pv->win, NULL, NULL,
                      RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
-    }
 }
 
 static propview_t*
@@ -319,8 +311,6 @@ propview_nccreate(HWND win, CREATESTRUCT* cs)
     pv->win = win;
     pv->notify_win = cs->hwndParent;
     pv->style = cs->style;
-    pv->no_redraw = 0;
-    pv->dirty_scrollbars = 0;
     pv->row_height = size.cy + 2 * PADDING_V + 1;  /* +1 for grid line */
     pv->label_width = 10 * size.cx;
 
@@ -417,9 +407,6 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_PVM_GETITEMCOUNT:
             return mcPropSet_GetItemCount(pv->propset);
 
-        case WM_GETFONT:
-            return (LRESULT) pv->font;
-
         case WM_VSCROLL:
             propview_vscroll(pv, LOWORD(wp));
             return 0;
@@ -447,9 +434,12 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
         }
 
+        case WM_GETFONT:
+            return (LRESULT) pv->font;
+
         case WM_SETREDRAW:
             pv->no_redraw = !wp;
-            if(!pv->no_redraw)
+            if(!pv->no_redraw  &&  pv->dirty_scrollbars)
                 propview_setup_scrollbars(pv);
             return 0;
 
