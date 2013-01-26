@@ -71,8 +71,8 @@ dummy_DrawThemeParentBackground(HWND win, HDC dc, RECT* rect)
 
     OffsetViewportOrgEx(dc, -r.left, -r.top, &old_origin);
 
-    SendMessage(parent, WM_ERASEBKGND, (WPARAM) dc, 0);
-    SendMessage(parent, WM_PRINTCLIENT, (WPARAM) dc, PRF_CLIENT);
+    MC_MSG(parent, WM_ERASEBKGND, dc, 0);
+    MC_MSG(parent, WM_PRINTCLIENT, dc, PRF_CLIENT);
 
     SetViewportOrgEx(dc, old_origin.x, old_origin.y, NULL);
 

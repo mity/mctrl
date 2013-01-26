@@ -99,6 +99,11 @@
 #endif
 
 
+/* SendMessage() wrapper to save some typing and casting. */
+#define MC_MSG(win, msg, wp, lp)                                         \
+            SendMessage((win), (msg), (WPARAM)(wp), (LPARAM)(lp))
+
+
 /***************
  *** Globals ***
  ***************/
@@ -579,7 +584,7 @@ mc_send_notify(HWND parent, HWND win, UINT code)
     hdr.idFrom = GetWindowLong(win, GWL_ID);
     hdr.code = code;
 
-    return SendMessage(parent, WM_NOTIFY, hdr.idFrom, (LPARAM)&hdr);
+    return MC_MSG(parent, WM_NOTIFY, hdr.idFrom, &hdr);
 }
 
 

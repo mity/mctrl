@@ -407,7 +407,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             MENUBAR_TRACE("menubar_proc(WM_COMMAND): code=%d; wid=%d; control=%p",
                           (int)HIWORD(wp), (int)LOWORD(wp), (HWND)lp);
             if(lp == 0  &&  HIWORD(wp) == 0)  /* msg came from the menu */
-                return SendMessage(mb->notify_win, msg, wp, lp);
+                return MC_MSG(mb->notify_win, msg, wp, lp);
             break;
 
         case WM_NOTIFY:
@@ -415,7 +415,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             NMHDR* hdr = (NMHDR*) lp;
             if(hdr->hwndFrom == win) {
                 menubar_notify(mb, hdr);
-                return SendMessage(mb->notify_win, msg, wp, lp);
+                return MC_MSG(mb->notify_win, msg, wp, lp);
             }
             break;
         }
@@ -434,7 +434,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_MENUGETOBJECT:
         case WM_MEASUREITEM:
         case WM_DRAWITEM:
-            return SendMessage(mb->notify_win, msg, wp, lp);
+            return MC_MSG(mb->notify_win, msg, wp, lp);
 
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:

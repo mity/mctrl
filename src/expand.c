@@ -394,7 +394,7 @@ expand_guess_size(expand_t* expand, SIZE* size)
      * However if application disrespect it and places some child into it, we
      * respect it.
      */
-    dlg_font = (HFONT) SendMessage(expand->notify_win, WM_GETFONT, 0, 0);
+    dlg_font = (HFONT) MC_MSG(expand->notify_win, WM_GETFONT, 0, 0);
     dlg_padding = mc_pixels_from_dlus(dlg_font, 7, TRUE);
     if(top < dlg_padding)
         dlg_padding = top;
@@ -523,7 +523,7 @@ expand_create(expand_t* expand)
 
     expand->theme = theme_OpenThemeData(expand->win, expand_tc);
 
-    ui_state = SendMessage(expand->win, WM_QUERYUISTATE, 0, 0);
+    ui_state = MC_MSG(expand->win, WM_QUERYUISTATE, 0, 0);
     expand->hide_focus = (ui_state & UISF_HIDEFOCUS) ? 1 : 0;
     expand->hide_accel = (ui_state & UISF_HIDEACCEL) ? 1 : 0;
 

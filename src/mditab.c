@@ -182,8 +182,8 @@ mditab_calc_layout(mditab_t* mditab)
     GetClientRect(mditab->win, &rect);
 
     /* Clear toolbars */
-    while(SendMessage(mditab->toolbar1, TB_DELETEBUTTON, 0, 0) == TRUE);
-    while(SendMessage(mditab->toolbar2, TB_DELETEBUTTON, 0, 0) == TRUE);
+    while(MC_MSG(mditab->toolbar1, TB_DELETEBUTTON, 0, 0) == TRUE);
+    while(MC_MSG(mditab->toolbar2, TB_DELETEBUTTON, 0, 0) == TRUE);
 
     /* Add buttons */
     need_btn_scroll = (mditab->need_scroll  ||  (mditab->style &  MC_MTS_SCROLLALWAYS));
@@ -195,13 +195,13 @@ mditab_calc_layout(mditab_t* mditab)
         btn.iBitmap = MC_BMP_GLYPH_CHEVRON_L;
         btn.fsStyle = TBSTYLE_BUTTON;
         btn.idCommand = IDC_SCROLL_LEFT;
-        SendMessage(mditab->toolbar1, TB_ADDBUTTONS, 1, (LPARAM) &btn);
+        MC_MSG(mditab->toolbar1, TB_ADDBUTTONS, 1, &btn);
         btn_count1++;
 
         /* Scroll right button */
         btn.iBitmap = MC_BMP_GLYPH_CHEVRON_R;
         btn.idCommand = IDC_SCROLL_RIGHT;
-        SendMessage(mditab->toolbar2, TB_ADDBUTTONS, 1, (LPARAM) &btn);
+        MC_MSG(mditab->toolbar2, TB_ADDBUTTONS, 1, &btn);
         btn_count2++;
     }
     if(need_btn_list_items) {
@@ -209,7 +209,7 @@ mditab_calc_layout(mditab_t* mditab)
         btn.iBitmap = MC_BMP_GLYPH_MORE_OPTIONS;
         btn.fsStyle = BTNS_DROPDOWN;
         btn.idCommand = IDC_LIST_ITEMS;
-        SendMessage(mditab->toolbar2, TB_ADDBUTTONS, 1, (LPARAM) &btn);
+        MC_MSG(mditab->toolbar2, TB_ADDBUTTONS, 1, &btn);
         btn_count2++;
     }
     if(need_btn_close_item) {
@@ -217,7 +217,7 @@ mditab_calc_layout(mditab_t* mditab)
         btn.iBitmap = MC_BMP_GLYPH_CLOSE;
         btn.fsStyle = TBSTYLE_BUTTON;
         btn.idCommand = IDC_CLOSE_ITEM;
-        SendMessage(mditab->toolbar2, TB_ADDBUTTONS, 1, (LPARAM) &btn);
+        MC_MSG(mditab->toolbar2, TB_ADDBUTTONS, 1, &btn);
         btn_count2++;
     }
 
@@ -229,8 +229,8 @@ mditab_calc_layout(mditab_t* mditab)
         UINT w, h;
 
         h = rect.bottom - rect.top - 6 - BTN_MARGIN_V - 2;
-        SendMessage(mditab->toolbar1, TB_SETBUTTONSIZE, 0, MAKELONG(h, h));
-        SendMessage(mditab->toolbar1, TB_GETITEMRECT, 0, (LPARAM) &r);
+        MC_MSG(mditab->toolbar1, TB_SETBUTTONSIZE, 0, MAKELONG(h, h));
+        MC_MSG(mditab->toolbar1, TB_GETITEMRECT, 0, &r);
         w = r.right - r.left;
         SetWindowPos(mditab->toolbar1, NULL, BTN_MARGIN_H, BTN_MARGIN_H + 2,
                 w, h, SWP_SHOWWINDOW | SWP_NOZORDER);
@@ -244,9 +244,9 @@ mditab_calc_layout(mditab_t* mditab)
         UINT w, h;
 
         h = rect.bottom - rect.top - 6 - BTN_MARGIN_V - 2;
-        SendMessage(mditab->toolbar2, TB_SETBUTTONSIZE, 0, MAKELONG(h, h));
-        SendMessage(mditab->toolbar2, TB_GETITEMRECT, 0, (LPARAM) &r);
-        SendMessage(mditab->toolbar2, TB_GETITEMRECT, btn_count2-1, (LPARAM) &s);
+        MC_MSG(mditab->toolbar2, TB_SETBUTTONSIZE, 0, MAKELONG(h, h));
+        MC_MSG(mditab->toolbar2, TB_GETITEMRECT, 0, &r);
+        MC_MSG(mditab->toolbar2, TB_GETITEMRECT, btn_count2-1, &s);
         w = s.right - r.left;
         SetWindowPos(mditab->toolbar2, NULL, rect.right - BTN_MARGIN_H - w,
                 BTN_MARGIN_H + 2, w, h, SWP_SHOWWINDOW | SWP_NOZORDER);
@@ -426,9 +426,9 @@ mditab_layout(mditab_t* mditab)
     mditab_calc_need_scroll(mditab);
     mditab_calc_layout(mditab);
 
-    SendMessage(mditab->toolbar2, TB_ENABLEBUTTON,
+    MC_MSG(mditab->toolbar2, TB_ENABLEBUTTON,
             IDC_LIST_ITEMS, MAKELONG((mditab_count(mditab) > 0), 0));
-    SendMessage(mditab->toolbar2, TB_ENABLEBUTTON,
+    MC_MSG(mditab->toolbar2, TB_ENABLEBUTTON,
             IDC_CLOSE_ITEM, MAKELONG((mditab->item_selected >= 0), 0));
 
     if(MC_ERR(mditab_count(mditab) == 0))
@@ -498,9 +498,9 @@ mditab_layout(mditab_t* mditab)
     mditab_track_hot(mditab, pos.x, pos.y);
 
     /* Update toolbar buttons state */
-    SendMessage(mditab->toolbar1, TB_ENABLEBUTTON, IDC_SCROLL_LEFT,
+    MC_MSG(mditab->toolbar1, TB_ENABLEBUTTON, IDC_SCROLL_LEFT,
             MAKELONG((!mditab_is_item_visible(mditab, 0)), 0));
-    SendMessage(mditab->toolbar2, TB_ENABLEBUTTON, IDC_SCROLL_RIGHT,
+    MC_MSG(mditab->toolbar2, TB_ENABLEBUTTON, IDC_SCROLL_RIGHT,
             MAKELONG((!mditab_is_item_visible(mditab, mditab_count(mditab) - 1)), 0));
 }
 
@@ -679,8 +679,7 @@ mditab_notify_sel_change(mditab_t* mditab, int old_index, int new_index)
     notify.iItemNew = new_index;
     notify.lParamNew = (new_index >= 0  ?  mditab_item(mditab, new_index)->lp  :  0);
 
-    SendMessage(mditab->notify_win, WM_NOTIFY,
-                (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
+    MC_MSG(mditab->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
 }
 
 static int
@@ -851,8 +850,7 @@ mditab_notify_delete_item(mditab_t* mditab, int index)
     notify.iItem = index;
     notify.lParam = mditab_item(mditab, index)->lp;
 
-    SendMessage(mditab->notify_win, WM_NOTIFY,
-                (WPARAM)notify.hdr.idFrom, (LPARAM)&notify);
+    MC_MSG(mditab->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
 }
 
 static BOOL
@@ -1026,18 +1024,18 @@ mditab_list_items(mditab_t* mditab)
     SetMenuInfo(popup, &mi);
 
     /* Show the menu */
-    i = SendMessage(mditab->toolbar2, TB_COMMANDTOINDEX, IDC_LIST_ITEMS, 0);
+    i = MC_MSG(mditab->toolbar2, TB_COMMANDTOINDEX, IDC_LIST_ITEMS, 0);
     tpm_param.cbSize = sizeof(TPMPARAMS);
-    SendMessage(mditab->toolbar2, TB_GETITEMRECT, i, (LPARAM) &tpm_param.rcExclude);
-    btn_state = SendMessage(mditab->toolbar2, TB_GETSTATE, IDC_LIST_ITEMS, 0);
-    SendMessage(mditab->toolbar2, TB_SETSTATE, IDC_LIST_ITEMS,
+    MC_MSG(mditab->toolbar2, TB_GETITEMRECT, i, &tpm_param.rcExclude);
+    btn_state = MC_MSG(mditab->toolbar2, TB_GETSTATE, IDC_LIST_ITEMS, 0);
+    MC_MSG(mditab->toolbar2, TB_SETSTATE, IDC_LIST_ITEMS,
                 MAKELONG(btn_state | TBSTATE_PRESSED, 0));
     MapWindowPoints(mditab->toolbar2, HWND_DESKTOP, (POINT*) &tpm_param.rcExclude, 2);
     TrackPopupMenuEx(popup, TPM_LEFTBUTTON | TPM_RIGHTALIGN,
                      tpm_param.rcExclude.right, tpm_param.rcExclude.bottom,
                      mditab->win, &tpm_param);
     DestroyMenu(popup);
-    SendMessage(mditab->toolbar2, TB_SETSTATE, IDC_LIST_ITEMS, MAKELONG(btn_state, 0));
+    MC_MSG(mditab->toolbar2, TB_SETSTATE, IDC_LIST_ITEMS, MAKELONG(btn_state, 0));
 }
 
 static void
@@ -1085,7 +1083,7 @@ mditab_close_item(mditab_t* mditab, int index)
     notify.iItem = index;
     notify.lParam = mditab_item(mditab, index)->lp;
 
-    if(SendMessage(mditab->notify_win, WM_NOTIFY, (WPARAM)notify.hdr.idFrom, (LPARAM)&notify) == FALSE)
+    if(MC_MSG(mditab->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify) == FALSE)
         return mditab_delete_item(mditab, index);
     else
         return FALSE;
@@ -1331,10 +1329,10 @@ mditab_create(mditab_t* mditab)
         return -1;
     }
 
-    SendMessage(mditab->toolbar1, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(mditab->toolbar1, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
-    SendMessage(mditab->toolbar2, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(mditab->toolbar2, TB_SETIMAGELIST, 0, (LPARAM)mc_bmp_glyphs);
+    MC_MSG(mditab->toolbar1, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    MC_MSG(mditab->toolbar1, TB_SETIMAGELIST, 0, mc_bmp_glyphs);
+    MC_MSG(mditab->toolbar2, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    MC_MSG(mditab->toolbar2, TB_SETIMAGELIST, 0, mc_bmp_glyphs);
 
     mditab->theme = theme_OpenThemeData(mditab->win, mditab_tc);
     return 0;

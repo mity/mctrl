@@ -143,7 +143,7 @@ chart_value_from_parent(chart_t* chart, int set_ix, int i)
     info.iValueFirst = i;
     info.iValueLast = i;
     info.piValues = &value;
-    SendMessage(chart->notify_win, WM_NOTIFY, info.hdr.idFrom, (LPARAM) &info);
+    MC_MSG(chart->notify_win, WM_NOTIFY, info.hdr.idFrom, &info);
 
     return value;
 }
@@ -340,13 +340,13 @@ tooltip_create(chart_t* chart)
     info.cbSize = sizeof(TTTOOLINFO);
     info.uFlags = TTF_IDISHWND | TTF_TRACK | TTF_ABSOLUTE;
     info.hwnd = chart->win;
-    SendMessage(chart->tooltip_win, TTM_ADDTOOL, 0, (LPARAM) &info);
+    MC_MSG(chart->tooltip_win, TTM_ADDTOOL, 0, &info);
 
     ttc.hdr.hwndFrom = chart->win;
     ttc.hdr.idFrom = GetWindowLong(chart->win, GWL_ID);
     ttc.hdr.code = NM_TOOLTIPSCREATED;
     ttc.hwndToolTips = chart->tooltip_win;
-    SendMessage(chart->notify_win, WM_NOTIFY, ttc.hdr.idFrom, (LPARAM) &ttc);
+    MC_MSG(chart->notify_win, WM_NOTIFY, ttc.hdr.idFrom, &ttc);
 }
 
 static void
@@ -356,7 +356,7 @@ tooltip_activate(chart_t* chart, BOOL show)
 
     info.cbSize = sizeof(TTTOOLINFO);
     info.hwnd = chart->win;
-    SendMessage(chart->tooltip_win, TTM_TRACKACTIVATE, show, (LPARAM) &info);
+    MC_MSG(chart->tooltip_win, TTM_TRACKACTIVATE, show, &info);
 
     chart->tooltip_active = show;
 }
@@ -371,11 +371,11 @@ tooltip_set_pos(chart_t* chart, int x, int y)
     info.cbSize = sizeof(TTTOOLINFO);
     info.hwnd = chart->win;
 
-    size = SendMessage(chart->tooltip_win, TTM_GETBUBBLESIZE, 0, (LPARAM) &info);
+    size = MC_MSG(chart->tooltip_win, TTM_GETBUBBLESIZE, 0, &info);
     pt.x = x - LOWORD(size) / 2;
     pt.y = y - HIWORD(size) - 5;
     ClientToScreen(chart->win, &pt);
-    SendMessage(chart->tooltip_win, TTM_TRACKPOSITION, 0, MAKELPARAM(pt.x, pt.y));
+    MC_MSG(chart->tooltip_win, TTM_TRACKPOSITION, 0, MAKELPARAM(pt.x, pt.y));
 }
 
 static void
@@ -387,7 +387,7 @@ tooltip_set_text(chart_t* chart, const TCHAR* str)
     info.uFlags = TTF_IDISHWND | TTF_TRACK | TTF_ABSOLUTE;
     info.hwnd = chart->win;
     info.lpszText = (TCHAR*) str;
-    SendMessage(chart->tooltip_win, TTM_UPDATETIPTEXT, 0, (LPARAM) &info);
+    MC_MSG(chart->tooltip_win, TTM_UPDATETIPTEXT, 0, &info);
 }
 
 static void
@@ -432,7 +432,7 @@ cache_init_(cache_t* cache, int n)
             info.iValueFirst = 0;
             info.iValueLast = data->count - 1;
             info.piValues = values;
-            SendMessage(cache->chart->notify_win, WM_NOTIFY, info.hdr.idFrom, (LPARAM) &info);
+            MC_MSG(cache->chart->notify_win, WM_NOTIFY, info.hdr.idFrom, &info);
 
             cache->values[set_ix] = values;
             values += data->count;
