@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,8 +29,8 @@
 #endif
 
 
-
-#define DSA_DEFAULT_GROW_SIZE    8
+#define DSA_DEFAULT_GROW_SIZE(size)     (MC_MAX(8, (size) / 16))
+#define DSA_DEFAULT_SHRINK_SIZE(size)   (2*DSA_DEFAULT_GROW_SIZE(size))
 
 
 void
@@ -63,26 +63,22 @@ dsa_fini(dsa_t* dsa, dsa_dtor_t dtor_func)
 int
 dsa_reserve(dsa_t* dsa, WORD size)
 {
+    WORD capacity = dsa->size + size;
     BYTE* buffer;
 
     DSA_TRACE("dsa_reserve(%p, %d)", dsa, (int)size);
 
-    if((WORD)(dsa->size + size) <= dsa->capacity)
+    if(capacity <= dsa->capacity)
         return 0;
 
-    buffer = (BYTE*) malloc((dsa->size + size) * dsa->item_size);
+    buffer = (BYTE*) realloc(dsa->buffer, capacity * dsa->item_size);
     if(MC_ERR(buffer == NULL)) {
-        MC_TRACE("dsa_reserve: malloc() failed.");
+        MC_TRACE("dsa_reserve: realloc() failed.");
         return -1;
     }
 
-    if(dsa->buffer != NULL) {
-        memcpy(buffer, dsa->buffer, dsa->size * dsa->item_size);
-        free(dsa->buffer);
-    }
-
     dsa->buffer = buffer;
-    dsa->capacity = dsa->size + size;
+    dsa->capacity = capacity;
     return 0;
 }
 
@@ -93,7 +89,7 @@ dsa_insert_raw(dsa_t* dsa, WORD index)
     MC_ASSERT(index <= dsa->size);
 
     if(dsa->capacity - dsa->size == 0) {
-        if(MC_ERR(dsa_reserve(dsa, DSA_DEFAULT_GROW_SIZE) != 0)) {
+        if(MC_ERR(dsa_reserve(dsa, DSA_DEFAULT_GROW_SIZE(dsa->size)) != 0)) {
             MC_TRACE("dsa_insert_raw: dsa_reserve() failed.");
             return NULL;
         }
@@ -138,16 +134,14 @@ dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
         dtor_func(dsa, dsa_item(dsa, index));
 
     if(dsa->size == 1) {
-        if(dsa->buffer != NULL) {
-            free(dsa->buffer);
-            dsa->buffer = NULL;
-        }
+        free(dsa->buffer);
+        dsa->buffer = NULL;
         dsa->size = 0;
         dsa->capacity = 0;
         return;
     }
 
-    if(dsa->size + 7 > dsa->capacity) {
+    if(dsa->capacity < dsa->size + DSA_DEFAULT_SHRINK_SIZE(dsa->size)) {
 no_realloc:
         memmove(dsa_item(dsa, index), dsa_item(dsa, index+1),
                 (dsa->size - index - 1) * dsa->item_size);
