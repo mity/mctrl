@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -79,7 +79,7 @@ mc_str_n(const void* from_str, mc_str_type_t from_type, int from_len,
 
     if(from_len < 0) {
         if(from_type == MC_STRW)
-            from_len = (int)(wcslen((WCHAR*)from_str) * sizeof(WCHAR));
+            from_len = (int)wcslen((WCHAR*)from_str);
         else
             from_len = (int)strlen((char*)from_str);
     }
