@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,7 +22,7 @@
 
 #define MC_VERSION_MAJOR              0
 #define MC_VERSION_MINOR              8
-#define MC_VERSION_RELEASE            3
+#define MC_VERSION_RELEASE            4
 
 
 /* Stringize given expression */
