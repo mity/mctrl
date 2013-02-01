@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012 Alexei Boronine
- *  -- Idea, design & algortithms
+ *  -- Idea, design & algorithm
  *  -- Original CoffeeScript & JavaScript implementation
  *  -- See http://boronine.com/husl/
  *
