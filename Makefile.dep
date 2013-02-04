@@ -47,7 +47,7 @@ obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
  include/mCtrl/expand.h include/mCtrl/grid.h include/mCtrl/value.h \
  include/mCtrl/table.h include/mCtrl/html.h include/mCtrl/menubar.h \
  include/mCtrl/mditab.h include/mCtrl/propset.h include/mCtrl/propview.h \
- include/mCtrl/version.h
+ include/mCtrl/version.h include/mCtrl/treelist.h
 obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h src/button.h include/mCtrl/button.h \
  include/mCtrl/defs.h src/chart.h include/mCtrl/chart.h src/expand.h \
@@ -55,7 +55,8 @@ obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
  include/mCtrl/value.h include/mCtrl/table.h src/html.h \
  include/mCtrl/html.h src/menubar.h include/mCtrl/menubar.h src/mditab.h \
  include/mCtrl/mditab.h src/propview.h include/mCtrl/propview.h \
- include/mCtrl/propset.h src/value.h src/theme.h
+ include/mCtrl/propset.h src/value.h src/theme.h src/treelist.h \
+ include/mCtrl/treelist.h
 obj/propset.o: src/propset.c src/propset.h include/mCtrl/propset.h \
  include/mCtrl/defs.h include/mCtrl/value.h src/misc.h src/compat.h \
  src/debug.h src/resource.h src/version.h src/dsa.h src/value.h \
@@ -69,6 +70,9 @@ obj/table.o: src/table.c src/table.h include/mCtrl/table.h \
  src/debug.h src/resource.h src/version.h src/value.h src/viewlist.h
 obj/theme.o: src/theme.c src/theme.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h
+obj/treelist.o: src/treelist.c src/treelist.h include/mCtrl/treelist.h \
+ include/mCtrl/defs.h src/misc.h src/compat.h src/debug.h src/resource.h \
+ src/version.h src/theme.h
 obj/value.o: src/value.c src/value.h include/mCtrl/value.h \
  include/mCtrl/defs.h src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h

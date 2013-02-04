@@ -19,27 +19,31 @@
 #include "theme.h"
 
 
-HRESULT (WINAPI* theme_CloseThemeData)(HTHEME);
-HRESULT (WINAPI* theme_DrawThemeBackground)(HTHEME,HDC,int,int,const RECT*,const RECT*);
-HRESULT (WINAPI* theme_DrawThemeEdge)(HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*);
-HRESULT (WINAPI* theme_DrawThemeIcon)(HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int);
-HRESULT (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
-HRESULT (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
-HRESULT (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
-HRESULT (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
-HRESULT (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
-BOOL    (WINAPI* theme_IsThemeActive)(void);
-BOOL    (WINAPI* theme_IsThemeBackgroundPartiallyTransparent)(HTHEME,int,int);
-HTHEME  (WINAPI* theme_OpenThemeData)(HWND,const WCHAR*);
-HRESULT (WINAPI* theme_SetWindowTheme)(HWND,const WCHAR*,const WCHAR*);
+HRESULT  (WINAPI* theme_CloseThemeData)(HTHEME);
+HRESULT  (WINAPI* theme_DrawThemeBackground)(HTHEME,HDC,int,int,const RECT*,const RECT*);
+HRESULT  (WINAPI* theme_DrawThemeEdge)(HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*);
+HRESULT  (WINAPI* theme_DrawThemeIcon)(HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int);
+HRESULT  (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
+HRESULT  (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
+HRESULT  (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
+HRESULT  (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
+HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,THEMESIZE,SIZE*);
+COLORREF (WINAPI* theme_GetThemeSysColor)(HTHEME,int);
+HBRUSH   (WINAPI* theme_GetThemeSysColorBrush)(HTHEME,int);
+HRESULT  (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
+BOOL     (WINAPI* theme_IsThemeActive)(void);
+BOOL     (WINAPI* theme_IsThemeBackgroundPartiallyTransparent)(HTHEME,int,int);
+BOOL     (WINAPI* theme_IsThemePartDefined)(HTHEME,int,int);
+HTHEME   (WINAPI* theme_OpenThemeData)(HWND,const WCHAR*);
+HRESULT  (WINAPI* theme_SetWindowTheme)(HWND,const WCHAR*,const WCHAR*);
 
 HANIMATIONBUFFER (WINAPI* theme_BeginBufferedAnimation)(HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*);
-HRESULT (WINAPI* theme_BufferedPaintInit)(void);
-HRESULT (WINAPI* theme_BufferedPaintUnInit)(void);
-BOOL    (WINAPI* theme_BufferedPaintRenderAnimation)(HWND,HDC);
-HRESULT (WINAPI* theme_BufferedPaintStopAllAnimations)(HWND);
-HRESULT (WINAPI* theme_EndBufferedAnimation)(HANIMATIONBUFFER,BOOL);
-HRESULT (WINAPI* theme_GetThemeTransitionDuration)(HTHEME,int,int,int,int,DWORD*);
+HRESULT  (WINAPI* theme_BufferedPaintInit)(void);
+HRESULT  (WINAPI* theme_BufferedPaintUnInit)(void);
+BOOL     (WINAPI* theme_BufferedPaintRenderAnimation)(HWND,HDC);
+HRESULT  (WINAPI* theme_BufferedPaintStopAllAnimations)(HWND);
+HRESULT  (WINAPI* theme_EndBufferedAnimation)(HANIMATIONBUFFER,BOOL);
+HRESULT  (WINAPI* theme_GetThemeTransitionDuration)(HTHEME,int,int,int,int,DWORD*);
 
 
 static HMODULE uxtheme_dll = NULL;
@@ -101,6 +105,18 @@ static HRESULT WINAPI
 dummy_SetWindowTheme(HWND win, const WCHAR* app_name, const WCHAR* theme_name)
 {
     return E_NOTIMPL;
+}
+
+static COLORREF WINAPI
+dummy_GetThemeSysColor(HTHEME theme, int color_id)
+{
+    return GetSysColor(color_id);
+}
+
+static HBRUSH WINAPI
+dummy_GetThemeSysColorBrush(HTHEME theme, int color_id)
+{
+    return GetSysColorBrush(color_id);
 }
 
 static HRESULT WINAPI
@@ -209,6 +225,13 @@ theme_init(void)
     }
 
     /* Get core UXTHEME.DLL functions */
+    theme_IsThemeActive = (BOOL (WINAPI*)(void)) GetProcAddress(uxtheme_dll, "IsThemeActive");
+    if(MC_ERR(theme_IsThemeActive == NULL))
+        goto err_core;
+    if(!theme_IsThemeActive()) {
+        MC_TRACE("theme_init: Themes disabled.");
+        goto err_core;
+    }
     theme_CloseThemeData = (HRESULT (WINAPI*)(HTHEME)) GetProcAddress(uxtheme_dll, "CloseThemeData");
     if(MC_ERR(theme_CloseThemeData == NULL))
         goto err_core;
@@ -240,6 +263,15 @@ theme_init(void)
     theme_GetThemeColor = (HRESULT (WINAPI*)(HTHEME,int,int,int,COLORREF*)) GetProcAddress(uxtheme_dll, "GetThemeColor");
     if(MC_ERR(theme_GetThemeColor == NULL))
         goto err_core;
+    theme_GetThemePartSize = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const RECT*,THEMESIZE,SIZE*)) GetProcAddress(uxtheme_dll, "GetThemePartSize");
+    if(MC_ERR(theme_GetThemePartSize == NULL))
+        goto err_core;
+    theme_GetThemeSysColor = (COLORREF (WINAPI*)(HTHEME,int)) GetProcAddress(uxtheme_dll, "GetThemeSysColor");
+    if(MC_ERR(theme_GetThemeColor == NULL))
+        theme_GetThemeSysColor = dummy_GetThemeSysColor;
+    theme_GetThemeSysColorBrush = (HBRUSH (WINAPI*)(HTHEME,int)) GetProcAddress(uxtheme_dll, "GetThemeSysColorBrush");
+    if(MC_ERR(theme_GetThemeSysColorBrush == NULL))
+        theme_GetThemeSysColorBrush = dummy_GetThemeSysColorBrush;
 #ifdef UNICODE
     theme_GetThemeTextExtent = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const WCHAR*,int,DWORD,const RECT*,RECT*)) GetProcAddress(uxtheme_dll, "GetThemeTextExtent");
     if(MC_ERR(theme_GetThemeTextExtent == NULL))
@@ -250,11 +282,11 @@ theme_init(void)
         goto err_core;
     theme_GetThemeTextExtent = theme_GetThemeTextExtentA;
 #endif
-    theme_IsThemeActive = (BOOL (WINAPI*)(void)) GetProcAddress(uxtheme_dll, "IsThemeActive");
-    if(MC_ERR(theme_IsThemeActive == NULL))
-        goto err_core;
     theme_IsThemeBackgroundPartiallyTransparent = (BOOL (WINAPI*)(HTHEME,int,int)) GetProcAddress(uxtheme_dll, "IsThemeBackgroundPartiallyTransparent");
     if(MC_ERR(theme_IsThemeBackgroundPartiallyTransparent == NULL))
+        goto err_core;
+    theme_IsThemePartDefined = (BOOL (WINAPI*)(HTHEME,int,int)) GetProcAddress(uxtheme_dll, "IsThemePartDefined");
+    if(MC_ERR(theme_IsThemePartDefined == NULL))
         goto err_core;
     theme_OpenThemeData = (HTHEME (WINAPI*)(HWND,const WCHAR*)) GetProcAddress(uxtheme_dll, "OpenThemeData");
     if(MC_ERR(theme_OpenThemeData == NULL))
@@ -290,12 +322,15 @@ theme_init(void)
     return 0;
 
 err_core:
+    MC_TRACE("theme_init: Some symbol not found. Fallback to non-themed paint.");
     FreeLibrary(uxtheme_dll);
     uxtheme_dll = NULL;
 
 err_uxtheme_not_loaded:
     /* Make the controls fall back to GDI (non-themed) painting. */
     theme_DrawThemeParentBackground = dummy_DrawThemeParentBackground;
+    theme_GetThemeSysColor = dummy_GetThemeSysColor;
+    theme_GetThemeSysColorBrush = dummy_GetThemeSysColorBrush;
     theme_IsThemeActive = dummy_IsThemeActive;
     theme_OpenThemeData = dummy_OpenThemeData;
     theme_SetWindowTheme = dummy_SetWindowTheme;

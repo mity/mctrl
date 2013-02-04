@@ -26,28 +26,32 @@
 #include <uxtheme.h>
 
 
-extern HRESULT (WINAPI* theme_CloseThemeData)(HTHEME);
-extern HRESULT (WINAPI* theme_DrawThemeBackground)(HTHEME,HDC,int,int,const RECT*,const RECT*);
-extern HRESULT (WINAPI* theme_DrawThemeEdge)(HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*);
-extern HRESULT (WINAPI* theme_DrawThemeIcon)(HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int);
-extern HRESULT (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
-extern HRESULT (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
-extern HRESULT (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
-extern HRESULT (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
-extern HRESULT (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
-extern BOOL    (WINAPI* theme_IsThemeActive)(void);
-extern BOOL    (WINAPI* theme_IsThemeBackgroundPartiallyTransparent)(HTHEME,int,int);
-extern HTHEME  (WINAPI* theme_OpenThemeData)(HWND,const WCHAR*);
-extern HRESULT (WINAPI* theme_SetWindowTheme)(HWND,const WCHAR*,const WCHAR*);
+extern HRESULT  (WINAPI* theme_CloseThemeData)(HTHEME);
+extern HRESULT  (WINAPI* theme_DrawThemeBackground)(HTHEME,HDC,int,int,const RECT*,const RECT*);
+extern HRESULT  (WINAPI* theme_DrawThemeEdge)(HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*);
+extern HRESULT  (WINAPI* theme_DrawThemeIcon)(HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int);
+extern HRESULT  (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
+extern HRESULT  (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
+extern HRESULT  (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
+extern HRESULT  (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
+extern HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,THEMESIZE,SIZE*);
+extern COLORREF (WINAPI* theme_GetThemeSysColor)(HTHEME,int);
+extern HBRUSH   (WINAPI* theme_GetThemeSysColorBrush)(HTHEME,int);
+extern HRESULT  (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
+extern BOOL     (WINAPI* theme_IsThemeActive)(void);
+extern BOOL     (WINAPI* theme_IsThemeBackgroundPartiallyTransparent)(HTHEME,int,int);
+extern BOOL     (WINAPI* theme_IsThemePartDefined)(HTHEME,int,int);
+extern HTHEME   (WINAPI* theme_OpenThemeData)(HWND,const WCHAR*);
+extern HRESULT  (WINAPI* theme_SetWindowTheme)(HWND,const WCHAR*,const WCHAR*);
 
 
 extern HANIMATIONBUFFER (WINAPI* theme_BeginBufferedAnimation)(HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*);
-extern HRESULT (WINAPI* theme_BufferedPaintInit)(void);
-extern HRESULT (WINAPI* theme_BufferedPaintUnInit)(void);
-extern BOOL    (WINAPI* theme_BufferedPaintRenderAnimation)(HWND,HDC);
-extern HRESULT (WINAPI* theme_BufferedPaintStopAllAnimations)(HWND);
-extern HRESULT (WINAPI* theme_EndBufferedAnimation)(HANIMATIONBUFFER,BOOL);
-extern HRESULT (WINAPI* theme_GetThemeTransitionDuration)(HTHEME,int,int,int,int,DWORD*);
+extern HRESULT  (WINAPI* theme_BufferedPaintInit)(void);
+extern HRESULT  (WINAPI* theme_BufferedPaintUnInit)(void);
+extern BOOL     (WINAPI* theme_BufferedPaintRenderAnimation)(HWND,HDC);
+extern HRESULT  (WINAPI* theme_BufferedPaintStopAllAnimations)(HWND);
+extern HRESULT  (WINAPI* theme_EndBufferedAnimation)(HANIMATIONBUFFER,BOOL);
+extern HRESULT  (WINAPI* theme_GetThemeTransitionDuration)(HTHEME,int,int,int,int,DWORD*);
 
 
 int theme_init(void);
