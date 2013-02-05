@@ -34,7 +34,7 @@ extern HRESULT  (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
 extern HRESULT  (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
 extern HRESULT  (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
 extern HRESULT  (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
-extern HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,THEMESIZE,SIZE*);
+extern HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,enum THEMESIZE,SIZE*);
 extern COLORREF (WINAPI* theme_GetThemeSysColor)(HTHEME,int);
 extern HBRUSH   (WINAPI* theme_GetThemeSysColorBrush)(HTHEME,int);
 extern HRESULT  (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);

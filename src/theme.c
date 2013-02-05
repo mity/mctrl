@@ -27,7 +27,7 @@ HRESULT  (WINAPI* theme_DrawThemeParentBackground)(HWND,HDC,RECT*);
 HRESULT  (WINAPI* theme_DrawThemeText)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,DWORD,const RECT*);
 HRESULT  (WINAPI* theme_GetThemeBackgroundContentRect)(HTHEME,HDC,int,int,const RECT*,RECT*);
 HRESULT  (WINAPI* theme_GetThemeColor)(HTHEME,int,int,int,COLORREF*);
-HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,THEMESIZE,SIZE*);
+HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,enum THEMESIZE,SIZE*);
 COLORREF (WINAPI* theme_GetThemeSysColor)(HTHEME,int);
 HBRUSH   (WINAPI* theme_GetThemeSysColorBrush)(HTHEME,int);
 HRESULT  (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*);
@@ -263,7 +263,7 @@ theme_init(void)
     theme_GetThemeColor = (HRESULT (WINAPI*)(HTHEME,int,int,int,COLORREF*)) GetProcAddress(uxtheme_dll, "GetThemeColor");
     if(MC_ERR(theme_GetThemeColor == NULL))
         goto err_core;
-    theme_GetThemePartSize = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const RECT*,THEMESIZE,SIZE*)) GetProcAddress(uxtheme_dll, "GetThemePartSize");
+    theme_GetThemePartSize = (HRESULT (WINAPI*)(HTHEME,HDC,int,int,const RECT*,enum THEMESIZE,SIZE*)) GetProcAddress(uxtheme_dll, "GetThemePartSize");
     if(MC_ERR(theme_GetThemePartSize == NULL))
         goto err_core;
     theme_GetThemeSysColor = (COLORREF (WINAPI*)(HTHEME,int)) GetProcAddress(uxtheme_dll, "GetThemeSysColor");
