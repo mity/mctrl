@@ -579,7 +579,7 @@ pie_paint(chart_t* chart, chart_paint_t* ctx)
     pie_calc_geometry(chart, ctx, &geom);
 
     gdix_SetPenColor(ctx->pen, gdix_ARGB_from_cr(GetSysColor(COLOR_WINDOW)));
-    gdix_SetPenWidth(ctx->pen, 0.3);
+    gdix_SetPenWidth(ctx->pen, 0.3f);
 
     angle = -90.0;
     n = dsa_size(&chart->data);
