@@ -23,6 +23,9 @@
 #include <stddef.h>
 #include <tchar.h>
 
+#define _USE_MATH_DEFINES  /* MSVC needs this to define macros like M_PI etc. */
+#include <math.h>
+
 #include <windows.h>
 #include <commctrl.h>
 #include <shlwapi.h>

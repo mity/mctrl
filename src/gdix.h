@@ -21,8 +21,6 @@
 
 #include "misc.h"
 
-#include <math.h>
-
 
 /************************
  *** Fake <gdiplus.h> ***
