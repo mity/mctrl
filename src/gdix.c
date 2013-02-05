@@ -28,48 +28,57 @@
 #endif
 
 
-GpStatus (WINAPI* gdix_CreateFromHDC)(HDC,GpGraphics**);
-GpStatus (WINAPI* gdix_DeleteGraphics)(GpGraphics*);
-GpStatus (WINAPI* gdix_SetCompositingMode)(GpGraphics*,CompositingMode);
-GpStatus (WINAPI* gdix_SetSmoothingMode)(GpGraphics*,SmoothingMode);
+/* Graphics management */
+gdix_Status (WINAPI* gdix_CreateFromHDC)(HDC,gdix_Graphics**);
+gdix_Status (WINAPI* gdix_DeleteGraphics)(gdix_Graphics*);
+gdix_Status (WINAPI* gdix_SetSmoothingMode)(gdix_Graphics*,gdix_SmoothingMode);
 
-GpStatus (WINAPI* gdix_CreatePen1)(ARGB,REAL,GpUnit,GpPen**);
-GpStatus (WINAPI* gdix_DeletePen)(GpPen*);
-GpStatus (WINAPI* gdix_SetPenWidth)(GpPen*,REAL);
-GpStatus (WINAPI* gdix_SetPenColor)(GpPen*,ARGB);
+/* Pen management */
+gdix_Status (WINAPI* gdix_CreatePen1)(gdix_ARGB,gdix_Real,gdix_Unit,gdix_Pen**);
+gdix_Status (WINAPI* gdix_DeletePen)(gdix_Pen*);
+gdix_Status (WINAPI* gdix_SetPenWidth)(gdix_Pen*,gdix_Real);
+gdix_Status (WINAPI* gdix_SetPenColor)(gdix_Pen*,gdix_ARGB);
 
-GpStatus (WINAPI* gdix_CreateSolidFill)(ARGB,GpSolidFill**);
-GpStatus (WINAPI* gdix_DeleteBrush)(GpBrush*);
-GpStatus (WINAPI* gdix_SetSolidFillColor)(GpSolidFill*,ARGB);
+/* Brush management */
+gdix_Status (WINAPI* gdix_CreateSolidFill)(gdix_ARGB,gdix_SolidFill**);
+gdix_Status (WINAPI* gdix_DeleteBrush)(gdix_Brush*);
+gdix_Status (WINAPI* gdix_SetSolidFillColor)(gdix_SolidFill*,gdix_ARGB);
 
-GpStatus (WINAPI* gdix_CreateFontFromDC)(HDC,GpFont**);
-GpStatus (WINAPI* gdix_DeleteFont)(GpFont*);
+/* Font management */
+gdix_Status (WINAPI* gdix_CreateFontFromDC)(HDC,gdix_Font**);
+gdix_Status (WINAPI* gdix_DeleteFont)(gdix_Font*);
 
-GpStatus (WINAPI* gdix_CreateStringFormat)(INT,LANGID,GpStringFormat**);
-GpStatus (WINAPI* gdix_DeleteStringFormat)(GpStringFormat*);
-GpStatus (WINAPI* gdix_SetStringFormatFlags)(GpStringFormat*,INT);
-GpStatus (WINAPI* gdix_SetStringFormatAlign)(GpStringFormat*,StringAlignment);
+/* String format management */
+gdix_Status (WINAPI* gdix_CreateStringFormat)(INT,LANGID,gdix_StringFormat**);
+gdix_Status (WINAPI* gdix_DeleteStringFormat)(gdix_StringFormat*);
+gdix_Status (WINAPI* gdix_SetStringFormatFlags)(gdix_StringFormat*,INT);
+gdix_Status (WINAPI* gdix_SetStringFormatAlign)(gdix_StringFormat*,gdix_StringAlignment);
 
-GpStatus (WINAPI* gdix_CreatePath)(GpFillMode,GpPath**);
-GpStatus (WINAPI* gdix_DeletePath)(GpPath*);
-GpStatus (WINAPI* gdix_ResetPath)(GpPath*);
-GpStatus (WINAPI* gdix_AddPathArc)(GpPath*,REAL,REAL,REAL,REAL,REAL,REAL);
-GpStatus (WINAPI* gdix_AddPathLine)(GpPath*,REAL,REAL,REAL,REAL);
-GpStatus (WINAPI* gdix_AddPathRectangle)(GpPath*,REAL,REAL,REAL,REAL);
+/* Path management */
+gdix_Status (WINAPI* gdix_CreatePath)(gdix_FillMode,gdix_Path**);
+gdix_Status (WINAPI* gdix_DeletePath)(gdix_Path*);
+gdix_Status (WINAPI* gdix_ResetPath)(gdix_Path*);
+gdix_Status (WINAPI* gdix_AddPathArc)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+gdix_Status (WINAPI* gdix_AddPathLine)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+gdix_Status (WINAPI* gdix_AddPathRectangle)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 
-GpStatus (WINAPI* gdix_DrawLine)(GpGraphics*,GpPen*,REAL,REAL,REAL,REAL);
-GpStatus (WINAPI* gdix_DrawLines)(GpGraphics*,GpPen*,GDIPCONST GpPointF*,INT);
-GpStatus (WINAPI* gdix_DrawPie)(GpGraphics*,GpPen*,REAL,REAL,REAL,REAL,REAL,REAL);
+/* Draw methods */
+gdix_Status (WINAPI* gdix_DrawLine)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+gdix_Status (WINAPI* gdix_DrawLines)(gdix_Graphics*,gdix_Pen*,const gdix_PointF*,INT);
+gdix_Status (WINAPI* gdix_DrawPie)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 
-GpStatus (WINAPI* gdix_FillRectangle)(GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL);
-GpStatus (WINAPI* gdix_FillPolygon)(GpGraphics*,GpBrush*,GDIPCONST GpPointF*,INT,GpFillMode);
-GpStatus (WINAPI* gdix_FillPolygon2)(GpGraphics*,GpBrush*,GDIPCONST GpPointF*,INT);
-GpStatus (WINAPI* gdix_FillEllipse)(GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL);
-GpStatus (WINAPI* gdix_FillPie)(GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL,REAL,REAL);
-GpStatus (WINAPI* gdix_FillPath)(GpGraphics*,GpBrush*,GpPath*);
+/* Fill methods */
+gdix_Status (WINAPI* gdix_FillRectangle)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+gdix_Status (WINAPI* gdix_FillPolygon)(gdix_Graphics*,gdix_Brush*,const gdix_PointF*,INT,gdix_FillMode);
+gdix_Status (WINAPI* gdix_FillPolygon2)(gdix_Graphics*,gdix_Brush*,const gdix_PointF*,INT);
+gdix_Status (WINAPI* gdix_FillEllipse)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+gdix_Status (WINAPI* gdix_FillPie)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+gdix_Status (WINAPI* gdix_FillPath)(gdix_Graphics*,gdix_Brush*,gdix_Path*);
 
-GpStatus (WINAPI* gdix_DrawString)(GpGraphics*,GDIPCONST WCHAR*,INT,GDIPCONST GpFont*,GDIPCONST RectF*,GDIPCONST GpStringFormat*,GDIPCONST GpBrush*);
-GpStatus (WINAPI* gdix_MeasureString)(GpGraphics*,GDIPCONST WCHAR*,INT,GDIPCONST GpFont*,GDIPCONST RectF*,GDIPCONST GpStringFormat*,RectF*,INT*,INT*);
+/* String methods */
+gdix_Status (WINAPI* gdix_DrawString)(gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,const gdix_Brush*);
+gdix_Status (WINAPI* gdix_MeasureString)(gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,gdix_RectF*,INT*,INT*);
+
 
 
 static HMODULE gdix_dll;
@@ -77,12 +86,23 @@ static ULONG_PTR gdix_token;
 static void (WINAPI* gdix_Shutdown)(ULONG_PTR);
 
 
+typedef struct gdix_StartupInput_tag gdix_StartupInput;
+struct gdix_StartupInput_tag {
+    UINT32 GdiplusVersion;
+    void* DebugEventCallback;  /* DebugEventProc */
+    BOOL SuppressBackgroundThread;
+    BOOL SuppressExternalCodecs;
+} GdiplusStartupInput;
+
+typedef struct gdix_StartupOutput_tag gdix_StartupOutput;
+/* We do not use gdix_StartupOutput, so no definition */
+
 int
 gdix_init(void)
 {
-    GpStatus (WINAPI* gdix_Startup)(ULONG_PTR*,GDIPCONST GdiplusStartupInput*,GdiplusStartupOutput*);
-    GpStatus status;
-    GdiplusStartupInput input = { 0 };
+    gdix_Status (WINAPI* gdix_Startup)(ULONG_PTR*,const gdix_StartupInput*,gdix_StartupOutput*);
+    gdix_Status status;
+    gdix_StartupInput input = { 0 };
 
     gdix_dll = LoadLibrary(_T("GDIPLUS.DLL"));
     if(MC_ERR(gdix_dll == NULL)) {
@@ -91,7 +111,7 @@ gdix_init(void)
         goto err_LoadLibrary;
     }
 
-    gdix_Startup = (GpStatus (WINAPI*)(ULONG_PTR*,GDIPCONST GdiplusStartupInput*,GdiplusStartupOutput*))
+    gdix_Startup = (gdix_Status (WINAPI*)(ULONG_PTR*,const gdix_StartupInput*,gdix_StartupOutput*))
                                                 GetProcAddress(gdix_dll, "GdiplusStartup");
     if(MC_ERR(gdix_Startup == NULL)) {
         MC_TRACE("gdix_init: GetProcAddress(GdiplusStartup) failed [%ld].",
@@ -108,7 +128,7 @@ gdix_init(void)
 
 #define GPA(name, params)                                                     \
         do {                                                                  \
-            gdix_##name = (GpStatus (WINAPI*)params)                          \
+            gdix_##name = (gdix_Status (WINAPI*)params)                          \
                         GetProcAddress(gdix_dll, "Gdip" #name);               \
             if(MC_ERR(gdix_##name == NULL)) {                                 \
                 MC_TRACE("gdix_init: GetProcAddress(Gdip%s) failed [%ld].",   \
@@ -117,55 +137,54 @@ gdix_init(void)
             }                                                                 \
         } while(0)
 
-    GPA(CreateFromHDC,        (HDC,GpGraphics**));
-    GPA(DeleteGraphics,       (GpGraphics*));
-    GPA(SetCompositingMode,   (GpGraphics*,CompositingMode));
-    GPA(SetSmoothingMode,     (GpGraphics*,SmoothingMode));
+    GPA(CreateFromHDC,        (HDC,gdix_Graphics**));
+    GPA(DeleteGraphics,       (gdix_Graphics*));
+    GPA(SetSmoothingMode,     (gdix_Graphics*,gdix_SmoothingMode));
 
-    GPA(CreatePen1,           (ARGB,REAL,GpUnit,GpPen**));
-    GPA(DeletePen,            (GpPen*));
-    GPA(SetPenWidth,          (GpPen*,REAL));
-    GPA(SetPenColor,          (GpPen*,ARGB));
+    GPA(CreatePen1,           (gdix_ARGB,gdix_Real,gdix_Unit,gdix_Pen**));
+    GPA(DeletePen,            (gdix_Pen*));
+    GPA(SetPenWidth,          (gdix_Pen*,gdix_Real));
+    GPA(SetPenColor,          (gdix_Pen*,gdix_ARGB));
 
-    GPA(CreateSolidFill,      (ARGB,GpSolidFill**));
-    GPA(DeleteBrush,          (GpBrush*));
-    GPA(SetSolidFillColor,    (GpSolidFill*,ARGB));
+    GPA(CreateSolidFill,      (gdix_ARGB,gdix_SolidFill**));
+    GPA(DeleteBrush,          (gdix_Brush*));
+    GPA(SetSolidFillColor,    (gdix_SolidFill*,gdix_ARGB));
 
-    GPA(CreateFontFromDC,     (HDC,GpFont**));
-    GPA(DeleteFont,           (GpFont*));
+    GPA(CreateFontFromDC,     (HDC,gdix_Font**));
+    GPA(DeleteFont,           (gdix_Font*));
 
-    GPA(CreatePath,           (GpFillMode,GpPath**));
-    GPA(DeletePath,           (GpPath*));
-    GPA(ResetPath,            (GpPath*));
-    GPA(AddPathArc,           (GpPath*,REAL,REAL,REAL,REAL,REAL,REAL));
-    GPA(AddPathLine,          (GpPath*,REAL,REAL,REAL,REAL));
-    GPA(AddPathRectangle,     (GpPath*,REAL,REAL,REAL,REAL));
+    GPA(CreatePath,           (gdix_FillMode,gdix_Path**));
+    GPA(DeletePath,           (gdix_Path*));
+    GPA(ResetPath,            (gdix_Path*));
+    GPA(AddPathArc,           (gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
+    GPA(AddPathLine,          (gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
+    GPA(AddPathRectangle,     (gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
 
-    GPA(CreateStringFormat,   (INT,LANGID,GpStringFormat**));
-    GPA(DeleteStringFormat,   (GpStringFormat*));
-    GPA(SetStringFormatFlags, (GpStringFormat*,INT));
-    GPA(SetStringFormatAlign, (GpStringFormat*,StringAlignment));
+    GPA(CreateStringFormat,   (INT,LANGID,gdix_StringFormat**));
+    GPA(DeleteStringFormat,   (gdix_StringFormat*));
+    GPA(SetStringFormatFlags, (gdix_StringFormat*,INT));
+    GPA(SetStringFormatAlign, (gdix_StringFormat*,gdix_StringAlignment));
 
-    GPA(DrawLine,             (GpGraphics*,GpPen*,REAL,REAL,REAL,REAL));
-    GPA(DrawLines,            (GpGraphics*,GpPen*,GDIPCONST GpPointF*,INT));
-    GPA(DrawPie,              (GpGraphics*,GpPen*,REAL,REAL,REAL,REAL,REAL,REAL));
+    GPA(DrawLine,             (gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
+    GPA(DrawLines,            (gdix_Graphics*,gdix_Pen*,const gdix_PointF*,INT));
+    GPA(DrawPie,              (gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
 
-    GPA(FillRectangle,        (GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL));
-    GPA(FillPolygon,          (GpGraphics*,GpBrush*,GDIPCONST GpPointF*,INT,GpFillMode));
-    GPA(FillPolygon2,         (GpGraphics*,GpBrush*,GDIPCONST GpPointF*,INT));
-    GPA(FillEllipse,          (GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL));
-    GPA(FillPie,              (GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL,REAL,REAL));
-    GPA(FillPath,             (GpGraphics*,GpBrush*,GpPath*));
+    GPA(FillRectangle,        (gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
+    GPA(FillPolygon,          (gdix_Graphics*,gdix_Brush*,const gdix_PointF*,INT,gdix_FillMode));
+    GPA(FillPolygon2,         (gdix_Graphics*,gdix_Brush*,const gdix_PointF*,INT));
+    GPA(FillEllipse,          (gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
+    GPA(FillPie,              (gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
+    GPA(FillPath,             (gdix_Graphics*,gdix_Brush*,gdix_Path*));
 
-    GPA(DrawString,           (GpGraphics*,GDIPCONST WCHAR*,INT,GDIPCONST GpFont*,GDIPCONST RectF*,GDIPCONST GpStringFormat*,GDIPCONST GpBrush*));
-    GPA(MeasureString,        (GpGraphics*,GDIPCONST WCHAR*,INT,GDIPCONST GpFont*,GDIPCONST RectF*,GDIPCONST GpStringFormat*,RectF*,INT*,INT*));
+    GPA(DrawString,           (gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,const gdix_Brush*));
+    GPA(MeasureString,        (gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,gdix_RectF*,INT*,INT*));
 
 #undef GPA
 
     input.GdiplusVersion = 1;
     input.SuppressExternalCodecs = TRUE;
     status = gdix_Startup(&gdix_token, &input, NULL);
-    if(MC_ERR(status != Ok)) {
+    if(MC_ERR(status != gdix_Ok)) {
         MC_TRACE("GdiplusStartup() failed. [%d]", (int)status);
         goto err_Startup;
     }

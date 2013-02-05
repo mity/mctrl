@@ -21,86 +21,162 @@
 
 #include "misc.h"
 
-#include <gdiplus.h>
+#include <math.h>
 
 
-extern GpStatus (WINAPI* gdix_CreateFromHDC)(HDC,GpGraphics**);
-extern GpStatus (WINAPI* gdix_DeleteGraphics)(GpGraphics*);
-extern GpStatus (WINAPI* gdix_SetCompositingMode)(GpGraphics*,CompositingMode);
-extern GpStatus (WINAPI* gdix_SetSmoothingMode)(GpGraphics*,SmoothingMode);
+/************************
+ *** Fake <gdiplus.h> ***
+ ************************/
+
+/* Microsoft (and their SDK) does not support using GDI+ from C and C++ is
+ * required. Their headers simply are incompatible with C. Hence we do not
+ * include any GDI+ related header and instead use our own types.
+ */
+
+typedef void* gdix_Graphics;
+typedef void* gdix_SolidFill;
+typedef void* gdix_Brush;
+typedef void* gdix_Pen;
+typedef void* gdix_Font;
+typedef void* gdix_StringFormat;
+typedef void* gdix_Path;
+
+typedef float gdix_Real;
+typedef DWORD gdix_ARGB;
+
+typedef enum gdix_Status_tag gdix_Status;
+enum gdix_Status_tag {
+    gdix_Ok = 0
+};
+
+typedef struct gdix_PointF_tag gdix_PointF;
+struct gdix_PointF_tag {
+    gdix_Real x;
+    gdix_Real y;
+};
+
+typedef struct gdix_RectF_tag gdix_RectF;
+struct gdix_RectF_tag {
+    gdix_Real x;
+    gdix_Real y;
+    gdix_Real w;
+    gdix_Real h;
+};
+
+typedef enum gdix_Unit_tag gdix_Unit;
+enum gdix_Unit_tag {
+    gdix_UnitWorld = 0
+};
+
+typedef enum gdix_SmoothingMode_tag gdix_SmoothingMode;
+enum gdix_SmoothingMode_tag {
+    gdix_SmoothingModeHighQuality = 2
+};
+
+typedef enum gdix_StringAlignment_tag gdix_StringAlignment;
+enum gdix_StringAlignment_tag {
+    gdix_StringAlignmentCenter = 1,
+    gdix_StringAlignmentFar = 2
+};
+
+typedef enum gdix_FillMode_tag gdix_FillMode;
+enum gdix_FillMode_tag  {
+    gdix_FillModeAlternate = 0
+} ;
+
+#define gdix_StringFormatFlagsNoWrap   0x00001000
+#define gdix_StringFormatFlagsNoClip   0x00004000
+
+
+/**********************************
+ *** Pointers to GDI+ functions ***
+ **********************************/
+
+/* Graphics management */
+extern gdix_Status (WINAPI* gdix_CreateFromHDC)(HDC,gdix_Graphics**);
+extern gdix_Status (WINAPI* gdix_DeleteGraphics)(gdix_Graphics*);
+extern gdix_Status (WINAPI* gdix_SetSmoothingMode)(gdix_Graphics*,gdix_SmoothingMode);
 
 /* Pen management */
-extern GpStatus (WINAPI* gdix_CreatePen1)(ARGB,REAL,GpUnit,GpPen**);
-extern GpStatus (WINAPI* gdix_DeletePen)(GpPen*);
-extern GpStatus (WINAPI* gdix_SetPenWidth)(GpPen*,REAL);
-extern GpStatus (WINAPI* gdix_SetPenColor)(GpPen*,ARGB);
+extern gdix_Status (WINAPI* gdix_CreatePen1)(gdix_ARGB,gdix_Real,gdix_Unit,gdix_Pen**);
+extern gdix_Status (WINAPI* gdix_DeletePen)(gdix_Pen*);
+extern gdix_Status (WINAPI* gdix_SetPenWidth)(gdix_Pen*,gdix_Real);
+extern gdix_Status (WINAPI* gdix_SetPenColor)(gdix_Pen*,gdix_ARGB);
 
 /* Brush management */
-extern GpStatus (WINAPI* gdix_CreateSolidFill)(ARGB,GpSolidFill**);
-extern GpStatus (WINAPI* gdix_DeleteBrush)(GpBrush*);
-extern GpStatus (WINAPI* gdix_SetSolidFillColor)(GpSolidFill*,ARGB);
+extern gdix_Status (WINAPI* gdix_CreateSolidFill)(gdix_ARGB,gdix_SolidFill**);
+extern gdix_Status (WINAPI* gdix_DeleteBrush)(gdix_Brush*);
+extern gdix_Status (WINAPI* gdix_SetSolidFillColor)(gdix_SolidFill*,gdix_ARGB);
 
 /* Font management */
-extern GpStatus (WINAPI* gdix_CreateFontFromDC)(HDC,GpFont**);
-extern GpStatus (WINAPI* gdix_DeleteFont)(GpFont*);
+extern gdix_Status (WINAPI* gdix_CreateFontFromDC)(HDC,gdix_Font**);
+extern gdix_Status (WINAPI* gdix_DeleteFont)(gdix_Font*);
 
 /* String format management */
-extern GpStatus (WINAPI* gdix_CreateStringFormat)(INT,LANGID,GpStringFormat**);
-extern GpStatus (WINAPI* gdix_DeleteStringFormat)(GpStringFormat*);
-extern GpStatus (WINAPI* gdix_SetStringFormatFlags)(GpStringFormat*,INT);
-extern GpStatus (WINAPI* gdix_SetStringFormatAlign)(GpStringFormat*,StringAlignment);
+extern gdix_Status (WINAPI* gdix_CreateStringFormat)(INT,LANGID,gdix_StringFormat**);
+extern gdix_Status (WINAPI* gdix_DeleteStringFormat)(gdix_StringFormat*);
+extern gdix_Status (WINAPI* gdix_SetStringFormatFlags)(gdix_StringFormat*,INT);
+extern gdix_Status (WINAPI* gdix_SetStringFormatAlign)(gdix_StringFormat*,gdix_StringAlignment);
 
 /* Path management */
-extern GpStatus (WINAPI* gdix_CreatePath)(GpFillMode,GpPath**);
-extern GpStatus (WINAPI* gdix_DeletePath)(GpPath*);
-extern GpStatus (WINAPI* gdix_ResetPath)(GpPath*);
-extern GpStatus (WINAPI* gdix_AddPathArc)(GpPath*,REAL,REAL,REAL,REAL,REAL,REAL);
-extern GpStatus (WINAPI* gdix_AddPathLine)(GpPath*,REAL,REAL,REAL,REAL);
-extern GpStatus (WINAPI* gdix_AddPathRectangle)(GpPath*,REAL,REAL,REAL,REAL);
+extern gdix_Status (WINAPI* gdix_CreatePath)(gdix_FillMode,gdix_Path**);
+extern gdix_Status (WINAPI* gdix_DeletePath)(gdix_Path*);
+extern gdix_Status (WINAPI* gdix_ResetPath)(gdix_Path*);
+extern gdix_Status (WINAPI* gdix_AddPathArc)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+extern gdix_Status (WINAPI* gdix_AddPathLine)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+extern gdix_Status (WINAPI* gdix_AddPathRectangle)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 
 /* Draw methods */
-extern GpStatus (WINAPI* gdix_DrawLine)(GpGraphics*,GpPen*,REAL,REAL,REAL,REAL);
-extern GpStatus (WINAPI* gdix_DrawLines)(GpGraphics*,GpPen*,GDIPCONST GpPointF*,INT);
-extern GpStatus (WINAPI* gdix_DrawPie)(GpGraphics*,GpPen*,REAL,REAL,REAL,REAL,REAL,REAL);
+extern gdix_Status (WINAPI* gdix_DrawLine)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+extern gdix_Status (WINAPI* gdix_DrawLines)(gdix_Graphics*,gdix_Pen*,const gdix_PointF*,INT);
+extern gdix_Status (WINAPI* gdix_DrawPie)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 
 /* Fill methods */
-extern GpStatus (WINAPI* gdix_FillRectangle)(GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL);
-extern GpStatus (WINAPI* gdix_FillPolygon)(GpGraphics*,GpBrush*,GDIPCONST GpPointF*,INT,GpFillMode);
-extern GpStatus (WINAPI* gdix_FillPolygon2)(GpGraphics*,GpBrush*,GDIPCONST GpPointF*,INT);
-extern GpStatus (WINAPI* gdix_FillEllipse)(GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL);
-extern GpStatus (WINAPI* gdix_FillPie)(GpGraphics*,GpBrush*,REAL,REAL,REAL,REAL,REAL,REAL);
-extern GpStatus (WINAPI* gdix_FillPath)(GpGraphics*,GpBrush*,GpPath*);
+extern gdix_Status (WINAPI* gdix_FillRectangle)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+extern gdix_Status (WINAPI* gdix_FillPolygon)(gdix_Graphics*,gdix_Brush*,const gdix_PointF*,INT,gdix_FillMode);
+extern gdix_Status (WINAPI* gdix_FillPolygon2)(gdix_Graphics*,gdix_Brush*,const gdix_PointF*,INT);
+extern gdix_Status (WINAPI* gdix_FillEllipse)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+extern gdix_Status (WINAPI* gdix_FillPie)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+extern gdix_Status (WINAPI* gdix_FillPath)(gdix_Graphics*,gdix_Brush*,gdix_Path*);
 
 /* String methods */
-extern GpStatus (WINAPI* gdix_DrawString)(GpGraphics*,GDIPCONST WCHAR*,INT,GDIPCONST GpFont*,GDIPCONST RectF*,GDIPCONST GpStringFormat*,GDIPCONST GpBrush*);
-extern GpStatus (WINAPI* gdix_MeasureString)(GpGraphics*,GDIPCONST WCHAR*,INT,GDIPCONST GpFont*,GDIPCONST RectF*,GDIPCONST GpStringFormat*,RectF*,INT*,INT*);
+extern gdix_Status (WINAPI* gdix_DrawString)(gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,const gdix_Brush*);
+extern gdix_Status (WINAPI* gdix_MeasureString)(gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,gdix_RectF*,INT*,INT*);
 
 
-static inline ARGB
-gdix_ARGB(BYTE a, BYTE r, BYTE g, BYTE b)
+/**********************
+ *** ARGB functions ***
+ **********************/
+
+static inline gdix_ARGB
+gdix_ARGB_from_argb(BYTE a, BYTE r, BYTE g, BYTE b)
 {
-    return (ARGB) ((((DWORD) a) << 24) | (((DWORD) r) << 16) |
-                   (((DWORD) g) <<  8) | (((DWORD) b) <<  0));
+    return ((((DWORD) a) << 24) | (((DWORD) r) << 16) |
+            (((DWORD) g) <<  8) | (((DWORD) b) <<  0));
 }
 
-static inline ARGB
-gdix_RGB(BYTE r, BYTE g, BYTE b)
+static inline gdix_ARGB
+gdix_ARGB_from_rgb(BYTE r, BYTE g, BYTE b)
 {
-    return gdix_ARGB(0xff, r, g, b);
+    return gdix_ARGB_from_argb(0xff, r, g, b);
 }
 
-static inline ARGB
-gdix_Color(COLORREF color)
+static inline gdix_ARGB
+gdix_ARGB_from_cr(COLORREF cr)
 {
-    return gdix_ARGB(0xff, GetRValue(color), GetGValue(color), GetBValue(color));
+    return gdix_ARGB_from_argb(0xff, GetRValue(cr), GetGValue(cr), GetBValue(cr));
 }
 
-static inline ARGB
-gdix_AColor(BYTE a, COLORREF color)
+static inline gdix_ARGB
+gdix_ARGB_from_acr(BYTE a, COLORREF cr)
 {
-    return gdix_ARGB(a, GetRValue(color), GetGValue(color), GetBValue(color));
+    return gdix_ARGB_from_argb(a, GetRValue(cr), GetGValue(cr), GetBValue(cr));
 }
 
+
+/**********************
+ *** Initialization ***
+ **********************/
 
 int gdix_init(void);
 void gdix_fini(void);
