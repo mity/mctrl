@@ -94,7 +94,7 @@ ptr_dtor(value_t* v)
  *** Int32 Implementation ***
  ****************************/
 
-static __stdcall value_t*
+static value_t* __stdcall
 int32_ctor_str(const TCHAR* str)
 {
     int sign = +1;
@@ -129,7 +129,7 @@ err_invalid:
     return NULL;
 }
 
-static __stdcall int
+static int __stdcall
 int32_cmp(const value_t* v1, const value_t* v2)
 {
     if(VALUE_DATA(v1, int32_t) < VALUE_DATA(v2, int32_t))
@@ -139,7 +139,7 @@ int32_cmp(const value_t* v1, const value_t* v2)
     return 0;
 }
 
-static __stdcall size_t
+static size_t __stdcall
 int32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
@@ -156,7 +156,7 @@ int32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
     return n+1;  /* +1 for '\0' */
 }
 
-static __stdcall void
+static void __stdcall
 int32_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
@@ -212,7 +212,7 @@ mcValue_GetInt32(const MC_HVALUE hValue)
  *** UInt32 Implementation ***
  *****************************/
 
-static __stdcall value_t*
+static value_t* __stdcall
 uint32_ctor_str(const TCHAR* str)
 {
     uint32_t u;
@@ -242,7 +242,7 @@ err_invalid:
     return NULL;
 }
 
-static __stdcall int
+static int __stdcall
 uint32_cmp(const value_t* v1, const value_t* v2)
 {
     if(VALUE_DATA(v1, uint32_t) < VALUE_DATA(v2, uint32_t))
@@ -252,7 +252,7 @@ uint32_cmp(const value_t* v1, const value_t* v2)
     return 0;
 }
 
-static __stdcall size_t
+static size_t __stdcall
 uint32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
@@ -269,7 +269,7 @@ uint32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
     return n+1;  /* +1 for '\0' */
 }
 
-static __stdcall void
+static void __stdcall
 uint32_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
@@ -325,7 +325,7 @@ mcValue_GetUInt32(const MC_HVALUE hValue)
  *** Int64 Implementation ***
  ****************************/
 
-static __stdcall value_t*
+static value_t* __stdcall
 int64_ctor_str(const TCHAR* str)
 {
     int sign = +1;
@@ -360,7 +360,7 @@ err_invalid:
     return NULL;
 }
 
-static __stdcall int
+static int __stdcall
 int64_cmp(const value_t* v1, const value_t* v2)
 {
     if(VALUE_DATA(v1, int64_t) < VALUE_DATA(v2, int64_t))
@@ -370,7 +370,7 @@ int64_cmp(const value_t* v1, const value_t* v2)
     return 0;
 }
 
-static __stdcall size_t
+static size_t __stdcall
 int64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
@@ -387,7 +387,7 @@ int64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
     return n+1;  /* +1 for '\0' */
 }
 
-static __stdcall void
+static void __stdcall
 int64_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
@@ -443,7 +443,7 @@ mcValue_GetInt64(const MC_HVALUE hValue)
  *** UInt64 Implementation ***
  *****************************/
 
-static __stdcall value_t*
+static value_t* __stdcall
 uint64_ctor_str(const TCHAR* str)
 {
     uint64_t u;
@@ -473,7 +473,7 @@ err_invalid:
     return NULL;
 }
 
-static __stdcall int
+static int __stdcall
 uint64_cmp(const value_t* v1, const value_t* v2)
 {
     if(VALUE_DATA(v1, uint64_t) < VALUE_DATA(v2, uint64_t))
@@ -483,7 +483,7 @@ uint64_cmp(const value_t* v1, const value_t* v2)
     return 0;
 }
 
-static __stdcall size_t
+static size_t __stdcall
 uint64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     int n = -1;
@@ -500,7 +500,7 @@ uint64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
     return n+1;  /* +1 for '\0' */
 }
 
-static __stdcall void
+static void __stdcall
 uint64_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     TCHAR buffer[16];
@@ -558,7 +558,7 @@ mcValue_GetUInt64(const MC_HVALUE hValue)
 
 static const WCHAR strw_empty[] = L"";
 
-static __stdcall value_t*
+static value_t* __stdcall
 strw_ctor_str(const TCHAR* str)
 {
     value_t* v;
@@ -576,13 +576,13 @@ strw_ctor_str(const TCHAR* str)
     return (MC_HVALUE) v;
 }
 
-static __stdcall value_t*
+static value_t* __stdcall
 strw_ctor_val(const value_t* v)
 {
     return mcValue_CreateStringW(VALUE_PTR(v));
 }
 
-static __stdcall int
+static int __stdcall
 strw_cmp(const value_t* v1, const value_t* v2)
 {
     const WCHAR* s1 = VALUE_PTR(v1);
@@ -591,7 +591,7 @@ strw_cmp(const value_t* v1, const value_t* v2)
     return wcscmp((s1 != NULL ? s1 : strw_empty), (s2 != NULL ? s2 : strw_empty));
 }
 
-static __stdcall size_t
+static size_t __stdcall
 strw_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     const WCHAR* s = VALUE_PTR(v);
@@ -609,7 +609,7 @@ strw_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 #endif
 }
 
-static __stdcall void
+static void __stdcall
 strw_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
@@ -679,7 +679,7 @@ mcValue_GetStringW(const MC_HVALUE hValue)
 
 static const char stra_empty[] = "";
 
-static __stdcall value_t*
+static value_t* __stdcall
 stra_ctor_str(const TCHAR* str)
 {
     value_t* v;
@@ -697,13 +697,13 @@ stra_ctor_str(const TCHAR* str)
     return (MC_HVALUE) v;
 }
 
-static __stdcall value_t*
+static value_t* __stdcall
 stra_ctor_val(const value_t* v)
 {
     return mcValue_CreateStringA(VALUE_PTR(v));
 }
 
-static __stdcall int
+static int __stdcall
 stra_cmp(const value_t* v1, const value_t* v2)
 {
     const char* s1 = VALUE_PTR(v1);
@@ -712,7 +712,7 @@ stra_cmp(const value_t* v1, const value_t* v2)
     return strcmp((s1 != NULL ? s1 : stra_empty), (s2 != NULL ? s2 : stra_empty));
 }
 
-static __stdcall size_t
+static size_t __stdcall
 stra_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
     const char* s = VALUE_PTR(v);
@@ -730,7 +730,7 @@ stra_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 #endif
 }
 
-static __stdcall void
+static void __stdcall
 stra_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 {
     int old_bkmode;
