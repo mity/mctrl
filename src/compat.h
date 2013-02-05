@@ -130,9 +130,13 @@
  *************************************/
 
 /* <wingdi.h> misses this prototype */
-BOOL WINAPI __declspec(dllimport) GdiAlphaBlend(HDC dc1, int x1, int y1, int w1, int h1,
-                                                HDC dc0, int x0, int y0, int w0, int h0,
-                                                BLENDFUNCTION fn);
+#ifdef MC_TOOLCHAIN_MINGW64
+    BOOL WINAPI __declspec(dllimport) GdiAlphaBlend(
+                            HDC dc1, int x1, int y1, int w1, int h1,
+                            HDC dc0, int x0, int y0, int w0, int h0,
+                            BLENDFUNCTION fn);
+#endif
+
 
 /* various missing constants */
 #ifndef TB_SETBOUNDINGSIZE
