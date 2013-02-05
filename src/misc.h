@@ -181,8 +181,8 @@ extern HIMAGELIST mc_bmp_glyphs;
 #endif
 
 #ifndef MC_COMPILER_GCC
-mc_inlined_memmove(void* addr0, const void* addr1, size_t n)
     static inline void
+    mc_inlined_memmove(void* addr0, const void* addr1, size_t n)
     {
         BYTE* iter0 = (BYTE*) addr0;
         const BYTE* iter1 = (const BYTE*) addr1;
