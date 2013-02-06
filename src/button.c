@@ -504,7 +504,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             PAINTSTRUCT ps;
             HDC dc;
 
-            fake_split = button_is_fake_icon(button);
+            fake_split = button_is_fake_split(button);
             fake_icon = button_is_fake_icon(button);
             if(!fake_split  &&  !fake_icon) {
                 /* Keep it on original proc */
@@ -727,7 +727,7 @@ button_init(void)
     extra_offset = wc.cbWndExtra;
 
     /* On Win7 we do not need to emulate anzthing, so we are just alias class
-     * of teh standard button. */
+     * of the standard button. */
     if(mc_win_version < MC_WIN_7  ||  mc_comctl32_version < MC_DLL_VER(6, 0)) {
         wc.lpfnWndProc = button_proc;
         wc.cbWndExtra += sizeof(button_t*);
