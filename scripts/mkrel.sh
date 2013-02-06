@@ -111,7 +111,7 @@ fi
 if [ x$HAVE_X86_64 != x ]; then
     echo -n "Create 64-bit MSVC import lib... " >&3
     if [ "x$LIBEXE" != x ]; then
-        (cd $TMP/mCtrl-$VERSION && "$LIBEXE" /machine:x64 /def:obj/mCtrl.def /out:lib/mCtrl.lib >> $CWD/build-x86.log 2>&1)
+        (cd $TMP/mCtrl-$VERSION && "$LIBEXE" /machine:x64 /def:src/mCtrl.def /out:lib/mCtrl.lib >> $CWD/build-x86_64.log 2>&1)
         echo "Done." >&3
     else
         echo "Skipped: lib.exe not found." >&3
@@ -142,7 +142,7 @@ fi
 if [ x$HAVE_X86 != x ]; then
     echo -n "Create 32-bit MSVC import lib... " >&3
     if [ "x$LIBEXE" != x ]; then
-        (cd $TMP/mCtrl-$VERSION && "$LIBEXE" /machine:x86 /def:obj/mCtrl.def /out:lib/mCtrl.lib >> $CWD/build-x86.log 2>&1)
+        (cd $TMP/mCtrl-$VERSION && "$LIBEXE" /machine:x86 /def:src/mCtrl.def /out:lib/mCtrl.lib >> $CWD/build-x86.log 2>&1)
         echo "Done." >&3
     else
         echo "Skipped: lib.exe not found." >&3
