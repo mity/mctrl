@@ -76,7 +76,7 @@ while (( "$#" )); do
             exit 0
             ;;
 
-        all | examples | clean | distclean | mctrl )
+        all | clean | distclean | doc | examples | mctrl )
             MAKETARGETS="$MAKETARGETS $1"
             ;;
 
