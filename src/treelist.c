@@ -641,7 +641,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     RECT rect;
     RECT header_rect;
     int header_height;
-    HFONT old_font;
+    HFONT old_font = NULL;
     RECT item_rect;
     treelist_item_t* item;
     HDITEM header_item;
@@ -652,7 +652,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     COLORREF old_textcolor;
     BOOL reset_color_after_whole_row = FALSE;
     BOOL use_theme;
-    int state;
+    int state = 0;
     int padding_h, padding_v;
 
     /* We handle WM_ERASEBKGND, so we should never need erasing here. */
@@ -740,7 +740,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                         state = TREIS_NORMAL;
                 } else {
                     if(item->state & MC_TLIS_SELECTED) {
-                        int old_right;
+                        int old_right = 0;
 
                         if(tl->focus) {
                             old_bkcolor = SetBkColor(dc, GetSysColor(COLOR_HIGHLIGHT));
@@ -822,7 +822,7 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
     RECT header_item_rect;
     RECT item_rect;
     HDC dc;
-    HFONT old_font;
+    HFONT old_font = NULL;
     int header_height;
     treelist_item_t* item;
     int level;
