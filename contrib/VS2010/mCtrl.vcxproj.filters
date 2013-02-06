@@ -72,6 +72,24 @@
     <ClCompile Include="..\..\src\propview.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\color.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\expand.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\gdix.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\husl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\chart.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\treelist.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\button.h">
@@ -173,6 +191,24 @@
     <ClInclude Include="..\..\include\mCtrl\propview.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\color.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\expand.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\gdix.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\husl.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\chart.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\treelist.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\resource.rc">
@@ -183,7 +219,25 @@
     <None Include="..\..\src\res\glyphs.bmp">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="mCtrl.def">
+    <None Include="..\..\src\res\expand-19x19.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\..\src\res\expand-24x24.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\..\src\res\expand-29x29.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\..\src\res\lang.cs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\..\src\res\lang.en">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\..\src\res\lang.fr">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\..\src\mCtrl.def">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

@@ -55,10 +55,11 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>mCtrl.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>../../src/mCtrl.def</ModuleDefinitionFile>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>../../src</AdditionalIncludeDirectories>
+      <NullTerminateStrings>true</NullTerminateStrings>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -77,22 +78,28 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <ModuleDefinitionFile>mCtrl.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>../../src/mCtrl.def</ModuleDefinitionFile>
       <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>../../src</AdditionalIncludeDirectories>
+      <NullTerminateStrings>true</NullTerminateStrings>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\button.c" />
+    <ClCompile Include="..\..\src\chart.c" />
+    <ClCompile Include="..\..\src\color.c" />
     <ClCompile Include="..\..\src\compat.c" />
     <ClCompile Include="..\..\src\debug.c" />
     <ClCompile Include="..\..\src\dialog.c" />
     <ClCompile Include="..\..\src\dsa.c" />
+    <ClCompile Include="..\..\src\expand.c" />
+    <ClCompile Include="..\..\src\gdix.c" />
     <ClCompile Include="..\..\src\grid.c" />
     <ClCompile Include="..\..\src\guid.c" />
     <ClCompile Include="..\..\src\html.c" />
+    <ClCompile Include="..\..\src\husl.c" />
     <ClCompile Include="..\..\src\mditab.c" />
     <ClCompile Include="..\..\src\menubar.c" />
     <ClCompile Include="..\..\src\misc.c" />
@@ -101,6 +108,7 @@
     <ClCompile Include="..\..\src\propview.c" />
     <ClCompile Include="..\..\src\table.c" />
     <ClCompile Include="..\..\src\theme.c" />
+    <ClCompile Include="..\..\src\treelist.c" />
     <ClCompile Include="..\..\src\value.c" />
     <ClCompile Include="..\..\src\version.c" />
     <ClCompile Include="..\..\src\viewlist.c" />
@@ -119,12 +127,17 @@
     <ClInclude Include="..\..\include\mCtrl\value.h" />
     <ClInclude Include="..\..\include\mCtrl\version.h" />
     <ClInclude Include="..\..\src\button.h" />
+    <ClInclude Include="..\..\src\chart.h" />
+    <ClInclude Include="..\..\src\color.h" />
     <ClInclude Include="..\..\src\compat.h" />
     <ClInclude Include="..\..\src\debug.h" />
     <ClInclude Include="..\..\src\dialog.h" />
     <ClInclude Include="..\..\src\dsa.h" />
+    <ClInclude Include="..\..\src\expand.h" />
+    <ClInclude Include="..\..\src\gdix.h" />
     <ClInclude Include="..\..\src\grid.h" />
     <ClInclude Include="..\..\src\html.h" />
+    <ClInclude Include="..\..\src\husl.h" />
     <ClInclude Include="..\..\src\mditab.h" />
     <ClInclude Include="..\..\src\menubar.h" />
     <ClInclude Include="..\..\src\misc.h" />
@@ -136,6 +149,7 @@
     <ClInclude Include="..\..\src\table.h" />
     <ClInclude Include="..\..\src\theme.h" />
     <ClInclude Include="..\..\src\theme_fn.h" />
+    <ClInclude Include="..\..\src\treelist.h" />
     <ClInclude Include="..\..\src\value.h" />
     <ClInclude Include="..\..\src\version.h" />
     <ClInclude Include="..\..\src\viewlist.h" />
@@ -144,8 +158,14 @@
     <ResourceCompile Include="..\..\src\resource.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\mCtrl.def" />
+    <None Include="..\..\src\res\expand-19x19.bmp" />
+    <None Include="..\..\src\res\expand-24x24.bmp" />
+    <None Include="..\..\src\res\expand-29x29.bmp" />
     <None Include="..\..\src\res\glyphs.bmp" />
-    <None Include="mCtrl.def" />
+    <None Include="..\..\src\res\lang.cs" />
+    <None Include="..\..\src\res\lang.en" />
+    <None Include="..\..\src\res\lang.fr" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
