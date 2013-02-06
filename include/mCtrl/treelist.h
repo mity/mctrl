@@ -148,7 +148,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 
 /** @brief Display expand/collapse buttons next to parent items.
  *  @details To include buttons with root items, applicaiton must also use
- *  @ref TVS_LINESATROOT. */
+ *  @ref MC_TLS_LINESATROOT. */
 #define MC_TLS_HASBUTTONS           0x0001
 /** @brief Use lines to show hiearchy of items. */
 #define MC_TLS_HASLINES             0x0002
