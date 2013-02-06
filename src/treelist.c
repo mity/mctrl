@@ -719,7 +719,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
                 /* Paint label (and background) of the main item */
                 if(use_theme) {
-                    int old_right;
+                    int old_right = 0;
 
                     if(tl->style & MC_TLS_FULLROWSELECT) {
                         old_right = item_rect.right;
