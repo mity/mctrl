@@ -601,7 +601,7 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
     } else {
         int w = mc_width(rect);
         int h = mc_height(rect);
-        int sz_rect = MC_MIN(w, h) / 2;
+        int sz_rect = MC_MIN(w, h) / 2 + 1;
         int sz_glyph = (sz_rect + 1) * 3 / 4;
         int x, y;
         HPEN pen, old_pen;
