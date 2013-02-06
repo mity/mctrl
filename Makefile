@@ -37,6 +37,7 @@ export GCC ?= gcc
 export CC = $(GCC) -c
 export LD = $(GCC)
 export WINDRES ?= windres
+export GENDEF ?= gendef
 export DLLTOOL ?= dlltool
 export DEP = $(GCC) -x c -MM -MG
 export RM = rm -rf
@@ -128,11 +129,15 @@ include Makefile.dep
 # Build rules #
 ###############
 
-$(TARGET) $(TARGET_LIB): $(OBJECTS)
-	$(LD) $(LDFLAGS) -mdll $^ -o $@.tmp $(LIBS) -Wl,--output-def,$(OBJDIR)/mCtrl.def
-	$(RM) $@.tmp
-	$(LD) $(LDFLAGS) -mdll $^ -o $@ $(LIBS) -Wl,--kill-at
-	$(DLLTOOL) --kill-at --input-def $(OBJDIR)/mCtrl.def --output-lib $(TARGET_LIB) --dllname $(notdir $@)
+doc:
+	$(LD) $(LDFLAGS) -mdll $(OBJECTS) $(SRCDIR)/mCtrl.def -o $(TARGET).tmp $(LIBS) -Wl,--output-def,$(OBJDIR)/mCtrl.def
+
+$(TARGET): $(OBJECTS)
+	$(LD) $(LDFLAGS) -mdll $^ $(SRCDIR)/mCtrl.def -o $(TARGET) $(LIBS) -Wl,--kill-at
+
+$(TARGET_LIB): $(TARGET)
+	$(GENDEF) -a - $(TARGET) > $(OBJDIR)/mCtrl-implib.def
+	$(DLLTOOL) --kill-at --input-def $(OBJDIR)/mCtrl-implib.def --output-lib $(TARGET_LIB) --dllname $(notdir $(TARGET))
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@

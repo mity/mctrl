@@ -36,15 +36,11 @@ extern "C" {
  */
 
 
-#ifdef MCTRL_BUILD
-    #define MCTRL_API       __declspec(dllexport) __stdcall
-#else
-    /**
-     * Helper macro specifying the calling convention of functions exported
-     * by @c MCTRL.DLL. You should not use it directly.
-     */
-    #define MCTRL_API       __declspec(dllimport) __stdcall
-#endif
+/**
+ * Helper macro specifying the calling convention of functions exported
+ * by @c MCTRL.DLL. You should not use it directly.
+ */
+#define MCTRL_API                   __stdcall
 
 
 #ifdef UNICODE
