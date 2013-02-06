@@ -96,7 +96,7 @@ doc:
 
 clean:
 	$(RM) $(OBJECTS)
-	$(RM) $(OBJDIR)/mCtrl.def
+	$(RM) $(OBJDIR)/mCtrl-implib.def
 	$(RM) $(TARGET_LIB)
 	$(RM) $(TARGET)
 
@@ -128,9 +128,6 @@ include Makefile.dep
 ###############
 # Build rules #
 ###############
-
-doc:
-	$(LD) $(LDFLAGS) -mdll $(OBJECTS) $(SRCDIR)/mCtrl.def -o $(TARGET).tmp $(LIBS) -Wl,--output-def,$(OBJDIR)/mCtrl.def
 
 $(TARGET): $(OBJECTS)
 	$(LD) $(LDFLAGS) -mdll $^ $(SRCDIR)/mCtrl.def -o $(TARGET) $(LIBS) -Wl,--kill-at
