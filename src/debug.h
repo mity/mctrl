@@ -63,8 +63,14 @@
         do {                                                                  \
             char mc_trace_buf_[512];                                          \
             DWORD mc_last_err_;                                               \
+            int mc_offset_;                                                   \
             mc_last_err_ = GetLastError();                                    \
-            _snprintf(mc_trace_buf_, sizeof(mc_trace_buf_), __VA_ARGS__);     \
+            mc_offset_ = _snprintf(mc_trace_buf_, sizeof(mc_trace_buf_)-2,    \
+                                     __VA_ARGS__);                            \
+            if(mc_offset_ < 0)                                                \
+                mc_offset_ = sizeof(mc_trace_buf_)-2;                         \
+            mc_trace_buf_[mc_offset_] = '\n';                                 \
+            mc_trace_buf_[mc_offset_+1] = '\0';                               \
             OutputDebugStringA(mc_trace_buf_);                                \
             SetLastError(mc_last_err_);                                       \
         } while(0)
