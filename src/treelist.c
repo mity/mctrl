@@ -1150,16 +1150,32 @@ static void
 treelist_do_select(treelist_t* tl, treelist_item_t* item)
 {
     BOOL do_single_expand;
-    treelist_item_t* old_sel;
+    treelist_item_t* old_sel = tl->selected_item;
     int col_ix;
+    MC_NMTREELIST nm = { {0}, 0 };
 
-    if(tl->selected_item == item)
+    if(old_sel == item)
         return;
+
+    /* Send MC_TLN_SELCHANGING */
+    nm.hdr.hwndFrom = tl->win;
+    nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    nm.hdr.code = MC_TLN_SELCHANGING;
+    if(old_sel != NULL) {
+        nm.hItemOld = old_sel;
+        nm.lParamOld = old_sel->lp;
+    }
+    if(item != NULL) {
+        nm.hItemNew = item;
+        nm.lParamNew = item->lp;
+    }
+    if(MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
+        TREELIST_TRACE("treelist_do_select: Denied by app.");
+        return;
+    }
 
     do_single_expand = (tl->style & MC_TLS_SINGLEEXPAND)  &&
                        !(GetAsyncKeyState(VK_CONTROL) & 0x8000);
-
-    old_sel = tl->selected_item;
     col_ix = (tl->style & MC_TLS_FULLROWSELECT) ? -1 : 0;
 
     TREELIST_TRACE("treelist_do_select(%S -> %S)",
@@ -1203,6 +1219,20 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
         if(!tl->no_redraw)
             treelist_invalidate_item(tl, item, col_ix, 0);
     }
+
+    /* Send MC_TLN_SELCHANGED */
+    nm.hdr.hwndFrom = tl->win;
+    nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    nm.hdr.code = MC_TLN_SELCHANGED;
+    if(old_sel != NULL) {
+        nm.hItemOld = old_sel;
+        nm.lParamOld = old_sel->lp;
+    }
+    if(item != NULL) {
+        nm.hItemNew = item;
+        nm.lParamNew = item->lp;
+    }
+    MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
 }
 
 static void

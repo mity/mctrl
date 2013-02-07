@@ -963,13 +963,47 @@ typedef struct MC_NMTREELIST_tag {
 
 /**
  * @brief Fired when deleting an item.
+ *
+ * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify which
+ * item is being deleted.
+ *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
- * structure. The members @c hItemOld and @c lParamOld specify which item is
- * being deleted.
+ * structure.
  * @return Application should return zero if it processes the notification.
  */
 #define MC_TLN_DELETEITEM            (MC_TLN_FIRST + 0)
+
+/**
+ * @brief Fired when a selection item is being changed.
+ *
+ * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify
+ * the current selection (@c NULL, if no item is selected). The members
+ * @c hItemNew and @c lParamNew specify new selection (@c or NULL, if no
+ * item is being selected).
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * structure.
+ * @return Application may prevent @c TRUE to prevent the selection change,
+ * or @c FALSE oterwise to allow it.
+ */
+#define MC_TLN_SELCHANGING           (MC_TLN_FIRST + 1)
+
+/**
+ * @brief Fired after a selection change.
+ *
+ * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify the
+ * previous selection (@c NULL, if no item has been selected). The members
+ * @c hItemNew and @c lParamNew specify new selection (@c or NULL, if no
+ * item is now selected.).
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_TLN_SELCHANGED            (MC_TLN_FIRST + 2)
 
 /*@}*/
 
