@@ -76,7 +76,7 @@ struct treelist_item_tag {
 
 /* Iterator over ALL items of the control */
 static treelist_item_t*
-item_next(treelist_item_t* item)
+item_next_ex(treelist_item_t* item, treelist_item_t* stopper)
 {
     if(item->child_head != NULL) {
         return item->child_head;
@@ -86,9 +86,15 @@ item_next(treelist_item_t* item)
         if(item->sibling_next != NULL)
             return item->sibling_next;
         item = item->parent;
-    } while(item != NULL);
+    } while(item != NULL  &&  item != stopper);
 
     return NULL;
+}
+
+static inline treelist_item_t*
+item_next(treelist_item_t* item)
+{
+    return item_next_ex(item, NULL);
 }
 
 /* Itearor over items displayed (i.e. not hidden by collpased parent) below
@@ -2047,6 +2053,25 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
     return TRUE;
 }
 
+static void
+treelist_delete_notify(treelist_t* tl, treelist_item_t* item)
+{
+    treelist_item_t* stopper = (item->parent ? item->parent : NULL);
+    MC_NMTREELIST nm = { {0}, 0 };
+
+    nm.hdr.hwndFrom = tl->win;
+    nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    nm.hdr.code = MC_TLN_DELETEITEM;
+
+    while(item != NULL) {
+        nm.hItemOld = item;
+        nm.lParamOld = item->lp;
+        MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+
+        item = item_next_ex(item, stopper);
+    }
+}
+
 /* This is helper for treelist_delete_item(). It physically deletes the item
  * as well as all items linked through sibling_next, and all their children. */
 static int
@@ -2112,15 +2137,18 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
 
     if(item == MC_TLI_ROOT  ||  item == NULL) {
         /* Delete all items */
-        treelist_delete_item_helper(tl, tl->root_head, FALSE);
-        tl->root_head = NULL;
-        tl->root_tail = NULL;
-        tl->displayed_items = 0;
-        tl->selected_item = NULL;
-        tl->scrolled_item = NULL;
-        treelist_setup_scrollbars(tl);
-        if(!tl->no_redraw)
-            InvalidateRect(tl->win, NULL, TRUE);
+        if(tl->root_head != NULL) {
+            treelist_delete_notify(tl, tl->root_head);
+            treelist_delete_item_helper(tl, tl->root_head, FALSE);
+            tl->root_head = NULL;
+            tl->root_tail = NULL;
+            tl->displayed_items = 0;
+            tl->selected_item = NULL;
+            tl->scrolled_item = NULL;
+            treelist_setup_scrollbars(tl);
+            if(!tl->no_redraw)
+                InvalidateRect(tl->win, NULL, TRUE);
+        }
         return TRUE;
     }
 
@@ -2170,6 +2198,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
 
     /* Delete the item and whole its subtree, and count how many of deleted
      * items were displayed. */
+    treelist_delete_notify(tl, item);
     displayed_del_count = treelist_delete_item_helper(tl, item, displayed);
     if(displayed)
         tl->displayed_items -= displayed_del_count;

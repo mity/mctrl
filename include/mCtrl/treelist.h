@@ -583,7 +583,7 @@ typedef struct MC_TLINSERTSTRUCTA_tag {
 } MC_TLINSERTSTRUCTA;
 
 /**
- * Structure for message @ref MC_MTM_HITTEST.
+ * @brief Structure for message @ref MC_MTM_HITTEST.
  */
 typedef struct MC_TLHITTESTINFO_tag {
     /** Client coordinate of the point to test. */
@@ -596,6 +596,34 @@ typedef struct MC_TLHITTESTINFO_tag {
      *  item itself). */
     int iSubItem;
 } MC_TLHITTESTINFO;
+
+/**
+ * @brief Structure use by control notifications.
+ *
+ * Many control notifications use this structure to provide the information
+ * about what happens. Refer to documentation of particular messages how it
+ * sets the members of the structure. Members not actually used by the
+ * notification can be used in future versions of <tt>MCTRL.DLL</tt> so do not
+ * rely on their value.
+ *
+ * If the notification specifies old and/or new item, their its handle and
+ * @lParam ius stored. If application needs additional information about the
+ * item it has to use @ref MC_TLM_GETITEM message to retrieve it.
+ */
+typedef struct MC_NMTREELIST_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Notification specific value. */
+    UINT action;
+    /** Handle of the old item. */
+    MC_HTREELISTITEM hItemOld;
+    /** @c lParam of the old item. */
+    LPARAM lParamOld;
+    /** Handle of the new item. */
+    MC_HTREELISTITEM hItemNew;
+    /** @c lParam of the new item. */
+    LPARAM lParamNew;
+} MC_NMTREELIST;
 
 /*@}*/
 
@@ -923,6 +951,25 @@ typedef struct MC_TLHITTESTINFO_tag {
  * were expanded, @c FALSE otherwise.
  */
 #define MC_TLM_ENSUREVISIBLE         (MC_TLM_FIRST + 30)
+
+/*@}*/
+
+
+/**
+ * @name Control Notifications
+ */
+/*@{*/
+
+
+/**
+ * @brief Fired when deleting an item.
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * structure. The members @c hItemOld and @c lParamOld specify which item is
+ * being deleted.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_TLN_DELETEITEM            (MC_TLN_FIRST + 0)
 
 /*@}*/
 
