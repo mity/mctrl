@@ -18,7 +18,7 @@
 #include <tchar.h>
 #include <stdio.h>
 #include <string.h>
-#include <windows.h>c
+#include <windows.h>
 #include <commctrl.h>
 
 #include <mCtrl/treelist.h>
@@ -160,8 +160,8 @@ SetupTreeList(void)
         insert.item.lParam = (LPARAM) rootKeys[i].hKey;
         /* We may need to indicate it is a parent item even though we do not
          * insert and child items. This tells the control to display the
-         * expand/collapse button next to the item. When user clicks, we
-         * will add the childs items dynamically. */
+         * expand/collapse button next to the item. When user clicks on it,
+         * we will add the childs items dynamically. */
         insert.item.cChildren = (KeyHasChildren(rootKeys[i].hKey) ? 1 : 0);
         SendMessage(hwndTreeList, MC_TLM_INSERTITEM, 0, (LPARAM) &insert);
     }
