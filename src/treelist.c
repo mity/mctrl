@@ -2656,7 +2656,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                                      (msg == MC_TLM_GETITEMW));
 
         case MC_TLM_DELETEITEM:
-            return treelist_delete_item(tl, (treelist_item_t*) wp);
+            return treelist_delete_item(tl, (treelist_item_t*) lp);
 
         case MC_TLM_SETITEMHEIGHT:
             return treelist_set_item_height(tl, (int) wp, TRUE);

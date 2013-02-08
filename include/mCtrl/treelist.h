@@ -846,8 +846,8 @@ typedef struct MC_NMTREELIST_tag {
  * is deleted. If you specify @c MC_TLI_ROOT as the item to delete, then all
  * items of the control are deleted.
  *
- * @param[in] wParam (@ref MC_HTREELISTITEM) Handle of the item or @c MC_TLI_ROOT.
- * @param lParam Reserved, set to zero.
+ * @param wParam Reserved, set to zero.
+ * @param[in] lParam (@ref MC_HTREELISTITEM) Handle of the item or @c MC_TLI_ROOT.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_TLM_DELETEITEM            (MC_TLM_FIRST + 17)
