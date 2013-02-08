@@ -93,6 +93,33 @@ extern "C" {
  * subtree of its children is deleted as well.
  *
  *
+ * @section treelist_dynamic Dynamically Populated Tree-lists
+ *
+ * Every single item inserted into the control takes about 40 bytes (32-bit
+ * build) or about 80 bytes respectivelly (64-bit build), excluding label
+ * strings and subitems. If you need to create tree hiearchy of huge number of
+ * items, it may consume quite large amount of memory.
+ *
+ * The control addresses this issue by allowing application to populate the
+ * control dynamically, ad hoc, when an items are expanded, and optionally
+ * to release child items when parent items are collapsed.
+ *
+ * For huge trees, it is unlikely the user will expand all items, and hence
+ * only the expanded items eat the memory.
+ *
+ * To support this mechanism, the application initially inserts only root
+ * items, and sets @c MC_TLITEM::cChildren ti indicate whether the item has
+ * children or not.
+ *
+ * When user attempots to expand the item, the application has to insert the
+ * child items dynamically. To achieve this, the application must handle the
+ * notification @c MC_TLN_EXPANDING and check the @c MC_NMTREELIST::action
+ * for @c MC_TLE_EXPAND.
+ *
+ * In a similar manner the application may delete the child items if
+ * @c MC_NMTREELIST::action is set to @c MC_TLE_COLLAPSE.
+ *
+ *
  * @section std_msgs Standard Messages
  *
  * These standard messages are handled by the control:
@@ -274,6 +301,8 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLIF_SELECTEDIMAGE        (1 << 4)
 /** @brief Set if @c MC_TLITEM::iExpandedImage is valid. */
 #define MC_TLIF_EXPANDEDIMAGE        (1 << 5)
+/** @brief Set if @c MC_TLITEM::cChildren is valid. */
+#define MC_TLIF_CHILDREN             (1 << 6)
 
 /*@}*/
 
@@ -490,6 +519,9 @@ typedef struct MC_TLITEMW_tag {
     int iSelectedImage;
     /** Image whem expanded. Can be @c MC_I_IMAGENONE. */
     int iExpandedImage;
+    /** Flag indicating whether the item has children. When set to 1, control
+     *  assumes it has children even though application has not inserted them. */
+    int cChildren;
 } MC_TLITEMW;
 
 /**
@@ -518,6 +550,9 @@ typedef struct MC_TLITEMA_tag {
     int iSelectedImage;
     /** Image whem expanded. Can be @c MC_I_IMAGENONE. */
     int iExpandedImage;
+    /** Flag indicating whether the item has children. When set to 1, control
+     *  assumes it has children even though application has not inserted them. */
+    int cChildren;
 } MC_TLITEMA;
 
 /**
@@ -975,7 +1010,7 @@ typedef struct MC_NMTREELIST_tag {
 #define MC_TLN_DELETEITEM            (MC_TLN_FIRST + 0)
 
 /**
- * @brief Fired when a selection item is being changed.
+ * @brief Fired when a selection item is about to change.
  *
  * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify
  * the current selection (@c NULL, if no item is selected). The members
@@ -991,7 +1026,7 @@ typedef struct MC_NMTREELIST_tag {
 #define MC_TLN_SELCHANGING           (MC_TLN_FIRST + 1)
 
 /**
- * @brief Fired after a selection change.
+ * @brief Fired when selection has changed.
  *
  * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify the
  * previous selection (@c NULL, if no item has been selected). The members
@@ -1004,6 +1039,37 @@ typedef struct MC_NMTREELIST_tag {
  * @return Application should return zero if it processes the notification.
  */
 #define MC_TLN_SELCHANGED            (MC_TLN_FIRST + 2)
+
+/**
+ * @brief Fired when a parent item is about to expand or collapse.
+ *
+ * The members @c hItemNew and @c lParamNew of @c MC_NMTREELIST specify
+ * the item which is changing its state. The member @c action is set to
+ * @c MC_TLE_EXPAND or MC_TLE_COLLAPSE to specify that the item is going
+ * to expand or collapse respectivelly.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * structure.
+ * @return Application may prevent @c TRUE to prevent the item state change,
+ * or @c FALSE oterwise to allow it.
+ */
+#define MC_TLN_EXPANDING             (MC_TLN_FIRST + 3)
+
+/**
+ * @brief Fired when a parent item has expanded or collapsed.
+ *
+ * The members @c hItemNew and @c lParamNew of @c MC_NMTREELIST specify
+ * the item which has changed its state, The member @c action is set to
+ * @c MC_TLE_EXPAND or MC_TLE_COLLAPSE to specify that the item has expanded
+ * or collapsed respectivelly.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_TLN_EXPANDED              (MC_TLN_FIRST + 4)
 
 /*@}*/
 

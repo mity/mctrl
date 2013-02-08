@@ -23,8 +23,6 @@
 /* TODO:
  *  -- Displaying item image, image-list related messages and style
  *     MC_TLS_SHAREDIMAGELISTS.
- *  -- Support dynamicaly populated items, i.e. notifications MC_TLN_EXPANDING,
- *     MC_TLN_EXPANDED and add new member MC_TLITEM::cChildren.
  *  -- Incremental search.
  *  -- Tooltips and style MC_TLS_NOTOOLTIPS.
  *  -- Hot tracking (needed when EXPLORER-themed).
@@ -71,16 +69,16 @@ struct treelist_item_tag {
     WORD img;
     WORD img_selected;
     WORD img_expanded;
-    WORD state;
+    WORD state     : 15;
+    WORD children  : 1;
 };
 
 /* Iterator over ALL items of the control */
 static treelist_item_t*
 item_next_ex(treelist_item_t* item, treelist_item_t* stopper)
 {
-    if(item->child_head != NULL) {
+    if(item->child_head != NULL)
         return item->child_head;
-    }
 
     do {
         if(item->sibling_next != NULL)
@@ -97,7 +95,7 @@ item_next(treelist_item_t* item)
     return item_next_ex(item, NULL);
 }
 
-/* Itearor over items displayed (i.e. not hidden by collpased parent) below
+/* Iteraror over items displayed (i.e. not hidden by collpased parent) below
  * the specified 'item', but does not step over the parent 'stopper' */
 static treelist_item_t*
 item_next_displayed_ex(treelist_item_t* item, treelist_item_t* stopper, int* level)
@@ -148,6 +146,12 @@ item_is_displayed(treelist_item_t* item)
     return TRUE;
 }
 
+static inline BOOL
+item_has_children(treelist_item_t* item)
+{
+    return (item->child_head != NULL  ||  item->children != 0);
+}
+
 typedef struct treelist_tag treelist_t;
 struct treelist_tag {
     HWND win;
@@ -182,7 +186,7 @@ struct treelist_tag {
 
 #define MC_TLIF_ALL     (MC_TLIF_STATE | MC_TLIF_TEXT | MC_TLIF_LPARAM |      \
                          MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE |              \
-                         MC_TLIF_EXPANDEDIMAGE)
+                         MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN)
 
 #define MC_TLSIF_ALL    (MC_TLSIF_TEXT)
 
@@ -713,7 +717,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                         treelist_paint_lines(tl, item, level, dc, &item_rect);
                     }
 
-                    if((tl->style & MC_TLS_HASBUTTONS)  &&  item->child_head != NULL) {
+                    if((tl->style & MC_TLS_HASBUTTONS)  &&  item_has_children(item)) {
                         RECT button_rect;
                         mc_rect_set(&button_rect, item_rect.left - tl->item_indent, item_rect.top,
                                     item_rect.left, item_rect.bottom);
@@ -906,7 +910,7 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
             item_rect.left += tl->item_indent;
         if(level > 0  ||  (tl->style & MC_TLS_LINESATROOT)) {
             if(tl->style & (MC_TLS_HASBUTTONS | MC_TLS_HASLINES)) {
-                if((tl->style & MC_TLS_HASBUTTONS)  &&  item->child_head != NULL) {
+                if((tl->style & MC_TLS_HASBUTTONS)  &&  item_has_children(item)) {
                     RECT button_rect;
                     mc_rect_set(&button_rect, item_rect.left - tl->item_indent, item_rect.top,
                                 item_rect.left, item_rect.bottom);
@@ -1087,6 +1091,8 @@ treelist_do_expand_all(treelist_t* tl)
 {
     treelist_item_t* item;
 
+    /* FIXME: expand notifications? use item_has_children()? */
+
     tl->displayed_items = 0;
     for(item = tl->root_head; item != NULL; item = item_next(item)) {
         tl->displayed_items++;
@@ -1100,8 +1106,8 @@ treelist_do_expand_all(treelist_t* tl)
 }
 
 /* Forward declarations */
-static void treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed);
-static void treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed);
+static int treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed);
+static int treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed);
 static void treelist_do_select(treelist_t* tl, treelist_item_t* item);
 
 static inline BOOL
@@ -1118,8 +1124,8 @@ treelist_ensure_visible(treelist_t* tl, treelist_item_t* item0, treelist_item_t*
 
     for(it = item0->parent; it != NULL; it = it->parent) {
         if(!(it->state & MC_TLIS_EXPANDED)) {
-            treelist_do_expand(tl, it, FALSE);
-            expanded = TRUE;
+            if(treelist_do_expand(tl, it, FALSE) == 0)
+                expanded = TRUE;
         }
     }
 
@@ -1206,7 +1212,7 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
 
         if(do_single_expand) {
             treelist_item_t* it;
-            if(item->child_head  &&  !(item->state & MC_TLIS_EXPANDED))
+            if(item_has_children(item)  &&  !(item->state & MC_TLIS_EXPANDED))
                 treelist_do_expand(tl, item, FALSE);
             for(it = item->parent; it != NULL; it = it->parent) {
                 if(!(it->state & MC_TLIS_EXPANDED))
@@ -1235,10 +1241,23 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
     MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
 }
 
-static void
+static int
 treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed)
 {
+    MC_NMTREELIST nm = { {0}, 0 };
+
     MC_ASSERT(!(item->state & MC_TLIS_EXPANDED));
+
+    nm.hdr.hwndFrom = tl->win;
+    nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    nm.hdr.code = MC_TLN_EXPANDING;
+    nm.action = MC_TLE_EXPAND;
+    nm.hItemNew = item;
+    nm.lParamNew = item->lp;
+    if(MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
+        TREELIST_TRACE("treelist_do_expand: Denied by app.");
+        return -1;
+    }
 
     item->state |= MC_TLIS_EXPANDED;
 
@@ -1257,12 +1276,30 @@ treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed)
     }
 
     treelist_ensure_visible(tl, item, item->child_tail);
+
+    nm.hdr.code = MC_TLN_EXPANDED;
+    MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+
+    return 0;
 }
 
-static void
+static int
 treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed)
 {
+    MC_NMTREELIST nm = { {0}, 0 };
+
     MC_ASSERT(item->state & MC_TLIS_EXPANDED);
+
+    nm.hdr.hwndFrom = tl->win;
+    nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    nm.hdr.code = MC_TLN_EXPANDING;
+    nm.action = MC_TLE_COLLAPSE;
+    nm.hItemNew = item;
+    nm.lParamNew = item->lp;
+    if(MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
+        TREELIST_TRACE("treelist_do_collapse: Denied by app.");
+        return -1;
+    }
 
     item->state &= ~MC_TLIS_EXPANDED;
     if(surely_displayed || item_is_displayed(item)) {
@@ -1281,6 +1318,11 @@ treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displaye
         if(!tl->no_redraw)
             treelist_invalidate_item(tl, item, 0, -hidden_items);
     }
+
+    nm.hdr.code = MC_TLN_EXPANDED;
+    MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+
+    return 0;
 }
 
 static BOOL
@@ -1299,8 +1341,7 @@ treelist_expand_item(treelist_t* tl, int action, treelist_item_t* item)
     switch(action) {
         case MC_TLE_EXPAND:
             if(!expanded) {
-                treelist_do_expand(tl, item, FALSE);
-                return TRUE;
+                return (treelist_do_expand(tl, item, FALSE) == 0);
             } else {
                 MC_TRACE("treelist_expand_item: Item already expanded.");
                 return FALSE;
@@ -1308,8 +1349,7 @@ treelist_expand_item(treelist_t* tl, int action, treelist_item_t* item)
 
         case MC_TLE_COLLAPSE:
             if(expanded) {
-                treelist_do_collapse(tl, item, FALSE);
-                return TRUE;
+                return (treelist_do_collapse(tl, item, FALSE) == 0);
             } else {
                 MC_TRACE("treelist_expand_item: Item already collapsed.");
                 return FALSE;
@@ -1317,10 +1357,9 @@ treelist_expand_item(treelist_t* tl, int action, treelist_item_t* item)
 
         case MC_TLE_TOGGLE:
             if(expanded)
-                treelist_do_collapse(tl, item, FALSE);
+                return (treelist_do_collapse(tl, item, FALSE) == 0);
             else
-                treelist_do_expand(tl, item, FALSE);
-            return TRUE;
+                return (treelist_do_expand(tl, item, FALSE) == 0);
 
         default:
             MC_TRACE("treelist_expand_item: Unsupported action %x", action);
@@ -1480,7 +1519,7 @@ treelist_key_down(treelist_t* tl, int key)
                 break;
 
             case VK_RIGHT:
-                if(sel->child_head != NULL) {
+                if(item_has_children(sel)) {
                     if(!(sel->state & MC_TLIS_EXPANDED))
                         treelist_do_expand(tl, sel, FALSE);
                     else
@@ -1493,7 +1532,7 @@ treelist_key_down(treelist_t* tl, int key)
                 break;
 
             case VK_ADD:
-                if(!(sel->state & MC_TLIS_EXPANDED)  &&  sel->child_head != NULL)
+                if(!(sel->state & MC_TLIS_EXPANDED)  &&  item_has_children(sel))
                     treelist_do_expand(tl, sel, FALSE);
                 break;
 
@@ -1915,8 +1954,10 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     }
 
     /* Setup the item data */
-    item->text = text;
     item->subitems = subitems;
+    item->state = ((item_data->fMask & MC_TLIF_STATE)
+                            ? (item_data->state & item_data->stateMask) : 0);
+    item->text = text;
     item->lp = ((item_data->fMask & MC_TLIF_LPARAM) ? item_data->lParam : 0);
     item->img = (WORD)((item_data->fMask & MC_TLIF_IMAGE)
                                 ? item_data->iImage : MC_I_IMAGENONE);
@@ -1924,8 +1965,8 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
                                 ? item_data->iSelectedImage : MC_I_IMAGENONE);
     item->img_expanded = (WORD)((item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
                                 ? item_data->iExpandedImage : MC_I_IMAGENONE);
-    item->state = ((item_data->fMask & MC_TLIF_STATE)
-                            ? (item_data->state & item_data->stateMask) : 0);
+    item->children = ((item_data->fMask & MC_TLIF_CHILDREN)
+                                ? item_data->cChildren : 0);
 
     if(parent != NULL) {
         parent_displayed = item_is_displayed(parent);
@@ -2033,6 +2074,9 @@ treelist_set_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
 
     if(item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
         item->img_expanded = item_data->iExpandedImage;
+
+    if(item_data->fMask & MC_TLIF_CHILDREN)
+        item->children = item_data->cChildren;
 
     if(!tl->no_redraw)
         treelist_invalidate_item(tl, item, 0, 0);
