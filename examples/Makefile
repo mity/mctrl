@@ -15,7 +15,7 @@ WINDRES ?= windres
 RM = rm -rf
 
 override CPPFLAGS += -I../include
-override CFLAGS += -Wall
+override CFLAGS += -Wall -g -O0
 override LDFLAGS += -mwindows -L../lib
 override LIBS = -lmCtrl -lcomctl32
 
