@@ -964,7 +964,7 @@ nowhere:
 }
 
 static int
-treelist_get_item_y(treelist_t* tl, treelist_item_t* item)
+treelist_get_item_y(treelist_t* tl, treelist_item_t* item, BOOL visible_only)
 {
     RECT header_rect;
     treelist_item_t* it;
@@ -973,7 +973,12 @@ treelist_get_item_y(treelist_t* tl, treelist_item_t* item)
 
     GetWindowRect(tl->header_win, &header_rect);
     y = mc_height(&header_rect);
-    it = tl->scrolled_item;
+    if(visible_only) {
+        it = tl->scrolled_item;
+    } else {
+        y -= tl->scroll_y * tl->item_height;
+        it = tl->root_head;
+    }
 
     while(TRUE) {
         if(it == item)
@@ -1058,7 +1063,9 @@ treelist_invalidate_item(treelist_t* tl, treelist_item_t* item, int col_ix, int 
         rect.left = client_rect.left;
         rect.right = client_rect.right;
     }
-    rect.top = treelist_get_item_y(tl, item);
+    rect.top = treelist_get_item_y(tl, item, TRUE);
+    if(rect.top < 0)
+        return;
     rect.bottom = rect.top + tl->item_height;
     InvalidateRect(tl->win, &rect, TRUE);
 
@@ -1133,8 +1140,8 @@ treelist_ensure_visible(treelist_t* tl, treelist_item_t* item0, treelist_item_t*
     GetClientRect(tl->win, &rect);
     rect.top = mc_height(&header_rect);
 
-    y0 = treelist_get_item_y(tl, item0);
-    y1 = (item1 == NULL ? y0 : treelist_get_item_y(tl, item1)) + tl->item_height;
+    y0 = treelist_get_item_y(tl, item0, FALSE);
+    y1 = (item1 == NULL ? y0 : treelist_get_item_y(tl, item1, FALSE)) + tl->item_height;
     if(y1 - y0 > mc_height(&rect))
         y1 = y0 + mc_height(&rect);
 
@@ -1992,9 +1999,11 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
         if(displayed) {
             RECT rect;
             GetClientRect(tl->win, &rect);
-            rect.top = treelist_get_item_y(tl, item);
+            rect.top = treelist_get_item_y(tl, item, TRUE);
+            if(rect.top < 0)
+                rect.top = treelist_get_item_y(tl, tl->scrolled_item, TRUE);
             ScrollWindowEx(tl->win, 0, tl->item_height, &rect, &rect,
-                           NULL, NULL, SW_INVALIDATE | SW_ERASE);
+                               NULL, NULL, SW_INVALIDATE | SW_ERASE);
         }
     }
 
@@ -2240,7 +2249,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
 
     /* Remeber top of the dirty rect. */
     if(displayed)
-        y = treelist_get_item_y(tl, item);
+        y = treelist_get_item_y(tl, item, TRUE);
 
     /* if the deleted subtree contains selection, we must know what to select
      * instead before we delete it. */
