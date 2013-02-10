@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,7 +56,7 @@ BEGIN
         BLOCK "000004b0"   /* language: 0 (neutral); charset: 0x04b0 == 1200 (unicode) */
         BEGIN
 #pragma code_page(1250)
-            VALUE "LegalCopyright",    "© 2008-2012 Martin Mitáš"
+            VALUE "LegalCopyright",    "© 2008-2013 Martin Mitáš"
 #pragma code_page(DEFAULT)
             VALUE "ProductName",       "mCtrl Library"
             VALUE "FileDescription",   "mCtrl Library"
