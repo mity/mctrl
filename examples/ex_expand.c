@@ -26,7 +26,7 @@ DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {
         case WM_INITDIALOG:
-            SendDlgItemMessage(hwndDlg, IDC_EXPAND, MC_EXM_EXPAND, FALSE, 0);
+            SendDlgItemMessage(hwndDlg, IDC_EXPAND, MC_EXM_EXPAND, FALSE, MC_EXE_NOANIMATE);
             return TRUE;
 
         case WM_CLOSE:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Martin Mitas
+ * Copyright (c) 2012-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,6 +34,10 @@
 #define FOCUS_INFLATE_H       3
 #define FOCUS_INFLATE_V       1
 
+#define ANIM_DURATION        200
+#define ANIM_FRAMES            8
+#define ANIM_TIMER_ID          1
+#define ANIM_TIMER_INTERVAL   (ANIM_DURATION / ANIM_FRAMES)
 
 
 static const TCHAR expand_wc[] = MC_WC_EXPAND;    /* Window class name */
@@ -53,10 +57,6 @@ struct expand_tag {
     HWND notify_win;
     HTHEME theme;
     HFONT font;
-    WORD collapsed_w;
-    WORD collapsed_h;
-    WORD expanded_w;
-    WORD expanded_h;
     DWORD style          : 16;
     DWORD no_redraw      : 1;
     DWORD hide_accel     : 1;
@@ -66,11 +66,17 @@ struct expand_tag {
     DWORD space_pressed  : 1;
     DWORD state          : 3;
     DWORD old_state      : 3;  /* for painting state transitions */
+    DWORD anim_frame     : 4;  /* for animating parent resize */
+    WORD collapsed_w;
+    WORD collapsed_h;
+    WORD expanded_w;
+    WORD expanded_h;
+    WORD anim_start_w;         /* for case collapsed/expand_[w|h] changes */
+    WORD anim_start_h;         /* during the animation */
 };
 
 
-
-static TCHAR*
+static inline TCHAR*
 expand_text(expand_t* expand)
 {
     UINT ids;
@@ -147,10 +153,10 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
     if(erase)
         theme_DrawThemeParentBackground(expand->win, dc, dirty);
 
-    /* According to MSDN guidelines, the controls of such nature as this one,
-     * it should never be disabled, but removed instead. I.e. application
-     * should rather hide the control then to disable it. Anyway we refuse
-     * to paint it.
+    /* According to MSDN guidelines, the controls of such nature as this one
+     * should never be disabled, but removed instead. I.e. application
+     * should rather hide the control then to disable it. If it dows not,
+     * we refuse to paint.
      *
      * Quote: "Remove (don't disable) progressive disclosure controls that
      * don't apply in the current context."
@@ -216,9 +222,11 @@ expand_do_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 static inline int
 expand_theme_state(DWORD state)
 {
-    if(state & STATE_PRESSED)   return PBS_PRESSED;
-    else if(state & STATE_HOT)  return PBS_HOT;
-    else                        return PBS_NORMAL;
+    switch(state & (STATE_PRESSED | STATE_HOT)) {
+        case STATE_PRESSED:  return PBS_PRESSED;
+        case STATE_HOT:      return PBS_HOT;
+        default:             return PBS_NORMAL;
+    }
 }
 
 static void
@@ -335,15 +343,15 @@ expand_set_state(expand_t* expand, DWORD state)
 
     expand->old_state = expand->state;
     expand->state = state;
+    mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDING);
 
     theme_BufferedPaintStopAllAnimations(expand->win);
-
     if(!expand->no_redraw)
         InvalidateRect(expand->win, NULL, TRUE);
 }
 
 static void
-expand_guess_size(expand_t* expand, SIZE* size)
+expand_guess_client_size(expand_t* expand, SIZE* size, BOOL expanded)
 {
     HFONT dlg_font;
     int dlg_padding;
@@ -388,7 +396,7 @@ expand_guess_size(expand_t* expand, SIZE* size)
     if(top < dlg_padding)
         dlg_padding = top;
 
-    if(expand->state & STATE_EXPANDED) {
+    if(expanded) {
         size->cy = bottom + dlg_padding;
     } else {
         RECT self_rect;
@@ -402,86 +410,198 @@ expand_guess_size(expand_t* expand, SIZE* size)
 }
 
 static void
-expand_resize_parent(expand_t* expand)
+expand_convert_size(expand_t* expand, SIZE* size, int sign)
 {
-    SIZE size;
-    RECT entire;
-    RECT old_rect;
-    RECT new_rect;
-    HWND child;
-    RECT r;
+    RECT entire_rect;
+    RECT client_rect;
 
-    /* Get the size we need to resize to */
+    GetWindowRect(expand->notify_win, &entire_rect);
+    GetClientRect(expand->notify_win, &client_rect);
+    MapWindowPoints(expand->notify_win, NULL, (POINT*) &client_rect, 2);
+
+    size->cx += sign * (mc_width(&entire_rect) - mc_width(&client_rect));
+    size->cy += sign * (mc_height(&entire_rect) - mc_height(&client_rect));
+}
+
+static inline void
+expand_client_to_entire(expand_t* expand, SIZE* size)
+{
+    expand_convert_size(expand, size, +1);
+}
+
+static inline void
+expand_entire_to_client(expand_t* expand, SIZE* size)
+{
+    expand_convert_size(expand, size, -1);
+}
+
+static void
+expand_get_size(expand_t* expand, SIZE* entire_size, SIZE* client_size)
+{
+    BOOL is_entire;
+    BOOL guessed = FALSE;
+
+    /* Get the size the parent should have */
     if(expand->state & STATE_EXPANDED) {
-        size.cx = expand->expanded_w;
-        size.cy = expand->expanded_h;
+        client_size->cx = expand->expanded_w;
+        client_size->cy = expand->expanded_h;
     } else {
-        size.cx = expand->collapsed_w;
-        size.cy = expand->collapsed_h;
+        client_size->cx = expand->collapsed_w;
+        client_size->cy = expand->collapsed_h;
     }
 
     /* If not set explicitly, try to guess */
-    if(size.cx == 0  &&  size.cy == 0) {
-        expand_guess_size(expand, &size);
-
-        if(expand->style & MC_EXS_CACHESIZES) {
-            if(expand->state & STATE_EXPANDED) {
-                expand->expanded_w = size.cx;
-                expand->expanded_h = size.cy;
-            } else {
-                expand->collapsed_w = size.cx;
-                expand->collapsed_h = size.cy;
-            }
-        }
-    }
-
-    /* We need old (i.e. current) and new (i.e. desired) client rects to
-     * analyze what children are (in)covered. We want these in screen
-     * coords. */
-    GetWindowRect(expand->notify_win, &entire);
-    GetClientRect(expand->notify_win, &old_rect);
-    MapWindowPoints(expand->notify_win, NULL, (POINT*)&old_rect, 2);
-    mc_rect_set(&new_rect, old_rect.left, old_rect.top,
-                           old_rect.left + size.cx, old_rect.top + size.cy);
-
-    if(!(expand->style & MC_EXS_RESIZEENTIREWINDOW)) {
-        /* Add "padding" of the non-lient area for the parent resize */
-        size.cx += mc_width(&entire) - mc_width(&old_rect);
-        size.cy += mc_height(&entire) - mc_height(&old_rect);
+    if(client_size->cx == 0  &&  client_size->cy == 0) {
+        expand_guess_client_size(expand, client_size, (expand->state & STATE_EXPANDED));
+        is_entire = FALSE;
+        guessed = TRUE;
     } else {
-        /* Compensate new client rect for the fact the size already includes
-         * non-client area. */
-        new_rect.right -= mc_width(&entire) - mc_width(&old_rect);
-        new_rect.bottom -= mc_height(&entire) - mc_height(&old_rect);
+        is_entire = (expand->style & MC_EXS_RESIZEENTIREWINDOW);
     }
 
+    /* We need both, size of entire window and its client */
+    entire_size->cx = client_size->cx;
+    entire_size->cy = client_size->cy;
+    if(is_entire)
+        expand_entire_to_client(expand, client_size);
+    else
+        expand_client_to_entire(expand, entire_size);
 
-    /* Show/hide children (un)covered by the resize of parent */
-#define OVERLAP(a,b)   (!(a.bottom <= b.top  ||  a.top >= b.bottom  ||   \
-                          a.right <= b.left  ||  a.left >= b.right))
-    for(child = GetWindow(expand->notify_win, GW_CHILD);
-        child != NULL;
-        child = GetWindow(child, GW_HWNDNEXT))
-    {
-        GetWindowRect(child, &r);
-
+    /* We may want to remember it for next time */
+    if(guessed  &&  (expand->style & MC_EXS_CACHESIZES)) {
+        SIZE* p_size = ((expand->style & MC_EXS_RESIZEENTIREWINDOW)
+                                        ? entire_size : client_size);
         if(expand->state & STATE_EXPANDED) {
-            if(!OVERLAP(r, old_rect)  &&  OVERLAP(r, new_rect)) {
-                EnableWindow(child, TRUE);
-                ShowWindow(child, SW_SHOW);
-            }
+            expand->expanded_w = p_size->cx;
+            expand->expanded_h = p_size->cy;
         } else {
-            if(OVERLAP(r, old_rect)  &&  !OVERLAP(r, new_rect)) {
-                ShowWindow(child, SW_HIDE);
-                EnableWindow(child, FALSE);
-            }
+            expand->collapsed_w = p_size->cx;
+            expand->collapsed_h = p_size->cy;
         }
     }
-#undef OVERLAP
+}
 
-    /* Finally resize the parent */
-    SetWindowPos(expand->notify_win, NULL, 0, 0, size.cx, size.cy,
+static inline void
+expand_do_resize(expand_t* expand, SIZE* entire_size)
+{
+    /* Resize the parent */
+    SetWindowPos(expand->notify_win, NULL, 0, 0, entire_size->cx, entire_size->cy,
                  SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+}
+
+static void
+expand_handle_children(expand_t* expand, RECT* old_rect, RECT* new_rect)
+{
+    HWND child_win;
+
+    if(expand->style & MC_EXS_IGNORECHILDREN)
+        return;
+
+    /* Enable/disable children to be (un)covered by the resize */
+    for(child_win = GetWindow(expand->notify_win, GW_CHILD);
+        child_win != NULL;
+        child_win = GetWindow(child_win, GW_HWNDNEXT))
+    {
+        RECT child_rect;
+        BOOL in_old_rect;
+        BOOL in_new_rect;
+
+        GetWindowRect(child_win, &child_rect);
+        in_old_rect = mc_rect_overlaps_rect(old_rect, &child_rect);
+        in_new_rect = mc_rect_contains_rect(new_rect, &child_rect);
+        if(in_old_rect != in_new_rect) {
+            EnableWindow(child_win, in_new_rect);
+            ShowWindow(child_win, in_new_rect);
+        }
+    }
+}
+
+static void
+expand_animate_resize_callback(expand_t* expand)
+{
+    SIZE entire_size;
+    SIZE client_size;
+    RECT r;
+    int w, h;
+    int dw, dh;
+    BOOL done;
+
+    GetWindowRect(expand->win, &r);
+    w = mc_width(&r);
+    h = mc_height(&r);
+    expand_get_size(expand, &entire_size, &client_size);
+
+    done = (w == entire_size.cx  &&  h == entire_size.cy);
+    if(!done) {
+        if(expand->anim_frame != ANIM_FRAMES-1) {
+            dw = expand->anim_frame * (entire_size.cx - expand->anim_start_w) / ANIM_FRAMES;
+            dh = expand->anim_frame * (entire_size.cy - expand->anim_start_h) / ANIM_FRAMES;
+            entire_size.cx = expand->anim_start_w + dw;
+            entire_size.cy = expand->anim_start_h + dh;
+
+            client_size.cx = entire_size.cx;
+            client_size.cy = entire_size.cy;
+            expand_entire_to_client(expand, &client_size);
+        } else {
+            done = TRUE;
+        }
+
+        expand_do_resize(expand, &entire_size);
+    }
+
+    if(done) {
+        RECT old_rect, new_rect;
+
+        expand->anim_frame = 0;
+        KillTimer(expand->win, ANIM_TIMER_ID);
+
+        mc_rect_set(&old_rect, 0, 0, expand->anim_start_w, expand->anim_start_h);
+        mc_rect_set(&new_rect, 0, 0, client_size.cx, client_size.cy);
+        expand_handle_children(expand, &old_rect, &new_rect);
+        mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDED);
+    } else {
+        expand->anim_frame++;
+    }
+}
+
+static void
+expand_animate_resize(expand_t* expand, SIZE* entire_size, SIZE* client_size)
+{
+    RECT rect;
+
+    GetWindowRect(expand->notify_win, &rect);
+    expand->anim_start_w = mc_width(&rect);
+    expand->anim_start_h = mc_height(&rect);
+    expand->anim_frame = 0;
+
+    SetTimer(expand->win, ANIM_TIMER_ID, ANIM_TIMER_INTERVAL, NULL);
+}
+
+static void
+expand_resize(expand_t* expand, DWORD flags)
+{
+    SIZE entire_size;
+    SIZE client_size;
+
+    expand_get_size(expand, &entire_size, &client_size);
+
+    if((expand->style & MC_EXS_ANIMATE)  &&  !(flags & MC_EXE_NOANIMATE)) {
+        expand_animate_resize(expand, &entire_size, &client_size);
+    } else {
+        RECT old_rect, new_rect;
+
+        /* If any animation in progress, stop it. */
+        if(expand->anim_frame != 0) {
+            expand->anim_frame = 0;
+            KillTimer(expand->win, ANIM_TIMER_ID);
+        }
+
+        expand_do_resize(expand, &entire_size);
+        GetClientRect(expand->win, &old_rect);
+        mc_rect_set(&new_rect, 0, 0, client_size.cx, client_size.cy);
+        expand_handle_children(expand, &old_rect, &new_rect);
+        mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDED);
+    }
 }
 
 static expand_t*
@@ -584,16 +704,23 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 expand_set_state(expand, expand->state | STATE_EXPANDED);
             else
                 expand_set_state(expand, expand->state & ~STATE_EXPANDED);
-            expand_resize_parent(expand);
+            expand_resize(expand, lp);
             return TRUE;
 
         case MC_EXM_TOGGLE:
             expand_set_state(expand, expand->state ^ STATE_EXPANDED);
-            expand_resize_parent(expand);
+            expand_resize(expand, lp);
             return TRUE;
 
         case MC_EXM_ISEXPANDED:
             return (expand->state & STATE_EXPANDED) ? TRUE : FALSE;
+
+        case WM_TIMER:
+            if(wp == ANIM_TIMER_ID) {
+                expand_animate_resize_callback(expand);
+                return 0;
+            }
+            break;
 
         case WM_MOUSEMOVE:
         {
@@ -630,8 +757,8 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(expand->state & STATE_PRESSED) {
                 int x = GET_X_LPARAM(lp);
                 int y = GET_Y_LPARAM(lp);
-                BOOL toggle;
                 DWORD state = (expand->state & ~STATE_PRESSED);
+                BOOL toggle;
 
                 toggle = expand_is_mouse_in_active_rect(expand, x, y);
                 if(toggle)
@@ -643,7 +770,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 }
 
                 if(toggle)
-                    expand_resize_parent(expand);
+                    expand_resize(expand, 0);
             }
             return 0;
 
@@ -664,7 +791,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 }
                 expand->space_pressed = 0;
                 expand_set_state(expand, (expand->state & ~STATE_PRESSED) ^ STATE_EXPANDED);
-                expand_resize_parent(expand);
+                expand_resize(expand, 0);
             }
             return 0;
 

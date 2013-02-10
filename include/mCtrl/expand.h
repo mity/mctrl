@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Martin Mitas
+ * Copyright (c) 2012-2013 Martin Mitas
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,8 @@ extern "C" {
  * In addition, when collapsing, the control automatically disables and hides
  * all child windows of the managed window which fall out of the visible area;
  * and when expaning it enables and shows all the child windows revealed by the
- * resize operation.
+ * resize operation. Application can disable this behavior with the style
+ * @c MC_EXS_IGNORECHILDREN.
  *
  *
  * @section Managed Window
@@ -146,6 +147,47 @@ void MCTRL_API mcExpand_Terminate(void);
  */
 #define MC_EXS_DOUBLEBUFFER         0x0004
 
+/**
+ * @brief Causes the control changes size of parent window using an animation.
+ *
+ * Using this style causes the control will send series of WM_SIZE messages
+ * to the parent window in a period of the animation time, gradually changing
+ * its size to the desired values.
+ *
+ * Application has to take this into account as if there are other means which
+ * change the window size, they can interfere.
+ */
+#define MC_EXS_ANIMATE              0x0008
+
+/**
+ * @brief Instructs the control to not change state of children of the managed
+ * window.
+ *
+ * When not set, it may show/hide and enable/disable child windows of the
+ * managed window, whenever they are (un)covered by the managed window
+ * resizing.
+ *
+ * However that might interfere with application's logic about
+ * enabling/disabling the controls.
+ *
+ * If you use this style, application should make disable the children manually
+ * in the response to control notification @c MC_EXN_EXPANDING or
+ * @c MC_EXN_EXPANDED.
+ */
+#define MC_EXS_IGNORECHILDREN       0x0010
+
+/*@}*/
+
+
+/**
+ * @name Flags for @c MC_EXM_EXPAND and MC_EXM_TOGGLE
+ * @anchor MC_EXE_xxxx
+ */
+/*@{*/
+
+/** @brief Perform the expand/collapsed without using an animation. */
+#define MC_EXE_NOANIMATE           (1 << 0)
+
 /*@}*/
 
 
@@ -204,7 +246,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @brief Sets current state of the control to expanded or collapsed.
  *
  * @param wParam[in] (@c BOOL) Set to @c TRUE to expand, @c FALSE to collapse.
- * @param lParam Reserved, set to zero.
+ * @param lParam[in] (@c DWORD) Flags. See @ref MC_EXE_xxxx.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_EXM_EXPAND              (MC_EXM_FIRST + 4)
@@ -213,7 +255,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @brief Toggles current state of the control between expanded and collapsed.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam Reserved, set to zero.
+ * @param lParam[in] (@c DWORD) Flags. See @ref MC_EXE_xxxx.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_EXM_TOGGLE              (MC_EXM_FIRST + 5)
@@ -229,6 +271,40 @@ void MCTRL_API mcExpand_Terminate(void);
 
 /*@}*/
 
+
+/**
+ * @name Control Notifications
+ */
+/*@{*/
+
+/**
+ * @brief Fired when the control begins expansing or collapsing the parent
+ * window.
+ *
+ * When application receives the message, the control is logically already in
+ * the desired style, so it can ask about it using @c MC_EXM_ISEXPANDED.
+ *
+ * However the size of the preant window may be different from the desired
+ * state if the control animates it, as that takes some time.
+ * When the parent resizing is also finished, the application will receive
+ * notification @c MC_EXN_EXPANDED.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@c NMHDR*)
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_EXN_EXPANDING           (MC_EXN_FIRST + 0)
+
+/**
+ * @brief Fired after the control has finished resing the parent window.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@c NMHDR*)
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_EXN_EXPANDED            (MC_EXN_FIRST + 1)
+
+/*@}*/
 
 
 /**
