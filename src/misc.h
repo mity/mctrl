@@ -410,89 +410,40 @@ mc_unref(mc_ref_t* i)
 /* These are so trivial that inlining these is probably always better then
  * calling Win32API functions like InflateRect() etc. */
 
-static inline LONG
-mc_rect_width(const RECT* r)
-{
-    return (r->right - r->left);
-}
-
-static inline LONG
-mc_rect_height(const RECT* r)
-{
-    return (r->bottom - r->top);
-}
+static inline LONG mc_rect_width(const RECT* r)
+    { return (r->right - r->left); }
+static inline LONG mc_rect_height(const RECT* r)
+    { return (r->bottom - r->top); }
 
 /* These are too common, so lets save typing. */
 #define mc_width   mc_rect_width
 #define mc_height  mc_rect_height
 
-static inline BOOL
-mc_rect_is_empty(const RECT* r)
-{
-    return (r->left >= r->right  ||  r->top >= r->bottom);
-}
+static inline BOOL mc_rect_is_empty(const RECT* r)
+    { return (r->left >= r->right  ||  r->top >= r->bottom); }
 
-static inline void
-mc_rect_set(RECT* r, LONG x0, LONG y0, LONG x1, LONG y1)
-{
-    r->left = x0;
-    r->top = y0;
-    r->right = x1;
-    r->bottom = y1;
-}
+static inline void mc_rect_set(RECT* r, LONG x0, LONG y0, LONG x1, LONG y1)
+    { r->left = x0; r->top = y0; r->right = x1; r->bottom = y1; }
+static inline void mc_rect_copy(RECT* r0, const RECT* r1)
+    { mc_rect_set(r0, r1->left, r1->top, r1->right, r1->bottom); }
 
-static inline void
-mc_rect_copy(RECT* r0, const RECT* r1)
-{
-    r0->left = r1->left;
-    r0->top = r1->top;
-    r0->right = r1->right;
-    r0->bottom = r1->bottom;
-}
+static inline void mc_rect_offset(RECT* r, LONG dx, LONG dy)
+    { r->left += dx; r->top += dy; r->right += dx; r->bottom += dy; }
+static inline void mc_rect_inflate(RECT* r, LONG dx, LONG dy)
+    { r->left -= dx; r->top -= dy; r->right += dx; r->bottom += dy; }
 
-static inline void
-mc_rect_offset(RECT* r, LONG dx, LONG dy)
-{
-    r->left += dx;
-    r->top += dy;
-    r->right += dx;
-    r->bottom += dy;
-}
-
-static inline void
-mc_rect_inflate(RECT* r, LONG dx, LONG dy)
-{
-    r->left -= dx;
-    r->top -= dy;
-    r->right += dx;
-    r->bottom += dy;
-}
-
-static inline BOOL
-mc_rect_contains_xy(const RECT* r, LONG x, LONG y)
-{
-    return (r->left <= x  &&  x < r->right  &&
-            r->top <= y  &&  y < r->bottom);
-}
-
-static inline BOOL
-mc_rect_contains_pt(const RECT* r, const POINT* pt)
-{
-    return mc_rect_contains_xy(r, pt->x, pt->y);
-}
-
-static inline BOOL
-mc_rect_contains_pos(const RECT* r, DWORD pos)
-{
-    return mc_rect_contains_xy(r, GET_X_LPARAM(pos), GET_Y_LPARAM(pos));
-}
-
-static inline BOOL
-mc_rect_overlaps_rect(const RECT* r0, const RECT* r1)
-{
-    return (r0->left < r1->right  &&  r0->top < r1->bottom  &&
-            r0->right > r1->left  &&  r0->bottom > r1->top);
-}
+static inline BOOL mc_rect_contains_xy(const RECT* r, LONG x, LONG y)
+    { return (r->left <= x  &&  x < r->right  &&  r->top <= y  &&  y < r->bottom); }
+static inline BOOL mc_rect_contains_pt(const RECT* r, const POINT* pt)
+    { return mc_rect_contains_xy(r, pt->x, pt->y); }
+static inline BOOL mc_rect_contains_pos(const RECT* r, DWORD pos)
+    { return mc_rect_contains_xy(r, GET_X_LPARAM(pos), GET_Y_LPARAM(pos)); }
+static inline BOOL mc_rect_contains_rect(const RECT* r0, const RECT* r1)
+    { return (r0->left <= r1->left  &&  r1->right <= r0->right  &&
+              r0->top <= r1->top  &&  r1->bottom <= r0->bottom); }
+static inline BOOL mc_rect_overlaps_rect(const RECT* r0, const RECT* r1)
+    { return (r0->left < r1->right  &&  r0->top < r1->bottom  &&
+              r0->right > r1->left  &&  r0->bottom > r1->top); }
 
 
 /**************************
