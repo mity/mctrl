@@ -42,17 +42,6 @@ static const WCHAR expand_tc[] = L"BUTTON";       /* Theming identifier */
 static HBITMAP expand_glyphs[3];
 
 
-typedef enum expand_state_tag expand_state_t;
-enum expand_state_tag {
-    COLLAPSED_NORMAL    = 0,
-    COLLAPSED_HOT       = 1,
-    COLLAPSED_PRESSED   = 2,
-    EXPANDED_NORMAL     = 3,
-    EXPANDED_HOT        = 4,
-    EXPANDED_PRESSED    = 5
-};
-
-
 /* expand_t::state bits */
 #define STATE_HOT              0x1
 #define STATE_PRESSED          0x2
