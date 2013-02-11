@@ -511,7 +511,7 @@ expand_handle_children(expand_t* expand, RECT* old_rect, RECT* new_rect)
         in_new_rect = mc_rect_contains_rect(new_rect, &child_rect);
         if(in_old_rect != in_new_rect) {
             EnableWindow(child_win, in_new_rect);
-            ShowWindow(child_win, in_new_rect);
+            ShowWindow(child_win, (in_new_rect ? SW_SHOW : SW_HIDE));
         }
     }
 }
