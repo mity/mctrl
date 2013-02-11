@@ -819,7 +819,7 @@ mditab_get_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
-    if(MC_ERR(index < 0  ||  mditab_count(mditab))) {
+    if(MC_ERR(index < 0  || index >= mditab_count(mditab))) {
         MC_TRACE("mditab_get_item: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
