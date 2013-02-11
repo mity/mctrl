@@ -642,7 +642,7 @@ typedef struct MC_TLHITTESTINFO_tag {
  * rely on their value.
  *
  * If the notification specifies old and/or new item, their its handle and
- * @lParam ius stored. If application needs additional information about the
+ * @c lParam is stored. If application needs additional information about the
  * item it has to use @ref MC_TLM_GETITEM message to retrieve it.
  */
 typedef struct MC_NMTREELIST_tag {
