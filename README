@@ -13,9 +13,9 @@ MS Windows, intended to be complementary to standard Win32API controls from
 USER32.DLL and COMCTL32.DLL.
 
 API of the library is designed to be similar to the Win32API. I.e. after window
-class of particular control is registered with some initialization function,
-the control can be normally created with the Win32API's CreateWindow() or
-CreateWindowEx() functions and controlled with SendMessage().
+class of particular control is registered with corresponding initialization
+function, the control can be normally created with the Win32API's CreateWindow()
+or CreateWindowEx() functions and controlled with SendMessage().
 
 
 License
@@ -26,17 +26,17 @@ mCtrl itself is covered with the GNU Lesser General Public License 2.1 or
 
 In brief, this generally means that:
 
- * Any program or library, even commercial, covered with any proprietary
-   license, is allowed to link against the mCtrl's import libraries and
-   distribute MCTRL.DLL along with the program.
+   * Any program or library, even commercial, covered with any proprietary
+     license, is allowed to link against the mCtrl's import libraries and
+     distribute MCTRL.DLL along with the program.
 
- * You can modify MCTRL.DLL (or its source code) and distribute such modified
-   MCTRL.DLL only if the modifications are also licensed under the terms of
-   the LGPL 2.1 (or any later version); or under the terms of GPL 2 (or any
-   later version).
+   * You can modify MCTRL.DLL (or its source code) and distribute such modified
+     MCTRL.DLL only if the modifications are also licensed under the terms of
+     the LGPL 2.1 (or any later version); or under the terms of GPL 2 (or any
+     later version).
 
 Source code of all examples, i.e. contents of the directory 'examples' within
-source the package, are in public domain.
+the source package (see below), are in public domain.
 
 
 Getting mCtrl
@@ -48,7 +48,7 @@ webpages:
     * http://sourceforge.net/projects/mctrl
 
 There are usually two packages for each release version available:
-    * mCtrl-x.y.z-bin.zip ... pre-built package
+    * mCtrl-x.y.z-bin.zip ... pre-built binary package
     * mCtrl-x.y.z-src.zip ... source package
 
 The pre-built package contains 32-bit as well as 64-bit binaries of MCTRL.DLL
@@ -59,8 +59,8 @@ package is direct export of source tree from version control system repository.
 Using mCtrl
 ===========
 
-If you have a pre-built package (either 32-bit or 64-bit), using mCtrl is as
-easy as using any other DLL.
+If you have the pre-built package, using mCtrl is as easy as using any other
+DLL.
 
 Header files are located in 'include\mCtrl' directory. You should instruct
 your C/C++ compiler to search for header files in the 'include' directory and
@@ -68,15 +68,15 @@ use the 'mCtrl' in your preprocessor #include directives, e.g.:
 
     #include <mCtrl/version.h>
 
-Import libraries are under the 'lib' subdirectory:
+Import libraries are located under the 'lib' and 'lib64' subdirectory:
     * libmCtrl.a for gcc-based toolchains (e.g. mingw, mingw-w64)
     * mCtrl.lib for MSVC
 
-And finally deploy your application with the MCTRL.DLL (which is located
-in the 'bin' and 'bin64' subdirectories in the prebuilt package).
+And finally deploy your application with the MCTRL.DLL which is located
+in the 'bin' and 'bin64' subdirectories in the prebuilt package.
 
-Documentation for application developers is bundled within the pre-built package.
-Or you can also find the documentation online:
+Documentation for application developers is bundled within the pre-built
+package, or you can also find the documentation online:
 
     http://mctrl.sourceforge.net/doc.php
 
@@ -89,18 +89,13 @@ the pre-built package.
 
 Primary development platform for mCtrl project is mingw-w64
 (see http://sf.net/projects/mingw-w64/) and MSYS. Assuming you have setup
-the environment, and have the mCtrl sources then the buld should as easy as
-running 'make' from the root directory:
+the environment, and have the mCtrl sources then the build should be as easy
+as running 'make' from the root directory:
 
     $ make
 
-It is possible to use variable PREFIX if the gcc toolchain was compiled as
-a cross-compiler. For example:
-
-    $ make PREFIX=i686-w64-mingw32-
-
-More details and information about buiding within other environments (e.g.
-MS VisualStudio) can be found in documentation.
+More details and information about buiding under other environments (e.g.
+MS Visual Studio) can be found in documentation.
 
 
 Reporting Bugs
@@ -110,3 +105,4 @@ If you encounter any bug, please be so kind and report it. We cannot fix bugs
 we do not know about. The bug tracker can be found here:
 
     https://github.com/mity/mctrl/issues
+s
