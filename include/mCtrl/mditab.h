@@ -511,6 +511,17 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  */
 #define MC_MTM_INITSTORAGE        (MC_MTM_FIRST + 17)
 
+/**
+ * @brief Get item rectangle.
+ * @details If the item is not currently visible, the returned rectangle is
+ * empty. If it is only partially visible, only the rectangle of the visible
+ * item part is retrieved.
+ * @param[in] wParam (@c int) Index of the item.
+ * @param[out] lParam (@c RECT*) Pointer to rectangle.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_MTM_GETITEMRECT        (MC_MTM_FIRST + 18)
+
 /*@}*/
 
 

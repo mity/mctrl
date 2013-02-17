@@ -36,7 +36,6 @@
  *
  * Messages:
  * - MC_MTM_REMOVEIMAGE (see TCM_REMOVEIMAGE)
- * - MC_MTM_GETITEMRECT (see TCM_GETITEMRECT)
  * - MC_MTM_SETTOOLTIPS/MC_MTM_GETTOOLTIPS (see TCM_SETTOOLTIPS/TCM_GETTOOLTIPS)
  * - MC_MTM_HITTEST - add support for MC_MTHT_ONITEMCLOSEBUTTON
  *
@@ -1212,6 +1211,24 @@ mditab_get_item_width(mditab_t* mditab, MC_MTITEMWIDTH* tw)
 }
 
 static BOOL
+mditab_get_item_rect(mditab_t* mditab, int index, RECT* rect)
+{
+    if(MC_ERR(index < 0  ||  index >= mditab_count(mditab))) {
+        MC_TRACE("mditab_get_item_rect: invalid tab index (%d)", index);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    mditab_calc_item_rect(mditab, index, rect);
+    if(rect->left < mditab->main_rect.left)
+        rect->left = mditab->main_rect.left;
+    if(rect->right > mditab->main_rect.right)
+        rect->right = mditab->main_rect.right;
+
+    return TRUE;
+}
+
+static BOOL
 mditab_command(mditab_t* mditab, WORD code, WORD ctrl_id, HWND ctrl)
 {
     MDITAB_TRACE("mditab_command(%p, %d, %d, %p)", mditab, code, ctrl_id, ctrl);
@@ -1533,6 +1550,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_MTM_INITSTORAGE:
             return (dsa_reserve(&mditab->items, (UINT)wp) == 0 ? TRUE : FALSE);
+
+        case MC_MTM_GETITEMRECT:
+            return mditab_get_item_rect(mditab, wp, (RECT*) lp);
 
         case WM_LBUTTONDOWN:
             mditab_left_button_down(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
