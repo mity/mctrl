@@ -446,6 +446,7 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
     BOOL need_scroll = FALSE;
     mditab_item_t* item;
     int old_space;
+    POINT pt;
 
     MDITAB_TRACE("mditab_layout(%p, %d)", mditab, refresh);
 
@@ -490,6 +491,7 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
         }
     }
 
+    /* Calculate ->main_rect */
     old_space = mc_width(&mditab->main_rect);
 
     mditab->main_rect.left = rect.left + 2 * MARGIN_H;
@@ -527,6 +529,12 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
     if(mditab->scroll_x < 0)
         mditab->scroll_x = 0;
 
+    /* Update ->hot_item */
+    GetCursorPos(&pt);
+    MapWindowPoints(NULL, mditab->win, &pt, 1);
+    if(mc_rect_contains_pt(&mditab->main_rect, &pt))
+        mditab_track_hot(mditab, pt.x, pt.y);
+
     /* Setup the toolbars */
     if(mditab->btn_mask != btn_mask) {
         while(MC_MSG(mditab->tb1_win, TB_DELETEBUTTON, 0, 0) == TRUE);
@@ -545,13 +553,13 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
 
     mditab_setup_toolbar_states(mditab);
 
+    /* Refresh */
     SetWindowPos(mditab->tb1_win, NULL, MARGIN_H, mditab->main_rect.top,
                  tb1_width, TOOLBAR_BTN_WIDTH,
                  SWP_NOZORDER | (tb1_width > 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
     SetWindowPos(mditab->tb2_win, NULL, rect.right - MARGIN_H - tb2_width,
                  mditab->main_rect.top, tb2_width, TOOLBAR_BTN_WIDTH,
                  SWP_NOZORDER | (tb2_width > 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
-
     if(refresh  &&  !mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);
 }
