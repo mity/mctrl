@@ -501,6 +501,32 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
     mditab->main_rect.top = rect.top + 5;
     mditab->main_rect.bottom = rect.bottom;
 
+    if(old_space != mc_width(&mditab->main_rect))
+        mditab_setup_all_desired_widths(mditab);
+
+    /* Layout items */
+    {
+        int x = 0;
+
+        for(i = 0; i < n; i++) {
+            item = mditab_item(mditab, i);
+            item->left = x;
+            x += item->desired_width;
+            item->right = x;
+        }
+
+        if(n > 0)
+            mditab->scroll_x_max = mditab_item(mditab, n-1)->right;
+        else
+            mditab->scroll_x_max = 0;
+    }
+
+    /* Ensure ->scroll_x is in the allowed range */
+    if(mditab->scroll_x > mditab->scroll_x_max - mc_width(&mditab->main_rect))
+        mditab->scroll_x = mditab->scroll_x_max - mc_width(&mditab->main_rect);
+    if(mditab->scroll_x < 0)
+        mditab->scroll_x = 0;
+
     /* Setup the toolbars */
     if(mditab->btn_mask != btn_mask) {
         while(MC_MSG(mditab->tb1_win, TB_DELETEBUTTON, 0, 0) == TRUE);
@@ -525,26 +551,6 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
     SetWindowPos(mditab->tb2_win, NULL, rect.right - MARGIN_H - tb2_width,
                  mditab->main_rect.top, tb2_width, TOOLBAR_BTN_WIDTH,
                  SWP_NOZORDER | (tb2_width > 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
-
-    if(old_space != mc_width(&mditab->main_rect))
-        mditab_setup_all_desired_widths(mditab);
-
-    /* Layout items */
-    {
-        int x = 0;
-
-        for(i = 0; i < n; i++) {
-            item = mditab_item(mditab, i);
-            item->left = x;
-            x += item->desired_width;
-            item->right = x;
-        }
-
-        if(n > 0)
-            mditab->scroll_x_max = mditab_item(mditab, n-1)->right;
-        else
-            mditab->scroll_x_max = 0;
-    }
 
     if(refresh  &&  !mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);
