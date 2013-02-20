@@ -23,8 +23,6 @@
 /* TODO:
  *
  * Features:
- * - Animation when tab removed, when scrolling tabs to left/right,
- *   when resizing.
  * - Support drag&drop:
  *    [a] reordering tabs with mouse drag&drop in the control
  *        (fully implemented internally in mCtrl.dll)
@@ -78,6 +76,11 @@ static const TCHAR toolbar_wc[] = TOOLBARCLASSNAME;
 #define HOT_TRACK_TIMER_ID            1
 #define HOT_TRACK_TIMER_INTERVAL    100
 
+/* Timer for animation */
+#define ANIM_TIMER_ID                 2
+#define ANIM_TIMER_INTERVAL       (1000 / 25)   /* 25 frames per sec. */
+#define ANIM_DELTA                   32         /* max. pixels to move between frames */
+
 /* Child control IDs */
 #define IDC_TBAR_1                  100  /* left toolbar */
 #define IDC_SCROLL_LEFT             101
@@ -119,7 +122,11 @@ struct mditab_tag {
     DWORD btn_mask     :  3;
     DWORD no_redraw    :  1;
     DWORD hot_tracking :  1;
+    DWORD dirty_layout :  1;
+    DWORD dirty_scroll :  1;
+    DWORD is_animating :  1;
     int scroll_x;
+    int scroll_x_desired;
     int scroll_x_max;
     SHORT item_selected;
     SHORT item_hot;            /* tracked only when themed */
@@ -165,6 +172,15 @@ mditab_calc_desired_width(mditab_t* mditab, WORD index)
 }
 
 static inline void
+mditab_inflate_selected_item_rect(RECT* rect)
+{
+    rect->left -= 2;
+    rect->top -= 2;
+    rect->right += 1;
+    rect->bottom += 1;
+}
+
+static inline void
 mditab_calc_item_rect(mditab_t* mditab, WORD index, RECT* rect)
 {
     mditab_item_t* item = mditab_item(mditab, index);
@@ -174,12 +190,8 @@ mditab_calc_item_rect(mditab_t* mditab, WORD index, RECT* rect)
     rect->right = mditab->main_rect.left + item->right - mditab->scroll_x;
     rect->bottom = mditab->main_rect.bottom - 4;
 
-    if(index == mditab->item_selected) {
-        rect->left -= 2;
-        rect->top -= 2;
-        rect->right += 1;
-        rect->bottom += 1;
-    }
+    if(index == mditab->item_selected)
+        mditab_inflate_selected_item_rect(rect);
 }
 
 static inline void
@@ -301,19 +313,19 @@ nowhere:
 static void
 mditab_invalidate_item(mditab_t* mditab, int index)
 {
-#if 0
-    /* TODO: this makes strnage artifacts */
     RECT r;
 
     if(mditab->no_redraw  ||  !mditab_is_item_visible(mditab, index))
         return;
 
     mditab_calc_item_rect(mditab, index, &r);
+
+    /* Invalidate a bit more to avoid artifacts for item loosing the selected
+     * state. */
+    if(mditab->item_selected != index)
+        mditab_inflate_selected_item_rect(&r);
+
     InvalidateRect(mditab->win, &r, TRUE);
-#else
-    if(!mditab->no_redraw  &&  mditab_is_item_visible(mditab, index))
-        InvalidateRect(mditab->win, NULL, TRUE);
-#endif
 }
 
 static void CALLBACK
@@ -425,6 +437,67 @@ mditab_setup_toolbar_states(mditab_t* mditab)
     }
 }
 
+/* Forward declaration */
+static void mditab_animate(mditab_t* mditab);
+
+static int
+mditab_anim_next_value(int value, int desired_value)
+{
+    if(value < desired_value)
+        value = MC_MIN(value + ANIM_DELTA, desired_value);
+    else if(value > desired_value)
+        value = MC_MAX(value - ANIM_DELTA, desired_value);
+    return value;
+}
+
+static void
+mditab_do_scroll(mditab_t* mditab, int delta, BOOL animate, BOOL refresh)
+{
+    int max_scroll = mditab->scroll_x_max - mc_width(&mditab->main_rect);
+    int old_scroll;
+
+    mditab->scroll_x_desired = mditab->scroll_x_desired + delta;
+    if(mditab->scroll_x_desired > max_scroll)
+        mditab->scroll_x_desired = max_scroll;
+    if(mditab->scroll_x_desired < 0)
+        mditab->scroll_x_desired = 0;
+
+    if(mditab->scroll_x == mditab->scroll_x_desired) {
+        mditab->dirty_scroll = FALSE;
+        return;
+    }
+
+    old_scroll = mditab->scroll_x;
+
+    if(mditab->style & MC_MTS_ANIMATE) {
+        mditab->scroll_x = mditab_anim_next_value(mditab->scroll_x, mditab->scroll_x_desired);
+        mditab->dirty_scroll = (mditab->scroll_x != mditab->scroll_x_desired);
+        if(mditab->dirty_scroll)
+            mditab_animate(mditab);
+    } else {
+        mditab->scroll_x = mditab->scroll_x_desired;
+        mditab->dirty_scroll = FALSE;
+    }
+
+    mditab_setup_toolbar_states(mditab);
+    if(refresh  &&  !mditab->no_redraw) {
+        RECT r;
+        RECT update_rect;
+        GetClientRect(mditab->win, &r);
+        r.left = mditab->main_rect.left;
+        r.right = mditab->main_rect.right;
+        ScrollWindowEx(mditab->win, old_scroll - mditab->scroll_x, 0, &r, &r,
+                       NULL, &update_rect, SW_ERASE | SW_INVALIDATE);
+        InvalidateRect(mditab->win, &update_rect, TRUE);
+    }
+}
+
+static inline void
+mditab_scroll(mditab_t* mditab, int delta, BOOL refresh)
+{
+    mditab_do_scroll(mditab, delta, (mditab->style & MC_MTS_ANIMATE), refresh);
+}
+
 static inline void
 mditab_add_button(HWND tb_win, int cmd_id, int bmp_id, BYTE style)
 {
@@ -437,7 +510,7 @@ mditab_add_button(HWND tb_win, int cmd_id, int bmp_id, BYTE style)
 }
 
 static void
-mditab_layout(mditab_t* mditab, BOOL refresh)
+mditab_do_layout(mditab_t* mditab, BOOL animate, BOOL refresh)
 {
     RECT rect;
     DWORD btn_mask;
@@ -448,7 +521,7 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
     int old_space;
     POINT pt;
 
-    MDITAB_TRACE("mditab_layout(%p, %d)", mditab, refresh);
+    MDITAB_TRACE("mditab_do_layout(%p, %d)", mditab, refresh);
 
     GetClientRect(mditab->win, &rect);
     n = mditab_count(mditab);
@@ -482,7 +555,18 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
         if(tb2_width > 0)
             space -= tb2_width + MARGIN_H;
 
-        needed_space = n * mditab->item_min_width;
+        if(mditab->style & MC_MTS_ANIMATE) {
+            /* Strictly speaking, this is wrong. We would need oraculum to
+             * get the new ->scroll_x_max after the calculations below
+             * (or perform those calculations twice). But instead we make sure
+             * that when the animation ends, mditab_animate_timer_proc() calls
+             * whole this function once more, syncing the toolbars to the
+             * expected state. The impact to user experience is negligible, and
+             * it saves some CPU cycles and simplifies the code very much. */
+            needed_space = mditab->scroll_x_max;
+        } else {
+            needed_space = n * mditab->item_min_width;
+        }
 
         if(needed_space > space) {
             btn_mask |= BTN_SCROLL;
@@ -507,7 +591,24 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
         mditab_setup_all_desired_widths(mditab);
 
     /* Layout items */
-    {
+    mditab->dirty_layout = FALSE;
+    if(animate) {
+        int desired_x = 0;
+
+        for(i = 0; i < n; i++) {
+            item = mditab_item(mditab, i);
+            item->left = mditab_anim_next_value(item->left, desired_x);
+            if(item->left != desired_x)
+                mditab->dirty_layout = TRUE;
+            desired_x += item->desired_width;
+            item->right = mditab_anim_next_value(item->right, desired_x);
+            if(item->right != desired_x)
+                mditab->dirty_layout = TRUE;
+        }
+
+        if(mditab->dirty_layout)
+            mditab_animate(mditab);
+    } else {
         int x = 0;
 
         for(i = 0; i < n; i++) {
@@ -516,18 +617,17 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
             x += item->desired_width;
             item->right = x;
         }
-
-        if(n > 0)
-            mditab->scroll_x_max = mditab_item(mditab, n-1)->right;
-        else
-            mditab->scroll_x_max = 0;
     }
 
-    /* Ensure ->scroll_x is in the allowed range */
-    if(mditab->scroll_x > mditab->scroll_x_max - mc_width(&mditab->main_rect))
-        mditab->scroll_x = mditab->scroll_x_max - mc_width(&mditab->main_rect);
-    if(mditab->scroll_x < 0)
-        mditab->scroll_x = 0;
+    /* Ensure we are scrolled in the allowed range of the ->main_rect */
+    if(n > 0)
+        mditab->scroll_x_max = mditab_item(mditab, n-1)->right;
+    else
+        mditab->scroll_x_max = 0;
+    if(!mditab->dirty_scroll  &&
+       mditab->scroll_x > mditab->scroll_x_max - mc_width(&mditab->main_rect)) {
+        mditab_do_scroll(mditab, 0, animate, FALSE);
+    }
 
     /* Update ->hot_item */
     GetCursorPos(&pt);
@@ -562,6 +662,80 @@ mditab_layout(mditab_t* mditab, BOOL refresh)
                  SWP_NOZORDER | (tb2_width > 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
     if(refresh  &&  !mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);
+}
+
+static inline void
+mditab_layout(mditab_t* mditab, BOOL refresh)
+{
+    mditab_do_layout(mditab, (mditab->style & MC_MTS_ANIMATE), refresh);
+}
+
+static void CALLBACK
+mditab_animate_timer_proc(HWND win, UINT msg, UINT_PTR id, DWORD time)
+{
+    mditab_t* mditab = (mditab_t*) GetWindowLongPtr(win, 0);
+    BOOL do_layout = mditab->dirty_layout;
+    BOOL do_scroll = mditab->dirty_scroll;
+
+    if(!do_layout  &&  do_scroll) {
+        /* Path for optimized refresh via ScrollWindowEx() */
+        mditab_do_scroll(mditab, 0, TRUE, TRUE);
+    } else {
+        if(do_layout) {
+            mditab_do_layout(mditab, TRUE, FALSE);
+            if(!mditab->dirty_layout) {
+                /* This is a bit ugly hack. The animated layout change could
+                 * lead to new ->scroll_x_max, which may require to show/hide
+                 * scroll buttons. If we reached the desired state, we need
+                 * to make sure the toolbar is synced. */
+                mditab_do_layout(mditab, FALSE, FALSE);
+            }
+        }
+        if(do_scroll)
+            mditab_do_scroll(mditab, 0, TRUE, FALSE);
+
+        if(!mditab->no_redraw)
+            InvalidateRect(mditab->win, NULL, TRUE);
+    }
+
+    /* Stop the timer if we reached the desired state */
+    if(!mditab->dirty_scroll  &&  !mditab->dirty_layout) {
+        KillTimer(mditab->win, ANIM_TIMER_ID);
+        mditab->is_animating = FALSE;
+    }
+}
+
+static void
+mditab_animate_abort(mditab_t* mditab)
+{
+    if(mditab->is_animating) {
+        KillTimer(mditab->win, ANIM_TIMER_ID);
+        mditab->is_animating = FALSE;
+    }
+
+    if(mditab->dirty_layout)
+        mditab_do_layout(mditab, FALSE, TRUE);
+    if(mditab->dirty_scroll)
+        mditab_do_scroll(mditab, 0, FALSE, TRUE);
+}
+
+static void
+mditab_animate(mditab_t* mditab)
+{
+    int timer_id;
+
+    if(mditab->is_animating)
+        return;
+
+    timer_id = SetTimer(mditab->win, ANIM_TIMER_ID, ANIM_TIMER_INTERVAL,
+                        mditab_animate_timer_proc);
+    if(MC_ERR(timer_id == 0)) {
+        MC_TRACE("mditab_animate: SetTimer() failed.");
+        mditab_animate_abort(mditab);
+        return;
+    }
+
+    mditab->is_animating = TRUE;
 }
 
 static void
@@ -1038,22 +1212,6 @@ mditab_set_img_list(mditab_t* mditab, HIMAGELIST img_list)
     return old_img_list;
 }
 
-static void
-mditab_scroll(mditab_t* mditab, int delta)
-{
-    int max_scroll = mditab->scroll_x_max - mc_width(&mditab->main_rect);
-
-    mditab->scroll_x += delta;
-    if(mditab->scroll_x < 0)
-        mditab->scroll_x = 0;
-    if(mditab->scroll_x > max_scroll)
-        mditab->scroll_x = max_scroll;
-
-    mditab_setup_toolbar_states(mditab);
-    if(!mditab->no_redraw)
-        InvalidateRect(mditab->win, NULL, TRUE);
-}
-
 static int
 mditab_set_cur_sel(mditab_t* mditab, int index)
 {
@@ -1249,11 +1407,11 @@ mditab_command(mditab_t* mditab, WORD code, WORD ctrl_id, HWND ctrl)
 
     switch(ctrl_id) {
         case IDC_SCROLL_LEFT:
-            mditab_scroll(mditab, -DEFAULT_ITEM_DEF_WIDTH);
+            mditab_scroll(mditab, -DEFAULT_ITEM_DEF_WIDTH, TRUE);
             break;
 
         case IDC_SCROLL_RIGHT:
-            mditab_scroll(mditab, +DEFAULT_ITEM_DEF_WIDTH);
+            mditab_scroll(mditab, +DEFAULT_ITEM_DEF_WIDTH, TRUE);
             break;
 
         case IDC_CLOSE_ITEM:
@@ -1384,6 +1542,10 @@ static void
 mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 {
     mditab->style = ss->styleNew;
+
+    if(mditab->is_animating  &&  !(mditab->style & MC_MTS_ANIMATE))
+        mditab_animate_abort(mditab);
+
     mditab_layout(mditab, FALSE);
     if(!mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);

@@ -162,6 +162,13 @@ void MCTRL_API mcMditab_Terminate(void);
  *  resized. */
 #define MC_MTS_DOUBLEBUFFER          0x0100
 
+/**
+ * @brief Allow animation.
+ * @details Some operations, like scrolling to left or right and insertion
+ * or removal of items, are animated when this style is set.
+ */
+#define MC_MTS_ANIMATE               0x0200
+
 /*@}*/
 
 

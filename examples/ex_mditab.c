@@ -85,8 +85,8 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             MC_MTITEMWIDTH tw;
 
             /* Create mditab child window  */
-            hwndMdiTab = CreateWindow(MC_WC_MDITAB, _T(""),
-                WS_CHILD | WS_VISIBLE | MC_MTS_CLOSEONMCLICK | MC_MTS_DOUBLEBUFFER,
+            hwndMdiTab = CreateWindow(MC_WC_MDITAB, _T(""), WS_CHILD | WS_VISIBLE |
+                MC_MTS_CLOSEONMCLICK | MC_MTS_DOUBLEBUFFER | MC_MTS_ANIMATE,
                 0, 0, 0, 0, hWnd, (HMENU) IDC_MDITAB, hInst, NULL);
 
             /* Set an imagelist */
