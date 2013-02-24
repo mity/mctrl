@@ -765,7 +765,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
                 state = TTIS_NORMAL;
         }
 
-        theme_DrawThemeBackground(theme, dc, TABP_TOPTABITEM, state, rect, rect);
+        mcDrawThemeBackground(theme, dc, TABP_TOPTABITEM, state, rect, rect);
     } else {
         RECT r;
 
@@ -810,7 +810,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
 
         /* Do the draw */
         if(theme) {
-            theme_DrawThemeIcon(theme, dc, TABP_TOPTABITEM, TTIS_NORMAL,
+            mcDrawThemeIcon(theme, dc, TABP_TOPTABITEM, TTIS_NORMAL,
                            &rect_ico, mditab->img_list, item->img);
         } else {
             ImageList_Draw(mditab->img_list, item->img, dc,
@@ -829,7 +829,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
         flags |= DT_HIDEPREFIX;
     if(theme) {
         contents.top += 2;
-        theme_DrawThemeText(theme, dc, TABP_TOPTABITEM, state, item->text, -1,
+        mcDrawThemeText(theme, dc, TABP_TOPTABITEM, state, item->text, -1,
                             flags, 0, &contents);
     } else {
         if(index == mditab->item_selected)
@@ -860,7 +860,7 @@ mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     GetClientRect(mditab->win, &rect);
 
     if(erase)
-        theme_DrawThemeParentBackground(mditab->win, dc, &rect);
+        mcDrawThemeParentBackground(mditab->win, dc, &rect);
 
     dirty_left = MC_MAX(dirty->left, mditab->main_rect.left);
     dirty_right = MC_MIN(dirty->right, mditab->main_rect.right);
@@ -898,7 +898,7 @@ mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
         mc_rect_set(&r, rect.left - 5, rect.bottom - 5,
                     rect.right + 5, rect.bottom + 1);
-        theme_DrawThemeBackground(mditab->theme, dc, TABP_PANE, 0, &r, &r);
+        mcDrawThemeBackground(mditab->theme, dc, TABP_PANE, 0, &r, &r);
     } else {
         RECT r;
 
@@ -1552,13 +1552,13 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 }
 
 static void
-mditab_theme_changed(mditab_t* mditab)
+mditab_mcchanged(mditab_t* mditab)
 {
     POINT pos;
 
     if(mditab->theme)
-        theme_CloseThemeData(mditab->theme);
-    mditab->theme = theme_OpenThemeData(mditab->win, mditab_tc);
+        mcCloseThemeData(mditab->theme);
+    mditab->theme = mcOpenThemeData(mditab->win, mditab_tc);
     if(!mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);
 
@@ -1618,7 +1618,7 @@ mditab_create(mditab_t* mditab)
     MC_MSG(mditab->tb2_win, TB_SETBUTTONSIZE, 0,
            MAKELPARAM(TOOLBAR_BTN_WIDTH, TOOLBAR_BTN_WIDTH));
 
-    mditab->theme = theme_OpenThemeData(mditab->win, mditab_tc);
+    mditab->theme = mcOpenThemeData(mditab->win, mditab_tc);
     mditab_layout(mditab, FALSE);
     return 0;
 }
@@ -1634,7 +1634,7 @@ mditab_destroy(mditab_t* mditab)
     }
 
     if(mditab->theme) {
-        theme_CloseThemeData(mditab->theme);
+        mcCloseThemeData(mditab->theme);
         mditab->theme = NULL;
     }
 
@@ -1812,7 +1812,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_THEMECHANGED:
-            mditab_theme_changed(mditab);
+            mditab_mcchanged(mditab);
             return 0;
 
         case WM_UPDATEUISTATE:
@@ -1833,7 +1833,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case CCM_SETWINDOWTHEME:
-            theme_SetWindowTheme(win, (const WCHAR*) lp, NULL);
+            mcSetWindowTheme(win, (const WCHAR*) lp, NULL);
             return 0;
 
         case WM_NCCREATE:

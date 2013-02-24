@@ -497,17 +497,17 @@ treelist_label_rect(treelist_t* tl, HDC dc, const TCHAR* str, UINT dtjustify,
     UINT w;
 
     if(tl->theme != NULL  &&
-       theme_IsThemePartDefined(tl->theme, TVP_TREEITEM, 0)) {
+       mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0)) {
 #if 0
         /* What the hack???
-         * For some reason theme_GetThemeBackgroundContentRect() gets very
+         * For some reason mcGetThemeBackgroundContentRect() gets very
          * small borders with standard win7 style and so it seems std. controls
          * probably do not rely on it.
          */
 
         RECT tmp;
         mc_rect_copy(&tmp, rect);
-        theme_GetThemeBackgroundContentRect(tl->theme, dc, TVP_TREEITEM,
+        mcGetThemeBackgroundContentRect(tl->theme, dc, TVP_TREEITEM,
                         0, &tmp, rect);
         *padding_h = rect->left - tmp.left;
         *padding_v = rect->top - tmp.top;
@@ -554,7 +554,7 @@ treelist_paint_lines(treelist_t* tl, treelist_item_t* item, int level, HDC dc,
     int x, y;
 
     lb.lbStyle = BS_SOLID;
-    lb.lbColor = theme_GetThemeSysColor(tl->theme, COLOR_GRAYTEXT);
+    lb.lbColor = mcGetThemeSysColor(tl->theme, COLOR_GRAYTEXT);
     pen = ExtCreatePen(PS_COSMETIC | PS_ALTERNATE, 1, &lb, 0, NULL);
     old_pen = SelectObject(dc, pen);
 
@@ -600,14 +600,14 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
         SIZE glyph_size;
         RECT r;
 
-        theme_GetThemePartSize(tl->theme, dc, part, state,
+        mcGetThemePartSize(tl->theme, dc, part, state,
                                NULL, TS_DRAW, &glyph_size);
         r.left = (rect->left + rect->right - glyph_size.cx) / 2;
         r.top = (rect->top + rect->bottom - glyph_size.cy + 1) / 2;
         r.right = r.left + glyph_size.cx;
         r.bottom = r.top + glyph_size.cy;
         ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, NULL);
-        theme_DrawThemeBackground(tl->theme, dc, part, state, &r, NULL);
+        mcDrawThemeBackground(tl->theme, dc, part, state, &r, NULL);
     } else {
         int w = mc_width(rect);
         int h = mc_height(rect);
@@ -680,7 +680,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
 
     use_theme = (tl->theme != NULL  &&
-                 theme_IsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
+                 mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
 
     for(item = treelist_scrolled_item(tl, &level), y = header_height;
         item != NULL;
@@ -736,7 +736,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                         item_rect.right = tl->scroll_x_max - tl->scroll_x;
                     }
                     if(state != TREIS_NORMAL) {
-                        theme_DrawThemeBackground(tl->theme, dc,
+                        mcDrawThemeBackground(tl->theme, dc,
                                 TVP_TREEITEM, state, &item_rect, NULL);
                     }
                     if(tl->style & MC_TLS_FULLROWSELECT)
@@ -744,7 +744,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                     treelist_label_rect(tl, dc, item->text, DT_LEFT, &item_rect,
                                         &padding_h, &padding_v);
                     mc_rect_inflate(&item_rect, -padding_h, -padding_v);
-                    theme_DrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
+                    mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
                                         item->text, -1, ITEM_DTFLAGS, 0, &item_rect);
                     if(!(tl->style & MC_TLS_FULLROWSELECT))
                         state = TREIS_NORMAL;
@@ -803,7 +803,7 @@ paint_no_sel:
                 mc_rect_inflate(&item_rect, -padding_h, -padding_v);
 
                 if(use_theme) {
-                    theme_DrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
+                    mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
                             item->subitems[col_ix], -1, ITEM_DTFLAGS | justify,
                             0, &item_rect);
                 } else {
@@ -1022,9 +1022,9 @@ treelist_ncpaint(treelist_t* tl, HRGN orig_clip)
     mc_rect_offset(&rect, -rect.left, -rect.top);
     dc = GetWindowDC(tl->win);
     ExcludeClipRect(dc, edge_h, edge_v, rect.right - 2*edge_h, rect.bottom - 2*edge_v);
-    if(theme_IsThemeBackgroundPartiallyTransparent(tl->theme, 0, 0))
-        theme_DrawThemeParentBackground(tl->win, dc, &rect);
-    theme_DrawThemeBackground(tl->theme, dc, 0, 0, &rect, NULL);
+    if(mcIsThemeBackgroundPartiallyTransparent(tl->theme, 0, 0))
+        mcDrawThemeParentBackground(tl->win, dc, &rect);
+    mcDrawThemeBackground(tl->theme, dc, 0, 0, &rect, NULL);
     ReleaseDC(tl->win, dc);
 
     /* Use DefWindowProc() to paint scrollbars */
@@ -1043,7 +1043,7 @@ treelist_erasebkgnd(treelist_t* tl, HDC dc)
     GetWindowRect(tl->header_win, &header_rect);
     GetClientRect(tl->win, &rect);
     rect.top = mc_height(&header_rect);
-    FillRect(dc, &rect, theme_GetThemeSysColorBrush(tl->theme, COLOR_WINDOW));
+    FillRect(dc, &rect, mcGetThemeSysColorBrush(tl->theme, COLOR_WINDOW));
 }
 
 static void
@@ -2491,11 +2491,11 @@ treelist_notify_format(treelist_t* tl)
 }
 
 static void
-treelist_theme_changed(treelist_t* tl)
+treelist_mcchanged(treelist_t* tl)
 {
     if(tl->theme)
-        theme_CloseThemeData(tl->theme);
-    tl->theme = theme_OpenThemeData(tl->win, treelist_tc);
+        mcCloseThemeData(tl->theme);
+    tl->theme = mcOpenThemeData(tl->win, treelist_tc);
 
     if(!tl->no_redraw)
         InvalidateRect(tl->win, NULL, TRUE);
@@ -2547,7 +2547,7 @@ treelist_create(treelist_t* tl)
     MC_MSG(tl->header_win, HDM_SETUNICODEFORMAT, FALSE, 0);
 #endif
 
-    tl->theme = theme_OpenThemeData(tl->win, treelist_tc);
+    tl->theme = mcOpenThemeData(tl->win, treelist_tc);
     return 0;
 }
 
@@ -2557,7 +2557,7 @@ treelist_destroy(treelist_t* tl)
     treelist_delete_item(tl, NULL);
 
     if(tl->theme) {
-        theme_CloseThemeData(tl->theme);
+        mcCloseThemeData(tl->theme);
         tl->theme = NULL;
     }
 }
@@ -2788,7 +2788,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_THEMECHANGED:
-            treelist_theme_changed(tl);
+            treelist_mcchanged(tl);
             return 0;
 
         case WM_NOTIFYFORMAT:
@@ -2814,7 +2814,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case CCM_SETWINDOWTHEME:
-            theme_SetWindowTheme(win, (const WCHAR*) lp, NULL);
+            mcSetWindowTheme(win, (const WCHAR*) lp, NULL);
             return 0;
 
         case WM_NCCREATE:

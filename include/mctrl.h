@@ -33,6 +33,7 @@
 #include <mCtrl/table.h>
 #include <mCtrl/value.h>
 #include <mCtrl/version.h>
+#include <mCtrl/theme.h>
 #include <mCtrl/treelist.h>
 
 

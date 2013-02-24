@@ -196,5 +196,8 @@ DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 static module_t* mod_propview_deps[] = { &mod_mc, &mod_theme, &mod_propview };
 DEFINE_PUBLIC_IFACE(propview, PropView, mod_propview_deps)
 
+static module_t* mod_theme_deps[] = { &mod_mc, &mod_theme };
+DEFINE_PUBLIC_IFACE(theme, Theme, mod_theme_deps)
+
 static module_t* mod_treelist_deps[] = { &mod_mc, &mod_theme, &mod_treelist };
 DEFINE_PUBLIC_IFACE(treelist, TreeList, mod_treelist_deps)

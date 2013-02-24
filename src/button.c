@@ -135,12 +135,12 @@ button_paint_icon(HWND win, button_t* button, HDC dc)
         else
             state = PBS_NORMAL;
     }
-    if(theme_IsThemeBackgroundPartiallyTransparent(button->theme, BP_PUSHBUTTON, state))
-        theme_DrawThemeParentBackground(win, dc, &rect);
-    theme_DrawThemeBackground(button->theme, dc, BP_PUSHBUTTON, state, &rect, &rect);
+    if(mcIsThemeBackgroundPartiallyTransparent(button->theme, BP_PUSHBUTTON, state))
+        mcDrawThemeParentBackground(win, dc, &rect);
+    mcDrawThemeBackground(button->theme, dc, BP_PUSHBUTTON, state, &rect, &rect);
 
     /* Get content rectangle of the button and clip DC to it */
-    theme_GetThemeBackgroundContentRect(button->theme, dc, BP_PUSHBUTTON, state, &rect, &content);
+    mcGetThemeBackgroundContentRect(button->theme, dc, BP_PUSHBUTTON, state, &rect, &content);
     IntersectClipRect(dc, content.left, content.top, content.right, content.bottom);
 
     /* Draw focus rectangle */
@@ -235,34 +235,34 @@ button_paint_split(HWND win, button_t* button, HDC dc)
 
         /* Handle (semi-)transparent themes. */
         transparent = 0;
-        if(theme_IsThemeBackgroundPartiallyTransparent(button->theme,
+        if(mcIsThemeBackgroundPartiallyTransparent(button->theme,
                     BP_PUSHBUTTON, state_left))
             transparent |= 0x1;
-        if(theme_IsThemeBackgroundPartiallyTransparent(button->theme,
+        if(mcIsThemeBackgroundPartiallyTransparent(button->theme,
                     BP_PUSHBUTTON, state_right))
             transparent |= 0x2;
         switch(transparent) {
             case 0x1:
-                theme_DrawThemeParentBackground(win, dc, &rect_left);
+                mcDrawThemeParentBackground(win, dc, &rect_left);
                 break;
             case 0x2:
-                theme_DrawThemeParentBackground(win, dc, &rect_right);
+                mcDrawThemeParentBackground(win, dc, &rect_right);
                 break;
             case 0x3:
-                theme_DrawThemeParentBackground(win, dc, &rect);
+                mcDrawThemeParentBackground(win, dc, &rect);
                 break;
         }
 
         /* Draw backgrond. */
-        theme_DrawThemeBackground(button->theme, dc, BP_PUSHBUTTON, state_left, &rect, &rect_left);
-        theme_DrawThemeBackground(button->theme, dc, BP_PUSHBUTTON, state_right, &rect, &rect_right);
+        mcDrawThemeBackground(button->theme, dc, BP_PUSHBUTTON, state_left, &rect, &rect_left);
+        mcDrawThemeBackground(button->theme, dc, BP_PUSHBUTTON, state_right, &rect, &rect_right);
 
         /* Deflate both rects to content rects only */
-        theme_GetThemeBackgroundContentRect(button->theme, dc, BP_PUSHBUTTON, state_left, &rect_left, &tmp);
+        mcGetThemeBackgroundContentRect(button->theme, dc, BP_PUSHBUTTON, state_left, &rect_left, &tmp);
         rect_left.left = tmp.left;
         rect_left.top = tmp.top;
         rect_left.bottom = tmp.bottom;
-        theme_GetThemeBackgroundContentRect(button->theme, dc, BP_PUSHBUTTON, state_right, &rect_right, &tmp);
+        mcGetThemeBackgroundContentRect(button->theme, dc, BP_PUSHBUTTON, state_right, &rect_right, &tmp);
         rect_right.top = tmp.top;
         rect_right.right = tmp.right;
         rect_right.bottom = tmp.bottom;
@@ -270,7 +270,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         /* Draw delimiter of left and right parts. */
         rect_right.top += 1;
         rect_right.bottom -= 1;
-        theme_DrawThemeEdge(button->theme, dc, BP_PUSHBUTTON, state_right, &rect_right, BDR_SUNKEN, BF_LEFT, NULL);
+        mcDrawThemeEdge(button->theme, dc, BP_PUSHBUTTON, state_right, &rect_right, BDR_SUNKEN, BF_LEFT, NULL);
         rect_right.left = tmp.left;
     } else {
         /* Determine styles for left and right parts */
@@ -374,7 +374,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         int n;
         UINT flags = 0;
 
-        /* Setup flags for TextOut/theme_DrawThemeText */
+        /* Setup flags for TextOut/mcDrawThemeText */
         switch(button->style & (BS_LEFT | BS_CENTER | BS_RIGHT)) {
             case BS_LEFT:
                 flags |= DT_LEFT;
@@ -411,7 +411,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         n = MC_MSG(win, WM_GETTEXT, MC_ARRAY_SIZE(buffer), buffer);
 
         if(button->theme) {
-            theme_DrawThemeText(button->theme, dc, BP_PUSHBUTTON,
+            mcDrawThemeText(button->theme, dc, BP_PUSHBUTTON,
                         state_left, buffer, n, flags, 0, &rect_left);
         } else {
             SetBkMode(dc, TRANSPARENT);
@@ -655,8 +655,8 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_THEMECHANGED:
             if(button->theme)
-                theme_CloseThemeData(button->theme);
-            button->theme = theme_OpenThemeData(win, button_tc);
+                mcCloseThemeData(button->theme);
+            button->theme = mcOpenThemeData(win, button_tc);
             InvalidateRect(win, NULL, FALSE);
             break;
 
@@ -685,7 +685,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 MC_TRACE_ERR("button_proc(WM_CREATE): orig_button_proc() failed");
                 return -1;
             }
-            button->theme = theme_OpenThemeData(win, button_tc);
+            button->theme = mcOpenThemeData(win, button_tc);
 
             {
                 WORD ui_state = MC_MSG(win, WM_QUERYUISTATE, 0, 0);
@@ -696,7 +696,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_DESTROY:
             if(button->theme) {
-                theme_CloseThemeData(button->theme);
+                mcCloseThemeData(button->theme);
                 button->theme = NULL;
             }
             break;

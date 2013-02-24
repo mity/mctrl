@@ -151,7 +151,7 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
 
     /* Paint background */
     if(erase)
-        theme_DrawThemeParentBackground(expand->win, dc, dirty);
+        mcDrawThemeParentBackground(expand->win, dc, dirty);
 
     /* According to MSDN guidelines, the controls of such nature as this one
      * should never be disabled, but removed instead. I.e. application
@@ -220,7 +220,7 @@ expand_do_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 }
 
 static inline int
-expand_theme_state(DWORD state)
+expand_mcstate(DWORD state)
 {
     switch(state & (STATE_PRESSED | STATE_HOT)) {
         case STATE_PRESSED:  return PBS_PRESSED;
@@ -233,13 +233,13 @@ static void
 expand_paint(expand_t* expand)
 {
     PAINTSTRUCT ps;
-    int old_theme_state;
-    int new_theme_state;
+    int old_mcstate;
+    int new_mcstate;
 
     BeginPaint(expand->win, &ps);
 
     /* Handle transition animation if already in progress */
-    if(theme_BufferedPaintRenderAnimation(expand->win, ps.hdc)) {
+    if(mcBufferedPaintRenderAnimation(expand->win, ps.hdc)) {
         EXPAND_TRACE("expand_paint: Transition in progress");
         goto done;
     }
@@ -248,15 +248,15 @@ expand_paint(expand_t* expand)
         goto done;
 
     /* If painting because of state change, start new transition animation */
-    old_theme_state = expand_theme_state(expand->old_state);
-    new_theme_state = expand_theme_state(expand->state);
+    old_mcstate = expand_mcstate(expand->old_state);
+    new_mcstate = expand_mcstate(expand->state);
     expand->old_state = expand->state;
-    if(old_theme_state != new_theme_state) {
+    if(old_mcstate != new_mcstate) {
         HRESULT hr;
         DWORD duration;
 
-        hr = theme_GetThemeTransitionDuration(expand->theme, BP_PUSHBUTTON,
-                old_theme_state, new_theme_state, TMT_TRANSITIONDURATIONS,
+        hr = mcGetThemeTransitionDuration(expand->theme, BP_PUSHBUTTON,
+                old_mcstate, new_mcstate, TMT_TRANSITIONDURATIONS,
                 &duration);
         if(hr == S_OK  &&  duration > 0) {
             RECT rect;
@@ -270,13 +270,13 @@ expand_paint(expand_t* expand)
             params.style = BPAS_LINEAR;
             params.dwDuration = duration;
 
-            buf = theme_BeginBufferedAnimation(expand->win, ps.hdc, &rect,
+            buf = mcBeginBufferedAnimation(expand->win, ps.hdc, &rect,
                     BPBF_COMPATIBLEBITMAP, NULL, &params, &old_dc, &new_dc);
             if(buf != NULL) {
                 expand_paint_state(expand, expand->old_state, old_dc, &rect, TRUE);
                 expand_paint_state(expand, expand->state, new_dc, &rect, TRUE);
                 EXPAND_TRACE("expand_paint: Transition start (%lu ms)", duration);
-                theme_EndBufferedAnimation(buf, TRUE);
+                mcEndBufferedAnimation(buf, TRUE);
                 goto done;
             }
         }
@@ -345,7 +345,7 @@ expand_set_state(expand_t* expand, DWORD state)
     expand->state = state;
     mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDING);
 
-    theme_BufferedPaintStopAllAnimations(expand->win);
+    mcBufferedPaintStopAllAnimations(expand->win);
     if(!expand->no_redraw)
         InvalidateRect(expand->win, NULL, TRUE);
 }
@@ -620,7 +620,7 @@ expand_nccreate(HWND win, CREATESTRUCT* cs)
     expand->notify_win = cs->hwndParent;
     expand->style = cs->style;
 
-    theme_BufferedPaintInit();
+    mcBufferedPaintInit();
 
     return expand;
 }
@@ -630,7 +630,7 @@ expand_create(expand_t* expand)
 {
     WORD ui_state;
 
-    expand->theme = theme_OpenThemeData(expand->win, expand_tc);
+    expand->theme = mcOpenThemeData(expand->win, expand_tc);
 
     ui_state = MC_MSG(expand->win, WM_QUERYUISTATE, 0, 0);
     expand->hide_focus = (ui_state & UISF_HIDEFOCUS) ? 1 : 0;
@@ -643,7 +643,7 @@ static void
 expand_destroy(expand_t* expand)
 {
     if(expand->theme) {
-        theme_CloseThemeData(expand->theme);
+        mcCloseThemeData(expand->theme);
         expand->theme = NULL;
     }
 }
@@ -651,7 +651,7 @@ expand_destroy(expand_t* expand)
 static void
 expand_ncdestroy(expand_t* expand)
 {
-    theme_BufferedPaintUnInit();
+    mcBufferedPaintUnInit();
     free(expand);
 }
 
@@ -850,7 +850,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_THEMECHANGED:
             if(expand->theme)
-                theme_CloseThemeData(expand->theme);
+                mcCloseThemeData(expand->theme);
             if(!expand->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
             break;
@@ -867,7 +867,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case CCM_SETWINDOWTHEME:
-            theme_SetWindowTheme(win, (const WCHAR*) lp, NULL);
+            mcSetWindowTheme(win, (const WCHAR*) lp, NULL);
             return 0;
 
         case WM_NCCREATE:

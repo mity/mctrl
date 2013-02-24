@@ -169,7 +169,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
         mc_clip_set(dc, 0, 0, MC_MIN(headerw, client.right), MC_MIN(headerh, client.bottom));
 
         if(grid->theme) {
-            theme_DrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
+            mcDrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
                                       HIS_NORMAL, &rect, NULL);
         } else {
             DrawEdge(dc, &rect, BDR_RAISEDINNER, BF_MIDDLE | BF_RECT);
@@ -190,7 +190,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
                         MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
 
             if(grid->theme) {
-                theme_DrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
+                mcDrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
                                           HIS_NORMAL, &rect, NULL);
             } else {
                 DrawEdge(dc, &rect, BDR_RAISEDINNER, BF_MIDDLE | BF_RECT);
@@ -238,7 +238,7 @@ grid_paint(grid_t* grid, HDC dc, RECT* dirty)
 
             if(grid->theme) {
                 rect.bottom++;  /* damn: Aero is ugly w/o this */
-                theme_DrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
+                mcDrawThemeBackground(grid->theme, dc, HP_HEADERITEM,
                                           HIS_NORMAL, &rect, NULL);
                 rect.bottom--;  /* damn: Aero is ugly w/o this */
             } else {
@@ -623,20 +623,20 @@ grid_style_changed(grid_t* grid, int style_type, STYLESTRUCT* ss)
 }
 
 static void
-grid_theme_changed(grid_t* grid)
+grid_mcchanged(grid_t* grid)
 {
-    HTHEME theme_lv;
+    HTHEME mclv;
 
     if(grid->theme)
-        theme_CloseThemeData(grid->theme);
-    grid->theme = theme_OpenThemeData(grid->win, L"HEADER");
+        mcCloseThemeData(grid->theme);
+    grid->theme = mcOpenThemeData(grid->win, L"HEADER");
 
     grid->gridline_color = DEFAULT_GRIDLINE_COLOR;
-    theme_lv = theme_OpenThemeData(grid->win, L"LISTVIEW");
-    if(theme_lv) {
-        theme_GetThemeColor(theme_lv, LVP_LISTDETAIL, 0, TMT_EDGEFILLCOLOR,
+    mclv = mcOpenThemeData(grid->win, L"LISTVIEW");
+    if(mclv) {
+        mcGetThemeColor(mclv, LVP_LISTDETAIL, 0, TMT_EDGEFILLCOLOR,
                             &grid->gridline_color);
-        theme_CloseThemeData(theme_lv);
+        mcCloseThemeData(mclv);
     }
 
     if(!grid->no_redraw) {
@@ -674,7 +674,7 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
 static int
 grid_create(grid_t* grid)
 {
-    grid_theme_changed(grid);
+    grid_mcchanged(grid);
 
     if(MC_ERR(grid_set_table(grid, NULL) != 0)) {
         MC_TRACE("grid_create: grid_set_table() failed.");
@@ -688,7 +688,7 @@ static void
 grid_destroy(grid_t* grid)
 {
     if(grid->theme) {
-        theme_CloseThemeData(grid->theme);
+        mcCloseThemeData(grid->theme);
         grid->theme = NULL;
     }
 
@@ -811,7 +811,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_THEMECHANGED:
-            grid_theme_changed(grid);
+            grid_mcchanged(grid);
             return 0;
 
         case WM_NCCREATE:
