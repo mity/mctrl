@@ -33,7 +33,7 @@ EXPORTS
     mcEnableThemeDialogTexture
     mcEndBufferedAnimation
     mcEndBufferedPaint
-    mcEndPanningFedback
+    mcEndPanningFeedback
     mcExpand_Initialize
     mcExpand_Terminate
     mcGetBufferedPaintBits
@@ -108,7 +108,7 @@ EXPORTS
     mcSetThemeAppProperties
     mcSetWindowTheme
     mcSetWindowThemeAttribute
-    mcSetWindowThemeNonClientAttribute
+    mcSetWindowThemeNonClientAttributes
     mcTable_AddRef
     mcTable_Clear
     mcTable_ColumnCount

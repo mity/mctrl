@@ -366,14 +366,14 @@ HRESULT MCTRL_API mcEndBufferedPaint(HPAINTBUFFER hBufferedPaint,
             BOOL fUpdateTarget);
 
 /**
- * Calls @c EndPanningFedback() if available (and @c UXTHEME.DLL is in use),
+ * Calls @c EndPanningFeedback() if available (and @c UXTHEME.DLL is in use),
  * or returns @c FALSE.
  *
  * @param hwnd
  * @param fAnimateBack
- * @return Return value of @c EndPanningFedback() or @c FALSE.
+ * @return Return value of @c EndPanningFeedback() or @c FALSE.
  */
-BOOL MCTRL_API mcEndPanningFedback(HWND hwnd, BOOL fAnimateBack);
+BOOL MCTRL_API mcEndPanningFeedback(HWND hwnd, BOOL fAnimateBack);
 
 /**
  * Calls @c GetBufferedPaintBits() if available (and @c UXTHEME.DLL is in use),
@@ -1013,7 +1013,7 @@ HRESULT MCTRL_API mcSetWindowThemeAttribute(HWND hwnd,
  * @return Return value of @c SetWindowThemeNonClientAttributes(), or
  * @c E_NOTIMPL.
  */
-HRESULT MCTRL_API mcSetWindowThemeNonClientAttribute(HWND hwnd, DWORD dwMask,
+HRESULT MCTRL_API mcSetWindowThemeNonClientAttributes(HWND hwnd, DWORD dwMask,
             DWORD dwAttributes);
 
 /**

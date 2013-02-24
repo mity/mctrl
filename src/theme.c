@@ -42,7 +42,7 @@ static HRESULT  (WINAPI* theme_DrawThemeTextEx)(HTHEME,HDC,int,int,const WCHAR*,
 static HRESULT  (WINAPI* theme_EnableThemeDialogTexture)(HWND,DWORD) = NULL;
 static HRESULT  (WINAPI* theme_EndBufferedAnimation)(HANIMATIONBUFFER,BOOL) = NULL;
 static HRESULT  (WINAPI* theme_EndBufferedPaint)(HPAINTBUFFER,BOOL) = NULL;
-static BOOL     (WINAPI* theme_EndPanningFedback)(HWND,BOOL) = NULL;
+static BOOL     (WINAPI* theme_EndPanningFeedback)(HWND,BOOL) = NULL;
 static HRESULT  (WINAPI* theme_GetBufferedPaintBits)(HPAINTBUFFER,RGBQUAD**,int*) = NULL;
 static HDC      (WINAPI* theme_GetBufferedPaintDC)(HPAINTBUFFER) = NULL;
 static HDC      (WINAPI* theme_GetBufferedPaintTargetDC)(HPAINTBUFFER) = NULL;
@@ -92,7 +92,7 @@ static HTHEME   (WINAPI* theme_OpenThemeDataEx)(HWND,const WCHAR*,DWORD) = NULL;
 static void     (WINAPI* theme_SetThemeAppProperties)(DWORD) = NULL;
 static HRESULT  (WINAPI* theme_SetWindowTheme)(HWND,const WCHAR*,const WCHAR*) = NULL;
 static HRESULT  (WINAPI* theme_SetWindowThemeAttribute)(HWND,enum WINDOWTHEMEATTRIBUTETYPE,void*,DWORD) = NULL;
-static HRESULT  (WINAPI* theme_SetWindowThemeNonClientAttribute)(HWND,DWORD,DWORD) = NULL;
+static HRESULT  (WINAPI* theme_SetWindowThemeNonClientAttributes)(HWND,DWORD,DWORD) = NULL;
 static BOOL     (WINAPI* theme_UpdatePanningFeedback)(HWND,LONG,LONG,BOOL) = NULL;
 
 
@@ -372,12 +372,12 @@ mcEndBufferedPaint(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget)
 }
 
 BOOL MCTRL_API
-mcEndPanningFedback(HWND hwnd, BOOL fAnimateBack)
+mcEndPanningFeedback(HWND hwnd, BOOL fAnimateBack)
 {
-    if(theme_EndPanningFedback != NULL)
-        return theme_EndPanningFedback(hwnd, fAnimateBack);
+    if(theme_EndPanningFeedback != NULL)
+        return theme_EndPanningFeedback(hwnd, fAnimateBack);
 
-    MC_TRACE("mcEndPanningFedback: Stub [FALSE]");
+    MC_TRACE("mcEndPanningFeedback: Stub [FALSE]");
     return FALSE;
 }
 
@@ -1028,12 +1028,12 @@ mcSetWindowThemeAttribute(HWND hwnd, enum WINDOWTHEMEATTRIBUTETYPE eAttribute,
 }
 
 HRESULT MCTRL_API
-mcSetWindowThemeNonClientAttribute(HWND hwnd, DWORD dwMask, DWORD dwAttributes)
+mcSetWindowThemeNonClientAttributes(HWND hwnd, DWORD dwMask, DWORD dwAttributes)
 {
-    if(theme_SetWindowThemeNonClientAttribute != NULL)
-        return theme_SetWindowThemeNonClientAttribute(hwnd, dwMask, dwAttributes);
+    if(theme_SetWindowThemeNonClientAttributes != NULL)
+        return theme_SetWindowThemeNonClientAttributes(hwnd, dwMask, dwAttributes);
 
-    MC_TRACE("mcSetWindowThemeNonClientAttribute: Stub [E_NOTIMPL]");
+    MC_TRACE("mcSetWindowThemeNonClientAttributes: Stub [E_NOTIMPL]");
     return E_NOTIMPL;
 }
 
@@ -1106,7 +1106,7 @@ theme_init(void)
     GPA(HRESULT,  EnableThemeDialogTexture, (HWND,DWORD));
     GPA(HRESULT,  EndBufferedAnimation, (HANIMATIONBUFFER,BOOL));
     GPA(HRESULT,  EndBufferedPaint, (HPAINTBUFFER,BOOL));
-    GPA(BOOL,     EndPanningFedback, (HWND,BOOL));
+    GPA(BOOL,     EndPanningFeedback, (HWND,BOOL));
     GPA(HRESULT,  GetBufferedPaintBits, (HPAINTBUFFER,RGBQUAD**,int*));
     GPA(HDC,      GetBufferedPaintDC, (HPAINTBUFFER));
     GPA(HDC,      GetBufferedPaintTargetDC, (HPAINTBUFFER));
@@ -1162,7 +1162,7 @@ theme_init(void)
     GPA(void,     SetThemeAppProperties, (DWORD));
     GPA(HRESULT,  SetWindowTheme, (HWND,const WCHAR*,const WCHAR*));
     GPA(HRESULT,  SetWindowThemeAttribute, (HWND,enum WINDOWTHEMEATTRIBUTETYPE,void*,DWORD));
-    GPA(HRESULT,  SetWindowThemeNonClientAttribute, (HWND,DWORD,DWORD));
+    GPA(HRESULT,  SetWindowThemeNonClientAttributes, (HWND,DWORD,DWORD));
     GPA(BOOL,     UpdatePanningFeedback, (HWND,LONG,LONG,BOOL));
 
 #ifdef DEBUG
@@ -1218,7 +1218,7 @@ theme_fini(void)
     theme_EnableThemeDialogTexture = NULL;
     theme_EndBufferedAnimation = NULL;
     theme_EndBufferedPaint = NULL;
-    theme_EndPanningFedback = NULL;
+    theme_EndPanningFeedback = NULL;
     theme_GetBufferedPaintBits = NULL;
     theme_GetBufferedPaintDC = NULL;
     theme_GetBufferedPaintTargetDC = NULL;
@@ -1268,7 +1268,7 @@ theme_fini(void)
     theme_SetThemeAppProperties = NULL;
     theme_SetWindowTheme = NULL;
     theme_SetWindowThemeAttribute = NULL;
-    theme_SetWindowThemeNonClientAttribute = NULL;
+    theme_SetWindowThemeNonClientAttributes = NULL;
     theme_UpdatePanningFeedback = NULL;
 
     FreeLibrary(uxtheme_dll);
