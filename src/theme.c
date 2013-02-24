@@ -1165,6 +1165,27 @@ theme_init(void)
     GPA(HRESULT,  SetWindowThemeNonClientAttribute, (HWND,DWORD,DWORD));
     GPA(BOOL,     UpdatePanningFeedback, (HWND,LONG,LONG,BOOL));
 
+#ifdef DEBUG
+    {
+        DWORD app_props = mcGetThemeAppProperties();
+        char app_props_str[64] = "";
+
+        if(app_props & STAP_ALLOW_NONCLIENT)
+            strcat(app_props_str, ", nonclient");
+        if(app_props & STAP_ALLOW_CONTROLS)
+            strcat(app_props_str, ", controls");
+        if(app_props & STAP_ALLOW_WEBCONTENT)
+            strcat(app_props_str, ", webcontent");
+        if(app_props_str[0] == '\0')
+            strcat(app_props_str, ", none");
+
+        MC_TRACE("theme_init: IsThemeActive() -> %s", (mcIsThemeActive() ? "yes" : "no"));
+        MC_TRACE("theme_init: IsAppThemed() -> %s", (mcIsAppThemed() ? "yes" : "no"));
+        MC_TRACE("theme_init: GetThemeAppProperties() -> 0x%x (%s)", app_props, app_props_str+2);
+        MC_TRACE("theme_init: IsCompositionActive() -> %s", (mcIsCompositionActive() ? "yes" : "no"));
+    }
+#endif
+
 no_theming:
     /* We always "succeed". */
     return 0;
