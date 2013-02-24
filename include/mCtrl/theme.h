@@ -94,6 +94,7 @@ void MCTRL_API mcTheme_Terminate(void);
  */
 /*@{*/
 
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c BeginBufferedAnimation() if available (and @c UXTHEME.DLL is in use),
  * or returns @c NULL.
@@ -107,6 +108,8 @@ void MCTRL_API mcTheme_Terminate(void);
  * @param phdcFrom
  * @param phdcTo
  * @return Return value of @c BeginBufferedAnimation() or @c NULL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HANIMATIONBUFFER MCTRL_API mcBeginBufferedAnimation(HWND hwnd, HDC hdcTarget,
             const RECT* rcTarget, BP_BUFFERFORMAT dwFormat,
@@ -123,6 +126,8 @@ HANIMATIONBUFFER MCTRL_API mcBeginBufferedAnimation(HWND hwnd, HDC hdcTarget,
  * @param pPaintParams
  * @param phdc
  * @return Return value of @c BeginBufferedPaint() or @c NULL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HPAINTBUFFER MCTRL_API mcBeginBufferedPaint(HDC hdcTarget, const RECT* prcTarget,
             BP_BUFFERFORMAT dwFormat, BP_PAINTPARAMS* pPaintParams, HDC* phdc);
@@ -133,6 +138,8 @@ HPAINTBUFFER MCTRL_API mcBeginBufferedPaint(HDC hdcTarget, const RECT* prcTarget
  *
  * @param hwnd
  * @return Return value of @c BeginPanningFeedback() or @c FALSE.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 BOOL MCTRL_API mcBeginPanningFeedback(HWND hwnd);
 
@@ -143,6 +150,8 @@ BOOL MCTRL_API mcBeginPanningFeedback(HWND hwnd);
  * @param hBufferedPaint
  * @param prc
  * @return Return value of @c BufferedPaintClear() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcBufferedPaintClear(HPAINTBUFFER hBufferedPaint,
             const RECT* prc);
@@ -152,6 +161,8 @@ HRESULT MCTRL_API mcBufferedPaintClear(HPAINTBUFFER hBufferedPaint,
  * or returns @c E_NOTIMPL.
  *
  * @return Return value of @c BufferedPaintInit() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcBufferedPaintInit(void);
 
@@ -162,6 +173,8 @@ HRESULT MCTRL_API mcBufferedPaintInit(void);
  * @param hwnd
  * @param hdcTarget
  * @return Return value of @c mcBufferedPaintRenderAnimation() or @c FALSE.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 BOOL MCTRL_API mcBufferedPaintRenderAnimation(HWND hwnd, HDC hdcTarget);
 
@@ -173,6 +186,8 @@ BOOL MCTRL_API mcBufferedPaintRenderAnimation(HWND hwnd, HDC hdcTarget);
  * @param prc
  * @param alpha
  * @return Return value of @c BufferedPaintSetAlpha() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcBufferedPaintSetAlpha(HPAINTBUFFER hBufferedPaint,
             const RECT* prc, BYTE alpha);
@@ -183,6 +198,8 @@ HRESULT MCTRL_API mcBufferedPaintSetAlpha(HPAINTBUFFER hBufferedPaint,
  *
  * @param hwnd
  * @return Return value of @c BufferedPaintStopAllAnimations() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcBufferedPaintStopAllAnimations(HWND hwnd);
 
@@ -191,8 +208,11 @@ HRESULT MCTRL_API mcBufferedPaintStopAllAnimations(HWND hwnd);
  * or returns @c E_NOTIMPL.
  *
  * @return Return value of @c BufferedPaintUnInit() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcBufferedPaintUnInit(void);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c CloseThemeData() if available (and @c UXTHEME.DLL is in use), or
@@ -282,6 +302,8 @@ HRESULT MCTRL_API mcDrawThemeIcon(HTHEME hTheme, HDC hdc,
  */
 HRESULT MCTRL_API mcDrawThemeParentBackground(HWND hwnd, HDC hdc, RECT* prc);
 
+
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c DrawThemeParentBackgroundEx() if available (and @c UXTHEME.DLL is
  * in use), or returns @c E_NOTIMPL.
@@ -291,9 +313,12 @@ HRESULT MCTRL_API mcDrawThemeParentBackground(HWND hwnd, HDC hdc, RECT* prc);
  * @param dwFlags
  * @param prc
  * @return Return value of @c DrawThemeParentBackgroundEx() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcDrawThemeParentBackgroundEx(HWND hwnd, HDC hdc,
             DWORD dwFlags, RECT* prc);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c DrawThemeText() if available (and @c UXTHEME.DLL is in use), or
@@ -314,6 +339,7 @@ HRESULT MCTRL_API mcDrawThemeText(HTHEME hTheme, HDC hdc,
             int iPartId, int iStateId, const WCHAR* pszText, int iCharCount,
             DWORD dwFlags, DWORD dwFlags2, const RECT* prc);
 
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c DrawThemeTextEx() if available (and @c UXTHEME.DLL is in use), or
  * returns @c E_NOTIMPL.
@@ -328,10 +354,13 @@ HRESULT MCTRL_API mcDrawThemeText(HTHEME hTheme, HDC hdc,
  * @param prc
  * @param pOptions
  * @return Return value of @c DrawThemeTextEx() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcDrawThemeTextEx(HTHEME hTheme, HDC hdc,
             int iPartId, int iStateId, const WCHAR* pszText, int iCharCount,
             DWORD dwFlags, RECT* prc, const DTTOPTS* pOptions);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c EnableThemeDialogTexture() if available (and @c UXTHEME.DLL is
@@ -343,6 +372,7 @@ HRESULT MCTRL_API mcDrawThemeTextEx(HTHEME hTheme, HDC hdc,
  */
 HRESULT MCTRL_API mcEnableThemeDialogTexture(HWND hwnd, DWORD dwFlags);
 
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c EndBufferedAnimation() if available (and @c UXTHEME.DLL is in use),
  * or returns @c E_NOTIMPL.
@@ -350,6 +380,8 @@ HRESULT MCTRL_API mcEnableThemeDialogTexture(HWND hwnd, DWORD dwFlags);
  * @param hbpAnimation
  * @param fUpdateTarget
  * @return Return value of @c EndBufferedAnimation() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcEndBufferedAnimation(HANIMATIONBUFFER hbpAnimation,
             BOOL fUpdateTarget);
@@ -361,6 +393,8 @@ HRESULT MCTRL_API mcEndBufferedAnimation(HANIMATIONBUFFER hbpAnimation,
  * @param hBufferedPaint
  * @param fUpdateTarget
  * @return Return value of @c EndBufferedPaint() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcEndBufferedPaint(HPAINTBUFFER hBufferedPaint,
             BOOL fUpdateTarget);
@@ -372,6 +406,8 @@ HRESULT MCTRL_API mcEndBufferedPaint(HPAINTBUFFER hBufferedPaint,
  * @param hwnd
  * @param fAnimateBack
  * @return Return value of @c EndPanningFeedback() or @c FALSE.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 BOOL MCTRL_API mcEndPanningFeedback(HWND hwnd, BOOL fAnimateBack);
 
@@ -383,6 +419,8 @@ BOOL MCTRL_API mcEndPanningFeedback(HWND hwnd, BOOL fAnimateBack);
  * @param ppbBuffer
  * @param pcxRow
  * @return Return value of @c GetBufferedPaintBits() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcGetBufferedPaintBits(HPAINTBUFFER hBufferedPaint,
             RGBQUAD** ppbBuffer, int* pcxRow);
@@ -393,6 +431,8 @@ HRESULT MCTRL_API mcGetBufferedPaintBits(HPAINTBUFFER hBufferedPaint,
  *
  * @param hBufferedPaint
  * @return Return value of @c GetBufferedPaintDC() or @c NULL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HDC MCTRL_API mcGetBufferedPaintDC(HPAINTBUFFER hBufferedPaint);
 
@@ -402,6 +442,8 @@ HDC MCTRL_API mcGetBufferedPaintDC(HPAINTBUFFER hBufferedPaint);
  *
  * @param hBufferedPaint
  * @return Return value of @c GetBufferedPaintTargetDC() or @c NULL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HDC MCTRL_API mcGetBufferedPaintTargetDC(HPAINTBUFFER hBufferedPaint);
 
@@ -412,9 +454,12 @@ HDC MCTRL_API mcGetBufferedPaintTargetDC(HPAINTBUFFER hBufferedPaint);
  * @param hBufferedPaint
  * @param prc
  * @return Return value of @c GetBufferedPaintTargetRect() or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcGetBufferedPaintTargetRect(HPAINTBUFFER hBufferedPaint,
             RECT* prc);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c GetCurrentThemeName() if available (and @c UXTHEME.DLL is in use),
@@ -486,6 +531,7 @@ HRESULT MCTRL_API mcGetThemeBackgroundExtent(HTHEME hTheme, HDC hdc,
 HRESULT MCTRL_API mcGetThemeBackgroundRegion(HTHEME hTheme, HDC hdc,
             int iPartId, int iStateId, const RECT* prc, HRGN* phRegion);
 
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c GetThemeBitmap() if available (and @c UXTHEME.DLL is in use), or
  * returns @c E_NOTIMPL.
@@ -500,6 +546,7 @@ HRESULT MCTRL_API mcGetThemeBackgroundRegion(HTHEME hTheme, HDC hdc,
  */
 HRESULT MCTRL_API mcGetThemeBitmap(HTHEME hTheme, int iPartId, int iStateId,
             int iPropId, ULONG uFlags, HBITMAP* phBitmap);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c GetThemeBool() if available (and @c UXTHEME.DLL is in use), or
@@ -703,6 +750,7 @@ HRESULT MCTRL_API mcGetThemePropertyOrigin(HTHEME hTheme, int iPartId,
 HRESULT MCTRL_API mcGetThemeRect(HTHEME hTheme, int iPartId, int iStateId,
             int iPropId, RECT* prc);
 
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c GetThemeStream() if available (and @c UXTHEME.DLL is in use), or
  * returns @c E_NOTIMPL.
@@ -718,7 +766,7 @@ HRESULT MCTRL_API mcGetThemeRect(HTHEME hTheme, int iPartId, int iStateId,
  */
 HRESULT MCTRL_API mcGetThemeStream(HTHEME hTheme, int iPartId, int iStateId,
             int iPropId, void** ppvStream, DWORD* pcbStream, HINSTANCE hInst);
-
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c GetThemeString() if available (and @c UXTHEME.DLL is in use), or
@@ -851,6 +899,7 @@ HRESULT MCTRL_API mcGetThemeTextExtent(HTHEME hTheme, HDC hdc, int iPartId,
 HRESULT MCTRL_API mcGetThemeTextMetrics(HTHEME hTheme, HDC hdc, int iPartId,
             int iStateId, TEXTMETRIC* pTextMetric);
 
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c GetThemeTransitionDuration() if available (and @c UXTHEME.DLL is in
  * use), or returns @c E_NOTIMPL.
@@ -861,9 +910,12 @@ HRESULT MCTRL_API mcGetThemeTextMetrics(HTHEME hTheme, HDC hdc, int iPartId,
  * @param iStateId
  * @param pTextMetric
  * @return Return value of @c GetThemeTextMetrics(), or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcGetThemeTransitionDuration(HTHEME hTheme, int iPartId,
             int iStateIdFrom, int iStateIdTo, int iPropId, DWORD* pdwDuration);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c GetWindowTheme() if available (and @c UXTHEME.DLL is in use), or
@@ -901,13 +953,17 @@ HRESULT MCTRL_API mcHitTestThemeBackground(HTHEME hTheme, HDC hdc, int iPartId,
  */
 BOOL MCTRL_API mcIsAppThemed(void);
 
+#if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c IsCompositionActive() if available (and @c UXTHEME.DLL is in use),
  * or returns @c FALSE.
  *
  * @return Return value of @c IsCompositionActive(), or @c FALSE.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 BOOL MCTRL_API mcIsCompositionActive(void);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c IsThemeActive() if available (and @c UXTHEME.DLL is in use), or
@@ -989,6 +1045,7 @@ void MCTRL_API mcSetThemeAppProperties(DWORD dwFlags);
 HRESULT MCTRL_API mcSetWindowTheme(HWND hwnd, const WCHAR* pszSubAppName,
             const WCHAR* pszSubIdList);
 
+ #if (_WIN32_WINNT >= 0x0600)
 /**
  * Calls @c SetWindowThemeAttribute() if available (and @c UXTHEME.DLL is
  * in use), or returns @c E_NOTIMPL.
@@ -998,10 +1055,13 @@ HRESULT MCTRL_API mcSetWindowTheme(HWND hwnd, const WCHAR* pszSubAppName,
  * @param pvAttribute
  * @param cbAttribute
  * @return Return value of @c SetWindowThemeAttribute(), or @c E_NOTIMPL.
+ *
+ * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
  */
 HRESULT MCTRL_API mcSetWindowThemeAttribute(HWND hwnd,
             enum WINDOWTHEMEATTRIBUTETYPE eAttribute, void* pvAttribute,
             DWORD cbAttribute);
+#endif  /* _WIN32_WINNT >= 0x0600 */
 
 /**
  * Calls @c UpdatePanningFeedback() if available (and @c UXTHEME.DLL
