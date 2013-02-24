@@ -1004,19 +1004,6 @@ HRESULT MCTRL_API mcSetWindowThemeAttribute(HWND hwnd,
             DWORD cbAttribute);
 
 /**
- * Calls @c SetWindowThemeNonClientAttributes() if available (and @c UXTHEME.DLL
- * is in use), or returns @c E_NOTIMPL.
- *
- * @param hwnd
- * @param dwMask
- * @param dwAttribute
- * @return Return value of @c SetWindowThemeNonClientAttributes(), or
- * @c E_NOTIMPL.
- */
-HRESULT MCTRL_API mcSetWindowThemeNonClientAttributes(HWND hwnd, DWORD dwMask,
-            DWORD dwAttributes);
-
-/**
  * Calls @c UpdatePanningFeedback() if available (and @c UXTHEME.DLL
  * is in use), or returns @c FALSE.
  *

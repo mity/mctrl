@@ -108,7 +108,6 @@ EXPORTS
     mcSetThemeAppProperties
     mcSetWindowTheme
     mcSetWindowThemeAttribute
-    mcSetWindowThemeNonClientAttributes
     mcTable_AddRef
     mcTable_Clear
     mcTable_ColumnCount

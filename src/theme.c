@@ -92,7 +92,6 @@ static HTHEME   (WINAPI* theme_OpenThemeDataEx)(HWND,const WCHAR*,DWORD) = NULL;
 static void     (WINAPI* theme_SetThemeAppProperties)(DWORD) = NULL;
 static HRESULT  (WINAPI* theme_SetWindowTheme)(HWND,const WCHAR*,const WCHAR*) = NULL;
 static HRESULT  (WINAPI* theme_SetWindowThemeAttribute)(HWND,enum WINDOWTHEMEATTRIBUTETYPE,void*,DWORD) = NULL;
-static HRESULT  (WINAPI* theme_SetWindowThemeNonClientAttributes)(HWND,DWORD,DWORD) = NULL;
 static BOOL     (WINAPI* theme_UpdatePanningFeedback)(HWND,LONG,LONG,BOOL) = NULL;
 
 
@@ -1027,16 +1026,6 @@ mcSetWindowThemeAttribute(HWND hwnd, enum WINDOWTHEMEATTRIBUTETYPE eAttribute,
     return E_NOTIMPL;
 }
 
-HRESULT MCTRL_API
-mcSetWindowThemeNonClientAttributes(HWND hwnd, DWORD dwMask, DWORD dwAttributes)
-{
-    if(theme_SetWindowThemeNonClientAttributes != NULL)
-        return theme_SetWindowThemeNonClientAttributes(hwnd, dwMask, dwAttributes);
-
-    MC_TRACE("mcSetWindowThemeNonClientAttributes: Stub [E_NOTIMPL]");
-    return E_NOTIMPL;
-}
-
 BOOL MCTRL_API
 mcUpdatePanningFeedback(HWND hwnd, LONG lTotalOverpanOffsetX,
             LONG lTotalOverpanOffsetY, BOOL fInInertia)
@@ -1162,7 +1151,6 @@ theme_init(void)
     GPA(void,     SetThemeAppProperties, (DWORD));
     GPA(HRESULT,  SetWindowTheme, (HWND,const WCHAR*,const WCHAR*));
     GPA(HRESULT,  SetWindowThemeAttribute, (HWND,enum WINDOWTHEMEATTRIBUTETYPE,void*,DWORD));
-    GPA(HRESULT,  SetWindowThemeNonClientAttributes, (HWND,DWORD,DWORD));
     GPA(BOOL,     UpdatePanningFeedback, (HWND,LONG,LONG,BOOL));
 
 #ifdef DEBUG
@@ -1268,7 +1256,6 @@ theme_fini(void)
     theme_SetThemeAppProperties = NULL;
     theme_SetWindowTheme = NULL;
     theme_SetWindowThemeAttribute = NULL;
-    theme_SetWindowThemeNonClientAttributes = NULL;
     theme_UpdatePanningFeedback = NULL;
 
     FreeLibrary(uxtheme_dll);
