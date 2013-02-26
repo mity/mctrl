@@ -1153,6 +1153,13 @@ theme_init(void)
     GPA(HRESULT,  SetWindowThemeAttribute, (HWND,enum WINDOWTHEMEATTRIBUTETYPE,void*,DWORD));
     GPA(BOOL,     UpdatePanningFeedback, (HWND,LONG,LONG,BOOL));
 
+    /* Workaround: It seems that IsAppThemed() and IsCompositionActive()
+     * always return FALSE initially until 1st window is created. As we do not
+     * have any guaranty when we are called in application's flow, we create
+     * a dummy window to get always the expected results. */
+    DestroyWindow(CreateWindow(_T("STATIC"), NULL, 0, 0, 0, 0, 0, HWND_MESSAGE,
+                  0, mc_instance, NULL));
+
 #ifdef DEBUG
     {
         DWORD app_props = mcGetThemeAppProperties();
