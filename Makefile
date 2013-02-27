@@ -129,7 +129,7 @@ include Makefile.dep
 # Build rules #
 ###############
 
-$(TARGET): $(OBJECTS)
+$(TARGET): $(OBJECTS) $(SRCDIR)/mCtrl.def
 	$(LD) $(LDFLAGS) -mdll $^ $(SRCDIR)/mCtrl.def -o $(TARGET) $(LIBS) -Wl,--kill-at
 
 $(TARGET_LIB): $(TARGET)
