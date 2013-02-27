@@ -120,6 +120,8 @@ EXPORTS
     mcTable_SetCell
     mcTable_SetValue
     mcTable_SwapValue
+    mcTheme_Initialize
+    mcTheme_Terminate
     mcTreeList_Initialize
     mcTreeList_Terminate
     mcUpdatePanningFeedback
