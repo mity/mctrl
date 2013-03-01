@@ -175,7 +175,7 @@ DEFINE_MODULE(treelist)
 static module_t* mod_button_deps[] = { &mod_mc, &mod_theme, &mod_button };
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
 
-static module_t* mod_chart_deps[] = { &mod_mc, &mod_gdix, &mod_chart };
+static module_t* mod_chart_deps[] = { &mod_mc, &mod_theme, &mod_gdix, &mod_chart };
 DEFINE_PUBLIC_IFACE(chart, Chart, mod_chart_deps)
 
 static module_t* mod_expand_deps[] = { &mod_mc, &mod_theme, &mod_expand };

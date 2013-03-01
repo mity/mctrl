@@ -18,6 +18,7 @@
 
 #include "misc.h"
 #include "module.h"
+#include "theme.h"
 
 
 /***************
@@ -271,6 +272,25 @@ mc_doublebuffer(void* control, PAINTSTRUCT* ps,
     w = mc_width(&ps->rcPaint);
     h = mc_height(&ps->rcPaint);
 
+    /* Use UXTHEME's buffered paint whenever available. */
+    if(theme_BeginBufferedPaint != NULL) {
+#ifndef BPPF_NOCLIP
+    #define BPPF_NOCLIP  0x0002
+#endif
+        BP_PAINTPARAMS params = { sizeof(BP_PAINTPARAMS), BPPF_NOCLIP, NULL, NULL };
+        HPAINTBUFFER buffer;
+
+        buffer = theme_BeginBufferedPaint(ps->hdc, &ps->rcPaint,
+                                BPBF_TOPDOWNDIB, &params, &mem_dc);
+        if(MC_ERR(buffer == NULL))
+            goto err_BeginBufferedPaint;
+        func_paint(control, mem_dc, &ps->rcPaint, TRUE);
+        theme_EndBufferedPaint(buffer, TRUE);
+        return;
+    }
+
+err_BeginBufferedPaint:
+    /* The old good plain WIN32API double-buffering */
     mem_dc = CreateCompatibleDC(ps->hdc);
     if(MC_ERR(mem_dc == NULL))
         goto err_CreateCompatibleDC;
@@ -290,7 +310,7 @@ mc_doublebuffer(void* control, PAINTSTRUCT* ps,
     DeleteDC(mem_dc);
     return;
 
-    /* Error path: */
+    /* Error path: Paint directly without any double-buffering. */
 err_CreateCompatibleBitmap:
     DeleteDC(mem_dc);
 err_CreateCompatibleDC:

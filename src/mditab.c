@@ -1592,6 +1592,8 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
 
+    mcBufferedPaintInit();
+
     return mditab;
 }
 
@@ -1644,6 +1646,7 @@ mditab_destroy(mditab_t* mditab)
 static void
 mditab_ncdestroy(mditab_t* mditab)
 {
+    mcBufferedPaintUnInit();
     free(mditab);
 }
 

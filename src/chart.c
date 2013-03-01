@@ -20,6 +20,7 @@
 #include "dsa.h"
 #include "gdix.h"
 #include "color.h"
+#include "theme.h"
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -2849,6 +2850,8 @@ chart_nccreate(HWND win, CREATESTRUCT* cs)
     chart->hot_i = -1;
     dsa_init(&chart->data, sizeof(chart_data_t));
 
+    mcBufferedPaintInit();
+
     return chart;
 }
 
@@ -2873,6 +2876,7 @@ chart_destroy(chart_t* chart)
 static void
 chart_ncdestroy(chart_t* chart)
 {
+    mcBufferedPaintUnInit();
     dsa_fini(&chart->data, chart_data_dtor);
     free(chart);
 }
