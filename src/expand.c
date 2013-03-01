@@ -111,10 +111,12 @@ expand_calc_layout(expand_t* expand, HDC dc, expand_layout_t* layout)
     GetClientRect(expand->win, &rect);
     right_align = (GetWindowLong(expand->win, GWL_EXSTYLE) & WS_EX_RIGHT) ? TRUE : FALSE;
 
-    old_font = SelectObject(dc, expand->font);
+    if(expand->font)
+        old_font = SelectObject(dc, expand->font);
     str = expand_text(expand);
     GetTextExtentPoint32(dc, str, _tcslen(str), &extents);
-    SelectObject(dc, old_font);
+    if(expand->font)
+        SelectObject(dc, old_font);
 
     if(rect.bottom < 24) {
         layout->glyph_bmp = expand_glyphs[0];
