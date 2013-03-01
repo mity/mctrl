@@ -194,25 +194,6 @@ chart_round_value(int value, BOOL up)
 }
 
 static inline int
-chart_text_width(const TCHAR* str, HFONT font)
-{
-    HDC dc;
-    HFONT old_font;
-    SIZE s;
-
-    if(font == NULL)
-        font = GetStockObject(SYSTEM_FONT);
-
-    dc = GetDCEx(NULL, NULL, DCX_CACHE);
-    old_font = SelectObject(dc, font);
-    GetTextExtentPoint32(dc, str, _tcslen(str), &s);
-    SelectObject(dc, old_font);
-    ReleaseDC(NULL, dc);
-
-    return s.cx;
-}
-
-static inline int
 chart_value(chart_t* chart, int set_ix, int i)
 {
     chart_data_t* data;
@@ -766,20 +747,20 @@ scatter_calc_geometry(chart_t* chart, chart_layout_t* layout, cache_t* cache,
     /* Compute space for labels of horizontal axis */
     label_x_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->primary_axis, geom->max_x, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     chart_str_value(&chart->primary_axis, geom->max_x, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
     chart_str_value(&chart->secondary_axis, geom->min_y, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
     chart_str_value(&chart->secondary_axis, geom->max_y, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
@@ -1074,20 +1055,20 @@ line_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     /* Compute space for labels of horizontal axis */
     label_x_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->primary_axis, 0, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     chart_str_value(&chart->primary_axis, geom->min_count, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
     chart_str_value(&chart->secondary_axis, geom->min_y, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
     chart_str_value(&chart->secondary_axis, geom->max_y, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
@@ -1449,20 +1430,20 @@ column_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     /* Compute space for labels of horizontal axis */
     label_x_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->primary_axis, 0, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     chart_str_value(&chart->primary_axis, geom->min_count, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
     chart_str_value(&chart->secondary_axis, geom->min_y, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
     chart_str_value(&chart->secondary_axis, geom->max_y, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
@@ -1775,20 +1756,20 @@ bar_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
      * (note for BAR chart this is secondary!!!) */
     label_x_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->secondary_axis, geom->min_x, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     chart_str_value(&chart->secondary_axis, geom->max_x, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
     chart_str_value(&chart->primary_axis, 0, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
     chart_str_value(&chart->primary_axis, geom->min_count, buffer);
-    tw = chart_text_width(buffer, chart->font);
+    tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
