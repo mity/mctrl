@@ -62,7 +62,7 @@ static const TCHAR toolbar_wc[] = TOOLBARCLASSNAME;
 
 /* Geometry constants */
 #define DEFAULT_ITEM_MIN_WIDTH       60
-#define DEFAULT_ITEM_DEF_WIDTH      120
+#define DEFAULT_ITEM_DEF_WIDTH        0
 
 #define ITEM_PADDING_H                4
 #define ITEM_PADDING_V                2
@@ -162,8 +162,24 @@ mditab_calc_desired_width(mditab_t* mditab, WORD index)
     int width;
 
     width = mc_width(&mditab->main_rect) / mditab_count(mditab);
-    if(width > mditab->item_def_width)
-        width = mditab->item_def_width;
+    if(width > mditab->item_def_width) {
+        if(mditab->item_def_width > 0) {
+            width = mditab->item_def_width;
+        } else {
+            mditab_item_t* item = mditab_item(mditab, index);
+
+            width = 2 *  ITEM_PADDING_H;
+            if(mditab->img_list != NULL) {
+                int w, h;
+
+                ImageList_GetIconSize(mditab->img_list, &w, &h);
+                width += w + 3;
+            }
+
+            if(item->text != NULL)
+                width += mc_string_width(item->text, mditab->font);
+        }
+    }
 
     if(mditab->item_min_width > 0  &&  width < mditab->item_min_width)
         width = mditab->item_min_width;
@@ -406,12 +422,27 @@ mditab_setup_all_desired_widths(mditab_t* mditab)
     MDITAB_TRACE("mditab_setup_all_desired_widths(%p)", mditab);
 
     n = mditab_count(mditab);
-    for(i = 0; i < n; i++) {
-        item = mditab_item(mditab, i);
-        desired_width = mditab_calc_desired_width(mditab, i);
-        if(desired_width != item->desired_width) {
-            item->desired_width = desired_width;
-            changed = TRUE;
+    if(n == 0)
+        return FALSE;
+
+    if(mditab->item_def_width > 0) {
+        /* All items have the same width */
+        item = mditab_item(mditab, 0);
+        desired_width = mditab_calc_desired_width(mditab, 0);
+        for(i = 0; i < n; i++) {
+            if(desired_width != item->desired_width) {
+                item->desired_width = desired_width;
+                changed = TRUE;
+            }
+        }
+    } else {
+        for(i = 0; i < n; i++) {
+            item = mditab_item(mditab, i);
+            desired_width = mditab_calc_desired_width(mditab, i);
+            if(desired_width != item->desired_width) {
+                item->desired_width = desired_width;
+                changed = TRUE;
+            }
         }
     }
 
@@ -1407,11 +1438,11 @@ mditab_command(mditab_t* mditab, WORD code, WORD ctrl_id, HWND ctrl)
 
     switch(ctrl_id) {
         case IDC_SCROLL_LEFT:
-            mditab_scroll(mditab, -DEFAULT_ITEM_DEF_WIDTH, TRUE);
+            mditab_scroll(mditab, -80, TRUE);
             break;
 
         case IDC_SCROLL_RIGHT:
-            mditab_scroll(mditab, +DEFAULT_ITEM_DEF_WIDTH, TRUE);
+            mditab_scroll(mditab, +80, TRUE);
             break;
 
         case IDC_CLOSE_ITEM:

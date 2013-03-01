@@ -92,11 +92,6 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             /* Set an imagelist */
             SendMessage(hwndMdiTab, MC_MTM_SETIMAGELIST, 0, (LPARAM) hImgList);
 
-            /* Change minimal tab width */
-            SendMessage(hwndMdiTab, MC_MTM_GETITEMWIDTH, 0, (LPARAM) &tw);
-            tw.dwMinWidth += 30;
-            SendMessage(hwndMdiTab, MC_MTM_SETITEMWIDTH, 0, (LPARAM) &tw);
-
             /* Create button for creating new tabs */
             hwndBtn = CreateWindow(_T("BUTTON"), _T("New tab"),
                 WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,

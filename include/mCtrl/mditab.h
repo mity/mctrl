@@ -253,16 +253,21 @@ typedef struct MC_MTITEMA_tag {
 /**
  * @brief Structure for messages @ref MC_MTM_SETITEMWIDTH and @ref MC_MTM_GETITEMWIDTH.
  *
- * The control sizes all tabs to the same width. Normally they all have
- * the default width. But if the control contains to many tab items and not
- * all of them can be visible at once, the control is allowed to resize them
- * as much as the minimal width specifies, so more of them can be visible
- * without using the scrolling buttons.
+ * The structure describes policy how the control manages width of the items.
+ * Normally the width of the item is determined with the default width.
+ *
+ * However if there are too many items to be displayed, the control may
+ * shrink the items in order to show more of them to minimize need for
+ * scrolling. The minimal width specifies how much the items may be shrinked.
  */
 typedef struct MC_MTITEMWIDTH_tag {
-    /** Default width for tabs, in pixels. */
+    /** The default item width. If set to zero, default width of each item
+     *  depends on its label and icon. If set to non-zero then all items have
+     *  the same width, in pixels. */
     DWORD dwDefWidth;
-    /** Minimal width for tabs, in pixels. */
+    /** The minimal item width. If set to zero, the items are never shrinked.
+     *  If set to non-zero, the valiue specifies the minimal width of all
+     *  items. */
     DWORD dwMinWidth;
 } MC_MTITEMWIDTH;
 
