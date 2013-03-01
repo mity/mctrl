@@ -524,10 +524,20 @@ void mc_init_common_controls(DWORD icc);
 
 /* Detect icon size */
 void mc_icon_size(HICON icon, SIZE* size);
+static inline UINT mc_icon_width(HICON icon)
+    { SIZE s; mc_icon_size(icon, &s); return s.cx; }
+static inline UINT mc_icon_height(HICON icon)
+    { SIZE s; mc_icon_size(icon, &s); return s.cy; }
 
 /* Determine approximate font on-screen dimension in pixels (height and avg.
  * char width). Used to auto-adjust item size in complex controls. */
 void mc_font_size(HFONT font, SIZE* size);
+
+void mc_string_size(const TCHAR* str, HFONT font, SIZE* size);
+static inline UINT mc_string_width(const TCHAR* str, HFONT font)
+    { SIZE s; mc_string_size(str, font, &s); return s.cx; }
+static inline UINT mc_string_height(const TCHAR* str, HFONT font)
+    { SIZE s; mc_string_size(str, font, &s); return s.cy; }
 
 /* Converting pixels <--> DLUs */
 int mc_pixels_from_dlus(HFONT font, int dlus, BOOL vert);

@@ -389,6 +389,22 @@ mc_font_size(HFONT font, SIZE* size)
     size->cy = tm.tmHeight;
 }
 
+void
+mc_string_size(const TCHAR* str, HFONT font, SIZE* size)
+{
+    HDC dc;
+    HFONT old_font;
+
+    if(font == NULL)
+        font = GetStockObject(SYSTEM_FONT);
+
+    dc = GetDCEx(NULL, NULL, DCX_CACHE);
+    old_font = SelectObject(dc, font);
+    GetTextExtentPoint32(dc, str, _tcslen(str), size);
+    SelectObject(dc, old_font);
+    ReleaseDC(NULL, dc);
+}
+
 int
 mc_pixels_from_dlus(HFONT font, int dlus, BOOL vert)
 {
