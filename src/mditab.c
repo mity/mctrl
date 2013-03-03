@@ -68,6 +68,11 @@ static const TCHAR toolbar_wc[] = TOOLBARCLASSNAME;
 #define ITEM_PADDING_V                2
 #define ITEM_CORNER_SIZE              3
 
+#define SELECTED_EXTRA_LEFT           2
+#define SELECTED_EXTRA_TOP            2
+#define SELECTED_EXTRA_RIGHT          1
+#define SELECTED_EXTRA_BOTTOM         1
+
 #define TOOLBAR_BTN_WIDTH            16
 
 #define MARGIN_H                      2
@@ -190,10 +195,10 @@ mditab_calc_desired_width(mditab_t* mditab, WORD index)
 static inline void
 mditab_inflate_selected_item_rect(RECT* rect)
 {
-    rect->left -= 2;
-    rect->top -= 2;
-    rect->right += 1;
-    rect->bottom += 1;
+    rect->left -= SELECTED_EXTRA_LEFT;
+    rect->top -= SELECTED_EXTRA_TOP;
+    rect->right += SELECTED_EXTRA_RIGHT;
+    rect->bottom += SELECTED_EXTRA_BOTTOM;
 }
 
 static inline void
@@ -512,13 +517,20 @@ mditab_do_scroll(mditab_t* mditab, int scroll, BOOL animate, BOOL refresh)
     mditab_setup_toolbar_states(mditab);
     if(refresh  &&  !mditab->no_redraw) {
         RECT r;
-        RECT update_rect;
         GetClientRect(mditab->win, &r);
         r.left = mditab->main_rect.left;
         r.right = mditab->main_rect.right;
         ScrollWindowEx(mditab->win, old_scroll - mditab->scroll_x, 0, &r, &r,
-                       NULL, &update_rect, SW_ERASE | SW_INVALIDATE);
-        InvalidateRect(mditab->win, &update_rect, TRUE);
+                       NULL, NULL, SW_ERASE | SW_INVALIDATE);
+
+        /* There may be more painted outside the ->main_rect if the active tab
+         * is at the edge. */
+        r.left = mditab->main_rect.left - SELECTED_EXTRA_LEFT;
+        r.right = mditab->main_rect.left;
+        InvalidateRect(mditab->win, &r, TRUE);
+        r.left = mditab->main_rect.right;
+        r.right = mditab->main_rect.right + SELECTED_EXTRA_RIGHT;
+        InvalidateRect(mditab->win, &r, TRUE);
     }
 }
 
@@ -981,7 +993,8 @@ mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         }
     }
 
-    mc_clip_set(dc, mditab->main_rect.left - 2, 0, mditab->main_rect.right + 2, rect.bottom);
+    mc_clip_set(dc, mditab->main_rect.left - SELECTED_EXTRA_LEFT, 0,
+                    mditab->main_rect.right + SELECTED_EXTRA_RIGHT, rect.bottom);
 
     /* Draw the selected tab */
     if(item != NULL) {
