@@ -44,6 +44,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_treelist", "ex_treelist.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_expand", "ex_expand.vcxproj", "{6FFD7104-6803-48C6-8101-53C379FED22D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_treelist2", "ex_treelist2.vcxproj", "{95379D6B-F627-476C-A31E-6920F40D03B5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -94,6 +96,10 @@ Global
 		{6FFD7104-6803-48C6-8101-53C379FED22D}.Debug|Win32.Build.0 = Debug|Win32
 		{6FFD7104-6803-48C6-8101-53C379FED22D}.Release|Win32.ActiveCfg = Release|Win32
 		{6FFD7104-6803-48C6-8101-53C379FED22D}.Release|Win32.Build.0 = Release|Win32
+		{95379D6B-F627-476C-A31E-6920F40D03B5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{95379D6B-F627-476C-A31E-6920F40D03B5}.Debug|Win32.Build.0 = Debug|Win32
+		{95379D6B-F627-476C-A31E-6920F40D03B5}.Release|Win32.ActiveCfg = Release|Win32
+		{95379D6B-F627-476C-A31E-6920F40D03B5}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
