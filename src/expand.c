@@ -103,7 +103,7 @@ expand_calc_layout(expand_t* expand, HDC dc, expand_layout_t* layout)
 {
     RECT rect;
     BOOL right_align;
-    HFONT old_font;
+    HFONT old_font = NULL;
     TCHAR* str;
     SIZE extents;
     int glyph_size;
