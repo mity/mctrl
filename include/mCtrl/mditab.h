@@ -534,6 +534,15 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  */
 #define MC_MTM_GETITEMRECT        (MC_MTM_FIRST + 18)
 
+/**
+ * @brief Ensure the item is visible.
+ * @details If not visible, the control scrolls to make it visible.
+ * @param[in] wParam (@c int) Index of the item.
+ * @param lParam Reserved, set to zero.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_MTM_ENSUREVISIBLE      (MC_MTM_FIRST + 19)
+
 /*@}*/
 
 

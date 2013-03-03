@@ -482,22 +482,21 @@ mditab_anim_next_value(int value, int desired_value)
 }
 
 static void
-mditab_do_scroll(mditab_t* mditab, int delta, BOOL animate, BOOL refresh)
+mditab_do_scroll(mditab_t* mditab, int scroll, BOOL animate, BOOL refresh)
 {
     int max_scroll = mditab->scroll_x_max - mc_width(&mditab->main_rect);
     int old_scroll;
 
-    mditab->scroll_x_desired = mditab->scroll_x_desired + delta;
-    if(mditab->scroll_x_desired > max_scroll)
-        mditab->scroll_x_desired = max_scroll;
-    if(mditab->scroll_x_desired < 0)
-        mditab->scroll_x_desired = 0;
-
-    if(mditab->scroll_x == mditab->scroll_x_desired) {
+    if(scroll > max_scroll)
+        scroll = max_scroll;
+    if(scroll < 0)
+        scroll = 0;
+    if(mditab->scroll_x == scroll) {
         mditab->dirty_scroll = FALSE;
         return;
     }
 
+    mditab->scroll_x_desired = scroll;
     old_scroll = mditab->scroll_x;
 
     if(mditab->style & MC_MTS_ANIMATE) {
@@ -524,9 +523,40 @@ mditab_do_scroll(mditab_t* mditab, int delta, BOOL animate, BOOL refresh)
 }
 
 static inline void
-mditab_scroll(mditab_t* mditab, int delta, BOOL refresh)
+mditab_do_scroll_rel(mditab_t* mditab, int delta, BOOL animate, BOOL refresh)
 {
-    mditab_do_scroll(mditab, delta, (mditab->style & MC_MTS_ANIMATE), refresh);
+    mditab_do_scroll(mditab, mditab->scroll_x_desired + delta, animate, refresh);
+}
+
+static inline void
+mditab_scroll(mditab_t* mditab, int scroll, BOOL refresh)
+{
+    mditab_do_scroll(mditab, scroll, (mditab->style & MC_MTS_ANIMATE), refresh);
+}
+
+static inline void
+mditab_scroll_rel(mditab_t* mditab, int delta, BOOL refresh)
+{
+    mditab_scroll(mditab, mditab->scroll_x_desired + delta, refresh);
+}
+
+static void
+mditab_scroll_to_item(mditab_t* mditab, int index)
+{
+    mditab_item_t* item;
+    int scroll;
+
+    item = mditab_item(mditab, index);
+
+    if(item->left < mditab->scroll_x  ||
+       (item->right - item->left) > mc_width(&mditab->main_rect))
+        scroll = item->left;
+    else if(item->right > mditab->scroll_x + mc_width(&mditab->main_rect))
+        scroll = item->right - mc_width(&mditab->main_rect);
+    else
+        return;
+
+    mditab_scroll(mditab, scroll, TRUE);
 }
 
 static inline void
@@ -548,6 +578,7 @@ mditab_do_layout(mditab_t* mditab, BOOL animate, BOOL refresh)
     int tb1_width, tb2_width;
     int i, n;
     BOOL need_scroll = FALSE;
+    BOOL scrolled_to_max = FALSE;
     mditab_item_t* item;
     int old_space;
     POINT pt;
@@ -556,6 +587,9 @@ mditab_do_layout(mditab_t* mditab, BOOL animate, BOOL refresh)
 
     GetClientRect(mditab->win, &rect);
     n = mditab_count(mditab);
+
+    if(mditab->scroll_x_desired + mc_width(&mditab->main_rect) >= mditab->scroll_x_max)
+        scrolled_to_max = TRUE;
 
     /* Detect what buttons we need */
     btn_mask = 0;
@@ -655,9 +689,11 @@ mditab_do_layout(mditab_t* mditab, BOOL animate, BOOL refresh)
         mditab->scroll_x_max = mditab_item(mditab, n-1)->right;
     else
         mditab->scroll_x_max = 0;
-    if(!mditab->dirty_scroll  &&
-       mditab->scroll_x > mditab->scroll_x_max - mc_width(&mditab->main_rect)) {
-        mditab_do_scroll(mditab, 0, animate, FALSE);
+    if(!mditab->dirty_scroll) {
+        if(mditab->scroll_x > mditab->scroll_x_max - mc_width(&mditab->main_rect))
+            mditab_do_scroll_rel(mditab, 0, animate, FALSE);
+        else if(scrolled_to_max)
+            mditab_do_scroll(mditab, mditab->scroll_x_max, FALSE, FALSE);
     }
 
     /* Update ->hot_item */
@@ -710,7 +746,7 @@ mditab_animate_timer_proc(HWND win, UINT msg, UINT_PTR id, DWORD time)
 
     if(!do_layout  &&  do_scroll) {
         /* Path for optimized refresh via ScrollWindowEx() */
-        mditab_do_scroll(mditab, 0, TRUE, TRUE);
+        mditab_do_scroll_rel(mditab, 0, TRUE, TRUE);
     } else {
         if(do_layout) {
             mditab_do_layout(mditab, TRUE, FALSE);
@@ -723,7 +759,7 @@ mditab_animate_timer_proc(HWND win, UINT msg, UINT_PTR id, DWORD time)
             }
         }
         if(do_scroll)
-            mditab_do_scroll(mditab, 0, TRUE, FALSE);
+            mditab_do_scroll_rel(mditab, 0, TRUE, FALSE);
 
         if(!mditab->no_redraw)
             InvalidateRect(mditab->win, NULL, TRUE);
@@ -747,7 +783,7 @@ mditab_animate_abort(mditab_t* mditab)
     if(mditab->dirty_layout)
         mditab_do_layout(mditab, FALSE, TRUE);
     if(mditab->dirty_scroll)
-        mditab_do_scroll(mditab, 0, FALSE, TRUE);
+        mditab_do_scroll_rel(mditab, 0, FALSE, TRUE);
 }
 
 static void
@@ -1261,6 +1297,7 @@ mditab_set_cur_sel(mditab_t* mditab, int index)
         return old_sel_index;
 
     mditab->item_selected = index;
+    mditab_scroll_to_item(mditab, index);
 
     /* Redraw the tabs with changed status */
     if(old_sel_index >= 0)
@@ -1432,17 +1469,30 @@ mditab_get_item_rect(mditab_t* mditab, int index, RECT* rect)
 }
 
 static BOOL
+mditab_ensure_visible(mditab_t* mditab, int index)
+{
+    if(MC_ERR(index < 0  ||  index >= mditab_count(mditab))) {
+        MC_TRACE("mditab_ensure_visible: invalid tab index (%d)", index);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    mditab_scroll_to_item(mditab, index);
+    return TRUE;
+}
+
+static BOOL
 mditab_command(mditab_t* mditab, WORD code, WORD ctrl_id, HWND ctrl)
 {
     MDITAB_TRACE("mditab_command(%p, %d, %d, %p)", mditab, code, ctrl_id, ctrl);
 
     switch(ctrl_id) {
         case IDC_SCROLL_LEFT:
-            mditab_scroll(mditab, -80, TRUE);
+            mditab_scroll_rel(mditab, -80, TRUE);
             break;
 
         case IDC_SCROLL_RIGHT:
-            mditab_scroll(mditab, +80, TRUE);
+            mditab_scroll_rel(mditab, +80, TRUE);
             break;
 
         case IDC_CLOSE_ITEM:
@@ -1763,6 +1813,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_MTM_GETITEMRECT:
             return mditab_get_item_rect(mditab, wp, (RECT*) lp);
+
+        case MC_MTM_ENSUREVISIBLE:
+            return mditab_ensure_visible(mditab, wp);
 
         case WM_LBUTTONDOWN:
             mditab_left_button_down(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
