@@ -67,7 +67,7 @@ extern HRESULT  (WINAPI* theme_GetThemeMargins)(HTHEME,HDC,int,int,int,RECT*,MAR
 extern HRESULT  (WINAPI* theme_GetThemeMetric)(HTHEME,HDC,int,int,int,int*);
 extern HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,enum THEMESIZE,SIZE*);
 extern HRESULT  (WINAPI* theme_GetThemePosition)(HTHEME,int,int,int,POINT*);
-extern HRESULT  (WINAPI* theme_GetThemePropertyOrigin)(HTHEME,int,int,int,PROPERTYORIGIN*);
+extern HRESULT  (WINAPI* theme_GetThemePropertyOrigin)(HTHEME,int,int,int,enum PROPERTYORIGIN*);
 extern HRESULT  (WINAPI* theme_GetThemeRect)(HTHEME,int,int,int,RECT*);
 extern HRESULT  (WINAPI* theme_GetThemeStream)(HTHEME,int,int,int,void**,DWORD*,HINSTANCE);
 extern HRESULT  (WINAPI* theme_GetThemeString)(HTHEME,int,int,int,WCHAR*,int);

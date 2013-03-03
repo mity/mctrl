@@ -734,7 +734,7 @@ HRESULT MCTRL_API mcGetThemePosition(HTHEME hTheme, int iPartId, int iStateId,
  * @return Return value of @c GetThemePropertyOrigin() or @c E_NOTIMPL.
  */
 HRESULT MCTRL_API mcGetThemePropertyOrigin(HTHEME hTheme, int iPartId,
-            int iStateId, int iPropId, PROPERTYORIGIN* pOrigin);
+            int iStateId, int iPropId, enum PROPERTYORIGIN* pOrigin);
 
 /**
  * Calls @c GetThemeRect() if available (and @c UXTHEME.DLL is in use), or

@@ -65,7 +65,7 @@ HRESULT  (WINAPI* theme_GetThemeMargins)(HTHEME,HDC,int,int,int,RECT*,MARGINS*) 
 HRESULT  (WINAPI* theme_GetThemeMetric)(HTHEME,HDC,int,int,int,int*) = NULL;
 HRESULT  (WINAPI* theme_GetThemePartSize)(HTHEME,HDC,int,int,const RECT*,enum THEMESIZE,SIZE*) = NULL;
 HRESULT  (WINAPI* theme_GetThemePosition)(HTHEME,int,int,int,POINT*) = NULL;
-HRESULT  (WINAPI* theme_GetThemePropertyOrigin)(HTHEME,int,int,int,PROPERTYORIGIN*) = NULL;
+HRESULT  (WINAPI* theme_GetThemePropertyOrigin)(HTHEME,int,int,int,enum PROPERTYORIGIN*) = NULL;
 HRESULT  (WINAPI* theme_GetThemeRect)(HTHEME,int,int,int,RECT*) = NULL;
 HRESULT  (WINAPI* theme_GetThemeStream)(HTHEME,int,int,int,void**,DWORD*,HINSTANCE) = NULL;
 HRESULT  (WINAPI* theme_GetThemeString)(HTHEME,int,int,int,WCHAR*,int) = NULL;
@@ -679,7 +679,7 @@ mcGetThemePosition(HTHEME hTheme, int iPartId, int iStateId, int iPropId,
 
 HRESULT MCTRL_API
 mcGetThemePropertyOrigin(HTHEME hTheme, int iPartId, int iStateId, int iPropId,
-            PROPERTYORIGIN* pOrigin)
+            enum PROPERTYORIGIN* pOrigin)
 {
     if(theme_GetThemePropertyOrigin != NULL) {
         return theme_GetThemePropertyOrigin(hTheme, iPartId, iStateId, iPropId,
@@ -1118,7 +1118,7 @@ theme_init(void)
     GPA(HRESULT,  GetThemeMetric, (HTHEME,HDC,int,int,int,int*));
     GPA(HRESULT,  GetThemePartSize, (HTHEME,HDC,int,int,const RECT*,enum THEMESIZE,SIZE*));
     GPA(HRESULT,  GetThemePosition, (HTHEME,int,int,int,POINT*));
-    GPA(HRESULT,  GetThemePropertyOrigin, (HTHEME,int,int,int,PROPERTYORIGIN*));
+    GPA(HRESULT,  GetThemePropertyOrigin, (HTHEME,int,int,int,enum PROPERTYORIGIN*));
     GPA(HRESULT,  GetThemeRect, (HTHEME,int,int,int,RECT*));
     GPA(HRESULT,  GetThemeStream, (HTHEME,int,int,int,void**,DWORD*,HINSTANCE));
     GPA(HRESULT,  GetThemeString, (HTHEME,int,int,int,WCHAR*,int));
