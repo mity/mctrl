@@ -99,7 +99,7 @@ case $TOOLCHAIN in
         DLLTOOL=dlltool
         case $ARCH in
             i?86 )
-                GCCFLAGS=-m32
+                GCCFLAGS="-m32 -march=i586 -mtune=core2"
                 WINDRESFLAGS=--target=pe-i386
                 DLLTOOLFLAGS="-m i386 -f --32"
                 ;;
@@ -135,7 +135,7 @@ case $TOOLCHAIN in
                     WINDRES=windres
                     DLLTOOL=dlltool
                 fi
-                GCCFLAGS=-m32
+                GCCFLAGS="-m32 -march=i586 -mtune=core2"
                 WINDRESFLAGS=--target=pe-i386
                 DLLTOOLFLAGS="-m i386 -f --32"
                 ;;
