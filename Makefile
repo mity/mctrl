@@ -48,7 +48,7 @@ WINVER = -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT
 
 override CPPFLAGS += -DMCTRL_BUILD $(WINVER) $(INCLUDES) -D_CRT_NON_CONFORMING_SWPRINTFS
 override CFLAGS += -Wall
-override LDFLAGS += -mwindows
+override LDFLAGS += -mwindows -Wl,--enable-stdcall-fixup
 override LIBS = -lgdi32 -lcomctl32 -lole32 -loleaut32
 
 ifneq ($(DEBUG),0)
