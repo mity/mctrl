@@ -990,6 +990,7 @@ BOOL MCTRL_API mcIsThemeBackgroundPartiallyTransparent(HTHEME hTheme,
  * Calls @c IsThemeDialogTextureEnabled() if available (and @c UXTHEME.DLL is
  * in use), or returns @c FALSE.
  *
+ * @param hwnd
  * @return Return value of @c IsThemeDialogTextureEnabled(), or @c FALSE.
  */
 BOOL MCTRL_API mcIsThemeDialogTextureEnabled(HWND hwnd);
@@ -1009,7 +1010,7 @@ BOOL MCTRL_API mcIsThemePartDefined(HTHEME hTheme, int iPartId, int iStateId);
  * Calls @c OpenThemeData() if available (and @c UXTHEME.DLL is in use),
  * or returns @c MULL.
  *
- * @param hTheme
+ * @param hwnd
  * @param pszClassList
  * @return Return value of @c OpenThemeData(), or @c FALSE.
  */
@@ -1019,7 +1020,7 @@ HTHEME MCTRL_API mcOpenThemeData(HWND hwnd, const WCHAR* pszClassList);
  * Calls @c OpenThemeDataEx() if available (and @c UXTHEME.DLL is in use),
  * or returns @c MULL.
  *
- * @param hTheme
+ * @param hwnd
  * @param pszClassList
  * @param dwFlags
  * @return Return value of @c OpenThemeDataEx(), or @c FALSE.
