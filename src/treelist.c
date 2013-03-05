@@ -2843,7 +2843,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 }
 
 int
-treelist_init(void)
+treelist_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
@@ -2854,7 +2854,7 @@ treelist_init(void)
     wc.lpszClassName = treelist_wc;
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE_ERR("treelist_init: RegisterClass() failed");
+        MC_TRACE_ERR("treelist_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -2862,7 +2862,7 @@ treelist_init(void)
 }
 
 void
-treelist_fini(void)
+treelist_fini_module(void)
 {
     UnregisterClass(treelist_wc, NULL);
 }

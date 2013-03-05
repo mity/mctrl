@@ -839,7 +839,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
 
 int
-grid_init(void)
+grid_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
@@ -850,7 +850,7 @@ grid_init(void)
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.lpszClassName = grid_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE_ERR("grid_init: RegisterClass() failed");
+        MC_TRACE_ERR("grid_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -858,7 +858,7 @@ grid_init(void)
 }
 
 void
-grid_fini(void)
+grid_fini_module(void)
 {
     UnregisterClass(grid_wc, NULL);
 }

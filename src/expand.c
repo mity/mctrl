@@ -896,7 +896,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 }
 
 int
-expand_init(void)
+expand_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
@@ -913,7 +913,7 @@ expand_init(void)
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = expand_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE_ERR("expand_init: RegisterClass() failed");
+        MC_TRACE_ERR("expand_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -921,7 +921,7 @@ expand_init(void)
 }
 
 void
-expand_fini(void)
+expand_fini_module(void)
 {
     UnregisterClass(expand_wc, NULL);
 }

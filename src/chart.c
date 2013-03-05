@@ -3026,7 +3026,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 }
 
 int
-chart_init(void)
+chart_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
@@ -3036,7 +3036,7 @@ chart_init(void)
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = chart_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE_ERR("chart_init: RegisterClass() failed");
+        MC_TRACE_ERR("chart_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -3044,7 +3044,7 @@ chart_init(void)
 }
 
 void
-chart_fini(void)
+chart_fini_module(void)
 {
     UnregisterClass(chart_wc, NULL);
 }

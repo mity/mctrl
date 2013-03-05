@@ -20,12 +20,7 @@
 #define MC_EXPAND_H
 
 #include "mCtrl/expand.h"
-
 #include "misc.h"
-
-
-int expand_init(void);
-void expand_fini(void);
 
 
 #endif  /* MC_EXPAND_H */

@@ -172,12 +172,4 @@ gdix_ARGB_from_acr(BYTE a, COLORREF cr)
 }
 
 
-/**********************
- *** Initialization ***
- **********************/
-
-int gdix_init(void);
-void gdix_fini(void);
-
-
 #endif  /* MC_GDIX_H */

@@ -1961,7 +1961,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
 
 int
-mditab_init(void)
+mditab_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
@@ -1973,7 +1973,7 @@ mditab_init(void)
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = mditab_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE_ERR("mditab_init: RegisterClass() failed");
+        MC_TRACE_ERR("mditab_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -1981,7 +1981,7 @@ mditab_init(void)
 }
 
 void
-mditab_fini(void)
+mditab_fini_module(void)
 {
     UnregisterClass(mditab_wc, NULL);
 }

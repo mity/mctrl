@@ -98,7 +98,7 @@ typedef struct gdix_StartupOutput_tag gdix_StartupOutput;
 /* We do not use gdix_StartupOutput, so no definition */
 
 int
-gdix_init(void)
+gdix_init_module(void)
 {
     gdix_Status (WINAPI* gdix_Startup)(ULONG_PTR*,const gdix_StartupInput*,gdix_StartupOutput*);
     gdix_Status status;
@@ -106,7 +106,7 @@ gdix_init(void)
 
     gdix_dll = LoadLibrary(_T("GDIPLUS.DLL"));
     if(MC_ERR(gdix_dll == NULL)) {
-        MC_TRACE("gdix_init: LoadLibrary(GDIPLUS.DLL) failed [%ld].",
+        MC_TRACE("gdix_init_module: LoadLibrary(GDIPLUS.DLL) failed [%ld].",
                  GetLastError());
         goto err_LoadLibrary;
     }
@@ -114,24 +114,24 @@ gdix_init(void)
     gdix_Startup = (gdix_Status (WINAPI*)(ULONG_PTR*,const gdix_StartupInput*,gdix_StartupOutput*))
                                                 GetProcAddress(gdix_dll, "GdiplusStartup");
     if(MC_ERR(gdix_Startup == NULL)) {
-        MC_TRACE("gdix_init: GetProcAddress(GdiplusStartup) failed [%ld].",
+        MC_TRACE("gdix_init_module: GetProcAddress(GdiplusStartup) failed [%ld].",
                  GetLastError());
         goto err_GetProcAddress;
     }
 
     gdix_Shutdown = (void (WINAPI*)(ULONG_PTR)) GetProcAddress(gdix_dll, "GdiplusShutdown");
     if(MC_ERR(gdix_Shutdown == NULL)) {
-        MC_TRACE("gdix_init: GetProcAddress(GdiplusShutdown) failed [%ld].",
+        MC_TRACE("gdix_init_module: GetProcAddress(GdiplusShutdown) failed [%ld].",
                  GetLastError());
         goto err_GetProcAddress;
     }
 
 #define GPA(name, params)                                                     \
         do {                                                                  \
-            gdix_##name = (gdix_Status (WINAPI*)params)                          \
+            gdix_##name = (gdix_Status (WINAPI*)params)                       \
                         GetProcAddress(gdix_dll, "Gdip" #name);               \
             if(MC_ERR(gdix_##name == NULL)) {                                 \
-                MC_TRACE("gdix_init: GetProcAddress(Gdip%s) failed [%ld].",   \
+                MC_TRACE("gdix_init_module: GetProcAddress(Gdip%s) failed [%ld].", \
                          #name, GetLastError());                              \
                 goto err_GetProcAddress;                                      \
             }                                                                 \
@@ -189,7 +189,7 @@ gdix_init(void)
         goto err_Startup;
     }
 
-    GDIX_TRACE("gdix_init: Success.");
+    GDIX_TRACE("gdix_init_module: Success.");
     return 0;
 
 err_Startup:
@@ -200,7 +200,7 @@ err_LoadLibrary:
 }
 
 void
-gdix_fini(void)
+gdix_fini_module(void)
 {
     gdix_Shutdown(gdix_token);
     FreeLibrary(gdix_dll);

@@ -20,12 +20,7 @@
 #define MC_CHART_H
 
 #include "mCtrl/chart.h"
-
 #include "misc.h"
-
-
-int chart_init(void);
-void chart_fini(void);
 
 
 #endif  /* MC_CHART_H */

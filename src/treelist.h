@@ -20,12 +20,7 @@
 #define MC_TREELIST_H
 
 #include "mCtrl/treelist.h"
-
 #include "misc.h"
-
-
-int treelist_init(void);
-void treelist_fini(void);
 
 
 #endif  /* MC_TREELIST_H */

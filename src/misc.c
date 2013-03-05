@@ -517,14 +517,14 @@ setup_comctl32_version(void)
 }
 
 int
-mc_init(void)
+mc_init_module(void)
 {
     /* Load set of helper symbols used for helper buttons of more complex
      * controls */
     mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance, MAKEINTRESOURCE(
                            IDR_GLYPHS), MC_BMP_GLYPH_W, 1, RGB(255,0,255));
     if(MC_ERR(mc_bmp_glyphs == NULL)) {
-        MC_TRACE_ERR("mc_init: ImageList_LoadBitmap() failed");
+        MC_TRACE_ERR("mc_init_module: ImageList_LoadBitmap() failed");
         return -1;
     }
 
@@ -537,7 +537,7 @@ mc_init(void)
 }
 
 void
-mc_fini(void)
+mc_fini_module(void)
 {
     ImageList_Destroy(mc_bmp_glyphs);
 }

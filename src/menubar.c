@@ -681,14 +681,14 @@ menubar_ht_disable(menubar_t* mb)
  **********************/
 
 int
-menubar_init(void)
+menubar_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
     mc_init_common_controls(ICC_BAR_CLASSES | ICC_COOL_CLASSES);
 
     if(MC_ERR(!GetClassInfo(NULL, _T("ToolbarWindow32"), &wc))) {
-        MC_TRACE_ERR("menubar_init: GetClassInfo() failed");
+        MC_TRACE_ERR("menubar_init_module: GetClassInfo() failed");
         return -1;
     }
 
@@ -703,7 +703,7 @@ menubar_init(void)
     wc.hInstance = NULL;
     wc.lpszClassName = menubar_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
-        MC_TRACE_ERR("menubar_init: RegisterClass() failed");
+        MC_TRACE_ERR("menubar_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -713,7 +713,7 @@ menubar_init(void)
 }
 
 void
-menubar_fini(void)
+menubar_fini_module(void)
 {
     DeleteCriticalSection(&menubar_ht_lock);
     UnregisterClass(menubar_wc, NULL);

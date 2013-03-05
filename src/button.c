@@ -711,14 +711,14 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 }
 
 int
-button_init(void)
+button_init_module(void)
 {
     WNDCLASS wc;
 
     mc_init_common_controls(ICC_STANDARD_CLASSES);
 
     if(MC_ERR(!GetClassInfo(NULL, _T("BUTTON"), &wc))) {
-        MC_TRACE_ERR("button_init: GetClassInfo() failed");
+        MC_TRACE_ERR("button_init_module: GetClassInfo() failed");
         return -1;
     }
 
@@ -736,7 +736,7 @@ button_init(void)
     wc.hInstance = NULL;
     wc.lpszClassName = button_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
-        MC_TRACE_ERR("button_init: RegisterClass() failed");
+        MC_TRACE_ERR("button_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -744,7 +744,7 @@ button_init(void)
 }
 
 void
-button_fini(void)
+button_fini_module(void)
 {
     UnregisterClass(button_wc, NULL);
 }

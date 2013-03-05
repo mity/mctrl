@@ -481,7 +481,7 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 }
 
 int
-propview_init(void)
+propview_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
@@ -493,7 +493,7 @@ propview_init(void)
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     wc.lpszClassName = propview_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE_ERR("propview_init: RegisterClass() failed");
+        MC_TRACE_ERR("propview_init_module: RegisterClass() failed");
         return -1;
     }
 
@@ -501,7 +501,7 @@ propview_init(void)
 }
 
 void
-propview_fini(void)
+propview_fini_module(void)
 {
     UnregisterClass(propview_wc, NULL);
 }

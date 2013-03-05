@@ -97,8 +97,4 @@ extern HRESULT  (WINAPI* theme_SetWindowThemeAttribute)(HWND,enum WINDOWTHEMEATT
 extern BOOL     (WINAPI* theme_UpdatePanningFeedback)(HWND,LONG,LONG,BOOL);
 
 
-int theme_init(void);
-void theme_fini(void);
-
-
 #endif  /* MC_THEME_H */

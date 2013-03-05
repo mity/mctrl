@@ -1045,21 +1045,21 @@ mcUpdatePanningFeedback(HWND hwnd, LONG lTotalOverpanOffsetX,
  **********************/
 
 int
-theme_init(void)
+theme_init_module(void)
 {
     /* WinXP with COMCL32.DLL version 6.0 or newer is required for theming. */
     if(mc_win_version < MC_WIN_XP) {
-        MC_TRACE("theme_init: UXTHEME.DLL not used (old Windows)");
+        MC_TRACE("theme_init_module: UXTHEME.DLL not used (old Windows)");
         goto no_theming;
     }
     if(mc_comctl32_version < MC_DLL_VER(6, 0)) {
-        MC_TRACE("theme_init: UXTHEME.DLL not used (COMCTL32.DLL < 6.0)");
+        MC_TRACE("theme_init_module: UXTHEME.DLL not used (COMCTL32.DLL < 6.0)");
         goto no_theming;
     }
 
     uxtheme_dll = LoadLibrary(_T("UXTHEME.DLL"));
     if(MC_ERR(uxtheme_dll == NULL)) {
-        MC_TRACE("theme_init: LoadLibrary(UXTHEME.DLL) failed [%ld].",
+        MC_TRACE("theme_init_module: LoadLibrary(UXTHEME.DLL) failed [%ld].",
                  GetLastError());
         goto no_theming;
     }
@@ -1069,7 +1069,7 @@ theme_init(void)
             theme_##name = (rettype (WINAPI*)params)                          \
                         GetProcAddress(uxtheme_dll, #name);                   \
             if(MC_ERR(theme_##name == NULL)) {                                \
-                MC_TRACE("theme_init: GetProcAddress(%s) failed [%ld].",      \
+                MC_TRACE("theme_init_module: GetProcAddress(%s) failed [%ld].", \
                          #name, GetLastError());                              \
             }                                                                 \
         } while(0)
@@ -1174,10 +1174,10 @@ theme_init(void)
         if(app_props_str[0] == '\0')
             strcat(app_props_str, ", none");
 
-        MC_TRACE("theme_init: IsThemeActive() -> %s", (mcIsThemeActive() ? "yes" : "no"));
-        MC_TRACE("theme_init: IsAppThemed() -> %s", (mcIsAppThemed() ? "yes" : "no"));
-        MC_TRACE("theme_init: GetThemeAppProperties() -> 0x%x (%s)", app_props, app_props_str+2);
-        MC_TRACE("theme_init: IsCompositionActive() -> %s", (mcIsCompositionActive() ? "yes" : "no"));
+        MC_TRACE("theme_init_module: IsThemeActive() -> %s", (mcIsThemeActive() ? "yes" : "no"));
+        MC_TRACE("theme_init_module: IsAppThemed() -> %s", (mcIsAppThemed() ? "yes" : "no"));
+        MC_TRACE("theme_init_module: GetThemeAppProperties() -> 0x%x (%s)", app_props, app_props_str+2);
+        MC_TRACE("theme_init_module: IsCompositionActive() -> %s", (mcIsCompositionActive() ? "yes" : "no"));
     }
 #endif
 
@@ -1187,7 +1187,7 @@ no_theming:
 }
 
 void
-theme_fini(void)
+theme_fini_module(void)
 {
     if(uxtheme_dll == NULL)
         return;

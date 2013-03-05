@@ -37,6 +37,8 @@
 #include "resource.h"
 #include "version.h"
 
+#include "mCtrl/defs.h"
+
 
 /***************************
  *** Miscelaneous Macros ***
@@ -555,14 +557,6 @@ mc_send_notify(HWND parent, HWND win, UINT code)
 
     return MC_MSG(parent, WM_NOTIFY, hdr.idFrom, &hdr);
 }
-
-
-/**********************
- *** Initialization ***
- **********************/
-
-int mc_init(void);
-void mc_fini(void);
 
 
 #endif  /* MC_MISC_H  */

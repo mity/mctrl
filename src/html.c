@@ -1480,7 +1480,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
 
 int
-html_init(void)
+html_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
@@ -1491,7 +1491,7 @@ html_init(void)
     wc.cbWndExtra = sizeof(html_t*);
     wc.lpszClassName = html_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
-        MC_TRACE_ERR("html_init: RegisterClass() failed");
+        MC_TRACE_ERR("html_init_module: RegisterClass() failed");
         SysFreeString(url_blank);
         return -1;
     }
@@ -1500,7 +1500,7 @@ html_init(void)
 }
 
 void
-html_fini(void)
+html_fini_module(void)
 {
     UnregisterClass(html_wc, NULL);
 }

@@ -61,7 +61,8 @@ module_init_modules(module_t** modules, int n)
         if(modules[i]->refs == 0) {
             res = modules[i]->fn_init();
             if(MC_ERR(res != 0)) {
-                MC_TRACE("module_init: %s_init() failed.", modules[i]->name);
+                MC_TRACE("module_init_modules: %s_init() failed.",
+                         modules[i]->name);
                 /* Rollback previous initializations */
                 while(--i >= 0) {
                     modules[i]->refs--;
@@ -98,14 +99,22 @@ module_fini_modules(module_t** modules, int n)
  *** Macros for module declarations ***
  **************************************/
 
-/* Declaration of a module */
 #ifdef DEBUG
-    #define DEFINE_MODULE(mod_name)                                           \
-        static module_t mod_##mod_name = { #mod_name, mod_name##_init, mod_name##_fini, 0 };
+    #define DEFINE_MODULE_NAME(mod_name)    #mod_name,
 #else
-    #define DEFINE_MODULE(mod_name)                                           \
-        static module_t mod_##mod_name = { mod_name##_init, mod_name##_fini, 0 };
+    #define DEFINE_MODULE_NAME(mod_name)
 #endif
+
+/* Declaration of a module */
+#define DEFINE_MODULE(mod_name)                                               \
+    int mod_name##_init_module(void);                                         \
+    void mod_name##_fini_module(void);                                        \
+    static module_t mod_##mod_name = {                                        \
+                DEFINE_MODULE_NAME(mod_name)                                  \
+                mod_name##_init_module,                                       \
+                mod_name##_fini_module,                                       \
+                0                                                             \
+    }
 
 /* Macro implementing public interface for public modules */
 #define DEFINE_PUBLIC_IFACE(mod_name, PublicName, deps)                       \
@@ -133,41 +142,18 @@ module_fini_modules(module_t** modules, int n)
 
 /* Module definition */
 
-#include "misc.h"
-DEFINE_MODULE(mc)
-
-#include "button.h"
-DEFINE_MODULE(button)
-
-#include "chart.h"
-DEFINE_MODULE(chart)
-
-#include "expand.h"
-DEFINE_MODULE(expand)
-
-#include "gdix.h"
-DEFINE_MODULE(gdix)
-
-#include "grid.h"
-DEFINE_MODULE(grid)
-
-#include "html.h"
-DEFINE_MODULE(html)
-
-#include "menubar.h"
-DEFINE_MODULE(menubar)
-
-#include "mditab.h"
-DEFINE_MODULE(mditab)
-
-#include "propview.h"
-DEFINE_MODULE(propview)
-
-#include "theme.h"
-DEFINE_MODULE(theme)
-
-#include "treelist.h"
-DEFINE_MODULE(treelist)
+DEFINE_MODULE(mc);
+DEFINE_MODULE(button);
+DEFINE_MODULE(chart);
+DEFINE_MODULE(expand);
+DEFINE_MODULE(gdix);
+DEFINE_MODULE(grid);
+DEFINE_MODULE(html);
+DEFINE_MODULE(mditab);
+DEFINE_MODULE(menubar);
+DEFINE_MODULE(propview);
+DEFINE_MODULE(theme);
+DEFINE_MODULE(treelist);
 
 
 /* Public interfaces of exposed modules */
@@ -187,11 +173,11 @@ DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 static module_t* mod_html_deps[] = { &mod_mc, &mod_theme, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 
-static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
-DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)
-
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
+
+static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
+DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)
 
 static module_t* mod_propview_deps[] = { &mod_mc, &mod_theme, &mod_propview };
 DEFINE_PUBLIC_IFACE(propview, PropView, mod_propview_deps)
