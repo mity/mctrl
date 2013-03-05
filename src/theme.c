@@ -1059,8 +1059,7 @@ theme_init_module(void)
 
     uxtheme_dll = LoadLibrary(_T("UXTHEME.DLL"));
     if(MC_ERR(uxtheme_dll == NULL)) {
-        MC_TRACE("theme_init_module: LoadLibrary(UXTHEME.DLL) failed [%ld].",
-                 GetLastError());
+        MC_TRACE_ERR("theme_init_module: LoadLibrary(UXTHEME.DLL) failed");
         goto no_theming;
     }
 
@@ -1069,8 +1068,8 @@ theme_init_module(void)
             theme_##name = (rettype (WINAPI*)params)                          \
                         GetProcAddress(uxtheme_dll, #name);                   \
             if(MC_ERR(theme_##name == NULL)) {                                \
-                MC_TRACE("theme_init_module: GetProcAddress(%s) failed [%ld].", \
-                         #name, GetLastError());                              \
+                MC_TRACE_ERR("theme_init_module: "                            \
+                             "GetProcAddress("#name") failed");               \
             }                                                                 \
         } while(0)
 
@@ -1174,10 +1173,14 @@ theme_init_module(void)
         if(app_props_str[0] == '\0')
             strcat(app_props_str, ", none");
 
-        MC_TRACE("theme_init_module: IsThemeActive() -> %s", (mcIsThemeActive() ? "yes" : "no"));
-        MC_TRACE("theme_init_module: IsAppThemed() -> %s", (mcIsAppThemed() ? "yes" : "no"));
-        MC_TRACE("theme_init_module: GetThemeAppProperties() -> 0x%x (%s)", app_props, app_props_str+2);
-        MC_TRACE("theme_init_module: IsCompositionActive() -> %s", (mcIsCompositionActive() ? "yes" : "no"));
+        MC_TRACE("theme_init_module: IsThemeActive() -> %s",
+                                (mcIsThemeActive() ? "yes" : "no"));
+        MC_TRACE("theme_init_module: IsAppThemed() -> %s",
+                                (mcIsAppThemed() ? "yes" : "no"));
+        MC_TRACE("theme_init_module: GetThemeAppProperties() -> 0x%x (%s)",
+                                app_props, app_props_str+2);
+        MC_TRACE("theme_init_module: IsCompositionActive() -> %s",
+                                (mcIsCompositionActive() ? "yes" : "no"));
     }
 #endif
 
