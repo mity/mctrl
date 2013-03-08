@@ -71,7 +71,8 @@ dsa_reserve(dsa_t* dsa, WORD size)
     if(capacity <= dsa->capacity)
         return 0;
 
-    buffer = (BYTE*) realloc(dsa->buffer, capacity * dsa->item_size);
+    buffer = (BYTE*) realloc(dsa->buffer,
+                             (size_t)capacity * (size_t)dsa->item_size);
     if(MC_ERR(buffer == NULL)) {
         MC_TRACE("dsa_reserve: realloc() failed.");
         return -1;
@@ -97,7 +98,7 @@ dsa_insert_raw(dsa_t* dsa, WORD index)
 
     if(index < dsa->size) {
         memmove(dsa_item(dsa, index+1), dsa_item(dsa, index),
-                (dsa->size - index) * dsa->item_size);
+                (size_t)(dsa->size - index) * (size_t)dsa->item_size);
     }
 
     dsa->size++;
@@ -144,18 +145,18 @@ dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
     if(dsa->capacity < dsa->size + DSA_DEFAULT_SHRINK_SIZE(dsa->size)) {
 no_realloc:
         memmove(dsa_item(dsa, index), dsa_item(dsa, index+1),
-                (dsa->size - index - 1) * dsa->item_size);
+                (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
         dsa->size--;
         return;
     }
 
-    buffer = (BYTE*) malloc((dsa->size - 1) * dsa->item_size);
+    buffer = (BYTE*) malloc((size_t)(dsa->size - 1) * (size_t)dsa->item_size);
     if(MC_ERR(buffer == NULL))
         goto no_realloc;
 
-    memcpy(buffer, dsa->buffer, index * dsa->item_size);
+    memcpy(buffer, dsa->buffer, (size_t)index * (size_t)dsa->item_size);
     memcpy(buffer + index * dsa->item_size, dsa_item(dsa, index+1),
-           (dsa->size - index - 1) * dsa->item_size);
+           (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
 
     free(dsa->buffer);
     dsa->buffer = buffer;
@@ -432,10 +433,10 @@ found_index:
     mc_inlined_memcpy(tmp, dsa_item(dsa, old_index), dsa->item_size);
     if(index < old_index) {
         memmove(dsa_item(dsa, index+1), dsa_item(dsa, index),
-                (old_index - index) * dsa->item_size);
+                (size_t)(old_index - index) * (size_t)dsa->item_size);
     } else {
         memmove(dsa_item(dsa, old_index), dsa_item(dsa, old_index+1),
-                (index - old_index) * dsa->item_size);
+                (size_t)(index - old_index) * (size_t)dsa->item_size);
     }
     mc_inlined_memcpy(dsa_item(dsa, index), tmp, dsa->item_size);
     return index;
