@@ -35,6 +35,9 @@ table_init_cells_helper(table_cell_t* cells, size_t cell_count)
     static const table_cell_t cell_empty = { NULL, RGB(0,0,0), MC_CLR_NONE, 0 };
     size_t n;
 
+    if(cell_count == 0)
+        return;
+
     mc_inlined_memcpy(cells, &cell_empty, sizeof(table_cell_t));
     for(n = 1; 2*n < cell_count; n = 2*n)
         memcpy(cells + n, cells, n * sizeof(table_cell_t));
@@ -120,7 +123,10 @@ table_move_cells(table_cell_t* dst_cells, WORD dst_col_count, WORD dst_row_count
     {
         src_offset = src_reg->row0 * src_col_count;
         count = (src_reg->row1 - src_reg->row0) * src_col_count;
-        memcpy(dst_cells + src_offset, src_cells + src_offset, count * sizeof(table_cell_t));
+        if(count > 0) {
+            memcpy(dst_cells + src_offset, src_cells + src_offset,
+                   count * sizeof(table_cell_t));
+        }
         return;
     }
 
@@ -130,7 +136,10 @@ table_move_cells(table_cell_t* dst_cells, WORD dst_col_count, WORD dst_row_count
         src_offset = (src_reg->row0 + i) * src_col_count + src_reg->col0;
         dst_offset = (dst_reg->row0 + i) * dst_col_count + dst_reg->col0;
         count = src_reg->col1 - src_reg->col0;
-        memcpy(dst_cells + dst_offset, src_cells + src_offset, count * sizeof(table_cell_t));
+        if(count > 0) {
+            memcpy(dst_cells + dst_offset, src_cells + src_offset,
+                   count * sizeof(table_cell_t));
+        }
     }
 }
 
