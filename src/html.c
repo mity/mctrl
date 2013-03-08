@@ -304,7 +304,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
             LONG cmd = V_I4(&params->rgvarg[0]);
             MC_NMHTMLHISTORY notify;
 
-            if(cmd == CSC_NAVIGATEBACK  &&  cmd == CSC_NAVIGATEFORWARD) {
+            if(cmd == CSC_NAVIGATEBACK  ||  cmd == CSC_NAVIGATEFORWARD) {
                 if(cmd == CSC_NAVIGATEBACK)
                     html->can_back = enabled;
                 else
