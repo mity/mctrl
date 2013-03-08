@@ -630,7 +630,7 @@ mcGetThemeMargins(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
                                      prc, pMargins);
     }
 
-    if(pMargins != NULL)  memset(pMargins, 0, sizeof(pMargins));
+    if(pMargins != NULL)  memset(pMargins, 0, sizeof(MARGINS));
 
     MC_TRACE("mcGetThemeMargins: Stub [E_NOTIMPL]");
     return E_NOTIMPL;
