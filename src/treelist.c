@@ -1270,7 +1270,7 @@ treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed)
 
     if(surely_displayed || item_is_displayed(item)) {
         treelist_item_t* it;
-        int ignored;
+        int ignored = 0;
         int exposed_items = 0;
 
         for(it = item->child_head; it != NULL; it = item_next_displayed_ex(it, item, &ignored))
@@ -1311,7 +1311,7 @@ treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displaye
     item->state &= ~MC_TLIS_EXPANDED;
     if(surely_displayed || item_is_displayed(item)) {
         treelist_item_t* it;
-        int ignored;
+        int ignored = 0;
         int hidden_items = 0;
 
         for(it = item->child_head; it != NULL; it = item_next_displayed_ex(it, item, &ignored)) {
