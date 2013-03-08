@@ -104,7 +104,7 @@ typedef struct mditab_item_tag mditab_item_t;
 struct mditab_item_tag {
     TCHAR* text;
     LPARAM lp;
-    WORD img;
+    SHORT img;
     USHORT left;
     USHORT right;
     USHORT desired_width;
