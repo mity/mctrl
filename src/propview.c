@@ -259,8 +259,8 @@ propview_set_propset(propview_t* pv, propset_t* propset)
     }
 
     if(pv->propset != NULL) {
-        propset_uninstall_view(pv->propset, propset);
-        propset_unref(propset);
+        propset_uninstall_view(pv->propset, pv);
+        propset_unref(pv->propset);
     }
 
     pv->propset = propset;
