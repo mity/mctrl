@@ -1074,7 +1074,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 
     /* Setup the new item */
     item->text = item_text;
-    item->img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : MC_I_IMAGENONE);
+    item->img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : (SHORT)MC_I_IMAGENONE);
     item->lp = ((id->dwMask & MC_MTIF_PARAM) ? id->lParam : 0);
     item->left = (index > 0  ?  mditab_item(mditab, index-1)->right  :  0);
     item->right = item->left;
@@ -1134,7 +1134,7 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         item->text = item_text;
     }
     if(id->dwMask & MC_MTIF_IMAGE)
-        item->img = id->iImage;
+        item->img = (SHORT)id->iImage;
     if(id->dwMask & MC_MTIF_PARAM)
         item->lp = id->lParam;
 
