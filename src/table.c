@@ -155,7 +155,7 @@ table_create(WORD col_count, WORD row_count)
     }
 
     if(col_count > 0  &&  row_count > 0) {
-        table->cells = (table_cell_t*) malloc(col_count * row_count * sizeof(table_cell_t));
+        table->cells = (table_cell_t*) malloc((size_t)col_count * (size_t)row_count * sizeof(table_cell_t));
         if(MC_ERR(table->cells == NULL)) {
             MC_TRACE("table_create: malloc() failed.");
             free(table);
@@ -213,7 +213,7 @@ table_resize(table_t* table, WORD col_count, WORD row_count)
         return 0;
 
     if(col_count > 0  &&  row_count > 0) {
-        cells = (table_cell_t*) malloc(col_count * row_count * sizeof(table_cell_t));
+        cells = (table_cell_t*) malloc((size_t)col_count * (size_t)row_count * sizeof(table_cell_t));
         if(MC_ERR(cells == NULL)) {
             MC_TRACE("table_resize: malloc() failed.");
             return -1;
