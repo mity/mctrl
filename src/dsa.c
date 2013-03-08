@@ -445,6 +445,7 @@ int
 dsa_insert_smart(dsa_t* dsa, WORD index, void* item, dsa_cmp_t cmp_func)
 {
     BOOL need_sorted_insert = FALSE;
+    int ret;
 
     DSA_TRACE("dsa_insert_smart(%p, %d, %p, %p)", dsa, (int)index, item, cmp_func);
     MC_ASSERT(index <= dsa->size);
@@ -459,15 +460,15 @@ dsa_insert_smart(dsa_t* dsa, WORD index, void* item, dsa_cmp_t cmp_func)
 
     /* Do the insert */
     if(need_sorted_insert) {
-        index = dsa_insert_sorted(dsa, item, cmp_func);
-        if(MC_ERR(index < 0))
+        ret = dsa_insert_sorted(dsa, item, cmp_func);
+        if(MC_ERR(ret < 0))
             MC_TRACE("dsa_insert_smart: dsa_insert_sorted() failed.");
     } else {
-        index = dsa_insert(dsa, index, item);
-        if(MC_ERR(index < 0))
+        ret = dsa_insert(dsa, index, item);
+        if(MC_ERR(ret < 0))
             MC_TRACE("dsa_insert_smart: dsa_insert() failed.");
     }
 
-    return index;
+    return ret;
 }
 
