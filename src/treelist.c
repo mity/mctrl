@@ -2297,7 +2297,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
             /* If it was last child of parent, then the parent must be collapsed
              * and painted without a button */
             if(parent != NULL  &&  parent->child_head == NULL  &&  parent->child_tail == NULL)
-                treelist_invalidate_item(tl, item->parent, 0, 0);
+                treelist_invalidate_item(tl, parent, 0, 0);
 
             /* Scroll the items below up to the place of the deleted ones. */
             if(y >= 0) {
