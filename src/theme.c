@@ -763,12 +763,12 @@ mcGetThemeSysColor(HTHEME hTheme, int iColorId)
 }
 
 HBRUSH MCTRL_API
-mcGetThemeSysColorBrush(HTHEME hTheme, int iBrushId)
+mcGetThemeSysColorBrush(HTHEME hTheme, int iColorId)
 {
     if(theme_GetThemeSysColorBrush != NULL)
-        return theme_GetThemeSysColorBrush(hTheme, iBrushId);
+        return theme_GetThemeSysColorBrush(hTheme, iColorId);
 
-    return CreateSolidBrush(GetSysColor(iBrushId - TMT_FIRSTCOLOR));
+    return CreateSolidBrush(GetSysColor(iColorId));
 }
 
 HRESULT MCTRL_API

@@ -811,11 +811,11 @@ COLORREF MCTRL_API mcGetThemeSysColor(HTHEME hTheme, int iColorId);
  * If it is not, mCtrl falls back to implementation based on @c GetSysColor().
  *
  * @param hTheme
- * @param iBrushId
+ * @param iColorId
  * @return Return value of @c GetThemeSysColor(), or from the fallback
  * implementation.
  */
-HBRUSH MCTRL_API mcGetThemeSysColorBrush(HTHEME hTheme, int iBrushId);
+HBRUSH MCTRL_API mcGetThemeSysColorBrush(HTHEME hTheme, int iColorId);
 
 /**
  * Calls @c GetThemeSysFont() if available (and @c UXTHEME.DLL is in use).
