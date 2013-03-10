@@ -1039,11 +1039,15 @@ treelist_erasebkgnd(treelist_t* tl, HDC dc)
 {
     RECT header_rect;
     RECT rect;
+    HBRUSH brush;
 
     GetWindowRect(tl->header_win, &header_rect);
     GetClientRect(tl->win, &rect);
     rect.top = mc_height(&header_rect);
-    FillRect(dc, &rect, mcGetThemeSysColorBrush(tl->theme, COLOR_WINDOW));
+
+    brush = mcGetThemeSysColorBrush(tl->theme, COLOR_WINDOW);
+    FillRect(dc, &rect, brush);
+    DeleteObject(brush);
 }
 
 static void
