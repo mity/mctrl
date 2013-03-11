@@ -56,20 +56,32 @@ extern "C" {
  * resources like HTML pages, cascading stylesheets (CSS), images (PNG, JPG etc.),
  * javascripts into binary of your application or any DLL it uses.
  *
- * The resources addessable by the control must be of type @c RT_HTML. You can
- * link to such resources with url in format "res://modname/res_id" where
- * @c modname is name of the binary module (usually filename of your program
- * or any DLL it loads) and @c res_id is ID of the resource in the resource
- * script (RC). It can be both string or number identifier.
+ * All resources  addessable by the control must be of type @c RT_HTML. This
+ * includes not just the HTML document themselves but also all their files,
+ * images, stylesheets, javascript files and any other resources linked from
+ * the HTML pages, or URL passed to the control.
  *
- * For example if you have a HTML file named @c some_page.html and add the
- * following line into your resource script
+ * You can link to such resources with url in format "res://modname/res_id"
+ * where @c modname is name of the binary module (usually filename of your
+ * program or any DLL it loads) and @c res_id is ID of the resource in the
+ * resource script (RC).
+ *
+ * Alhtough it can be both string or number identifier, we recommend to prefer
+ * string identifiers which end with dummy &quot;file extension&quot;, hence
+ * making a hint to the browser about the image type. Without this the browser
+ * tries to guess what type of the data the resource is, and that may be
+ * unrealiable. Remember the heuristics also differ in various verisons of MSIE.
+ *
+ * For example if you have a HTML file named @c some_page.html and an image
+ * file @c image.png which can be linked from the HTML page, add the following
+ * lines into your resource script:
  * @code
- * my_html_id HTML some_page.html
+ * "some_page.html" HTML some_page.html
+ * "image.png" HTML image.png
  * @endcode
  * which is used to build a @c MYLIBRARY.DLL used by your application then
  * your application can simply send the message @c MC_HM_GOTOURL with URL
- * @c "res://mylibrary.dll/my_html_id".
+ * @c "res://mylibrary.dll/some_page.html".
  *
  * Of course, HTML documents stored in the resources then can also use
  * relative URLs to link to other documents and resources in the same
