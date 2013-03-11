@@ -24,8 +24,9 @@
 
 #define CAPTION       _T("mCtrl Example: HTML Control")
 
-/* The initial URL. Note that 1000 is ID of the HTML resource in html.rc. */
-#define INITIAL_URL   _T("res://ex_html.exe/1000")
+/* The initial URL refers to the HTML document embedded into this example as
+ * a resource. */
+#define INITIAL_URL   _T("res://ex_html.exe/doc.html")
 
 
 static HINSTANCE hInst;
@@ -34,10 +35,9 @@ static HWND hwndHtml;
 static HWND hwndStatus;
 
 
-/* Set the dynamically generated contents in the HTML page with resource
- * ID 1000. The HTML page contains a tag <div> with the ID "dynamic".
- * This function replaces its contents with a custom string.
- */
+/* Set the dynamically generated contents in the embedded HTML page. The HTML
+ * page contains a tag <div> with the ID "dynamic". This function replaces its
+ * contents with a custom string. */
 static void
 GenerateDynamicContents(void)
 {
@@ -48,7 +48,7 @@ GenerateDynamicContents(void)
                _T("<p>This paragraph is generated dynamically by the application "
                   "and injected via message <tt>MC_HM_SETTAGCONTENTS</tt>. To "
                   "prove that the following number is incremented anytime this "
-                  "page is <a href=\"1000\">reloaded</a> or "
+                  "page is <a href=\"doc.html\">reloaded</a> or "
                   "<a href=\"app:set_dynamic\">this app link is clicked</a>:</p>"
                   "<div class=\"big\">%u</div>"),
                   uCounter);

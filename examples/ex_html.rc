@@ -11,6 +11,6 @@
 1 RT_MANIFEST res/manifest.xml
 
 /* HTML resources */
-1000 HTML res/doc.html         /* Initial HTML page */
-1001 HTML res/style.css        /* CSS linked from doc.html */
-1002 HTML res/image.png        /* An image linked from doc.html */
+"doc.html" HTML res/doc.html       /* Initial HTML page */
+"style.css" HTML res/style.css     /* CSS linked from doc.html */
+"image.png" HTML res/image.png     /* An image linked from doc.html */
