@@ -982,13 +982,14 @@ mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         RECT r;
 
         if(item != NULL) {
-            mc_rect_set(&r, rect.left - 5, rect.bottom - 5, item->left, rect.bottom + 1);
+            RECT s;
+            mditab_calc_item_rect(mditab, mditab->item_selected, &s);
+            mc_rect_set(&r, rect.left - 5, rect.bottom - 4, s.left, rect.bottom + 1);
             DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
-
-            mc_rect_set(&r, item->right, rect.bottom - 5, rect.right + 5, rect.bottom + 1);
+            mc_rect_set(&r, s.right, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
             DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
         } else {
-            mc_rect_set(&r, rect.left - 5, rect.bottom - 5, rect.right + 5, rect.bottom + 1);
+            mc_rect_set(&r, rect.left - 5, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
             DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
         }
     }
