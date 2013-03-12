@@ -72,18 +72,24 @@ echo "$MKZIP" >&3
 ##################
 
 # 1. Try lib.exe in $PATH
-# 2. Try default install place(s) for MSVC 10.0
-# 3. Try default install place(s) for any MSVC version
+# 2. Try default install place(s) for MSVC 11.0
+# 3. Try default install place(s) for MSVC 10.0
 
 echo -n "Detecting lib.exe... " >&3
 if which lib.exe ; then
     LIBEXE="lib.exe"
-elif [ -x "/c/Program Files/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe" ]; then
-    LIBEXE="/c/Program Files/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe"
-elif [ -x "/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe" ]; then
-    LIBEXE="/c/Program Files (x86)/Microsoft Visual Studio 10.0/VC/bin/amd64/lib.exe"
 else
-    LIBEXE=`ls /c/Program\ Files*/Microsoft\ Visual\ Studio*/VC/bin/amd64/lib.exe | head -1`
+    for msvc in "/c/Program Files/Microsoft Visual Studio 11.0" \
+                "/c/Program Files (x86)/Microsoft Visual Studio 11.0" \
+                "/c/Program Files/Microsoft Visual Studio 10.0" \
+                "/c/Program Files (x86)/Microsoft Visual Studio 10.0"; do
+        if [ -d "$msvc" ]; then
+            LIBEXE="$msvc/VC/bin/lib.exe"
+            # lib.exe needs some DLLs from here:
+            export PATH=$PATH:"$msvc/Common7/IDE"
+            break
+        fi
+    done
 fi
 if [ "x$LIBEXE" = x ]; then
     echo "Not found: MSVC import libs won't be generated" >&3
