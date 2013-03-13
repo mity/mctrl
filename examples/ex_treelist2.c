@@ -22,13 +22,31 @@
 #include <commctrl.h>
 
 #include <mCtrl/treelist.h>
-
+#include "ex_treelist2.h"
 
 #define IDC_TREELIST    100
 
 static HINSTANCE hInst;
+static HIMAGELIST hImgList;
 static HWND hwndTreeList;
 
+
+#define IMG_REG_KEY         0
+#define IMG_REG_VALUE_STR   1
+#define IMG_REG_VALUE_BIN   2
+
+static HIMAGELIST
+CreateImageList(void)
+{
+    HIMAGELIST hImgList;
+
+    hImgList = ImageList_Create(16, 16, ILC_COLOR32, 3, 0);
+    ImageList_AddIcon(hImgList, LoadIcon(hInst, MAKEINTRESOURCE(IDI_REG_KEY)));
+    ImageList_AddIcon(hImgList, LoadIcon(hInst, MAKEINTRESOURCE(IDI_REG_VALUE_STR)));
+    ImageList_AddIcon(hImgList, LoadIcon(hInst, MAKEINTRESOURCE(IDI_REG_VALUE_BIN)));
+
+    return hImgList;
+}
 
 static BOOL
 KeyHasChildren(HKEY hKey)
@@ -138,6 +156,9 @@ SetupTreeList(void)
     MC_TLINSERTSTRUCT insert;
     int i, n;
 
+    /* Associate image list with the control */
+    SendMessage(hwndTreeList, MC_TLM_SETIMAGELIST, 0, (LPARAM) hImgList);
+
     /* Insert columns */
     col.fMask = MC_TLCF_TEXT | MC_TLCF_WIDTH;
     col.cx = 250;
@@ -153,7 +174,11 @@ SetupTreeList(void)
     /* Insert root items */
     insert.hParent = MC_TLI_ROOT;
     insert.hInsertAfter = MC_TLI_LAST;
-    insert.item.fMask = MC_TLIF_TEXT | MC_TLIF_LPARAM | MC_TLIF_CHILDREN;
+    insert.item.fMask = MC_TLIF_TEXT | MC_TLIF_LPARAM | MC_TLIF_CHILDREN |
+                        MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE | MC_TLIF_EXPANDEDIMAGE;
+    insert.item.iImage = IMG_REG_KEY;
+    insert.item.iSelectedImage = IMG_REG_KEY;
+    insert.item.iExpandedImage = IMG_REG_KEY;
     n = sizeof(rootKeys) / sizeof(rootKeys[0]);
     for(i = 0; i < n; i++) {
         insert.item.pszText = rootKeys[i].pszName;
@@ -179,7 +204,8 @@ InsertChildren(MC_HTREELISTITEM hItem, HKEY hKey)
 
     insert.hParent = hItem;
     insert.hInsertAfter = MC_TLI_LAST;
-    insert.item.fMask = MC_TLIF_TEXT | MC_TLIF_LPARAM | MC_TLIF_CHILDREN;
+    insert.item.fMask = MC_TLIF_TEXT | MC_TLIF_LPARAM | MC_TLIF_CHILDREN |
+                        MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE | MC_TLIF_EXPANDEDIMAGE;
 
     SendMessage(hwndTreeList, WM_SETREDRAW, FALSE, 0);
 
@@ -205,6 +231,9 @@ InsertChildren(MC_HTREELISTITEM hItem, HKEY hKey)
         insert.item.pszText = pszBuffer;
         insert.item.lParam = (LPARAM) hSubKey;
         insert.item.cChildren = (KeyHasChildren(hSubKey) ? 1 : 0);
+        insert.item.iImage = IMG_REG_KEY;
+        insert.item.iSelectedImage = IMG_REG_KEY;
+        insert.item.iExpandedImage = IMG_REG_KEY;
         SendMessage(hwndTreeList, MC_TLM_INSERTITEM, 0, (LPARAM) &insert);
     }
 
@@ -231,6 +260,12 @@ InsertChildren(MC_HTREELISTITEM hItem, HKEY hKey)
         insert.item.pszText = (dwBufferLen > 0  ?  pszBuffer  :  _T("<default>"));
         insert.item.lParam = 0;
         insert.item.cChildren = 0;
+        if(dwType == REG_EXPAND_SZ || dwType == REG_MULTI_SZ || dwType == REG_SZ)
+            insert.item.iImage = IMG_REG_VALUE_STR;
+        else
+            insert.item.iImage = IMG_REG_VALUE_BIN;
+        insert.item.iSelectedImage = insert.item.iImage;
+        insert.item.iExpandedImage = insert.item.iImage;
         hChildItem = (MC_HTREELISTITEM) SendMessage(hwndTreeList,
                                     MC_TLM_INSERTITEM, 0, (LPARAM) &insert);
 
@@ -368,6 +403,9 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     MSG msg;
 
     hInst = hInstance;
+
+    /* Create image list */
+    hImgList = CreateImageList();
 
     /* Register class of TREELIST control. */
     mcTreeList_Initialize();
