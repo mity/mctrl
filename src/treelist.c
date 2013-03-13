@@ -739,23 +739,18 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 /* Paint image of the main item */
                 if(tl->imglist_normal != NULL) {
                     int img;
-                    UINT style = 0;
 
-                    if(item->state & MC_TLIS_SELECTED) {
+                    if(item->state & MC_TLIS_SELECTED)
                         img = item->img_selected;
-                        style = ILD_SELECTED;
-                    } else if(item->state & MC_TLIS_EXPANDED) {
+                    else if(item->state & MC_TLIS_EXPANDED)
                         img = item->img_expanded;
-                        style = ILD_NORMAL;
-                    } else {
+                    else
                         img = item->img;
-                        style = ILD_NORMAL;
-                    }
 
                     if(img >= 0) {
                         ImageList_DrawEx(tl->imglist_normal, img, dc,
                                 item_rect.left, item_rect.top + (mc_height(&item_rect) - img_h) / 2,
-                                0, 0, CLR_NONE, CLR_DEFAULT, style);
+                                0, 0, CLR_NONE, CLR_DEFAULT, ILD_NORMAL);
                     }
 
                     item_rect.left += img_w;
