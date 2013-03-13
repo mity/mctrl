@@ -2495,7 +2495,7 @@ treelist_notify_format(treelist_t* tl)
 }
 
 static void
-treelist_mcchanged(treelist_t* tl)
+treelist_theme_changed(treelist_t* tl)
 {
     if(tl->theme)
         mcCloseThemeData(tl->theme);
@@ -2794,7 +2794,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_THEMECHANGED:
-            treelist_mcchanged(tl);
+            treelist_theme_changed(tl);
             return 0;
 
         case WM_NOTIFYFORMAT:

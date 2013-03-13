@@ -1647,7 +1647,7 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 }
 
 static void
-mditab_mcchanged(mditab_t* mditab)
+mditab_theme_changed(mditab_t* mditab)
 {
     POINT pos;
 
@@ -1913,7 +1913,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_THEMECHANGED:
-            mditab_mcchanged(mditab);
+            mditab_theme_changed(mditab);
             return 0;
 
         case WM_UPDATEUISTATE:

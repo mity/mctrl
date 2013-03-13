@@ -623,7 +623,7 @@ grid_style_changed(grid_t* grid, int style_type, STYLESTRUCT* ss)
 }
 
 static void
-grid_mcchanged(grid_t* grid)
+grid_theme_changed(grid_t* grid)
 {
     HTHEME mclv;
 
@@ -674,7 +674,7 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
 static int
 grid_create(grid_t* grid)
 {
-    grid_mcchanged(grid);
+    grid_theme_changed(grid);
 
     if(MC_ERR(grid_set_table(grid, NULL) != 0)) {
         MC_TRACE("grid_create: grid_set_table() failed.");
@@ -811,7 +811,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_THEMECHANGED:
-            grid_mcchanged(grid);
+            grid_theme_changed(grid);
             return 0;
 
         case WM_NCCREATE:
