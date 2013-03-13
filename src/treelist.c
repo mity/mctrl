@@ -21,8 +21,6 @@
 
 
 /* TODO:
- *  -- Displaying item image, image-list related messages and style
- *     MC_TLS_SHAREDIMAGELISTS.
  *  -- Incremental search.
  *  -- Tooltips and style MC_TLS_NOTOOLTIPS.
  *  -- Hot tracking (needed when EXPLORER-themed).
@@ -66,9 +64,9 @@ struct treelist_item_tag {
     TCHAR* text;
     TCHAR** subitems;
     LPARAM lp;
-    WORD img;
-    WORD img_selected;
-    WORD img_expanded;
+    SHORT img;
+    SHORT img_selected;
+    SHORT img_expanded;
     WORD state     : 15;
     WORD children  : 1;
 };
@@ -160,6 +158,7 @@ struct treelist_tag {
     HWND notify_win;
     HTHEME theme;
     HFONT font;
+    HIMAGELIST imglist_normal;
     treelist_item_t* root_head;
     treelist_item_t* root_tail;
     treelist_item_t* scrolled_item;   /* can be NULL if not known */
@@ -432,9 +431,15 @@ treelist_natural_item_height(treelist_t* tl)
     GetTextMetrics(dc, &tm);
     SelectObject(dc, old_font);
     ReleaseDC(NULL, dc);
-
     if(height < tm.tmHeight + tm.tmExternalLeading + ITEM_HEIGHT_FONT_MARGIN_V)
         height = tm.tmHeight + tm.tmExternalLeading + ITEM_HEIGHT_FONT_MARGIN_V;
+
+    if(tl->imglist_normal != NULL) {
+        int w, h;
+        ImageList_GetIconSize(tl->imglist_normal, &w, &h);
+        if(height < h)
+            height = h;
+    }
 
     if(!(tl->style & MC_TLS_NONEVENHEIGHT))
         height &= ~0x1;
@@ -664,6 +669,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     BOOL use_theme;
     int state = 0;
     int padding_h, padding_v;
+    int img_w = 0, img_h = 0;
 
     /* We handle WM_ERASEBKGND, so we should never need erasing here. */
     MC_ASSERT(erase == FALSE);
@@ -681,6 +687,9 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
     use_theme = (tl->theme != NULL  &&
                  mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
+
+    if(tl->imglist_normal)
+        ImageList_GetIconSize(tl->imglist_normal, &img_w, &img_h);
 
     for(item = treelist_scrolled_item(tl, &level), y = header_height;
         item != NULL;
@@ -725,6 +734,31 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                     }
 
                     item_rect.left += ITEM_PADDING_H;
+                }
+
+                /* Paint image of the main item */
+                if(tl->imglist_normal != NULL) {
+                    int img;
+                    UINT style = 0;
+
+                    if(item->state & MC_TLIS_SELECTED) {
+                        img = item->img_selected;
+                        style = ILD_SELECTED;
+                    } else if(item->state & MC_TLIS_EXPANDED) {
+                        img = item->img_expanded;
+                        style = ILD_NORMAL;
+                    } else {
+                        img = item->img;
+                        style = ILD_NORMAL;
+                    }
+
+                    if(img >= 0) {
+                        ImageList_DrawEx(tl->imglist_normal, img, dc,
+                                item_rect.left, item_rect.top + (mc_height(&item_rect) - img_h) / 2,
+                                0, 0, CLR_NONE, CLR_DEFAULT, style);
+                    }
+
+                    item_rect.left += img_w;
                 }
 
                 /* Paint label (and background) of the main item */
@@ -921,6 +955,18 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
                 }
                 item_rect.left += ITEM_PAINT_MARGIN_H;
             }
+        }
+
+        if(tl->imglist_normal) {
+            int img_w, img_h;
+
+            ImageList_GetIconSize(tl->imglist_normal, &img_w, &img_h);
+            if(item_rect.left <= info->pt.x  &&  info->pt.x < item_rect.left + img_w) {
+                info->flags = MC_TLHT_ONITEMICON;
+                goto done;
+            }
+
+            item_rect.left += img_w;
         }
 
         treelist_label_rect(tl, dc, item->text, DT_LEFT, &item_rect,
@@ -1970,11 +2016,11 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
                             ? (item_data->state & item_data->stateMask) : 0);
     item->text = text;
     item->lp = ((item_data->fMask & MC_TLIF_LPARAM) ? item_data->lParam : 0);
-    item->img = (WORD)((item_data->fMask & MC_TLIF_IMAGE)
+    item->img = (SHORT)((item_data->fMask & MC_TLIF_IMAGE)
                                 ? item_data->iImage : MC_I_IMAGENONE);
-    item->img_selected = (WORD)((item_data->fMask & MC_TLIF_SELECTEDIMAGE)
+    item->img_selected = (SHORT)((item_data->fMask & MC_TLIF_SELECTEDIMAGE)
                                 ? item_data->iSelectedImage : MC_I_IMAGENONE);
-    item->img_expanded = (WORD)((item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
+    item->img_expanded = (SHORT)((item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
                                 ? item_data->iExpandedImage : MC_I_IMAGENONE);
     item->children = ((item_data->fMask & MC_TLIF_CHILDREN)
                                 ? item_data->cChildren : 0);
@@ -2415,6 +2461,19 @@ treelist_set_indent(treelist_t* tl, int indent)
         treelist_invalidate_column(tl, 0);
 }
 
+static void
+treelist_set_imagelist(treelist_t* tl, HIMAGELIST imglist)
+{
+    TREELIST_TRACE("treelist_set_imagelist(%p, %p)", tl, imglist);
+
+    if(imglist == tl->imglist_normal)
+        return;
+
+    tl->imglist_normal = imglist;
+    if(!tl->no_redraw)
+        InvalidateRect(tl->win, NULL, TRUE);
+}
+
 static int
 treelist_header_notify(treelist_t* tl, NMHEADER* info)
 {
@@ -2710,6 +2769,16 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_TLM_ENSUREVISIBLE:
             return treelist_ensure_visible(tl, (treelist_item_t*) lp, NULL);
+
+        case MC_TLM_SETIMAGELIST:
+        {
+            HIMAGELIST imglist = tl->imglist_normal;
+            treelist_set_imagelist(tl, (HIMAGELIST) lp);
+            return (LRESULT) imglist;
+        }
+
+        case MC_TLM_GETIMAGELIST:
+            return (LRESULT) tl->imglist_normal;
 
         case WM_NOTIFY:
             if(((NMHDR*)lp)->hwndFrom == tl->header_win)

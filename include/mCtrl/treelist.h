@@ -206,9 +206,8 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLS_SINGLEEXPAND         0x0400
 #if 0 /* TODO */
 #define MC_TLS_NOTOOLTIPS           0x0800
-#define MC_TLS_SHAREDIMAGELISTS     0x1000
-#define MC_TLS_CHECKBOXES           0x2000
-#define MC_TLS_EDITLABELS           0x4000
+#define MC_TLS_CHECKBOXES           0x1000
+#define MC_TLS_EDITLABELS           0x2000
 #endif
 
 /*@}*/
@@ -986,6 +985,28 @@ typedef struct MC_NMTREELIST_tag {
  * were expanded, @c FALSE otherwise.
  */
 #define MC_TLM_ENSUREVISIBLE         (MC_TLM_FIRST + 30)
+
+/**
+ * @brief Associates an image list with the control.
+ *
+ * Note the control does not delete the previouslz associated image list.
+ * It also does not delete the currently associated image list when destroying
+ * the control.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param[in] lParam (@c HIMAGELIST) Handle to the image list.
+ * @return (@c HIMAGELIST) Image list handle previously asscoated with the control.
+ */
+#define MC_TLM_SETIMAGELIST          (MC_TLM_FIRST + 31)
+
+/**
+ * @brief Gets an image list associated with the control.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HIMAGELIST) Image list handle asscoated with the control.
+ */
+#define MC_TLM_GETIMAGELIST          (MC_TLM_FIRST + 32)
 
 /*@}*/
 
