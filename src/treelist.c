@@ -753,7 +753,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                                 0, 0, CLR_NONE, CLR_DEFAULT, ILD_NORMAL);
                     }
 
-                    item_rect.left += img_w;
+                    item_rect.left += img_w + ITEM_PADDING_H;
                 }
 
                 /* Paint label (and background) of the main item */
@@ -961,7 +961,7 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
                 goto done;
             }
 
-            item_rect.left += img_w;
+            item_rect.left += img_w + ITEM_PADDING_H;
         }
 
         treelist_label_rect(tl, dc, item->text, DT_LEFT, &item_rect,
