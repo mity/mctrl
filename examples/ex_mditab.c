@@ -81,9 +81,6 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
 
         case WM_CREATE:
-        {
-            MC_MTITEMWIDTH tw;
-
             /* Create mditab child window  */
             hwndMdiTab = CreateWindow(MC_WC_MDITAB, _T(""), WS_CHILD | WS_VISIBLE |
                 MC_MTS_CLOSEONMCLICK | MC_MTS_DOUBLEBUFFER | MC_MTS_ANIMATE,
@@ -97,7 +94,6 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,
                 hWnd, (HMENU) IDC_BUTTON_NEW, hInst, NULL);
             return 0;
-        }
 
         case WM_SETFONT:
             SendMessage(hwndMdiTab, WM_SETFONT, wParam, lParam);
