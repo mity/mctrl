@@ -34,7 +34,7 @@
 #define FOCUS_INFLATE_H       3
 #define FOCUS_INFLATE_V       1
 
-#define ANIM_DURATION        200
+#define ANIM_DURATION        100
 #define ANIM_FRAMES            8
 #define ANIM_TIMER_ID          1
 #define ANIM_TIMER_INTERVAL   (ANIM_DURATION / ANIM_FRAMES)
@@ -118,15 +118,20 @@ expand_calc_layout(expand_t* expand, HDC dc, expand_layout_t* layout)
     if(expand->font)
         SelectObject(dc, old_font);
 
-    if(rect.bottom < 24) {
-        layout->glyph_bmp = expand_glyphs[0];
-        glyph_size = 19;
-    } else if(rect.bottom < 29) {
-        layout->glyph_bmp = expand_glyphs[1];
-        glyph_size = 24;
+    if(expand->theme != NULL) {
+        if(rect.bottom < 24) {
+            layout->glyph_bmp = expand_glyphs[0];
+            glyph_size = 19;
+        } else if(rect.bottom < 29) {
+            layout->glyph_bmp = expand_glyphs[1];
+            glyph_size = 24;
+        } else {
+            layout->glyph_bmp = expand_glyphs[2];
+            glyph_size = 29;
+        }
     } else {
-        layout->glyph_bmp = expand_glyphs[2];
-        glyph_size = 29;
+        layout->glyph_bmp = NULL;
+        glyph_size = (extents.cy - 2) & ~0x1;
     }
 
     layout->glyph_rect.left = (right_align ? rect.right - glyph_size : 0);
@@ -174,7 +179,7 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
     expand_calc_layout(expand, dc, &layout);
 
     /* Paint glyph */
-    {
+    if(layout.glyph_bmp != NULL) {
         int glyph_size;
         int glyph_index;
         HDC glyph_dc;
@@ -193,6 +198,32 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
                       glyph_dc, 0, glyph_size * glyph_index, glyph_size, glyph_size,
                       blend_func);
         DeleteDC(glyph_dc);
+    } else {
+        POINT pt[3];
+        int h;
+
+        if(state & STATE_EXPANDED) {
+            h = mc_width(&layout.glyph_rect) / 2;
+
+            pt[0].x = layout.glyph_rect.left + h / 2;
+            pt[0].y = layout.glyph_rect.top;
+            pt[1].x = layout.glyph_rect.left + h / 2;
+            pt[1].y = layout.glyph_rect.bottom;
+            pt[2].x = pt[0].x + h;
+            pt[2].y = (layout.glyph_rect.top + layout.glyph_rect.bottom + 1) / 2;
+        } else {
+            h = mc_height(&layout.glyph_rect) / 2;
+
+            pt[0].x = layout.glyph_rect.left;
+            pt[0].y = layout.glyph_rect.top + h / 2;
+            pt[1].x = layout.glyph_rect.right;
+            pt[1].y = layout.glyph_rect.top + h / 2;
+            pt[2].x = (layout.glyph_rect.left + layout.glyph_rect.right + 1) / 2;
+            pt[2].y = pt[0].y + h;
+        }
+
+        SelectBrush(dc, GetSysColorBrush(COLOR_BTNTEXT));
+        Polygon(dc, pt, MC_ARRAY_SIZE(pt));
     }
 
     /* Paint text */
