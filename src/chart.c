@@ -2153,14 +2153,10 @@ chart_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     chart_t* chart = (chart_t*) control;
     chart_paint_t ctx;
     gdix_Status status;
-    HFONT old_font = NULL;
     gdix_ARGB black = gdix_ARGB_from_rgb(0,0,0);
 
     if(erase)
         FillRect(dc, dirty, GetSysColorBrush(COLOR_WINDOW));
-
-    if(chart->font)
-        old_font = SelectObject(dc, chart->font);
 
     chart_calc_layout(chart, &ctx.layout);
     status = gdix_CreateFromHDC(dc, &ctx.gfx);
@@ -2183,10 +2179,10 @@ chart_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         MC_TRACE("chart_paint: gdix_CreateStringFormat() failed [%d]", (int)status);
         goto err_CreateStringFormat;
     }
-    status = gdix_CreateFontFromDC(dc, &ctx.font);
+    status = gdix_CreateFontFromHFONT(dc, chart->font, &ctx.font);
     if(MC_ERR(status != gdix_Ok)) {
-        MC_TRACE("chart_paint: gdix_CreateFontFromDC() failed [%d]", (int)status);
-        goto err_CreateFontFromDC;
+        MC_TRACE("chart_paint: gdix_CreateFontFromHFONT() failed [%d]", (int)status);
+        goto err_CreateFontFromHFONT;
     }
 
     gdix_SetSmoothingMode(ctx.gfx, gdix_SmoothingModeHighQuality);
@@ -2254,7 +2250,7 @@ chart_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     }
 
     gdix_DeleteFont(ctx.font);
-err_CreateFontFromDC:
+err_CreateFontFromHFONT:
     gdix_DeleteStringFormat(ctx.format);
 err_CreateStringFormat:
     gdix_DeleteBrush(ctx.brush);
@@ -2263,8 +2259,7 @@ err_CreateSolidFill:
 err_CreatePen1:
     gdix_DeleteGraphics(ctx.gfx);
 err_CreateFromHDC:
-    if(chart->font)
-        SelectObject(dc, old_font);
+    /* noop */;
 }
 
 static void
@@ -2274,7 +2269,6 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
     BOOL in_legend;
     BOOL in_body;
     HDC dc;
-    HFONT old_font = NULL;
     gdix_Status status;
 
     *set_ix = -1;
@@ -2288,8 +2282,6 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
         return;
 
     dc = GetDCEx(NULL, NULL, DCX_CACHE);
-    if(chart->font)
-        old_font = SelectObject(dc, chart->font);
 
     status = gdix_CreateFromHDC(dc, &ctx.gfx);
     if(MC_ERR(status != gdix_Ok)) {
@@ -2301,10 +2293,10 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
         MC_TRACE("chart_hit_test: gdix_CreateStringFormat() failed [%d]", (int)status);
         goto err_CreateStringFormat;
     }
-    status = gdix_CreateFontFromDC(dc, &ctx.font);
+    status = gdix_CreateFontFromHFONT(dc, chart->font, &ctx.font);
     if(MC_ERR(status != gdix_Ok)) {
-        MC_TRACE("chart_hit_test: gdix_CreateFontFromDC() failed [%d]", (int)status);
-        goto err_CreateFontFromDC;
+        MC_TRACE("chart_hit_test: gdix_CreateFontFromHFONT() failed [%d]", (int)status);
+        goto err_CreateFontFromHFONT;
     }
     ctx.pen = NULL;
     ctx.brush = NULL;
@@ -2354,13 +2346,11 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
         }
     }
 
-err_CreateFontFromDC:
+err_CreateFontFromHFONT:
     gdix_DeleteStringFormat(ctx.format);
 err_CreateStringFormat:
     gdix_DeleteGraphics(ctx.gfx);
 err_CreateFromHDC:
-    if(chart->font)
-        SelectObject(dc, old_font);
     ReleaseDC(NULL, dc);
 }
 
