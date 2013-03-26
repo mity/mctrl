@@ -108,6 +108,7 @@ extern gdix_Status (WINAPI* gdix_SetSolidFillColor)(gdix_SolidFill*,gdix_ARGB);
 
 /* Font management */
 extern gdix_Status (WINAPI* gdix_CreateFontFromDC)(HDC,gdix_Font**);
+extern gdix_Status (WINAPI* gdix_CreateFontFromLogfontW)(HDC,const LOGFONTW*,gdix_Font**);
 extern gdix_Status (WINAPI* gdix_DeleteFont)(gdix_Font*);
 
 /* String format management */
@@ -140,6 +141,15 @@ extern gdix_Status (WINAPI* gdix_FillPath)(gdix_Graphics*,gdix_Brush*,gdix_Path*
 /* String methods */
 extern gdix_Status (WINAPI* gdix_DrawString)(gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,const gdix_Brush*);
 extern gdix_Status (WINAPI* gdix_MeasureString)(gdix_Graphics*,const WCHAR*,INT,const gdix_Font*,const gdix_RectF*,const gdix_StringFormat*,gdix_RectF*,INT*,INT*);
+
+
+/*************************
+ *** Wrapper functions ***
+ *************************/
+
+/* Safer function for getting a reasonable font. GDI+ supports only true-type
+ * fonts and this does a reasonable fallback. */
+gdix_Status gdix_CreateFontFromHFONT(HDC dc, HFONT font, gdix_Font** gdix_font);
 
 
 /**********************

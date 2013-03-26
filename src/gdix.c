@@ -46,6 +46,7 @@ gdix_Status (WINAPI* gdix_SetSolidFillColor)(gdix_SolidFill*,gdix_ARGB);
 
 /* Font management */
 gdix_Status (WINAPI* gdix_CreateFontFromDC)(HDC,gdix_Font**);
+gdix_Status (WINAPI* gdix_CreateFontFromLogfontW)(HDC,const LOGFONTW*,gdix_Font**);
 gdix_Status (WINAPI* gdix_DeleteFont)(gdix_Font*);
 
 /* String format management */
@@ -96,6 +97,33 @@ struct gdix_StartupInput_tag {
 
 typedef struct gdix_StartupOutput_tag gdix_StartupOutput;
 /* We do not use gdix_StartupOutput, so no definition */
+
+
+gdix_Status
+gdix_CreateFontFromHFONT(HDC dc, HFONT font, gdix_Font** gdix_font)
+{
+    LOGFONTW lf;
+    gdix_Status status;
+    int retries;
+
+    if(font == NULL)
+        font = GetStockObject(SYSTEM_FONT);
+    GetObjectW(font, sizeof(LOGFONTW), &lf);
+
+    for(retries = 0; retries < 2; retries++) {
+        status = gdix_CreateFontFromLogfontW(dc, &lf, gdix_font);
+        if(MC_ERR(status != gdix_Ok)) {
+            /* Perhaps it is a font which does not have true-type outlines?
+             * Fallback to a font which should have them. */
+            wcscpy(lf.lfFaceName,
+                   (mc_win_version >= MC_WIN_VISTA ? L"Segoe UI" : L"Tahoma"));
+        } else {
+            break;
+        }
+    }
+
+    return status;
+}
 
 int
 gdix_init_module(void)
@@ -148,6 +176,7 @@ gdix_init_module(void)
     GPA(SetSolidFillColor,    (gdix_SolidFill*,gdix_ARGB));
 
     GPA(CreateFontFromDC,     (HDC,gdix_Font**));
+    GPA(CreateFontFromLogfontW, (HDC,const LOGFONTW*,gdix_Font**));
     GPA(DeleteFont,           (gdix_Font*));
 
     GPA(CreatePath,           (gdix_FillMode,gdix_Path**));
