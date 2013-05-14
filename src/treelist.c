@@ -2187,13 +2187,15 @@ int col_redraw;
     if(item_data->fMask & MC_TLIF_CHILDREN)
         item->children = item_data->cChildren;
 
+    col_redraw = 0;
     if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
         item->customTextColor = item_data->setTextColor;
         if(item_data->setTextColor)
             item->textColor = item_data->textColor;
+        col_redraw = -1; /* Text color change means whole row must
+                          * be invalidated */
     }
-    
-    col_redraw = 0;
+
     if(item_data->fMask & MC_TLIF_BKCOLOR) {
         item->customBkColor = item_data->setBkColor;
         if(item_data->setBkColor)
