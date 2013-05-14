@@ -2123,6 +2123,8 @@ static BOOL
 treelist_set_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
                   BOOL unicode)
 {
+int col_redraw;
+
     TREELIST_TRACE("treelist_set_item(%p, %p, %p, %d)",
                    tl, item, item_data, unicode);
 
@@ -2191,14 +2193,17 @@ treelist_set_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
             item->textColor = item_data->textColor;
     }
     
+    col_redraw = 0;
     if(item_data->fMask & MC_TLIF_BKCOLOR) {
         item->customBkColor = item_data->setBkColor;
         if(item_data->setBkColor)
             item->bkColor = item_data->bkColor;
+        col_redraw = -1; /* Background color change means whole row
+                          * must be invalidated */
     }
         
     if(!tl->no_redraw)
-        treelist_invalidate_item(tl, item, 0, 0);
+        treelist_invalidate_item(tl, item, col_redraw, 0);
 
     return TRUE;
 }
