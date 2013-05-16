@@ -70,10 +70,8 @@ struct treelist_item_tag {
     WORD state     : 15;
     WORD children  : 1;
     
-    BOOL customTextColor;
-    DWORD textColor;
-    BOOL customBkColor;
-    DWORD bkColor;
+    COLORREF textColor;
+    COLORREF bkColor;
 };
 
 /* Iterator over ALL items of the control */
@@ -724,7 +722,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             if(col_ix == 0) {
             
                 /* Paint background if custom background is requested */
-                if(item->customBkColor) {
+                if(item->bkColor != MC_CLR_DEFAULT) {
                     int old_right = 0;
                     int old_left = 0;
 
@@ -837,17 +835,17 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                         }
                     } else {
 paint_no_sel:
-                        if(item->customBkColor)
+                        if(item->bkColor != MC_CLR_DEFAULT)
                             old_bkcolor = SetBkColor(dc, item->bkColor);
-                        if(item->customTextColor)
+                        if(item->textColor != MC_CLR_DEFAULT)
                             old_textcolor = SetTextColor(dc, item->textColor);
                             
                         mc_rect_inflate(&item_rect, -ITEM_PADDING_H, -ITEM_PADDING_V);
                         DrawText(dc, item->text, -1, &item_rect, ITEM_DTFLAGS);
                         
-                        if(item->customBkColor)
+                        if(item->bkColor != MC_CLR_DEFAULT)
                             SetBkColor(dc, old_bkcolor);
-                        if(item->customTextColor)
+                        if(item->textColor != MC_CLR_DEFAULT)
                             SetTextColor(dc, old_textcolor);
                     }
                 }
@@ -871,17 +869,17 @@ paint_no_sel:
                             item->subitems[col_ix], -1, ITEM_DTFLAGS | justify,
                             0, &item_rect);
                 } else {
-                    if(item->customBkColor && !(item->state & MC_TLIS_SELECTED))
+                    if(item->bkColor != MC_CLR_DEFAULT && !(item->state & MC_TLIS_SELECTED))
                         old_bkcolor = SetBkColor(dc, item->bkColor);
-                    if(item->customTextColor)
+                    if(item->textColor != MC_CLR_DEFAULT)
                         old_textcolor = SetTextColor(dc, item->textColor);
                         
                     DrawText(dc, item->subitems[col_ix], -1, &item_rect,
                              ITEM_DTFLAGS | justify);
                              
-                    if(item->customBkColor && !(item->state & MC_TLIS_SELECTED))
+                    if(item->bkColor != MC_CLR_DEFAULT && !(item->state & MC_TLIS_SELECTED))
                         SetBkColor(dc, old_bkcolor);
-                    if(item->customTextColor)
+                    if(item->textColor != MC_CLR_DEFAULT)
                         SetTextColor(dc, old_textcolor);
                 }
             }
@@ -2064,14 +2062,16 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
                                 ? item_data->iExpandedImage : MC_I_IMAGENONE);
     item->children = ((item_data->fMask & MC_TLIF_CHILDREN)
                                 ? item_data->cChildren : 0);
-    item->customTextColor = ((item_data->fMask & MC_TLIF_TEXTCOLOR)
-                                ? item_data->setTextColor : FALSE);
-    item->textColor = ((item_data->fMask & MC_TLIF_TEXTCOLOR && item->customTextColor)
-                                ? item_data->textColor : (DWORD)0);
-    item->customBkColor = ((item_data->fMask & MC_TLIF_BKCOLOR)
-                                ? item_data->setBkColor : FALSE);
-    item->bkColor = ((item_data->fMask & MC_TLIF_BKCOLOR && item->customBkColor)
-                                ? item_data->bkColor : (DWORD)0);
+    item->textColor = ((item_data->fMask & MC_TLIF_TEXTCOLOR)
+                                ? item_data->textColor : MC_CLR_DEFAULT);
+    item->bkColor = ((item_data->fMask & MC_TLIF_BKCOLOR)
+                                ? item_data->bkColor : MC_CLR_DEFAULT);
+
+    if(item->textColor == MC_CLR_NONE)
+        item->textColor = MC_CLR_DEFAULT;
+        
+    if(item->bkColor == MC_CLR_NONE)
+        item->bkColor = MC_CLR_DEFAULT;
 
     if(parent != NULL) {
         parent_displayed = item_is_displayed(parent);
@@ -2189,17 +2189,15 @@ int col_redraw;
 
     col_redraw = 0;
     if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
-        item->customTextColor = item_data->setTextColor;
-        if(item_data->setTextColor)
-            item->textColor = item_data->textColor;
+        item->textColor = ((item_data->textColor == MC_CLR_NONE) 
+                                ? MC_CLR_DEFAULT : item_data->textColor);
         col_redraw = -1; /* Text color change means whole row must
                           * be invalidated */
     }
 
     if(item_data->fMask & MC_TLIF_BKCOLOR) {
-        item->customBkColor = item_data->setBkColor;
-        if(item_data->setBkColor)
-            item->bkColor = item_data->bkColor;
+        item->bkColor = ((item_data->bkColor == MC_CLR_NONE) 
+                                ? MC_CLR_DEFAULT : item_data->bkColor);
         col_redraw = -1; /* Background color change means whole row
                           * must be invalidated */
     }
@@ -2251,15 +2249,11 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
         item_data->iExpandedImage = item->img_expanded;
 
     if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
-        item_data->setTextColor = item->customTextColor;
-        if(item->customTextColor)
-            item_data->textColor = item->textColor;
+        item_data->textColor = item->textColor;
     }
     
     if(item_data->fMask & MC_TLIF_BKCOLOR) {
-        item_data->setBkColor = item->customBkColor;
-        if(item->customBkColor)
-            item_data->bkColor = item->bkColor;
+        item_data->bkColor = item->bkColor;
     }        
     return TRUE;
 }

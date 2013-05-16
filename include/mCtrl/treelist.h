@@ -526,18 +526,16 @@ typedef struct MC_TLITEMW_tag {
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them. */
     int cChildren;
-    /** Flag indicating the text color is a custom color refered to 
-     *  by @c textColor */
-    BOOL setTextColor;
-    /** The color currently being used to draw text if @c setTextColor is 
-     *  true. */
-    DWORD textColor;
-    /** Flag indicating the background color is a custom color refered to 
-     *  by @c bkColor */
-    BOOL setBkColor;
-    /** The color currently being used to draw the background if 
-     *  @c setBkColor is true. */
-    DWORD bkColor;
+    /** The custom color currently being used to draw text.  Set to 
+     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color. 
+     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
+     *  has been specified. */
+    COLORREF textColor;
+    /** The color currently being used to draw the background.  Set to 
+     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color.
+     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
+     *  has been specified. */
+    COLORREF bkColor;
 } MC_TLITEMW;
 
 /**
@@ -569,18 +567,16 @@ typedef struct MC_TLITEMA_tag {
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them. */
     int cChildren;
-    /** Flag indicating the text color is a custom color refered to 
-     *  by @c textColor */
-    BOOL setTextColor;
-    /** The color currently being used to draw text if @c setTextColor is 
-     *  true. */
-    DWORD textColor;
-    /** Flag indicating the background color is a custom color refered to 
-     *  by @c bkColor */
-    BOOL setBkColor;
-    /** The color currently being used to draw the background if 
-     *  @c setBkColor is true. */
-    DWORD bkColor;
+    /** The custom color currently being used to draw text.  Set to 
+     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color. 
+     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
+     *  has been specified. */
+    COLORREF textColor;
+    /** The color currently being used to draw the background.  Set to 
+     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color.
+     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
+     *  has been specified. */
+    COLORREF bkColor;
 } MC_TLITEMA;
 
 /**
