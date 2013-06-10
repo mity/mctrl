@@ -879,7 +879,7 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
     mditab_calc_contents_rect(&contents, rect);
 
     /* Draw tab icon */
-    if(mditab->img_list != NULL  &&  item->img != (WORD) I_IMAGENONE) {
+    if(mditab->img_list != NULL  &&  item->img != (SHORT) I_IMAGENONE) {
         int ico_w, ico_h;
         RECT rect_ico;
 
