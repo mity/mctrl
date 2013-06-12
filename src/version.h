@@ -22,7 +22,7 @@
 
 #define MC_VERSION_MAJOR              0
 #define MC_VERSION_MINOR              9
-#define MC_VERSION_RELEASE            2
+#define MC_VERSION_RELEASE            3
 
 
 /* Stringize given expression */
