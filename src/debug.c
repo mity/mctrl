@@ -20,20 +20,47 @@
 #include "debug.h"
 #include "misc.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+
 
 #if defined DEBUG && DEBUG >= 1
 
 #define DEBUG_DUMP_PER_LINE         16
 
 void
-debug_dump(void* addr, size_t n)
+debug_trace(const char* fmt, ...)
 {
+    DWORD last_error;
+    va_list args;
+    char buffer[512];
+    int offset;
+
+    last_error = GetLastError();
+    va_start(args, fmt);
+    offset = _snprintf(buffer, sizeof(buffer)-2, args);
+    va_end(args);
+    if(offset < 0)
+        offset = sizeof(buffer)-2;
+    buffer[offset] = '\n';
+    buffer[offset+1] = '\0';
+    OutputDebugStringA(buffer);
+    SetLastError(last_error);
+}
+
+void
+debug_dump(const char* msg, void* addr, size_t n)
+{
+    DWORD last_error;
     BYTE* bytes = (BYTE*) addr;
     size_t offset = 0;
     size_t count;
     char buffer[32 + 3 * DEBUG_DUMP_PER_LINE];
     char* ptr;
     int i;
+
+    last_error = GetLastError();
+    debug_trace(msg);
 
     while(offset < n) {
         count = MC_MIN(n - offset, DEBUG_DUMP_PER_LINE);
@@ -47,11 +74,12 @@ debug_dump(void* addr, size_t n)
                 ptr += sprintf(ptr, "  ");
         }
 
-        MC_TRACE(buffer);
+        debug_trace(buffer);
         offset += count;
     }
 
-    MC_TRACE("            (%lu bytes)", (ULONG)n);
+    debug_trace("            (%lu bytes)", (ULONG)n);
+    SetLastError(last_error);
 }
 
 #endif  /* #if defined DEBUG && DEBUG >= 1 */
