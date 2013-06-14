@@ -23,15 +23,19 @@
 #if defined DEBUG && DEBUG >= 1
     #include <windows.h>
     #include <stdlib.h>
-    #include <stdio.h>  /* _snprintf() */
 
-    void debug_dump(void* addr, size_t n);
+    /* Logging */
+    void debug_trace(const char* fmt, ...);
+    void debug_dump(const char* msg, void* addr, size_t n);
+
+    #define MC_TRACE(...)        debug_trace(__VA_ARGS__)
+    #define MC_DUMP(msg,addr,n)  debug_dump((msg), (addr), (n))
 
     /* Assertion */
     #define MC_ASSERT(cond)                                                   \
         do {                                                                  \
-            if(!(cond)) {                                                     \
-                OutputDebugStringA(__FILE__ ":" MC_STRINGIZE(__LINE__) ": "   \
+            if(MC_ERR(!(cond))) {                                             \
+                debug_trace(__FILE__ ":" MC_STRINGIZE(__LINE__) ": "          \
                                    "Assertion '" #cond "' failed.");          \
                 MessageBoxA(NULL, __FILE__ ":" MC_STRINGIZE(__LINE__) ": "    \
                                    "Assertion '" #cond "' failed.",           \
@@ -57,36 +61,16 @@
 
     /* Unreachable branch */
     #define MC_UNREACHABLE               do { MC_ASSERT(FALSE); } while(0)
-
-    /* Logging */
-    #define MC_TRACE(...)                                                     \
-        do {                                                                  \
-            char mc_trace_buf_[512];                                          \
-            DWORD mc_last_err_;                                               \
-            int mc_offset_;                                                   \
-            mc_last_err_ = GetLastError();                                    \
-            mc_offset_ = _snprintf(mc_trace_buf_, sizeof(mc_trace_buf_)-2,    \
-                                     __VA_ARGS__);                            \
-            if(mc_offset_ < 0)                                                \
-                mc_offset_ = sizeof(mc_trace_buf_)-2;                         \
-            mc_trace_buf_[mc_offset_] = '\n';                                 \
-            mc_trace_buf_[mc_offset_+1] = '\0';                               \
-            OutputDebugStringA(mc_trace_buf_);                                \
-            SetLastError(mc_last_err_);                                       \
-        } while(0)
-
-    #define MC_DUMP(msg,addr,n)                                               \
-        do {                                                                  \
-            DWORD mc_last_err_;                                               \
-            mc_last_err_ = GetLastError();                                    \
-            MC_TRACE(msg);                                                    \
-            debug_dump((void*)(addr), (size_t)(n));                           \
-            SetLastError(mc_last_err_);                                       \
-        } while(0)
 #endif
 
 
 /* Fallback to no-op macros */
+#ifndef MC_TRACE
+    #define MC_TRACE(...)                do { } while(0)
+#endif
+#ifndef MC_DUMP
+    #define MC_DUMP(...)                 do { } while(0)
+#endif
 #ifndef MC_ASSERT
     #ifdef _MSC_VER
         #include <intrin.h>
@@ -97,12 +81,6 @@
 #endif
 #ifndef MC_STATIC_ASSERT
     #define MC_STATIC_ASSERT(cond)       /* empty */
-#endif
-#ifndef MC_TRACE
-    #define MC_TRACE(...)                do { } while(0)
-#endif
-#ifndef MC_DUMP
-    #define MC_DUMP(...)                 do { } while(0)
 #endif
 #ifndef MC_UNREACHABLE
     #if defined __GNUC__
@@ -152,8 +130,8 @@
     void debug_init(void);
     void debug_fini(void);
 #else
-    #define debug_init()   /* noop */
-    #define debug_fini()   /* noop */
+    static inline void debug_init()   {}
+    static inline void debug_fini()   {}
 #endif
 
 
