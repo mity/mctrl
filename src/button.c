@@ -75,7 +75,7 @@ button_send_ctlcolorbtn(HWND win, HDC dc)
 
     if(parent == NULL)
         parent = win;
-    brush = (HBRUSH) MC_MSG(parent, WM_CTLCOLORBTN, dc, win);
+    brush = (HBRUSH) MC_SEND(parent, WM_CTLCOLORBTN, dc, win);
     if(MC_ERR(brush == NULL)) {
         /* The parent window procedure does not handle WM_CTLCOLORBTN
          * correctly. Maybe it forgot to call DefWindowProc?
@@ -111,8 +111,8 @@ button_paint_icon(HWND win, button_t* button, HDC dc)
 
     GetClientRect(win, &rect);
 
-    icon = (HICON) MC_MSG(win, BM_GETIMAGE, IMAGE_ICON, 0);
-    font = (HFONT) MC_MSG(win, WM_GETFONT, 0, 0);
+    icon = (HICON) MC_SEND(win, BM_GETIMAGE, IMAGE_ICON, 0);
+    font = (HFONT) MC_SEND(win, WM_GETFONT, 0, 0);
     if(font == NULL)
         font = GetStockObject(SYSTEM_FONT);
 
@@ -125,7 +125,7 @@ button_paint_icon(HWND win, button_t* button, HDC dc)
     if(button->style & WS_DISABLED) {
         state = PBS_DISABLED;
     } else {
-        LRESULT s = MC_MSG(win, BM_GETSTATE, 0, 0);
+        LRESULT s = MC_SEND(win, BM_GETSTATE, 0, 0);
         if(s & BST_PUSHED)
             state = PBS_PRESSED;
         else if(s & BST_HOT)
@@ -144,7 +144,7 @@ button_paint_icon(HWND win, button_t* button, HDC dc)
     IntersectClipRect(dc, content.left, content.top, content.right, content.bottom);
 
     /* Draw focus rectangle */
-    if(MC_MSG(win, BM_GETSTATE, 0, 0) & BST_FOCUS) {
+    if(MC_SEND(win, BM_GETSTATE, 0, 0) & BST_FOCUS) {
         if(!button->hide_focus)
             DrawFocusRect(dc, &content);
     }
@@ -183,7 +183,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     glyph = ImageList_GetIcon(mc_bmp_glyphs, MC_BMP_GLYPH_MORE_OPTIONS, ILD_TRANSPARENT);
     GetClientRect(win, &rect);
 
-    font = (HFONT) MC_MSG(win, WM_GETFONT, 0, 0);
+    font = (HFONT) MC_SEND(win, WM_GETFONT, 0, 0);
     if(font == NULL)
         font = GetStockObject(SYSTEM_FONT);
 
@@ -217,7 +217,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         } else {
             LRESULT state;
 
-            state = MC_MSG(win, BM_GETSTATE, 0, 0);
+            state = MC_SEND(win, BM_GETSTATE, 0, 0);
             if(state & MC_BST_DROPDOWNPUSHED) {
                 state_left = PBS_NORMAL;
                 state_right = PBS_PRESSED;
@@ -277,7 +277,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         if(button->style & WS_DISABLED) {
             state_left = state_right = DFCS_INACTIVE;
         } else {
-            LRESULT s = MC_MSG(win, BM_GETSTATE, 0, 0);
+            LRESULT s = MC_SEND(win, BM_GETSTATE, 0, 0);
             if(s & MC_BST_DROPDOWNPUSHED) {
                 state_left = 0;
                 state_right = DFCS_PUSHED;
@@ -321,7 +321,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     }
 
     /* Draw focus rectangle. */
-    if((MC_MSG(win, BM_GETSTATE, 0, 0) & BST_FOCUS) && !button->hide_focus) {
+    if((MC_SEND(win, BM_GETSTATE, 0, 0) & BST_FOCUS) && !button->hide_focus) {
         SelectClipRgn(dc, NULL);
         if(button->theme) {
             mc_rect_set(&rect, rect_left.left, rect_left.top,
@@ -352,7 +352,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
          * is not supported there... */
         HICON icon;
 
-        icon = (HICON) MC_MSG(win, BM_GETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) 0);
+        icon = (HICON) MC_SEND(win, BM_GETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) 0);
         if(icon != NULL) {
             SIZE size;
             UINT flags;
@@ -408,7 +408,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         if(button->hide_accel)
             flags |= DT_HIDEPREFIX;
 
-        n = MC_MSG(win, WM_GETTEXT, MC_ARRAY_SIZE(buffer), buffer);
+        n = MC_SEND(win, WM_GETTEXT, MC_ARRAY_SIZE(buffer), buffer);
 
         if(button->theme) {
             mcDrawThemeText(button->theme, dc, BP_PUSHBUTTON,
@@ -548,7 +548,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                     notify.hdr.idFrom = GetWindowLong(win, GWL_ID);
                     notify.hdr.code = MC_BCN_DROPDOWN;
                     mc_rect_copy(&notify.rcButton, &rect);
-                    MC_MSG(GetAncestor(win, GA_PARENT), WM_NOTIFY, notify.hdr.idFrom, &notify);
+                    MC_SEND(GetAncestor(win, GA_PARENT), WM_NOTIFY, notify.hdr.idFrom, &notify);
                     /* We unpush immediately after the parent handles the
                      * notification. Usually it takes some time - parent
                      * typically shows some popup-menu or other stuff
@@ -688,7 +688,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             button->theme = mcOpenThemeData(win, button_tc);
 
             {
-                WORD ui_state = MC_MSG(win, WM_QUERYUISTATE, 0, 0);
+                WORD ui_state = MC_SEND(win, WM_QUERYUISTATE, 0, 0);
                 button->hide_focus = (ui_state & UISF_HIDEFOCUS) ? 1 : 0;
                 button->hide_accel = (ui_state & UISF_HIDEACCEL) ? 1 : 0;
             }

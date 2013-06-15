@@ -288,8 +288,8 @@ mcDrawThemeParentBackground(HWND hwnd, HDC hdc, RECT* prc)
 
     OffsetViewportOrgEx(hdc, -r.left, -r.top, &old_origin);
 
-    MC_MSG(parent, WM_ERASEBKGND, hdc, 0);
-    MC_MSG(parent, WM_PRINTCLIENT, hdc, PRF_CLIENT);
+    MC_SEND(parent, WM_ERASEBKGND, hdc, 0);
+    MC_SEND(parent, WM_PRINTCLIENT, hdc, PRF_CLIENT);
 
     SetViewportOrgEx(hdc, old_origin.x, old_origin.y, NULL);
 

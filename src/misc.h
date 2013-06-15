@@ -104,9 +104,11 @@
 #endif
 
 
-/* SendMessage() wrapper to save some typing and casting. */
-#define MC_MSG(win, msg, wp, lp)                                         \
+/* Send and PostMessage() wrappers to save some typing and casting. */
+#define MC_SEND(win, msg, wp, lp)                                         \
             SendMessage((win), (msg), (WPARAM)(wp), (LPARAM)(lp))
+#define MC_POST(win, msg, wp, lp)                                         \
+            PostMessage((win), (msg), (WPARAM)(wp), (LPARAM)(lp))
 
 
 /***************
@@ -555,7 +557,7 @@ mc_send_notify(HWND parent, HWND win, UINT code)
     hdr.idFrom = GetWindowLong(win, GWL_ID);
     hdr.code = code;
 
-    return MC_MSG(parent, WM_NOTIFY, hdr.idFrom, &hdr);
+    return MC_SEND(parent, WM_NOTIFY, hdr.idFrom, &hdr);
 }
 
 

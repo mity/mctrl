@@ -69,7 +69,7 @@ struct treelist_item_tag {
     SHORT img_expanded;
     WORD state     : 15;
     WORD children  : 1;
-    
+
     COLORREF textColor;
     COLORREF bkColor;
 };
@@ -215,7 +215,7 @@ treelist_layout_header(treelist_t* tl)
 
     GetClientRect(tl->win, &rect);
 
-    MC_MSG(tl->header_win, HDM_LAYOUT, 0, &header_layout);
+    MC_SEND(tl->header_win, HDM_LAYOUT, 0, &header_layout);
     SetWindowPos(tl->header_win, header_pos.hwndInsertAfter,
                  header_pos.x - tl->scroll_x, header_pos.y,
                  header_pos.cx + tl->scroll_x, header_pos.cy,
@@ -713,14 +713,14 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         }
 
         for(col_ix = 0; col_ix < tl->col_count; col_ix++) {
-            MC_MSG(tl->header_win, HDM_GETITEMRECT, col_ix, &item_rect);
+            MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &item_rect);
             item_rect.left += ITEM_PAINT_MARGIN_H - tl->scroll_x;
             item_rect.top = y;
             item_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x;
             item_rect.bottom = y + tl->item_height;
 
             if(col_ix == 0) {
-            
+
                 /* Paint background if custom background is requested */
                 if(item->bkColor != MC_CLR_DEFAULT) {
                     int old_right = 0;
@@ -728,17 +728,17 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
                     old_left = item_rect.left;
                     old_right = item_rect.right;
-                    item_rect.left = 0; 
-                    item_rect.right = rect.right; 
+                    item_rect.left = 0;
+                    item_rect.right = rect.right;
 
                     old_bkcolor = SetBkColor(dc, item->bkColor);
                     ExtTextOut(dc, 0, 0, ETO_OPAQUE, &item_rect, NULL, 0, NULL);
                     SetBkColor(dc, old_bkcolor);
-                    
-                    item_rect.left = old_left; 
+
+                    item_rect.left = old_left;
                     item_rect.right = old_right;
                 }
-            
+
                 /* Paint lines, buttons etc. of the main item */
                 item_rect.left += level * tl->item_indent;
                 if(tl->style & MC_TLS_LINESATROOT)
@@ -839,10 +839,10 @@ paint_no_sel:
                             old_bkcolor = SetBkColor(dc, item->bkColor);
                         if(item->textColor != MC_CLR_DEFAULT)
                             old_textcolor = SetTextColor(dc, item->textColor);
-                            
+
                         mc_rect_inflate(&item_rect, -ITEM_PADDING_H, -ITEM_PADDING_V);
                         DrawText(dc, item->text, -1, &item_rect, ITEM_DTFLAGS);
-                        
+
                         if(item->bkColor != MC_CLR_DEFAULT)
                             SetBkColor(dc, old_bkcolor);
                         if(item->textColor != MC_CLR_DEFAULT)
@@ -853,7 +853,7 @@ paint_no_sel:
                 /* Paint subitem */
                 DWORD justify;
 
-                MC_MSG(tl->header_win, HDM_GETITEM, col_ix, &header_item);
+                MC_SEND(tl->header_win, HDM_GETITEM, col_ix, &header_item);
                 switch(header_item.fmt & HDF_JUSTIFYMASK) {
                     case HDF_RIGHT:   justify = DT_RIGHT; break;
                     case HDF_CENTER:  justify = DT_CENTER; break;
@@ -873,10 +873,10 @@ paint_no_sel:
                         old_bkcolor = SetBkColor(dc, item->bkColor);
                     if(item->textColor != MC_CLR_DEFAULT)
                         old_textcolor = SetTextColor(dc, item->textColor);
-                        
+
                     DrawText(dc, item->subitems[col_ix], -1, &item_rect,
                              ITEM_DTFLAGS | justify);
-                             
+
                     if(item->bkColor != MC_CLR_DEFAULT && !(item->state & MC_TLIS_SELECTED))
                         SetBkColor(dc, old_bkcolor);
                     if(item->textColor != MC_CLR_DEFAULT)
@@ -957,7 +957,7 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
     /* Find column */
     info->iSubItem = -1;
     for(col_ix = 0; col_ix < tl->col_count; col_ix++) {
-        MC_MSG(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
+        MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
         if(header_item_rect.left <= info->pt.x  &&  info->pt.x < header_item_rect.right) {
             info->iSubItem = col_ix;
             break;
@@ -1015,7 +1015,7 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
         DWORD dtjustify;
 
         header_item.mask = HDI_FORMAT;
-        MC_MSG(tl->header_win, HDM_GETITEM, col_ix, &header_item);
+        MC_SEND(tl->header_win, HDM_GETITEM, col_ix, &header_item);
         switch(header_item.fmt) {
             case HDF_RIGHT:   dtjustify = DT_RIGHT; break;
             case HDF_CENTER:  dtjustify = DT_CENTER; break;
@@ -1146,7 +1146,7 @@ treelist_invalidate_item(treelist_t* tl, treelist_item_t* item, int col_ix, int 
 
     /* Calculate item's rect */
     if(col_ix >= 0) {
-        MC_MSG(tl->header_win, HDM_GETITEMRECT, col_ix, &rect);
+        MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &rect);
     } else {
         rect.left = client_rect.left;
         rect.right = client_rect.right;
@@ -1170,7 +1170,7 @@ treelist_invalidate_column(treelist_t* tl, int col_ix)
     RECT tmp;
     RECT rect;
 
-    MC_MSG(tl->header_win, HDM_GETITEMRECT, col_ix, &tmp);
+    MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &tmp);
     rect.left = tmp.left + ITEM_PAINT_MARGIN_H;
     rect.right = tmp.right + ITEM_PAINT_MARGIN_H;
     GetWindowRect(tl->header_win, &tmp);
@@ -1270,7 +1270,7 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
         nm.hItemNew = item;
         nm.lParamNew = item->lp;
     }
-    if(MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
+    if(MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
         TREELIST_TRACE("treelist_do_select: Denied by app.");
         return;
     }
@@ -1333,7 +1333,7 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
         nm.hItemNew = item;
         nm.lParamNew = item->lp;
     }
-    MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+    MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
 }
 
 static int
@@ -1349,7 +1349,7 @@ treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed)
     nm.action = MC_TLE_EXPAND;
     nm.hItemNew = item;
     nm.lParamNew = item->lp;
-    if(MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
+    if(MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
         TREELIST_TRACE("treelist_do_expand: Denied by app.");
         return -1;
     }
@@ -1373,7 +1373,7 @@ treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed)
     treelist_ensure_visible(tl, item, item->child_tail);
 
     nm.hdr.code = MC_TLN_EXPANDED;
-    MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+    MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
 
     return 0;
 }
@@ -1391,7 +1391,7 @@ treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displaye
     nm.action = MC_TLE_COLLAPSE;
     nm.hItemNew = item;
     nm.lParamNew = item->lp;
-    if(MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
+    if(MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
         TREELIST_TRACE("treelist_do_collapse: Denied by app.");
         return -1;
     }
@@ -1415,7 +1415,7 @@ treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displaye
     }
 
     nm.hdr.code = MC_TLN_EXPANDED;
-    MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+    MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
 
     return 0;
 }
@@ -1758,7 +1758,7 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         header_item.mask |= HDI_WIDTH;
         header_item.cxy = (col_ix > 0 ? 10 : 100);
     }
-    col_ix = MC_MSG(tl->header_win, (unicode ? HDM_INSERTITEMW : HDM_INSERTITEMA),
+    col_ix = MC_SEND(tl->header_win, (unicode ? HDM_INSERTITEMW : HDM_INSERTITEMA),
                     col_ix, &header_item);
     if(MC_ERR(col_ix == -1)) {
         MC_TRACE_ERR("treelist_insert_column: HDM_INSERTITEM failed");
@@ -1800,7 +1800,7 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         RECT header_item_rect;
         RECT rect;
 
-        MC_MSG(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
+        MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
 
         GetClientRect(tl->win, &rect);
         rect.left = header_item_rect.left - tl->scroll_x + ITEM_PAINT_MARGIN_H;
@@ -1830,7 +1830,7 @@ treelist_set_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         return FALSE;
     }
 
-    ok = MC_MSG(tl->header_win, (unicode ? HDM_SETITEMW : HDM_SETITEMA),
+    ok = MC_SEND(tl->header_win, (unicode ? HDM_SETITEMW : HDM_SETITEMA),
                 col_ix, &header_item);
     if(MC_ERR(!ok)) {
         MC_TRACE_ERR("treelist_set_column: HDM_SETITEM failed");
@@ -1873,7 +1873,7 @@ treelist_get_column(treelist_t* tl, int col_ix, MC_TLCOLUMN* col, BOOL unicode)
     if(col->fMask & MC_TLCF_ORDER)
         header_item.mask |= HDI_ORDER;
 
-    ok = MC_MSG(tl->header_win, (unicode ? HDM_GETITEMW : HDM_GETITEMA),
+    ok = MC_SEND(tl->header_win, (unicode ? HDM_GETITEMW : HDM_GETITEMA),
                 col_ix, &header_item);
     if(MC_ERR(!ok)) {
         MC_TRACE_ERR("treelist_get_column: HDM_GETITEM failed");
@@ -1905,9 +1905,9 @@ treelist_delete_column(treelist_t* tl, int col_ix)
         return FALSE;
     }
 
-    MC_MSG(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
+    MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
 
-    ok = MC_MSG(tl->header_win, HDM_DELETEITEM, col_ix, 0);
+    ok = MC_SEND(tl->header_win, HDM_DELETEITEM, col_ix, 0);
     if(MC_ERR(!ok)) {
         MC_TRACE("treelist_delete_column: HDM_DELETEITEM failed.");
         return FALSE;
@@ -1956,7 +1956,7 @@ treelist_set_column_order_array(treelist_t* tl, int n, int* array)
         return FALSE;
     }
 
-    return MC_MSG(tl->header_win, HDM_SETORDERARRAY, n, array);
+    return MC_SEND(tl->header_win, HDM_SETORDERARRAY, n, array);
 }
 
 static treelist_item_t*
@@ -2069,7 +2069,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
 
     if(item->textColor == MC_CLR_NONE)
         item->textColor = MC_CLR_DEFAULT;
-        
+
     if(item->bkColor == MC_CLR_NONE)
         item->bkColor = MC_CLR_DEFAULT;
 
@@ -2189,19 +2189,19 @@ int col_redraw;
 
     col_redraw = 0;
     if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
-        item->textColor = ((item_data->textColor == MC_CLR_NONE) 
+        item->textColor = ((item_data->textColor == MC_CLR_NONE)
                                 ? MC_CLR_DEFAULT : item_data->textColor);
         col_redraw = -1; /* Text color change means whole row must
                           * be invalidated */
     }
 
     if(item_data->fMask & MC_TLIF_BKCOLOR) {
-        item->bkColor = ((item_data->bkColor == MC_CLR_NONE) 
+        item->bkColor = ((item_data->bkColor == MC_CLR_NONE)
                                 ? MC_CLR_DEFAULT : item_data->bkColor);
         col_redraw = -1; /* Background color change means whole row
                           * must be invalidated */
     }
-        
+
     if(!tl->no_redraw)
         treelist_invalidate_item(tl, item, col_redraw, 0);
 
@@ -2251,10 +2251,10 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
     if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
         item_data->textColor = item->textColor;
     }
-    
+
     if(item_data->fMask & MC_TLIF_BKCOLOR) {
         item_data->bkColor = item->bkColor;
-    }        
+    }
     return TRUE;
 }
 
@@ -2271,7 +2271,7 @@ treelist_delete_notify(treelist_t* tl, treelist_item_t* item)
     while(item != NULL) {
         nm.hItemOld = item;
         nm.lParamOld = item->lp;
-        MC_MSG(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+        MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
 
         item = item_next_ex(item, stopper);
     }
@@ -2566,7 +2566,7 @@ treelist_header_notify(treelist_t* tl, NMHEADER* info)
                 } else {
                     HDITEM item;
                     item.mask = HDI_ORDER;
-                    MC_MSG(tl->header_win, HDM_GETITEM, info->iItem, &item);
+                    MC_SEND(tl->header_win, HDM_GETITEM, info->iItem, &item);
                     order = item.iOrder;
                 }
 
@@ -2591,7 +2591,7 @@ treelist_header_notify(treelist_t* tl, NMHEADER* info)
                 int old_width;
                 int new_width = info->pitem->cxy;
 
-                MC_MSG(tl->header_win, HDM_GETITEMRECT, info->iItem, &header_item_rect);
+                MC_SEND(tl->header_win, HDM_GETITEMRECT, info->iItem, &header_item_rect);
                 old_width = mc_width(&header_item_rect);
 
                 tl->scroll_x_max += new_width - old_width;
@@ -2619,7 +2619,7 @@ static void
 treelist_notify_format(treelist_t* tl)
 {
     LRESULT lres;
-    lres = MC_MSG(tl->notify_win, WM_NOTIFYFORMAT, tl->win, NF_QUERY);
+    lres = MC_SEND(tl->notify_win, WM_NOTIFYFORMAT, tl->win, NF_QUERY);
     tl->unicode_notifications = (lres == NFR_UNICODE ? 1 : 0);
     TREELIST_TRACE("treelist_notify_format: Will use %s notifications.",
                    tl->unicode_notifications ? "Unicode" : "ANSI");
@@ -2678,9 +2678,9 @@ treelist_create(treelist_t* tl)
         return -1;
     }
 #ifdef UNICODE
-    MC_MSG(tl->header_win, HDM_SETUNICODEFORMAT, TRUE, 0);
+    MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, TRUE, 0);
 #else
-    MC_MSG(tl->header_win, HDM_SETUNICODEFORMAT, FALSE, 0);
+    MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, FALSE, 0);
 #endif
 
     tl->theme = mcOpenThemeData(tl->win, treelist_tc);
@@ -2763,7 +2763,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return treelist_set_column_order_array(tl, wp, (int*) lp);
 
         case MC_TLM_GETCOLUMNORDERARRAY:
-            return MC_MSG(tl->header_win, HDM_GETORDERARRAY, wp, lp);
+            return MC_SEND(tl->header_win, HDM_GETORDERARRAY, wp, lp);
 
         case MC_TLM_SETCOLUMNWIDTH:
         {
@@ -2778,7 +2778,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             HDITEM header_item;
             BOOL ok;
             header_item.mask = HDI_WIDTH;
-            ok = MC_MSG(tl->header_win, HDM_GETITEM, wp, &header_item);
+            ok = MC_SEND(tl->header_win, HDM_GETITEM, wp, &header_item);
             if(MC_ERR(!ok)) {
                 MC_TRACE("treelist_get_column_width(%d): HDM_GETITEM failed.", wp);
                 return 0;
@@ -2912,7 +2912,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETFONT:
             tl->font = (HFONT) wp;
-            MC_MSG(tl->header_win, WM_SETFONT, wp, lp);
+            MC_SEND(tl->header_win, WM_SETFONT, wp, lp);
             treelist_set_item_height(tl, -1, (BOOL) lp);
             return 0;
 

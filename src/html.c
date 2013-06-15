@@ -286,7 +286,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
             notify.hdr.code = MC_HN_PROGRESS;
             notify.lProgress = progress;
             notify.lProgressMax = progress_max;
-            MC_MSG(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
+            MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
             break;
         }
 
@@ -315,7 +315,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
                 notify.hdr.code = MC_HN_HISTORY;
                 notify.bCanBack = html->can_back;
                 notify.bCanForward = html->can_forward;
-                MC_MSG(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
+                MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
             }
             break;
         }
@@ -940,7 +940,7 @@ html_notify_text(html_t* html, UINT code, const WCHAR* text)
     else
         notify.pszText = (WCHAR*) mc_str(text, MC_STRW, MC_STRA);
 
-    res = MC_MSG(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
+    res = MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
 
     if(!html->unicode_notifications && notify.pszText != NULL)
         free((char*)notify.pszText);
@@ -952,7 +952,7 @@ static void
 html_notify_format(html_t* html)
 {
     LRESULT lres;
-    lres = MC_MSG(html->notify_win, WM_NOTIFYFORMAT, html->win, NF_QUERY);
+    lres = MC_SEND(html->notify_win, WM_NOTIFYFORMAT, html->win, NF_QUERY);
     html->unicode_notifications = (lres == NFR_UNICODE ? 1 : 0);
     HTML_TRACE("html_notify_format: Will use %s notifications.",
                html->unicode_notifications ? "Unicode" : "ANSI");
@@ -1352,8 +1352,8 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
             if(GetFocus() == win) {
                 SetFocus(html->ie_win);
-                MC_MSG(html->ie_win, WM_LBUTTONDOWN, 0, 0);
-                MC_MSG(html->ie_win, WM_LBUTTONUP, 0, 0);
+                MC_SEND(html->ie_win, WM_LBUTTONDOWN, 0, 0);
+                MC_SEND(html->ie_win, WM_LBUTTONUP, 0, 0);
             }
         }
     }
@@ -1429,8 +1429,8 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETFOCUS:
             if(html->ie_win) {
                 SetFocus(html->ie_win);
-                MC_MSG(html->ie_win, WM_LBUTTONDOWN, 0, 0);
-                MC_MSG(html->ie_win, WM_LBUTTONUP, 0, 0);
+                MC_SEND(html->ie_win, WM_LBUTTONDOWN, 0, 0);
+                MC_SEND(html->ie_win, WM_LBUTTONUP, 0, 0);
             }
             return 0;
 
@@ -1471,7 +1471,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     /* Forward keystrokes to the IE */
     if(WM_KEYFIRST <= msg  &&  msg <= WM_KEYLAST) {
         if(html->ie_win)
-            MC_MSG(html->ie_win, msg, wp, lp);
+            MC_SEND(html->ie_win, msg, wp, lp);
         return 0;
     }
 
