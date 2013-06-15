@@ -2788,8 +2788,8 @@ chart_set_axis_offset(chart_t* chart, int axis_id, int offset)
 static void
 chart_style_changed(chart_t* chart, STYLESTRUCT* ss)
 {
-    if((chart->style & TVS_NOTOOLTIPS) != (ss->styleNew & TVS_NOTOOLTIPS)) {
-        if(!(ss->styleNew & TVS_NOTOOLTIPS))
+    if((chart->style & MC_CHS_NOTOOLTIPS) != (ss->styleNew & MC_CHS_NOTOOLTIPS)) {
+        if(!(ss->styleNew & MC_CHS_NOTOOLTIPS))
             tooltip_create(chart);
         else
             tooltip_destroy(chart);
