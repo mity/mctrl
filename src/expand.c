@@ -222,7 +222,7 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
             pt[2].y = pt[0].y + h;
         }
 
-        SelectBrush(dc, GetSysColorBrush(COLOR_BTNTEXT));
+        SelectObject(dc, GetSysColorBrush(COLOR_BTNTEXT));
         Polygon(dc, pt, MC_ARRAY_SIZE(pt));
     }
 
