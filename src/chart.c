@@ -2789,6 +2789,8 @@ static void
 chart_style_changed(chart_t* chart, STYLESTRUCT* ss)
 {
     if((chart->style & MC_CHS_NOTOOLTIPS) != (ss->styleNew & MC_CHS_NOTOOLTIPS)) {
+        if(chart->tooltip_active)
+            tooltip_activate(chart, FALSE);
         if(!(ss->styleNew & MC_CHS_NOTOOLTIPS))
             tooltip_create(chart);
         else
@@ -2840,8 +2842,12 @@ chart_create(chart_t* chart)
 static void
 chart_destroy(chart_t* chart)
 {
-    if(chart->tooltip_win != NULL  &&  !(chart->style & MC_CHS_NOTOOLTIPS))
-        tooltip_destroy(chart);
+    if(chart->tooltip_win != NULL) {
+        if(chart->tooltip_active)
+            tooltip_activate(chart, FALSE);
+        if(!(chart->style & MC_CHS_NOTOOLTIPS))
+            tooltip_destroy(chart);
+    }
 }
 
 static void
