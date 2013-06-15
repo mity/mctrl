@@ -19,18 +19,30 @@
 #ifndef MC_MISC_H
 #define MC_MISC_H
 
+#ifndef _USE_MATH_DEFINES
+    /* This is needed for <math.h> from MSVC to define constant macros like
+     * M_PI for example. */
+    #define _USE_MATH_DEFINES
+#endif
+
 #include <stdio.h>
 #include <stddef.h>
 #include <tchar.h>
-
-#define _USE_MATH_DEFINES  /* MSVC needs this to define macros like M_PI etc. */
 #include <math.h>
-
 #include <windows.h>
 #include <commctrl.h>
 #include <shlwapi.h>
 #include <wingdi.h>
-#include <windowsx.h>
+
+/*#include <windowsx.h>*/
+/* This header is polluting namespace of macros too much. We are interested
+ * only in macros GET_[XY]_LPARAM. */
+#ifndef GET_X_LPARAM
+    #define GET_X_LPARAM(lp)   ((int)(short)LOWORD(lp))
+#endif
+#ifndef GET_Y_LPARAM
+    #define GET_Y_LPARAM(lp)   ((int)(short)HIWORD(lp))
+#endif
 
 #include "compat.h"
 #include "debug.h"
@@ -52,19 +64,9 @@
 #define MC_ABS(a)              ((a) >= 0 ? (a) : -(a))
 #define MC_SIGN(a)             ((a) > 0 ? +1 : ((a) < 0 ? -1 : 0))
 
-/* Specifier for variable-sized array (last member in structures) */
-#if defined __STDC__ && __STDC_VERSION__ >= 199901L
-    #define MC_VARARRAY_SIZE     /* empty */
-#elif defined _MSC_VER && _MSC_VER >= 1500
-    #define MC_VARARRAY_SIZE     /* empty */
-#elif defined __GNUC__
-    #define MC_VARARRAY_SIZE     0
-#else
-    #define MC_VARARRAY_SIZE     1
-#endif
-
 /* Get count of records in an array */
 #define MC_ARRAY_SIZE(array)   (sizeof((array)) / sizeof((array)[0]))
+
 
 /* Offset of struct member */
 #if defined offsetof
@@ -94,14 +96,6 @@
 
 /* Macro for wrapping error conditions. */
 #define MC_ERR(condition)              MC_UNLIKELY(condition)
-
-
-/* Unicode resolution. */
-#ifdef UNICODE
-    #define MC_NAME_AW(name)           name##W
-#else
-    #define MC_NAME_AW(name)           name##A
-#endif
 
 
 /* Send and PostMessage() wrappers to save some typing and casting. */
