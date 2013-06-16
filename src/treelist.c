@@ -1753,10 +1753,10 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
     }
     if(!(header_item.mask & HDI_WIDTH)) {
         /* Listview defaults to width 10 for new columns. Lets follow it.
-         * But for 1st columm (tree) do more as it is generally more space
+         * But for 1st columm (the tree) use more as it is generally more space
          * consuming. */
         header_item.mask |= HDI_WIDTH;
-        header_item.cxy = (col_ix > 0 ? 10 : 100);
+        header_item.cxy = (col_ix == 0 ? 100 : 10);
     }
     col_ix = MC_SEND(tl->header_win, (unicode ? HDM_INSERTITEMW : HDM_INSERTITEMA),
                     col_ix, &header_item);
@@ -1765,12 +1765,12 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         return -1;
     }
 
+    /* Realloc all subitems and init the new one. We do it in two passes
+     * to simplify error handling, even at the cost of some performance.
+     * Most apps adds column before adding any data. */
     if(tl->root_head != NULL) {
         treelist_item_t* item;
 
-        /* Realloc all subitems and init the new one. We do it in two passes
-         * to simplify error handling, even at the cost of some performance.
-         * Most apps adds column before adding any data. */
         for(item = tl->root_head; item != NULL; item = item_next(item)) {
             TCHAR** subitems;
 
@@ -1778,6 +1778,7 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
             if(MC_ERR(subitems == NULL)) {
                 MC_TRACE("treelist_insert_column: realloc(subitems) failed.");
                 mc_send_notify(tl->notify_win, tl->win, NM_OUTOFMEMORY);
+                MC_SEND(tl->header_win, HDM_DELETEITEM, col_ix, 0);
                 return -1;
             }
             item->subitems = subitems;
@@ -1916,13 +1917,33 @@ treelist_delete_column(treelist_t* tl, int col_ix)
     if(tl->root_head != NULL) {
         treelist_item_t* item;
 
-        /* TODO: we do not save memory by reallocating subitems[] */
-
         for(item = tl->root_head; item != NULL; item = item_next(item)) {
             if(item->subitems[col_ix])
                 free(item->subitems[col_ix]);
-            memmove(item->subitems + col_ix, item->subitems + (col_ix+1),
-                    (tl->col_count - col_ix - 1) * sizeof(TCHAR*));
+
+            if(tl->col_count > 1) {
+                TCHAR** subitems;
+                subitems = (TCHAR**) malloc((tl->col_count - 1) * sizeof(TCHAR*));
+                if(subitems != NULL) {
+                    memcpy(subitems,
+                           item->subitems,
+                           col_ix * sizeof(TCHAR*));
+                    memcpy(subitems + col_ix,
+                           item->subitems + (col_ix+1),
+                           (tl->col_count - col_ix - 1) * sizeof(TCHAR*));
+                    free(item->subitems);
+                    item->subitems = subitems;
+                } else {
+                    /* malloc() failed: Just move the subitems inplace. */
+                    MC_TRACE("treelist_delete_column: malloc() failed.");
+                    memmove(item->subitems + col_ix,
+                            item->subitems + (col_ix+1),
+                            (tl->col_count - col_ix - 1) * sizeof(TCHAR*));
+                }
+            } else {
+                free(item->subitems);
+                item->subitems = NULL;
+            }
         }
     }
 
