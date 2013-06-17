@@ -62,9 +62,9 @@ struct chart_tag {
     HWND tooltip_win;
     HFONT font;
     DWORD style          : 16;
-    DWORD no_redraw      : 1;
-    DWORD mouse_tracked  : 1;
-    DWORD tooltip_active : 1;
+    DWORD no_redraw      :  1;
+    DWORD tracking_leave :  1;
+    DWORD tooltip_active :  1;
     chart_axis_t primary_axis;
     chart_axis_t secondary_axis;
     int min_visible_value;
@@ -2419,15 +2419,9 @@ chart_mouse_move(chart_t* chart, int x, int y)
 
     chart_hit_test(chart, x, y, &set_ix, &i);
 
-    if(!chart->mouse_tracked  &&  set_ix >= 0) {
-        TRACKMOUSEEVENT tme;
-
-        tme.cbSize = sizeof(TRACKMOUSEEVENT);
-        tme.dwFlags = TME_LEAVE;
-        tme.hwndTrack = chart->win;
-        tme.dwHoverTime = HOVER_DEFAULT;
-
-        TrackMouseEvent(&tme);
+    if(!chart->tracking_leave  &&  set_ix >= 0) {
+        mc_track_mouse(chart->win, TME_LEAVE);
+        chart->tracking_leave = TRUE;
     }
 
     if(chart->hot_set_ix != set_ix  ||  chart->hot_i != i) {
@@ -2446,6 +2440,8 @@ chart_mouse_move(chart_t* chart, int x, int y)
 static void
 chart_mouse_leave(chart_t* chart)
 {
+    chart->tracking_leave = FALSE;
+
     if(!IsWindowEnabled(chart->win))
         return;
 
