@@ -77,10 +77,6 @@ static const TCHAR toolbar_wc[] = TOOLBARCLASSNAME;
 
 #define MARGIN_H                      2
 
-/* Timer for hot tab tracking */
-#define HOT_TRACK_TIMER_ID            1
-#define HOT_TRACK_TIMER_INTERVAL    100
-
 /* Timer for animation */
 #define ANIM_TIMER_ID                 2
 #define ANIM_TIMER_INTERVAL       (1000 / 25)   /* 25 frames per sec. */
@@ -123,13 +119,14 @@ struct mditab_tag {
     dsa_t items;
     RECT main_rect;
     DWORD ui_state;
-    DWORD style        : 16;
-    DWORD btn_mask     :  3;
-    DWORD no_redraw    :  1;
-    DWORD hot_tracking :  1;
-    DWORD dirty_layout :  1;
-    DWORD dirty_scroll :  1;
-    DWORD is_animating :  1;
+    DWORD style           : 16;
+    DWORD btn_mask        :  3;
+    DWORD no_redraw       :  1;
+    DWORD tracking_leave  :  1;
+/*  DWORD tracking_hover  :  1; */
+    DWORD dirty_layout    :  1;
+    DWORD dirty_scroll    :  1;
+    DWORD is_animating    :  1;
     int scroll_x;
     int scroll_x_desired;
     int scroll_x_max;
@@ -349,32 +346,12 @@ mditab_invalidate_item(mditab_t* mditab, int index)
     InvalidateRect(mditab->win, &r, TRUE);
 }
 
-static void CALLBACK
-mditab_track_hot_timer_proc(HWND win, UINT msg, UINT_PTR id, DWORD time)
-{
-    POINT pt;
-
-    if(!GetCursorPos(&pt)  ||  WindowFromPoint(pt) != win) {
-        /* The mouse cursor left the tab control, so no tab should be
-         * marked as hot */
-        mditab_t* mditab = (mditab_t*) GetWindowLongPtr(win, 0);
-        if(mditab->item_hot >= 0) {
-            mditab_invalidate_item(mditab, mditab->item_hot);
-            mditab->item_hot = -1;
-        }
-
-        /* Kill this timer */
-        KillTimer(win, HOT_TRACK_TIMER_ID);
-        mditab->hot_tracking = 0;
-    }
-}
-
 static void
-mditab_track_hot(mditab_t* mditab, int x, int y)
+mditab_mouse_move(mditab_t* mditab, int x, int y)
 {
     int index;
 
-    MDITAB_TRACE("mditab_track_hot(%p, %d, %d)", mditab, x, y);
+    MDITAB_TRACE("mditab_mouse_move(%p, %d, %d)", mditab, x, y);
 
     if(mditab->theme) {
         MC_MTHITTESTINFO hti;
@@ -390,30 +367,31 @@ mditab_track_hot(mditab_t* mditab, int x, int y)
     }
 
     if(index != mditab->item_hot) {
-        /* Setup the new hot tab */
-        int old_index = mditab->item_hot;
+        /* Redraw old hot tab */
+        if(mditab->item_hot >= 0)
+            mditab_invalidate_item(mditab, mditab->item_hot);
+
         mditab->item_hot = index;
 
-        /* Redraw old hot tab */
-        if(old_index >= 0)
-            mditab_invalidate_item(mditab, old_index);
-
+        /* Redraw the new hot tab */
         if(index >= 0) {
-            /* Cause to redraw the new hot tab */
             mditab_invalidate_item(mditab, index);
-
-            /* Set a timer to detect when mouse leavs the window */
-            if(SetTimer(mditab->win, HOT_TRACK_TIMER_ID,
-                    HOT_TRACK_TIMER_INTERVAL, mditab_track_hot_timer_proc))
-                mditab->hot_tracking = 1;
-        } else {
-            /* No tab is hot so the timer is not needed. */
-            if(mditab->hot_tracking) {
-                KillTimer(mditab->win, HOT_TRACK_TIMER_ID);
-                mditab->hot_tracking = 0;
+            if(!mditab->tracking_leave) {
+                mc_track_mouse(mditab->win, TME_LEAVE);
+                mditab->tracking_leave = TRUE;
             }
         }
     }
+}
+
+static void
+mditab_mouse_leave(mditab_t* mditab)
+{
+    if(mditab->item_hot >= 0) {
+        mditab_invalidate_item(mditab, mditab->item_hot);
+        mditab->item_hot = -1;
+    }
+    mditab->tracking_leave = FALSE;
 }
 
 static BOOL
@@ -712,7 +690,7 @@ mditab_do_layout(mditab_t* mditab, BOOL animate, BOOL refresh)
     GetCursorPos(&pt);
     MapWindowPoints(NULL, mditab->win, &pt, 1);
     if(mc_rect_contains_pt(&mditab->main_rect, &pt))
-        mditab_track_hot(mditab, pt.x, pt.y);
+        mditab_mouse_move(mditab, pt.x, pt.y);
 
     /* Setup the toolbars */
     if(mditab->btn_mask != btn_mask) {
@@ -1661,7 +1639,7 @@ mditab_theme_changed(mditab_t* mditab)
      * it might be in inconsistant state now. Refresh the state. */
     GetCursorPos(&pos);
     ScreenToClient(mditab->win, &pos);
-    mditab_track_hot(mditab, pos.x, pos.y);
+    mditab_mouse_move(mditab, pos.x, pos.y);
 }
 
 static mditab_t*
@@ -1724,11 +1702,6 @@ static void
 mditab_destroy(mditab_t* mditab)
 {
     mditab_notify_delete_all_items(mditab);
-
-    if(mditab->hot_tracking) {
-        KillTimer(mditab->win, HOT_TRACK_TIMER_ID);
-        mditab->hot_tracking = 0;
-    }
 
     if(mditab->theme) {
         mcCloseThemeData(mditab->theme);
@@ -1852,7 +1825,11 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_MOUSEMOVE:
-            mditab_track_hot(mditab, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            mditab_mouse_move(mditab, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
+
+        case WM_MOUSELEAVE:
+            mditab_mouse_leave(mditab);
             return 0;
 
         case WM_COMMAND:
