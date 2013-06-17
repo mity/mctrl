@@ -554,5 +554,19 @@ mc_send_notify(HWND parent, HWND win, UINT code)
     return MC_SEND(parent, WM_NOTIFY, hdr.idFrom, &hdr);
 }
 
+/* TrackMouseEvent() convenient wrapper */
+static inline void
+mc_track_mouse(HWND win, DWORD flags)
+{
+    TRACKMOUSEEVENT tme;
+
+    tme.cbSize = sizeof(TRACKMOUSEEVENT);
+    tme.dwFlags = flags;
+    tme.hwndTrack = win;
+    tme.dwHoverTime = HOVER_DEFAULT;
+
+    TrackMouseEvent(&tme);
+}
+
 
 #endif  /* MC_MISC_H  */
