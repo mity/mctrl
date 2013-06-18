@@ -44,9 +44,9 @@ extern "C" {
  * as earlier versions does not support themed controls and mCtrl tries to be
  * consistent with rest of the application.
  *
- * The wrapper function provided by this module simpply have the same name as
- * functions exported from @c UXTHEME.DLL, with the prefix <tt>mc</tt>
- * prepended. Each wrapper simply calls its counterpart in @c
+ * The wrapper functions provided by this module simpply have the same name
+ * as functions exported from @c UXTHEME.DLL, with the prefix <tt>mc</tt>
+ * prepended. Each wrapper simply calls its counterpart in @c UXTHEME.DLL
  * if it is loaded and available (as some @c UXTHEME.DLL functions were
  * introduced later then on Windows XP).
  *
