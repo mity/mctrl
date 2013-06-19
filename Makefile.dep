@@ -75,7 +75,7 @@ obj/version.o: src/version.c src/version.h include/mCtrl/version.h \
  include/mCtrl/defs.h src/misc.h src/compat.h src/debug.h src/resource.h
 obj/viewlist.o: src/viewlist.c src/viewlist.h src/misc.h src/compat.h \
  src/debug.h src/resource.h src/version.h include/mCtrl/defs.h
-obj/resource.o: src/resource.rc src/version.h src/resource.h src/res/lang.cs \
- src/res/lang.en src/res/lang.fr
-obj/resource.o: src/res/expand-19x19.bmp src/res/expand-24x24.bmp src/res/expand-29x29.bmp src/res/glyphs.bmp src/res/lang.cs src/res/lang.en src/res/lang.fr
+obj/resource.o: src/resource.rc src/version.h src/resource.h \
+ src/res/lang-cs.rc src/res/lang-en.rc src/res/lang-fr.rc
+obj/resource.o: src/res/expand-19x19.bmp src/res/expand-24x24.bmp src/res/expand-29x29.bmp src/res/glyphs.bmp src/res/lang-cs.rc src/res/lang-en.rc src/res/lang-fr.rc
 

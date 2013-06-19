@@ -30,9 +30,9 @@ IDR_EXPAND_GLYPHS_29 BITMAP  "res/expand-29x29.bmp"
 
 /* Per-language resources */
 
-#include "res/lang.cs"       /* Czech */
-#include "res/lang.en"       /* English */
-#include "res/lang.fr"       /* French */
+#include "res/lang-cs.rc"       /* Czech */
+#include "res/lang-en.rc"       /* English */
+#include "res/lang-fr.rc"       /* French */
 #pragma code_page(DEFAULT)
 
 
