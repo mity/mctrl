@@ -18,7 +18,7 @@ CWD=`pwd`
 PRJ="$CWD"
 
 # Sanity check we run this script from the right directory:
-if [ ! -x $PRJ/scripts/mkrel.sh ]; then
+if [ ! -x $PRJ/scripts/release.sh ]; then
     echo "There is some path mismatch." >&3
     exit 1
 fi
