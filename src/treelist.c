@@ -23,7 +23,6 @@
 /* TODO:
  *  -- Incremental search.
  *  -- Tooltips and style MC_TLS_NOTOOLTIPS.
- *  -- Hot tracking (needed when EXPLORER-themed).
  *  -- Style MC_TLS_GRIDLINES.
  *  -- Handling state and style MC_TLS_CHECKBOXES.
  *  -- Support editing labels and style MC_TLS_EDITLABELS and related
@@ -166,6 +165,7 @@ struct treelist_tag {
     treelist_item_t* root_tail;
     treelist_item_t* scrolled_item;   /* can be NULL if not known */
     treelist_item_t* selected_item;
+    treelist_item_t* hotbutton_item;
     int scrolled_level;               /* level of the scrolled_item */
     DWORD style                 : 16;
     DWORD no_redraw             :  1;
@@ -173,6 +173,7 @@ struct treelist_tag {
     DWORD dirty_scrollbars      :  1;
     DWORD item_height_set       :  1;
     DWORD focus                 :  1;
+    DWORD tracking_leave        :  1;
     DWORD displayed_items;
     WORD col_count;
     WORD item_height;
@@ -204,6 +205,11 @@ struct treelist_tag {
 #define ITEM_PADDING_V             1  /* inner padding of the item */
 #define ITEM_PADDING_H_THEMEEXTRA  2  /* when using theme, use extra more horiz. padding. */
 #define ITEM_DTFLAGS              (DT_EDITCONTROL | DT_SINGLELINE | DT_NOPREFIX | DT_VCENTER | DT_END_ELLIPSIS)
+
+
+/* Forward declarations */
+static void treelist_refresh_hotbutton(treelist_t* tl);
+static void treelist_invalidate_item(treelist_t* tl, treelist_item_t* item, int col_ix, int scroll);
 
 
 static void
@@ -246,6 +252,7 @@ treelist_do_hscroll(treelist_t* tl, SCROLLINFO* si, int scroll_x)
                     client_rect.right, client_rect.bottom);
         ScrollWindowEx(tl->win, (tl->scroll_x - scroll_x), 0,
                     &scroll_rect, &scroll_rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
+        treelist_refresh_hotbutton(tl);
     }
     tl->scroll_x = scroll_x;
     treelist_layout_header(tl);
@@ -314,6 +321,7 @@ treelist_do_vscroll(treelist_t* tl, SCROLLINFO* si, int scroll_y)
                     client_rect.right, client_rect.bottom);
         ScrollWindowEx(tl->win, 0, (tl->scroll_y - scroll_y) * tl->item_height,
                     &scroll_rect, &scroll_rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
+        treelist_refresh_hotbutton(tl);
     }
     tl->scroll_y = scroll_y;
     tl->scrolled_item = NULL;
@@ -470,8 +478,10 @@ treelist_set_item_height(treelist_t* tl, int height, BOOL redraw)
     if(old_height != height) {
         tl->item_height = height;
         treelist_setup_scrollbars(tl);
-        if(redraw  &&  !tl->no_redraw)
+        if(redraw  &&  !tl->no_redraw) {
             InvalidateRect(tl->win, NULL, TRUE);
+            treelist_refresh_hotbutton(tl);
+        }
     }
 
     return old_height;
@@ -608,6 +618,8 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
         int state = ((item->state & MC_TLIS_EXPANDED) ? GLPS_OPENED : GLPS_CLOSED);
         SIZE glyph_size;
         RECT r;
+        DWORD pos;
+        POINT pt;
 
         mcGetThemePartSize(tl->theme, dc, part, state,
                                NULL, TS_DRAW, &glyph_size);
@@ -616,6 +628,23 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
         r.right = r.left + glyph_size.cx;
         r.bottom = r.top + glyph_size.cy;
         ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, NULL);
+
+        pos = GetMessagePos();
+        pt.x = GET_X_LPARAM(pos);
+        pt.y = GET_Y_LPARAM(pos);
+        ScreenToClient(tl->win, &pt);
+        if(mc_rect_contains_pt(&r, &pt)) {
+            if(mcIsThemePartDefined(tl->theme, TVP_HOTGLYPH, 0)) {
+                /* We may need to unmake the hot state of previously hot
+                 * button. */
+                if(tl->hotbutton_item  &&  tl->hotbutton_item != item)
+                    treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
+
+                part = TVP_HOTGLYPH;
+                tl->hotbutton_item = item;
+            }
+        }
+
         mcDrawThemeBackground(tl->theme, dc, part, state, &r, NULL);
     } else {
         int w = mc_width(rect);
@@ -1161,6 +1190,7 @@ treelist_invalidate_item(treelist_t* tl, treelist_item_t* item, int col_ix, int 
         client_rect.top = rect.bottom;
         ScrollWindowEx(tl->win, 0, scroll * tl->item_height, &client_rect,
                        &client_rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
+        treelist_refresh_hotbutton(tl);
     }
 }
 
@@ -1516,6 +1546,59 @@ treelist_get_next_item(treelist_t* tl, int relation, treelist_item_t* item)
     MC_TRACE("treelist_expand_item: Unknown relation %d", relation);
     SetLastError(ERROR_INVALID_PARAMETER);
     return NULL;
+}
+
+static void
+treelist_mouse_move(treelist_t* tl, int x, int y)
+{
+    MC_TLHITTESTINFO info;
+    treelist_item_t* item;
+    treelist_item_t* hotbutton_item;
+
+    info.pt.x = x;
+    info.pt.y = y;
+    item = treelist_hit_test(tl, &info);
+
+    /* Make sure the right item's button is hot */
+    hotbutton_item = (info.flags & MC_TLHT_ONITEMBUTTON) ? item : NULL;
+    if(hotbutton_item != tl->hotbutton_item) {
+        if(tl->hotbutton_item) {
+            treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
+            tl->hotbutton_item = NULL;
+        }
+        if(hotbutton_item)
+            treelist_invalidate_item(tl, hotbutton_item, 0, 0);
+    }
+
+    if(!tl->tracking_leave) {
+        mc_track_mouse(tl->win, TME_LEAVE);
+        tl->tracking_leave = TRUE;
+    }
+}
+
+static void
+treelist_mouse_leave(treelist_t* tl)
+{
+    /* Undo hot state of the item's button */
+    if(tl->hotbutton_item) {
+        treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
+        tl->hotbutton_item = NULL;
+    }
+
+    tl->tracking_leave = FALSE;
+}
+
+static inline void
+treelist_refresh_hotbutton(treelist_t* tl)
+{
+    DWORD pos;
+    POINT pt;
+
+    pos = GetMessagePos();
+    pt.x = GET_X_LPARAM(pos);
+    pt.y = GET_Y_LPARAM(pos);
+    ScreenToClient(tl->win, &pt);
+    treelist_mouse_move(tl, pt.x, pt.y);
 }
 
 static BOOL
@@ -2123,6 +2206,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
                 rect.top = treelist_get_item_y(tl, tl->scrolled_item, TRUE);
             ScrollWindowEx(tl->win, 0, tl->item_height, &rect, &rect,
                                NULL, NULL, SW_INVALIDATE | SW_ERASE);
+            treelist_refresh_hotbutton(tl);
         }
     }
 
@@ -2421,6 +2505,8 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
             tl->root_tail = item->sibling_prev;
     }
     item->sibling_next = NULL;  /* stopper for treelist_delete_item_helper() */
+    if(tl->hotbutton_item == item)
+        tl->hotbutton_item = NULL;
 
     /* Delete the item and whole its subtree, and count how many of deleted
      * items were displayed. */
@@ -2450,6 +2536,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
                     rect.top = y;
                     ScrollWindowEx(tl->win, 0, -(displayed_del_count * tl->item_height),
                                    &rect, &rect, NULL, NULL, SW_INVALIDATE | SW_ERASE);
+                    treelist_refresh_hotbutton(tl);
                 }
             }
             tl->scrolled_item = NULL;
@@ -2883,6 +2970,14 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             treelist_setup_scrollbars(tl);
             if(!tl->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
+            return 0;
+
+        case WM_MOUSEMOVE:
+            treelist_mouse_move(tl, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
+
+        case WM_MOUSELEAVE:
+            treelist_mouse_leave(tl);
             return 0;
 
         case WM_VSCROLL:

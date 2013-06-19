@@ -156,6 +156,9 @@ SetupTreeList(void)
     MC_TLINSERTSTRUCT insert;
     int i, n;
 
+    /* Use EXPLORER window theme class */
+    SendMessage(hwndTreeList, CCM_SETWINDOWTHEME, 0, (LPARAM) L"Explorer");
+
     /* Associate image list with the control */
     SendMessage(hwndTreeList, MC_TLM_SETIMAGELIST, 0, (LPARAM) hImgList);
 
