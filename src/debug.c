@@ -38,7 +38,7 @@ debug_trace(const char* fmt, ...)
 
     last_error = GetLastError();
     va_start(args, fmt);
-    offset = _snprintf(buffer, sizeof(buffer)-2, args);
+    offset = _vsnprintf(buffer, sizeof(buffer)-2, fmt, args);
     va_end(args);
     if(offset < 0)
         offset = sizeof(buffer)-2;
