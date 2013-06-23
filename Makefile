@@ -55,7 +55,7 @@ ifneq ($(DEBUG),0)
 	override CPPFLAGS += -DDEBUG=$(DEBUG)
 	override CFLAGS += -g -O0
 else
-	override CFLAGS += -O3
+	override CFLAGS += -O2
 	override LDFLAGS += -s
 endif
 
