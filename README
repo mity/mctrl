@@ -44,16 +44,23 @@ Getting mCtrl
 
 You can always get the latest version and most actual information on project
 webpages:
+
     * http://mctrl.sourceforge.net
     * http://sourceforge.net/projects/mctrl
 
 There are usually two packages for each release version available:
+
     * mCtrl-x.y.z-bin.zip ... pre-built binary package
     * mCtrl-x.y.z-src.zip ... source package
 
 The pre-built package contains 32-bit as well as 64-bit binaries of MCTRL.DLL
 and examples, and also documentation for application developers. The source
 package is direct export of source tree from version control system repository.
+
+The current code (possibly untested and unstable) can also be cloned from git
+repository hoested on github:
+
+    * http://github.com/mity/mctrl
 
 
 Using mCtrl
@@ -68,12 +75,15 @@ use the 'mCtrl' in your preprocessor #include directives, e.g.:
 
     #include <mCtrl/version.h>
 
-Import libraries are located under the 'lib' and 'lib64' subdirectory:
+Import libraries are located under the 'lib' (32-bit libs) and 'lib64' (64-bit)
+subdirectory:
+
     * libmCtrl.a for gcc-based toolchains (e.g. mingw, mingw-w64)
     * mCtrl.lib for MSVC
 
 And finally deploy your application with the MCTRL.DLL which is located
-in the 'bin' and 'bin64' subdirectories in the prebuilt package.
+in the 'bin' (32-bit binaries) and 'bin64' (64-bit) subdirectories in
+the prebuilt package.
 
 Documentation for application developers is bundled within the pre-built
 package, or you can also find the documentation online:
@@ -87,21 +97,30 @@ Building mCtrl from Sources
 Disclaimer: If you want to just use MCTRL.DLL you should probably stick with
 the pre-built package.
 
-Primary development platform for mCtrl project is mingw-w64
-(see http://sf.net/projects/mingw-w64/) and MSYS. Assuming you have setup
-the environment, and have the mCtrl sources then the build should be as easy
-as running 'make' from the root directory:
+Primary development platform for mCtrl project is mingw-w64 (I use the builds
+made by mingw-builds projects) and MSYS. Assuming you have setup the environment,
+and have the mCtrl sources then the build should be as easy as running 'make'
+from the root directory:
 
     $ make
 
-More details and information about buiding under other environments (e.g.
-MS Visual Studio) can be found in documentation.
+Or, especially in case your mingw-w64 is built as a cross-compiler, you may
+find useful a script wrapping the Makefile. The following command shows its
+options:
+
+    $ scripts/build.sh --help
+
+MS Visual Studio solution (usable with the free Express edition) can also be
+found under the contrib subdirectory. However note this may be slightly out
+of date and (especially if you get development sources) you may need to update
+it to reflect latest changes to the Makefile, especially ensure the solution
+includes all mCtrl sources.
 
 
 Reporting Bugs
 ==============
 
-If you encounter any bug, please be so kind and report it. We cannot fix bugs
-we do not know about. The bug tracker can be found here:
+If you encounter any bug, please be so kind and report it. Unheard bugs cannot
+get fixed. You can submit bug reports here:
 
-    https://github.com/mity/mctrl/issues
+    * http://github.com/mity/mctrl/issues
