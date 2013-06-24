@@ -1,8 +1,6 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
- *
  * This file contains example code for mCtrl library. Code of this example
- * (but not the library itself) has been placed in the public domain.
+ * (but not the library itself) has been released into the public domain.
  */
 
 /* This sample demonstrates basic usage of MDITAB control. */

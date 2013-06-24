@@ -1,8 +1,6 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
- *
  * This file contains example code for mCtrl library. Code of this example
- * (but not the library itself) has been placed in the public domain.
+ * (but not the library itself) has been released into the public domain.
  */
 
 /* This sample demonstrates basic usage of BUTTON control. */
@@ -26,7 +24,7 @@ CreateSplitMenu(void)
     MENUITEMINFO mii = {0};
 
     hMenu = CreatePopupMenu();
-    
+
     mii.cbSize = sizeof(MENUITEMINFO);
     mii.fMask = MIIM_TYPE;
     mii.fType = MFT_STRING;
@@ -52,12 +50,12 @@ myproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                nm->hdr.code == MC_BCN_DROPDOWN)
             {
                 ClientToScreen(nm->hdr.hwndFrom, ((POINT*) &nm->rcButton)+1);
-                TrackPopupMenu(hMenu, TPM_RIGHTALIGN | TPM_LEFTBUTTON, 
+                TrackPopupMenu(hMenu, TPM_RIGHTALIGN | TPM_LEFTBUTTON,
                                nm->rcButton.right, nm->rcButton.bottom, 0, hwndDlg, NULL);
             }
             break;
         }
-            
+
         case WM_COMMAND:
         {
             /* React when user clicks on button (for split buttons, only the
@@ -65,42 +63,42 @@ myproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
              */
             const TCHAR* lpStr = NULL;
             switch(LOWORD(wParam)) {
-                case ID_BUTTON_ICON_1: 
-                    lpStr = _T("The upper BS_ICON button has been clicked."); 
+                case ID_BUTTON_ICON_1:
+                    lpStr = _T("The upper BS_ICON button has been clicked.");
                     break;
-                case ID_BUTTON_ICON_2: 
+                case ID_BUTTON_ICON_2:
                     lpStr = _T("The lower BS_ICON button has been clicked.");
                     break;
-                case ID_BUTTON_SPLIT_1: 
+                case ID_BUTTON_SPLIT_1:
                     lpStr = _T("The text split button has been clicked.");
                     break;
-                case ID_BUTTON_SPLIT_2: 
+                case ID_BUTTON_SPLIT_2:
                     lpStr = _T("The icon split button has been clicked.");
                     break;
             }
             if(lpStr)
                 MessageBox(hwndDlg, lpStr, _T("mCtrl Sample"), MB_OK);
             break;
-        }       
-        
+        }
+
         case WM_INITDIALOG:
             /* Setup icons for the buttons with BS%ICON style. */
-            SendDlgItemMessage(hwndDlg, ID_BUTTON_ICON_1, BM_SETIMAGE, IMAGE_ICON, 
+            SendDlgItemMessage(hwndDlg, ID_BUTTON_ICON_1, BM_SETIMAGE, IMAGE_ICON,
                     (LPARAM)LoadIcon(NULL, IDI_QUESTION));
-            SendDlgItemMessage(hwndDlg, ID_BUTTON_ICON_2, BM_SETIMAGE, IMAGE_ICON, 
+            SendDlgItemMessage(hwndDlg, ID_BUTTON_ICON_2, BM_SETIMAGE, IMAGE_ICON,
                     (LPARAM)LoadIcon(NULL, IDI_QUESTION));
-            SendDlgItemMessage(hwndDlg, ID_BUTTON_SPLIT_2, BM_SETIMAGE, IMAGE_ICON, 
+            SendDlgItemMessage(hwndDlg, ID_BUTTON_SPLIT_2, BM_SETIMAGE, IMAGE_ICON,
                     (LPARAM)LoadIcon(NULL, IDI_QUESTION));
             return TRUE;
-        
+
         case WM_CLOSE:
             EndDialog(hwndDlg, 0);
             break;
-            
+
         default:
             return FALSE;
     }
-    
+
     return TRUE;
 }
 
@@ -110,10 +108,10 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
 {
     hInst = hInstance;
     CreateSplitMenu();
-    
+
     /* Initialize mCtrl control */
     mcButton_Initialize();
-    
+
     /* Load and show a dialog. */
     mcDialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, myproc, MC_DF_DEFAULTFONT);
     return 0;
