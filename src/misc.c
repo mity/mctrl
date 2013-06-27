@@ -25,8 +25,6 @@
  *** Globals ***
  ***************/
 
-HINSTANCE mc_instance;
-
 DWORD mc_win_version;
 DWORD mc_comctl32_version;
 
@@ -558,8 +556,7 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
                      MC_VERSION_STR, 8 * sizeof(void*));
 
             debug_init();
-            mc_instance = instance;
-            DisableThreadLibraryCalls(mc_instance);
+            DisableThreadLibraryCalls(instance);
             module_init();
             break;
 

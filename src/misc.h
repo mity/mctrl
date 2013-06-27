@@ -109,7 +109,8 @@
  *** Globals ***
  ***************/
 
-extern HINSTANCE mc_instance;
+extern IMAGE_DOS_HEADER __ImageBase;
+#define mc_instance    ((HINSTANCE)&__ImageBase)
 
 
 /* Checking OS version (compare with normal operators: ==, <, <= etc.) */
