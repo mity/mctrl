@@ -86,6 +86,62 @@ not_found:
     return _T("");
 }
 
+void
+mc_str_inbuf_A2A(const char* from_str, char* to_str, int to_str_bufsize)
+{
+    if(to_str_bufsize <= 0)
+        return;
+
+    strncpy(to_str, from_str ? from_str : "", to_str_bufsize);
+    to_str[to_str_bufsize-1] = '\0';
+}
+
+void
+mc_str_inbuf_W2W(const WCHAR* from_str, WCHAR* to_str, int to_str_bufsize)
+{
+    if(to_str_bufsize <= 0)
+        return;
+
+    wcsncpy(to_str, from_str ? from_str : L"", to_str_bufsize);
+    to_str[to_str_bufsize-1] = L'\0';
+}
+
+void
+mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize)
+{
+    int n;
+
+    if(to_str_bufsize <= 0)
+        return;
+
+    n = MultiByteToWideChar(CP_ACP, 0, from_str ? from_str : "", -1,
+                            to_str, to_str_bufsize);
+    if(MC_ERR(n == 0  &&  from_str[0] != '\0')) {
+        MC_TRACE_ERR("mc_str_inbuf_A2W: MultiByteToWideChar() failed.");
+        to_str[0] = L'\0';
+        return;
+    }
+    to_str[to_str_bufsize-1] = L'\0';
+}
+
+void
+mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize)
+{
+    int n;
+
+    if(to_str_bufsize <= 0)
+        return;
+
+    n = WideCharToMultiByte(CP_ACP, 0, from_str ? from_str : L"", -1,
+                            to_str, to_str_bufsize, NULL, NULL);
+    if(MC_ERR(n == 0  &&  from_str[0] != '\0')) {
+        MC_TRACE_ERR("mc_str_inbuf_W2A: WideCharToMultiByte() failed.");
+        to_str[0] = '\0';
+        return;
+    }
+    to_str[to_str_bufsize-1] = '\0';
+}
+
 char*
 mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len)
 {

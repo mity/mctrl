@@ -246,35 +246,10 @@ TCHAR* mc_str_load(UINT id);
 
 /* Copying/converting strings into provided buffer */
 
-static inline void
-mc_str_inbuf_A2A(const char* from_str, char* to_str, int to_str_bufsize)
-{
-    strncpy(to_str, from_str ? from_str : "", to_str_bufsize);
-    to_str[to_str_bufsize-1] = '\0';
-}
-
-static inline void
-mc_str_inbuf_W2W(const WCHAR* from_str, WCHAR* to_str, int to_str_bufsize)
-{
-    wcsncpy(to_str, from_str ? from_str : L"", to_str_bufsize);
-    to_str[to_str_bufsize-1] = L'\0';
-}
-
-static inline void
-mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize)
-{
-    MultiByteToWideChar(CP_ACP, 0, from_str ? from_str : "", -1,
-                        to_str, to_str_bufsize);
-    to_str[to_str_bufsize-1] = L'\0';
-}
-
-static inline void
-mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize)
-{
-    WideCharToMultiByte(CP_ACP, 0, from_str ? from_str : L"", -1,
-                        to_str, to_str_bufsize, NULL, NULL);
-    to_str[to_str_bufsize-1] = '\0';
-}
+void mc_str_inbuf_A2A(const char* from_str, char* to_str, int to_str_bufsize);
+void mc_str_inbuf_W2W(const WCHAR* from_str, WCHAR* to_str, int to_str_bufsize);
+void mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize);
+void mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize);
 
 static inline void
 mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
@@ -318,29 +293,14 @@ mc_str_n(const void* from_str, mc_str_type_t from_type, int from_len,
     }
 }
 
-static inline char*
-mc_str_A2A(const char* from_str)
-{
-    return mc_str_n_A2A(from_str, -1, NULL);
-}
-
-static inline WCHAR*
-mc_str_W2W(const WCHAR* from_str)
-{
-    return mc_str_n_W2W(from_str, -1, NULL);
-}
-
-static inline WCHAR*
-mc_str_A2W(const char* from_str)
-{
-    return mc_str_n_A2W(from_str, -1, NULL);
-}
-
-static inline char*
-mc_str_W2A(const WCHAR* from_str)
-{
-    return mc_str_n_W2A(from_str, -1, NULL);
-}
+static inline char* mc_str_A2A(const char* from_str)
+    { return mc_str_n_A2A(from_str, -1, NULL); }
+static inline WCHAR* mc_str_W2W(const WCHAR* from_str)
+    { return mc_str_n_W2W(from_str, -1, NULL); }
+static inline WCHAR* mc_str_A2W(const char* from_str)
+    { return mc_str_n_A2W(from_str, -1, NULL); }
+static inline char* mc_str_W2A(const WCHAR* from_str)
+    { return mc_str_n_W2A(from_str, -1, NULL); }
 
 static inline void*
 mc_str(const void* from_str, mc_str_type_t from_type, mc_str_type_t to_type)
