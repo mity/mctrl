@@ -89,11 +89,11 @@ not_found:
 char*
 mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len)
 {
-    char* to_str;
-    int to_len;
+    char* to_str = NULL;
+    int to_len = 0;
 
     if(from_str == NULL)
-        return NULL;
+        goto out;
 
     if(from_len < 0)
         from_len = (int)strlen((char*)from_str);
@@ -108,20 +108,20 @@ mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len)
     memcpy(to_str, from_str, to_len);
     to_str[to_len] = '\0';
 
+out:
     if(ptr_to_len != NULL)
         *ptr_to_len = to_len;
-
     return to_str;
 }
 
 WCHAR*
 mc_str_n_W2W(const WCHAR* from_str, int from_len, int* ptr_to_len)
 {
-    WCHAR* to_str;
-    int to_len;
+    WCHAR* to_str = NULL;
+    int to_len = 0;
 
     if(from_str == NULL)
-        return NULL;
+        goto out;
 
     if(from_len < 0)
         from_len = wcslen(from_str);
@@ -136,20 +136,20 @@ mc_str_n_W2W(const WCHAR* from_str, int from_len, int* ptr_to_len)
     memcpy(to_str, from_str, to_len * sizeof(WCHAR));
     to_str[to_len] = L'\0';
 
+out:
     if(ptr_to_len != NULL)
         *ptr_to_len = to_len;
-
     return to_str;
 }
 
 WCHAR*
 mc_str_n_A2W(const char* from_str, int from_len, int* ptr_to_len)
 {
-    WCHAR* to_str;
-    int to_len;
+    WCHAR* to_str = NULL;
+    int to_len = 0;
 
     if(from_str == NULL)
-        return NULL;
+        goto out;
 
     if(from_len < 0)
         from_len = (int)strlen((char*)from_str);
@@ -159,19 +159,19 @@ mc_str_n_A2W(const char* from_str, int from_len, int* ptr_to_len)
             *ptr_to_len = 0;
         return NULL;
     }
-        
+
     to_len = MultiByteToWideChar(CP_ACP, 0, from_str, from_len, NULL, 0);
     if(MC_ERR(to_len == 0)) {
         MC_TRACE("mc_str_n_A2W: MultiByteToWideChar() check length failed.");
         return NULL;
     }
-    
+
     to_str = (WCHAR*) malloc((to_len + 1) * sizeof(WCHAR));
     if(MC_ERR(to_str == NULL)) {
         MC_TRACE("mc_str_n_A2W: malloc() failed.");
         return NULL;
     }
-    
+
     if(MC_ERR(MultiByteToWideChar(CP_ACP, 0, from_str, from_len, to_str, to_len) == 0)) {
         MC_TRACE("mc_str_n_A2W: MultiByteToWideChar() conversion failed.");
         free(to_str);
@@ -179,20 +179,20 @@ mc_str_n_A2W(const char* from_str, int from_len, int* ptr_to_len)
     }
     to_str[to_len] = L'\0';
 
+out:
     if(ptr_to_len != NULL)
         *ptr_to_len = to_len;
-
     return to_str;
 }
 
 char*
 mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len)
 {
-    char* to_str;
-    int to_len;
+    char* to_str = NULL;
+    int to_len = 0;
 
     if(from_str == NULL)
-        return NULL;
+        goto out;
 
     if(from_len < 0)
         from_len = (int)(wcslen((WCHAR*)from_str) * sizeof(WCHAR));
@@ -202,20 +202,20 @@ mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len)
             *ptr_to_len = 0;
         return NULL;
     }
-        
+
     to_len = WideCharToMultiByte(CP_ACP, 0, from_str, from_len,
                                  NULL, 0, NULL, NULL);
     if(MC_ERR(to_len == 0)) {
         MC_TRACE("mc_str_n_W2A: WideCharToMultiByte() check length failed.");
         return NULL;
     }
-    
+
     to_str = (char*) malloc(to_len + 1);
     if(MC_ERR(to_str == NULL)) {
         MC_TRACE("mc_str_n_W2A: malloc() failed.");
         return NULL;
     }
-    
+
     if(MC_ERR(WideCharToMultiByte(CP_ACP, 0, from_str, from_len,
                                   to_str, to_len, NULL, NULL) == 0)) {
         MC_TRACE("mc_str_n_W2A: WideCharToMultiByte() conversion failed.");
@@ -224,9 +224,9 @@ mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len)
     }
     to_str[to_len] = '\0';
 
+out:
     if(ptr_to_len != NULL)
         *ptr_to_len = to_len;
-
     return to_str;
 }
 
