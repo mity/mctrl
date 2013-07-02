@@ -228,6 +228,9 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 {
     html_t* html = MC_HTML_FROM_DISPTACH(self);
 
+    if(params == NULL || html == NULL)
+        return E_INVALIDARG;
+        
     switch(disp_id) {
         case DISPID_BEFORENAVIGATE2:
         {
@@ -291,10 +294,12 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         }
 
         case DISPID_STATUSTEXTCHANGE:
+            MC_ASSERT(params->cArgs == 1);
             html_notify_text(html, MC_HN_STATUSTEXT, V_BSTR(&params->rgvarg[0]));
             break;
 
         case DISPID_TITLECHANGE:
+            MC_ASSERT(params->cArgs == 1);
             html_notify_text(html, MC_HN_TITLETEXT, V_BSTR(&params->rgvarg[0]));
             break;
 
@@ -935,11 +940,11 @@ html_notify_text(html_t* html, UINT code, const WCHAR* text)
     notify.hdr.hwndFrom = html->win;
     notify.hdr.idFrom = GetDlgCtrlID(html->win);
     notify.hdr.code = code;
-    if(html->unicode_notifications)
+    if(html->unicode_notifications || text == NULL)
         notify.pszText = text;
     else
         notify.pszText = (WCHAR*) mc_str(text, MC_STRW, MC_STRA);
-
+        
     res = MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
 
     if(!html->unicode_notifications && notify.pszText != NULL)
