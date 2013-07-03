@@ -113,9 +113,10 @@ mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize)
 
     if(to_str_bufsize <= 0)
         return;
+    if(from_str == NULL)
+        from_str = "";
 
-    n = MultiByteToWideChar(CP_ACP, 0, from_str ? from_str : "", -1,
-                            to_str, to_str_bufsize);
+    n = MultiByteToWideChar(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize);
     if(MC_ERR(n == 0  &&  from_str[0] != '\0')) {
         MC_TRACE_ERR("mc_str_inbuf_A2W: MultiByteToWideChar() failed.");
         to_str[0] = L'\0';
@@ -131,9 +132,10 @@ mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize)
 
     if(to_str_bufsize <= 0)
         return;
+    if(from_str == NULL)
+        from_str = L"";
 
-    n = WideCharToMultiByte(CP_ACP, 0, from_str ? from_str : L"", -1,
-                            to_str, to_str_bufsize, NULL, NULL);
+    n = WideCharToMultiByte(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize, NULL, NULL);
     if(MC_ERR(n == 0  &&  from_str[0] != '\0')) {
         MC_TRACE_ERR("mc_str_inbuf_W2A: WideCharToMultiByte() failed.");
         to_str[0] = '\0';
