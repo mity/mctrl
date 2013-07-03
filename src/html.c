@@ -230,7 +230,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 
             HTML_TRACE("dispatch_Invoke: DISPID_BEFORENAVIGATE2(%S)", url);
 
-            if(wcsncmp(url, L"app:", 4) == 0) {
+            if(url != NULL  &&  wcsncmp(url, L"app:", 4) == 0) {
                 html_notify_text(html, MC_HN_APPLINK, url);
                 *cancel = VARIANT_TRUE;
             }
@@ -244,8 +244,6 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         case DISPID_DOCUMENTCOMPLETE:
         {
             BSTR url = V_BSTR(V_VARIANTREF(&params->rgvarg[0]));
-            HTML_TRACE("dispatch_Invoke: DISPID_DOCUMENTCOMPLETE(%S)", url);
-
             html_notify_text(html, MC_HN_DOCUMENTCOMPLETE, url);
             break;
         }
@@ -998,7 +996,9 @@ html_notify_text(html_t* html, UINT code, const WCHAR* text)
     notify.hdr.hwndFrom = html->win;
     notify.hdr.idFrom = GetDlgCtrlID(html->win);
     notify.hdr.code = code;
-    if(html->unicode_notifications)
+    if(text == NULL)
+        notify.pszText = L"";
+    else if(html->unicode_notifications)
         notify.pszText = text;
     else
         notify.pszText = (WCHAR*) mc_str(text, MC_STRW, MC_STRA);
