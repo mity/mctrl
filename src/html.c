@@ -300,8 +300,8 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 
         case DISPID_COMMANDSTATECHANGE:
         {
-            VARIANT_BOOL enabled = V_BOOL(&params->rgvarg[0]);
             LONG cmd = V_I4(&params->rgvarg[0]);
+            VARIANT_BOOL enabled = V_BOOL(&params->rgvarg[1]);
             MC_NMHTMLHISTORY notify;
 
             if(cmd == CSC_NAVIGATEBACK  ||  cmd == CSC_NAVIGATEFORWARD) {
