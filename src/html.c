@@ -37,7 +37,7 @@
 
 
 /* Uncomment this to have more verbose traces about MC_HTML control. */
-/*#define HTML_DEBUG     1*/
+#define HTML_DEBUG     1
 
 
 #ifdef HTML_DEBUG
@@ -118,10 +118,6 @@ html_Release(html_t* html)
     refs = mc_unref(&html->refs);
     if(refs == 0) {
         HTML_TRACE("html_Release: Freeing the HTML object.");
-
-        if(html->ole_initialized)
-            OleUninitialize();
-
         free(html);
     }
     return refs;
@@ -1370,6 +1366,9 @@ html_ncdestroy(html_t* html)
      * a multithreading. */
     html->win = NULL;
     html->notify_win = NULL;
+
+    if(html->ole_initialized)
+        OleUninitialize();
 
     html_Release(html);
 }
