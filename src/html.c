@@ -264,7 +264,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
                         &IID_IWebBrowser2, (void**)&browser_iface);
                 if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
                     MC_TRACE("dispatch_Invoke(DISPID_PROGRESSCHANGE): "
-                             "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
+                             "QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
                 } else {
                     BSTR url = NULL;
                     hr = browser_iface->lpVtbl->get_LocationURL(browser_iface, &url);
@@ -536,7 +536,7 @@ inplace_site_ex_OnPosRectChange(IOleInPlaceSiteEx* self, const RECT* rect)
                         &IID_IOleInPlaceObject, (void**)(void*)&inplace);
     if(MC_ERR(hr != S_OK  ||  inplace == NULL)) {
         MC_TRACE("inplace_site_ex_OnPosRectChange: "
-                 "QueryInterface(IID_IOleInPlaceObject) failed [%ld]", hr);
+                 "QueryInterface(IID_IOleInPlaceObject) failed [0x%lx]", hr);
         return E_UNEXPECTED;
     }
 
@@ -962,7 +962,7 @@ html_goto_url(html_t* html, const void* url, BOOL unicode)
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                     &IID_IWebBrowser2, (void**)&browser_iface);
     if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
-        MC_TRACE("html_goto_url: QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
+        MC_TRACE("html_goto_url: QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
         return -1;
     }
 
@@ -999,7 +999,7 @@ html_goto_back(html_t* html, BOOL back)
                     &IID_IWebBrowser2, (void**)&browser_iface);
     if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
         MC_TRACE("html_goto_back: "
-                 "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
+                 "QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
         return -1;
     }
 
@@ -1049,13 +1049,13 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
                     &IID_IWebBrowser2, (void**)&browser_iface);
     if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
         MC_TRACE("html_set_element_contents: "
-                 "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
+                 "QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
         goto err_browser;
     }
 
     hr = browser_iface->lpVtbl->get_Document(browser_iface, &dispatch_iface);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_set_element_contents: get_Document() failed [%ld]", hr);
+        MC_TRACE("html_set_element_contents: get_Document() failed [0x%lx]", hr);
         goto err_dispatch;
     }
 
@@ -1063,19 +1063,19 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
                                     &IID_IHTMLDocument3, (void**)&doc_iface);
     if(MC_ERR(hr != S_OK  ||  doc_iface == NULL)) {
         MC_TRACE("html_set_element_contents: "
-                 "QueryInterface(IID_IHTMLDocument3) failed [%ld]", hr);
+                 "QueryInterface(IID_IHTMLDocument3) failed [0x%lx]", hr);
         goto err_doc;
     }
 
     hr = doc_iface->lpVtbl->getElementById(doc_iface, bstr_id, &elem_iface);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_set_element_contents: getElementById() failed [%ld]", hr);
+        MC_TRACE("html_set_element_contents: getElementById() failed [0x%lx]", hr);
         goto err_elem;
     }
 
     hr = elem_iface->lpVtbl->put_innerHTML(elem_iface, bstr_contents);
     if(hr != S_OK) {
-        MC_TRACE("html_set_element_contents: put_innerHTML() failed [%ld]", hr);
+        MC_TRACE("html_set_element_contents: put_innerHTML() failed [0x%lx]", hr);
         goto err_inner_html;
     }
 
@@ -1122,14 +1122,14 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
                     &IID_IWebBrowser2, (void**)&browser_iface);
     if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
         MC_TRACE("html_key_msg: "
-                 "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
+                 "QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
         goto err_browser;
     }
     hr = browser_iface->lpVtbl->QueryInterface(browser_iface,
                         &IID_IOleInPlaceActiveObject, (void**)&active_iface);
     if(MC_ERR(hr != S_OK  ||  active_iface == NULL)) {
         MC_TRACE("html_key_msg: "
-                 "QueryInterface(IID_IOleInPlaceActiveObject) failed [%ld]", hr);
+                 "QueryInterface(IID_IOleInPlaceActiveObject) failed [0x%lx]", hr);
         goto err_active;
     }
     active_iface->lpVtbl->TranslateAccelerator(active_iface, &message);
@@ -1185,7 +1185,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
      * the message loop controlling the window is running). */
     hr = OleInitialize(NULL);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_create: OleInitialize() failed [%lu]", (ULONG)hr);
+        MC_TRACE("html_create: OleInitialize() failed [0x%lx]", hr);
         return -1;
     }
 
@@ -1196,7 +1196,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
             &IID_IOleObject, (void**)&html->browser_obj);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: CoCreateInstance(CLSID_WebBrowser) failed "
-                 "[%lu]", (ULONG)hr);
+                 "[0x%lx]", hr);
         return -1;
     }
 
@@ -1204,8 +1204,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
     hr = html->browser_obj->lpVtbl->SetClientSite(html->browser_obj,
                 &html->client_site);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_create: IOleObject::SetClientSite() failed [%lu]",
-                 (ULONG)hr);
+        MC_TRACE("html_create: IOleObject::SetClientSite() failed [0x%lx]", hr);
         return -1;
     }
     GetClientRect(html->win, &rect);
@@ -1213,7 +1212,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
                             NULL, &html->client_site, 0, html->win, &rect);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: IOleObject::DoVerb(OLEIVERB_INPLACEACTIVATE) "
-                 "failed [%lu]", (ULONG)hr);
+                 "failed [0x%lx]", hr);
         return -1;
     }
 
@@ -1222,7 +1221,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
                 &IID_IConnectionPointContainer, (void**)&conn_point_container);
     if(MC_ERR(hr != S_OK  ||  conn_point_container == NULL)) {
         MC_TRACE("html_create: QueryInterface(IID_IConnectionPointContainer) failed "
-                 "[%lu]", (ULONG)hr);
+                 "[0x%lx]", hr);
         return -1;
     }
     hr = conn_point_container->lpVtbl->FindConnectionPoint(conn_point_container,
@@ -1230,7 +1229,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
     conn_point_container->lpVtbl->Release(conn_point_container);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: FindConnectionPoint(DIID_DWebBrowserEvents2) failed "
-                 "[%lu]", (ULONG)hr);
+                 "[0x%lx]", hr);
         return -1;
     }
     conn_point->lpVtbl->Advise(conn_point, (IUnknown*)&html->client_site, &cookie);
@@ -1241,7 +1240,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
                 &IID_IWebBrowser2, (void**)&browser_iface);
     if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
         MC_TRACE("html_create: QueryInterface(IID_IWebBrowser2) failed "
-                 "[%lu]", (ULONG)hr);
+                 "[0x%lx]", hr);
         return -1;
     }
     browser_iface->lpVtbl->put_Left(browser_iface, 0);
