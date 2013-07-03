@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -54,7 +54,7 @@ static const TCHAR html_wc[] = MC_WC_HTML;
 
 
 /* We use 'about:blank' as a default URL */
-static const WCHAR url_blank_data[] = { L"\x16\x00about:blank" };
+static const WCHAR url_blank_data[] = L"\x16\x00about:blank";
 static BSTR url_blank = (BSTR) &url_blank_data[2];
 
 
