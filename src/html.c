@@ -247,6 +247,14 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
             HTML_TRACE("dispatch_Invoke: DISPID_PROGRESSCHANGE(%ld, %ld)",
                        progress, progress_max);
 
+            /* Send also notification about the progress */
+            notify.hdr.hwndFrom = html->win;
+            notify.hdr.idFrom = GetDlgCtrlID(html->win);
+            notify.hdr.code = MC_HN_PROGRESS;
+            notify.lProgress = progress;
+            notify.lProgressMax = progress_max;
+            MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
+
             /* This replaces DISPID_DOCUMENTCOMPLETE above */
             if(progress < 0  ||  progress_max < 0) {
                 IWebBrowser2* browser_iface;
@@ -267,14 +275,6 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
                     browser_iface->lpVtbl->Release(browser_iface);
                 }
             }
-
-            /* Send also notification about the progress */
-            notify.hdr.hwndFrom = html->win;
-            notify.hdr.idFrom = GetDlgCtrlID(html->win);
-            notify.hdr.code = MC_HN_PROGRESS;
-            notify.lProgress = progress;
-            notify.lProgressMax = progress_max;
-            MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
             break;
         }
 
