@@ -264,6 +264,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
                         html_notify_text(html, MC_HN_DOCUMENTCOMPLETE, url);
                         SysFreeString(url);
                     }
+                    browser_iface->lpVtbl->Release(browser_iface);
                 }
             }
 
