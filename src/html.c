@@ -37,7 +37,7 @@
 
 
 /* Uncomment this to have more verbose traces about MC_HTML control. */
-#define HTML_DEBUG     1
+/*#define HTML_DEBUG     1*/
 
 
 #ifdef HTML_DEBUG
