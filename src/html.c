@@ -997,23 +997,26 @@ html_notify_text(html_t* html, UINT code, const WCHAR* text)
 
     MC_NMHTMLTEXTW notify;
     LRESULT res;
+    BOOL need_free = FALSE;
 
     HTML_TRACE("html_notify_text: code=%d str='%S'", code, text ? text : L"[null]");
 
     notify.hdr.hwndFrom = html->win;
     notify.hdr.idFrom = GetDlgCtrlID(html->win);
     notify.hdr.code = code;
-    if(text == NULL)
+    if(text == NULL) {
         notify.pszText = L"";
-    else if(html->unicode_notifications)
+    } else if(html->unicode_notifications) {
         notify.pszText = text;
-    else
+    } else {
         notify.pszText = (WCHAR*) mc_str(text, MC_STRW, MC_STRA);
+        need_free = TRUE;
+    }
 
     res = MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
 
-    if(!html->unicode_notifications && notify.pszText != NULL)
-        free((char*)notify.pszText);
+    if(need_free)
+        free((WCHAR*)notify.pszText);
 
     return res;
 }
