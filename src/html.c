@@ -301,10 +301,11 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         case DISPID_COMMANDSTATECHANGE:
         {
             LONG cmd = V_I4(&params->rgvarg[0]);
-            VARIANT_BOOL enabled = V_BOOL(&params->rgvarg[1]);
-            MC_NMHTMLHISTORY notify;
 
             if(cmd == CSC_NAVIGATEBACK  ||  cmd == CSC_NAVIGATEFORWARD) {
+                MC_NMHTMLHISTORY notify;
+                BOOL enabled = (V_BOOL(&params->rgvarg[1]) != VARIANT_FALSE);
+
                 if(cmd == CSC_NAVIGATEBACK)
                     html->can_back = enabled;
                 else
