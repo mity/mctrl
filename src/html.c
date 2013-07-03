@@ -3,7 +3,7 @@
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundaftion; either version 2.1 of the License, or
+ * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -31,7 +31,7 @@
 #include "theme.h"
 
 #include <exdisp.h>    /* IWebBrowser2 */
-#include <exdispid.h>  /* DISP_xxxx constants */
+#include <exdispid.h>  /* DISPID_xxxx constants */
 #include <mshtml.h>    /* IHTMLDocument3, IHTMLElement */
 #include <mshtmhst.h>  /* IDocHostUIHandler */
 
@@ -205,7 +205,8 @@ static HRESULT STDMETHODCALLTYPE
 dispatch_GetIDsOfNames(IDispatch* self, REFIID riid, LPOLESTR* names,
                        UINT names_count, LCID lcid, DISPID* disp_id)
 {
-    HTML_TRACE("dispatch_GetIDsOfNames('%S'): Stub [E_NOTIMPL]", names_count > 0 ? names[0] : L"");
+    HTML_TRACE("dispatch_GetIDsOfNames('%S'): Stub [E_NOTIMPL]",
+               names_count > 0 ? names[0] : L"");
     *disp_id = DISPID_UNKNOWN;
     return E_NOTIMPL;
 }
@@ -394,7 +395,8 @@ client_site_SaveObject(IOleClientSite* self)
 }
 
 static HRESULT STDMETHODCALLTYPE
-client_site_GetMoniker(IOleClientSite* self, DWORD assign, DWORD moniker_id, IMoniker** moniker)
+client_site_GetMoniker(IOleClientSite* self, DWORD assign, DWORD moniker_id,
+                       IMoniker** moniker)
 {
     HTML_TRACE("client_site_GetMoniker: Stub [E_NOTIMPL]");
     *moniker = NULL;
@@ -507,7 +509,8 @@ inplace_site_ex_OnUIActivate(IOleInPlaceSiteEx* self)
 
 static HRESULT STDMETHODCALLTYPE
 inplace_site_ex_GetWindowContext(IOleInPlaceSiteEx* self, LPOLEINPLACEFRAME* frame,
-                LPOLEINPLACEUIWINDOW* doc, RECT* rect, RECT* clip_rect, LPOLEINPLACEFRAMEINFO frame_info)
+                LPOLEINPLACEUIWINDOW* doc, RECT* rect, RECT* clip_rect,
+                LPOLEINPLACEFRAMEINFO frame_info)
 {
     html_t* html;
     HTML_TRACE("inplace_site_GetWindowContext");
@@ -585,7 +588,8 @@ inplace_site_ex_OnPosRectChange(IOleInPlaceSiteEx* self, const RECT* rect)
 }
 
 static HRESULT STDMETHODCALLTYPE
-inplace_site_ex_OnInPlaceActivateEx(IOleInPlaceSiteEx* self, BOOL* no_redraw, DWORD flags)
+inplace_site_ex_OnInPlaceActivateEx(IOleInPlaceSiteEx* self, BOOL* no_redraw,
+                                    DWORD flags)
 {
     HTML_TRACE("inplace_site_OnInPlaceActivateEx(): Stub [S_OK]");
     *no_redraw = TRUE;
@@ -689,21 +693,24 @@ inplace_frame_SetBorderSpace(IOleInPlaceFrame* self, LPCBORDERWIDTHS space)
 }
 
 static HRESULT STDMETHODCALLTYPE
-inplace_frame_SetActiveObject(IOleInPlaceFrame* self, IOleInPlaceActiveObject *active_obj, LPCOLESTR obj_name)
+inplace_frame_SetActiveObject(IOleInPlaceFrame* self,
+            IOleInPlaceActiveObject *active_obj, LPCOLESTR obj_name)
 {
     HTML_TRACE("inplace_frame_SetActiveObject: Stub [S_OK]");
     return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE
-inplace_frame_InsertMenus(IOleInPlaceFrame* self, HMENU menu_shared, LPOLEMENUGROUPWIDTHS menu_widths)
+inplace_frame_InsertMenus(IOleInPlaceFrame* self, HMENU menu_shared,
+            LPOLEMENUGROUPWIDTHS menu_widths)
 {
     HTML_TRACE("inplace_frame_InsertMenus: Stub [E_NOTIMPL]");
     return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
-inplace_frame_SetMenu(IOleInPlaceFrame* self, HMENU menu_shared, HOLEMENU old_menu, HWND active_obj)
+inplace_frame_SetMenu(IOleInPlaceFrame* self, HMENU menu_shared,
+            HOLEMENU old_menu, HWND active_obj)
 {
     HTML_TRACE("inplace_frame_SetMenu: Stub [S_OK]");
     return S_OK;
@@ -819,7 +826,8 @@ ui_handler_GetHostInfo(IDocHostUIHandler* self, DOCHOSTUIINFO* info)
 
 static HRESULT STDMETHODCALLTYPE
 ui_handler_ShowUI(IDocHostUIHandler* self, DWORD id, IOleInPlaceActiveObject* active_obj,
-                IOleCommandTarget* target, IOleInPlaceFrame* inplace_frame, IOleInPlaceUIWindow* doc)
+                IOleCommandTarget* target, IOleInPlaceFrame* inplace_frame,
+                IOleInPlaceUIWindow* doc)
 {
     HTML_TRACE("ui_handler_ShowUI: Stub [S_OK]");
     return S_OK;
@@ -869,7 +877,8 @@ ui_handler_ResizeBorder(IDocHostUIHandler* self, const RECT* rect,
 }
 
 static HRESULT STDMETHODCALLTYPE
-ui_handler_TranslateAccelerator(IDocHostUIHandler* self, MSG* msg, const GUID* guid, DWORD cmd_id)
+ui_handler_TranslateAccelerator(IDocHostUIHandler* self, MSG* msg,
+            const GUID* guid, DWORD cmd_id)
 {
     HTML_TRACE("ui_handler_TranslateAccelerator: Stub [S_FALSE]");
     return S_FALSE;
@@ -884,7 +893,8 @@ ui_handler_GetOptionKeyPath(IDocHostUIHandler* self, LPOLESTR* key, DWORD reserv
 }
 
 static HRESULT STDMETHODCALLTYPE
-ui_handler_GetDropTarget(IDocHostUIHandler* self, IDropTarget* drop_target, IDropTarget** p_drop_target)
+ui_handler_GetDropTarget(IDocHostUIHandler* self, IDropTarget* drop_target,
+            IDropTarget** p_drop_target)
 {
     HTML_TRACE("ui_handler_GetDropTarget: Stub [E_NOTIMPL]");
     *p_drop_target = NULL;
@@ -909,7 +919,8 @@ ui_handler_TranslateUrl(IDocHostUIHandler* self, DWORD reserved,
 }
 
 static HRESULT STDMETHODCALLTYPE
-ui_handler_FilterDataObject(IDocHostUIHandler* self, IDataObject* obj, IDataObject** p_obj)
+ui_handler_FilterDataObject(IDocHostUIHandler* self, IDataObject* obj,
+            IDataObject** p_obj)
 {
     HTML_TRACE("ui_handler_FilterDataObject: Stub [S_FALSE]");
     *p_obj = NULL;
