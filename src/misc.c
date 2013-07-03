@@ -211,7 +211,7 @@ mc_str_n_A2W(const char* from_str, int from_len, int* ptr_to_len)
         from_len = (int)strlen((char*)from_str);
 
     to_len = MultiByteToWideChar(CP_ACP, 0, from_str, from_len, NULL, 0);
-    if(MC_ERR(to_len == 0)) {
+    if(MC_ERR(to_len == 0  &&  from_len > 0)) {
         MC_TRACE_ERR("mc_str_n_A2W: MultiByteToWideChar() check length failed.");
         return NULL;
     }
@@ -249,7 +249,7 @@ mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len)
 
     to_len = WideCharToMultiByte(CP_ACP, 0, from_str, from_len,
                                  NULL, 0, NULL, NULL);
-    if(MC_ERR(to_len == 0)) {
+    if(MC_ERR(to_len == 0  &&  from_len > 0)) {
         MC_TRACE_ERR("mc_str_n_W2A: WideCharToMultiByte() check length failed.");
         return NULL;
     }
