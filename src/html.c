@@ -7,7 +7,7 @@
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty off
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
@@ -137,24 +137,6 @@ html_QueryInterface(html_t* html, REFIID riid, void** obj)
     return E_NOINTERFACE;
 }
 
-static IWebBrowser2*
-html_browser_iface(html_t* html)
-{
-    IWebBrowser2* browser_iface;
-    HRESULT hr;
-
-    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
-                    &IID_IWebBrowser2, (void**)&browser_iface);
-    if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_browser_iface: QueryInterface(IID_IWebBrowser2) failed "
-                 "[%lu]", (ULONG) hr);
-        return NULL;
-    }
-
-    return browser_iface;
-}
-
-
 
 /********************************
  *** Dummy reference counting ***
@@ -267,11 +249,16 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 
             /* This replaces DISPID_DOCUMENTCOMPLETE above */
             if(progress < 0  ||  progress_max < 0) {
-                IWebBrowser2* browser_iface = html_browser_iface(html);
-                if(browser_iface != NULL) {
-                    HRESULT hr;
-                    BSTR url = NULL;
+                IWebBrowser2* browser_iface;
+                HRESULT hr;
 
+                hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+                        &IID_IWebBrowser2, (void**)&browser_iface);
+                if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
+                    MC_TRACE("dispatch_Invoke(DISPID_PROGRESSCHANGE): "
+                             "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
+                } else {
+                    BSTR url = NULL;
                     hr = browser_iface->lpVtbl->get_LocationURL(browser_iface, &url);
                     if(hr == S_OK && url != NULL) {
                         html_notify_text(html, MC_HN_DOCUMENTCOMPLETE, url);
@@ -538,16 +525,22 @@ static HRESULT STDMETHODCALLTYPE
 inplace_site_ex_OnPosRectChange(IOleInPlaceSiteEx* self, const RECT* rect)
 {
     IOleInPlaceObject* inplace;
+    HRESULT hr;
     html_t* html;
+
     HTML_TRACE("inplace_site_OnPosRectChange");
 
     html = MC_HTML_FROM_INPLACE_SITE_EX(self);
-    html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                         &IID_IOleInPlaceObject, (void**)(void*)&inplace);
-    if(inplace != NULL) {
-        inplace->lpVtbl->SetObjectRects(inplace, rect, rect);
-        inplace->lpVtbl->Release(inplace);
+    if(MC_ERR(hr != S_OK  ||  inplace == NULL)) {
+        MC_TRACE("inplace_site_ex_OnPosRectChange: "
+                 "QueryInterface(IID_IOleInPlaceObject) failed [%ld]", hr);
+        return E_UNEXPECTED;
     }
+
+    inplace->lpVtbl->SetObjectRects(inplace, rect, rect);
+    inplace->lpVtbl->Release(inplace);
     return S_OK;
 }
 
@@ -962,11 +955,15 @@ static int
 html_goto_url(html_t* html, const void* url, BOOL unicode)
 {
     IWebBrowser2* browser_iface;
+    HRESULT hr;
     VARIANT var;
 
-    browser_iface = html_browser_iface(html);
-    if(MC_ERR(browser_iface == NULL))
+    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+                    &IID_IWebBrowser2, (void**)&browser_iface);
+    if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
+        MC_TRACE("html_goto_url: QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
         return -1;
+    }
 
     V_VT(&var) = VT_BSTR;
 
@@ -997,17 +994,19 @@ html_goto_back(html_t* html, BOOL back)
     IWebBrowser2* browser_iface;
     HRESULT hr;
 
-    browser_iface = html_browser_iface(html);
-    if(MC_ERR(browser_iface == NULL))
+    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+                    &IID_IWebBrowser2, (void**)&browser_iface);
+    if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
+        MC_TRACE("html_goto_back: "
+                 "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
         return -1;
+    }
 
     if(back)
         hr = browser_iface->lpVtbl->GoBack(browser_iface);
     else
         hr = browser_iface->lpVtbl->GoForward(browser_iface);
-
     browser_iface->lpVtbl->Release(browser_iface);
-
     return (SUCCEEDED(hr)  ?  0  :  -1);
 }
 
@@ -1045,9 +1044,11 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
         goto err_contents;
     }
 
-    browser_iface = html_browser_iface(html);
-    if(MC_ERR(browser_iface == NULL)) {
-        MC_TRACE("html_set_element_contents: html_browser_iface() failed");
+    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+                    &IID_IWebBrowser2, (void**)&browser_iface);
+    if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
+        MC_TRACE("html_set_element_contents: "
+                 "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
         goto err_browser;
     }
 
@@ -1059,8 +1060,9 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
 
     hr = dispatch_iface->lpVtbl->QueryInterface(dispatch_iface,
                                     &IID_IHTMLDocument3, (void**)&doc_iface);
-    if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_set_element_contents: QueryInterface(IID_IHTMLDocument3) failed [%ld]", hr);
+    if(MC_ERR(hr != S_OK  ||  doc_iface == NULL)) {
+        MC_TRACE("html_set_element_contents: "
+                 "QueryInterface(IID_IHTMLDocument3) failed [%ld]", hr);
         goto err_doc;
     }
 
@@ -1115,13 +1117,20 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
     message.pt.y = GET_Y_LPARAM(pos);
 
     /* ->TranslateAccelerator() */
-    browser_iface = html_browser_iface(html);
-    if(MC_ERR(browser_iface == NULL))
+    hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+                    &IID_IWebBrowser2, (void**)&browser_iface);
+    if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
+        MC_TRACE("html_key_msg: "
+                 "QueryInterface(IID_IWebBrowser2) failed [%ld]", hr);
         goto err_browser;
+    }
     hr = browser_iface->lpVtbl->QueryInterface(browser_iface,
                         &IID_IOleInPlaceActiveObject, (void**)&active_iface);
-    if(MC_ERR(FAILED(hr)))
+    if(MC_ERR(hr != S_OK  ||  active_iface == NULL)) {
+        MC_TRACE("html_key_msg: "
+                 "QueryInterface(IID_IOleInPlaceActiveObject) failed [%ld]", hr);
         goto err_active;
+    }
     active_iface->lpVtbl->TranslateAccelerator(active_iface, &message);
 
     /* Cleanup */
@@ -1210,7 +1219,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
     /* Send events of DIID_DWebBrowserEvents2 to our IDispatch */
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                 &IID_IConnectionPointContainer, (void**)&conn_point_container);
-    if(MC_ERR(FAILED(hr))) {
+    if(MC_ERR(hr != S_OK  ||  conn_point_container == NULL)) {
         MC_TRACE("html_create: QueryInterface(IID_IConnectionPointContainer) failed "
                  "[%lu]", (ULONG)hr);
         return -1;
@@ -1229,7 +1238,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
     /* Set browser position and size according to the host window */
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                 &IID_IWebBrowser2, (void**)&browser_iface);
-    if(MC_ERR(browser_iface == NULL)) {
+    if(MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
         MC_TRACE("html_create: QueryInterface(IID_IWebBrowser2) failed "
                  "[%lu]", (ULONG)hr);
         return -1;
@@ -1386,10 +1395,11 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SIZE:
         {
             IWebBrowser2* browser_iface;
+            HRESULT hr;
 
-            html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
+            hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
                         &IID_IWebBrowser2, (void**)(void*)&browser_iface);
-            if(browser_iface != NULL) {
+            if(hr == S_OK  &&  browser_iface != NULL) {
                 browser_iface->lpVtbl->put_Width(browser_iface, LOWORD(lp));
                 browser_iface->lpVtbl->put_Height(browser_iface, HIWORD(lp));
                 browser_iface->lpVtbl->Release(browser_iface);
