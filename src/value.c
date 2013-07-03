@@ -146,7 +146,7 @@ int32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 
     if(bufsize > 0) {
         n = _sntprintf(buffer, bufsize, _T("%d"), VALUE_DATA(v, int32_t));
-        buffer[bufsize-1] = '\0';
+        buffer[bufsize-1] = _T('\0');
     }
     if(MC_ERR(n < 0)) {
         /* Buffer too small: Return required buffer size. */
@@ -259,7 +259,7 @@ uint32_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 
     if(bufsize > 0) {
         n = _sntprintf(buffer, bufsize, _T("%u"), VALUE_DATA(v, uint32_t));
-        buffer[bufsize-1] = '\0';
+        buffer[bufsize-1] = _T('\0');
     }
     if(MC_ERR(n < 0)) {
         /* Buffer too small: Return required buffer size. */
@@ -377,7 +377,7 @@ int64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 
     if(bufsize > 0) {
         n = _sntprintf(buffer, bufsize, _T("%d"), VALUE_DATA(v, int64_t));
-        buffer[bufsize-1] = '\0';
+        buffer[bufsize-1] = _T('\0');
     }
     if(MC_ERR(n < 0)) {
         /* Buffer too small: Return required buffer size. */
@@ -490,7 +490,7 @@ uint64_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 
     if(bufsize > 0) {
         n = _sntprintf(buffer, bufsize, _T("%u"), VALUE_DATA(v, uint64_t));
-        buffer[bufsize-1] = '\0';
+        buffer[bufsize-1] = _T('\0');
     }
     if(MC_ERR(n < 0)) {
         /* Buffer too small: Return required buffer size. */
@@ -579,14 +579,14 @@ strw_ctor_str(const TCHAR* str)
 static value_t* __stdcall
 strw_ctor_val(const value_t* v)
 {
-    return mcValue_CreateStringW(VALUE_PTR(v));
+    return mcValue_CreateStringW(VALUE_DATA(v, WCHAR*));
 }
 
 static int __stdcall
 strw_cmp(const value_t* v1, const value_t* v2)
 {
-    const WCHAR* s1 = VALUE_PTR(v1);
-    const WCHAR* s2 = VALUE_PTR(v2);
+    const WCHAR* s1 = VALUE_DATA(v1, const WCHAR*);
+    const WCHAR* s2 = VALUE_DATA(v2, const WCHAR*);
 
     return wcscmp((s1 != NULL ? s1 : strw_empty), (s2 != NULL ? s2 : strw_empty));
 }
@@ -594,8 +594,7 @@ strw_cmp(const value_t* v1, const value_t* v2)
 static size_t __stdcall
 strw_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
-    const WCHAR* s = VALUE_PTR(v);
-
+    const WCHAR* s = VALUE_DATA(v, WCHAR*);
     if(s == NULL)
         s = strw_empty;
 
@@ -700,14 +699,14 @@ stra_ctor_str(const TCHAR* str)
 static value_t* __stdcall
 stra_ctor_val(const value_t* v)
 {
-    return mcValue_CreateStringA(VALUE_PTR(v));
+    return mcValue_CreateStringA(VALUE_DATA(v, const char*));
 }
 
 static int __stdcall
 stra_cmp(const value_t* v1, const value_t* v2)
 {
-    const char* s1 = VALUE_PTR(v1);
-    const char* s2 = VALUE_PTR(v2);
+    const char* s1 = VALUE_DATA(v1, const char*);
+    const char* s2 = VALUE_DATA(v2, const char*);
 
     return strcmp((s1 != NULL ? s1 : stra_empty), (s2 != NULL ? s2 : stra_empty));
 }
@@ -715,7 +714,7 @@ stra_cmp(const value_t* v1, const value_t* v2)
 static size_t __stdcall
 stra_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
 {
-    const char* s = VALUE_PTR(v);
+    const char* s = VALUE_DATA(v, const char*);
 
     if(s == NULL)
         s = stra_empty;
@@ -912,6 +911,7 @@ color_dump(const value_t* v, TCHAR* buffer, size_t bufsize)
     if(bufsize > 0) {
         _sntprintf(buffer, bufsize, _T("#%02x%02x%02x"), (UINT)GetRValue(color),
                    (UINT)GetGValue(color), (UINT)GetBValue(color));
+        buffer[bufsize-1] = _T('\0');
     }
     return sizeof("#rrggbb");
 }
@@ -991,18 +991,16 @@ icon_paint(const value_t* v, HDC dc, RECT* rect, DWORD flags)
 
     switch(flags & VALUE_PF_ALIGNMASKHORZ) {
         case VALUE_PF_ALIGNLEFT:    x = rect->left; break;
-        case VALUE_PF_ALIGNDEFAULT:
+        case VALUE_PF_ALIGNDEFAULT: /* fall through */
         case VALUE_PF_ALIGNCENTER:  x = (rect->left + rect->right - icon_size.cx) / 2; break;
         case VALUE_PF_ALIGNRIGHT:   x = rect->right - icon_size.cx; break;
-        default:                    MC_UNREACHABLE;
     }
 
     switch(flags & VALUE_PF_ALIGNMASKVERT) {
         case VALUE_PF_ALIGNTOP:      y = rect->top; break;
-        case VALUE_PF_ALIGNVDEFAULT:
+        case VALUE_PF_ALIGNVDEFAULT: /* fall through */
         case VALUE_PF_ALIGNVCENTER:  y = (rect->top + rect->bottom - icon_size.cy) / 2; break;
         case VALUE_PF_ALIGNBOTTOM:   y = rect->bottom - icon_size.cy; break;
-        default:                     MC_UNREACHABLE;
     }
 
     DrawIconEx(dc, x, y, icon, 0, 0, 0, NULL, DI_NORMAL);
