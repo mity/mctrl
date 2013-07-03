@@ -3,7 +3,7 @@
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
+ * the Free Software Foundaftion; either version 2.1 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -37,7 +37,7 @@
 
 
 /* Uncomment this to have more verbose traces about MC_HTML control. */
-/*#define HTML_DEBUG     1*/
+#define HTML_DEBUG     1
 
 
 #ifdef HTML_DEBUG
@@ -73,6 +73,7 @@ struct html_tag {
     DWORD unicode_notifications :  1;
     DWORD can_back              :  1;
     DWORD can_forward           :  1;
+    mc_ref_t refs;
 
     /* Pointer to the COM-object representing the embedded Internet Explorer */
     IOleObject* browser_obj;
@@ -101,66 +102,63 @@ struct html_tag {
     MC_CONTAINEROF(ptr_ui_handler, html_t, ui_handler)
 
 
+static ULONG
+html_AddRef(html_t* html)
+{
+    HTML_TRACE("html_AddRef(%d -> %d)", (int) html->refs, (int) html->refs+1);
+    return mc_ref(&html->refs);
+}
+
+static ULONG
+html_Release(html_t* html)
+{
+    ULONG refs;
+
+    HTML_TRACE("html_Release(%d -> %d)", (int) html->refs, (int) html->refs-1);
+    refs = mc_unref(&html->refs);
+    if(refs == 0) {
+        HTML_TRACE("html_Release: Freeing the HTML object.");
+
+        if(html->ole_initialized)
+            OleUninitialize();
+
+        free(html);
+    }
+    return refs;
+}
+
 static HRESULT
 html_QueryInterface(html_t* html, REFIID riid, void** obj)
 {
-    if(InlineIsEqualGUID(riid, &IID_IDispatch)) {
+    if(InlineIsEqualGUID(riid, &IID_IUnknown)) {
+        HTML_TRACE_GUID("html_QueryInterface(IID_IUnknown)", riid);
         *obj = (void*)&html->dispatch;
-        return S_OK;
-    }
-
-    if(InlineIsEqualGUID(riid, &IID_IOleClientSite) ||
-       InlineIsEqualGUID(riid, &IID_IUnknown)) {
+    } else if(InlineIsEqualGUID(riid, &IID_IDispatch)) {
+        HTML_TRACE_GUID("html_QueryInterface(IID_IDispatch)", riid);
+        *obj = (void*)&html->dispatch;
+    } else if(InlineIsEqualGUID(riid, &IID_IOleClientSite)) {
+        HTML_TRACE_GUID("html_QueryInterface(IID_IOleClientSite)", riid);
         *obj = (void*)&html->client_site;
-        return S_OK;
-    }
-
-    if(InlineIsEqualGUID(riid, &IID_IOleWindow) ||
-       InlineIsEqualGUID(riid, &IID_IOleInPlaceSite) ||
-       InlineIsEqualGUID(riid, &IID_IOleInPlaceSiteEx)) {
+    } else if(InlineIsEqualGUID(riid, &IID_IOleWindow) ||
+              InlineIsEqualGUID(riid, &IID_IOleInPlaceSite) ||
+              InlineIsEqualGUID(riid, &IID_IOleInPlaceSiteEx)) {
+        HTML_TRACE_GUID("html_QueryInterface(IID_IOleInPlaceSiteEx)", riid);
         *obj = (void*)&html->inplace_site_ex;
-        return S_OK;
-    }
-
-    if(InlineIsEqualGUID(riid, &IID_IOleInPlaceFrame)) {
+    } else if(InlineIsEqualGUID(riid, &IID_IOleInPlaceFrame)) {
+        HTML_TRACE_GUID("html_QueryInterface(IID_IOleInPlaceFrame)", riid);
         *obj = (void*)&html->inplace_frame;
-        return S_OK;
-    }
-
-    if(InlineIsEqualGUID(riid, &IID_IDocHostUIHandler)) {
+    } else if(InlineIsEqualGUID(riid, &IID_IDocHostUIHandler)) {
+        HTML_TRACE_GUID("html_QueryInterface(IID_IDocHostUIHandler)", riid);
         *obj = (void*)&html->ui_handler;
-        return S_OK;
+    } else {
+        HTML_TRACE_GUID("html_QueryInterface: unsupported GUID", riid);
+        *obj = NULL;
+        return E_NOINTERFACE;
     }
 
-    HTML_TRACE_GUID("html_QueryInterface: unsupported GUID", riid);
-    *obj = NULL;
-    return E_NOINTERFACE;
+    html_AddRef(html);
+    return S_OK;
 }
-
-
-/********************************
- *** Dummy reference counting ***
- ********************************/
-
-/* Lifetime of html_t is determined by the lifetime of host window. When the
- * host window is being destroyed, the embedded browser is destroyed too.
- * Hence we don't need to reference count and delay html_t unallocation
- * when it drops back to zero. It simplifies the cleaning code quite a lot. */
-
-static ULONG STDMETHODCALLTYPE
-dummy_AddRef_or_Release(void* self)
-{
-    /* Always return value suggesting the caller that there is still some
-     * remaning reference to the html_t object. */
-    return 1;
-}
-
-#define DUMMY_ADDREF(type)                                                    \
-    ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_AddRef_or_Release)
-
-#define DUMMY_RELEASE(type)                                                   \
-    ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_AddRef_or_Release)
-
 
 
 /********************************
@@ -171,6 +169,20 @@ static HRESULT STDMETHODCALLTYPE
 dispatch_QueryInterface(IDispatch* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_DISPTACH(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+dispatch_AddRef(IDispatch* self)
+{
+    HTML_TRACE("dispatch_AddRef");
+    return html_AddRef(MC_HTML_FROM_DISPTACH(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+dispatch_Release(IDispatch* self)
+{
+    HTML_TRACE("dispatch_Release");
+    return html_Release(MC_HTML_FROM_DISPTACH(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -342,14 +354,13 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 
 static IDispatchVtbl dispatch_vtable = {
     dispatch_QueryInterface,
-    DUMMY_ADDREF(IDispatch),
-    DUMMY_RELEASE(IDispatch),
+    dispatch_AddRef,
+    dispatch_Release,
     dispatch_GetTypeInfoCount,
     dispatch_GetTypeInfo,
     dispatch_GetIDsOfNames,
     dispatch_Invoke
 };
-
 
 
 /*************************************
@@ -360,6 +371,20 @@ static HRESULT STDMETHODCALLTYPE
 client_site_QueryInterface(IOleClientSite* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_CLIENT_SITE(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+client_site_AddRef(IOleClientSite* self)
+{
+    HTML_TRACE("client_site_AddRef");
+    return html_AddRef(MC_HTML_FROM_CLIENT_SITE(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+client_site_Release(IOleClientSite* self)
+{
+    HTML_TRACE("client_site_Release");
+    return html_Release(MC_HTML_FROM_CLIENT_SITE(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -409,8 +434,8 @@ client_site_RequestNewObjectLayout(IOleClientSite* self)
 
 static IOleClientSiteVtbl client_site_vtable = {
     client_site_QueryInterface,
-    DUMMY_ADDREF(IOleClientSite),
-    DUMMY_RELEASE(IOleClientSite),
+    client_site_AddRef,
+    client_site_Release,
     client_site_SaveObject,
     client_site_GetMoniker,
     client_site_GetContainer,
@@ -429,6 +454,20 @@ static HRESULT STDMETHODCALLTYPE
 inplace_site_ex_QueryInterface(IOleInPlaceSiteEx* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_INPLACE_SITE_EX(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_site_ex_AddRef(IOleInPlaceSiteEx* self)
+{
+    HTML_TRACE("inplace_site_ex_AddRef");
+    return html_AddRef(MC_HTML_FROM_INPLACE_SITE_EX(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_site_ex_Release(IOleInPlaceSiteEx* self)
+{
+    HTML_TRACE("inplace_site_ex_Release");
+    return html_Release(MC_HTML_FROM_INPLACE_SITE_EX(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -476,6 +515,7 @@ inplace_site_ex_GetWindowContext(IOleInPlaceSiteEx* self, LPOLEINPLACEFRAME* fra
 
     html = MC_HTML_FROM_INPLACE_SITE_EX(self);
     *frame = &html->inplace_frame;
+    (*frame)->lpVtbl->AddRef(*frame);
     *doc = NULL;
     frame_info->fMDIApp = FALSE;
     frame_info->hwndFrame = GetAncestor(html->win, GA_ROOT);
@@ -533,7 +573,7 @@ inplace_site_ex_OnPosRectChange(IOleInPlaceSiteEx* self, const RECT* rect)
 
     html = MC_HTML_FROM_INPLACE_SITE_EX(self);
     hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
-                        &IID_IOleInPlaceObject, (void**)(void*)&inplace);
+                        &IID_IOleInPlaceObject, (void**)&inplace);
     if(MC_ERR(hr != S_OK  ||  inplace == NULL)) {
         MC_TRACE("inplace_site_ex_OnPosRectChange: "
                  "QueryInterface(IID_IOleInPlaceObject) failed [0x%lx]", hr);
@@ -569,8 +609,8 @@ inplace_site_ex_RequestUIActivate(IOleInPlaceSiteEx* self)
 
 static IOleInPlaceSiteExVtbl inplace_site_ex_vtable = {
     inplace_site_ex_QueryInterface,
-    DUMMY_ADDREF(IOleInPlaceSiteEx),
-    DUMMY_RELEASE(IOleInPlaceSiteEx),
+    inplace_site_ex_AddRef,
+    inplace_site_ex_Release,
     inplace_site_ex_GetWindow,
     inplace_site_ex_ContextSensitiveHelp,
     inplace_site_ex_CanInPlaceActivate,
@@ -597,6 +637,20 @@ static HRESULT STDMETHODCALLTYPE
 inplace_frame_QueryInterface(IOleInPlaceFrame* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_INPLACE_FRAME(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_frame_AddRef(IOleInPlaceFrame* self)
+{
+    HTML_TRACE("inplace_frame_AddRef");
+    return html_AddRef(MC_HTML_FROM_INPLACE_FRAME(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_frame_Release(IOleInPlaceFrame* self)
+{
+    HTML_TRACE("inplace_frame_Release");
+    return html_Release(MC_HTML_FROM_INPLACE_FRAME(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -687,8 +741,8 @@ inplace_frame_TranslateAccelerator(IOleInPlaceFrame* self, MSG* msg, WORD id)
 
 static IOleInPlaceFrameVtbl inplace_frame_vtable = {
     inplace_frame_QueryInterface,
-    DUMMY_ADDREF(IOleInPlaceFrame),
-    DUMMY_RELEASE(IOleInPlaceFrame),
+    inplace_frame_AddRef,
+    inplace_frame_Release,
     inplace_frame_GetWindow,
     inplace_frame_ContextSensitiveHelp,
     inplace_frame_GetBorder,
@@ -713,6 +767,20 @@ static HRESULT STDMETHODCALLTYPE
 ui_handler_QueryInterface(IDocHostUIHandler* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_UI_HANDLER(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+ui_handler_AddRef(IDocHostUIHandler* self)
+{
+    HTML_TRACE("ui_handler_AddRef");
+    return html_AddRef(MC_HTML_FROM_UI_HANDLER(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+ui_handler_Release(IDocHostUIHandler* self)
+{
+    HTML_TRACE("ui_handler_Release");
+    return html_Release(MC_HTML_FROM_UI_HANDLER(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -852,8 +920,8 @@ ui_handler_FilterDataObject(IDocHostUIHandler* self, IDataObject* obj, IDataObje
 
 static IDocHostUIHandlerVtbl ui_handler_vtable = {
     ui_handler_QueryInterface,
-    DUMMY_ADDREF(IDocHostUIHandler),
-    DUMMY_RELEASE(IDocHostUIHandler),
+    ui_handler_AddRef,
+    ui_handler_Release,
     ui_handler_ShowContextMenu,
     ui_handler_GetHostInfo,
     ui_handler_ShowUI,
@@ -1158,6 +1226,7 @@ html_nccreate(HWND win, CREATESTRUCT* cs)
     html->win = win;
     html->notify_win = cs->hwndParent;
     html->style = cs->style;
+    html->refs = 1; /* released in WM_NCDESTROY */
     html->dispatch.lpVtbl = &dispatch_vtable;
     html->client_site.lpVtbl = &client_site_vtable;
     html->inplace_site_ex.lpVtbl = &inplace_site_ex_vtable;
@@ -1278,17 +1347,19 @@ html_destroy(html_t* html)
         html->browser_obj->lpVtbl->Release(html->browser_obj);
         html->browser_obj = NULL;
     }
-
-    if(html->ole_initialized) {
-        OleUninitialize();
-        html->ole_initialized = 0;
-    }
 }
 
 static inline void
 html_ncdestroy(html_t* html)
 {
-    free(html);
+    /* Reset window handles for case the html_t survives the window death.
+     * That can happen (altough it is probably unlikely) if IE engine holds
+     * a reference of any our COM object for a longer time, e.g. because of
+     * a multithreading. */
+    html->win = NULL;
+    html->notify_win = NULL;
+
+    html_Release(html);
 }
 
 
@@ -1398,7 +1469,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             HRESULT hr;
 
             hr = html->browser_obj->lpVtbl->QueryInterface(html->browser_obj,
-                        &IID_IWebBrowser2, (void**)(void*)&browser_iface);
+                        &IID_IWebBrowser2, (void**)&browser_iface);
             if(hr == S_OK  &&  browser_iface != NULL) {
                 browser_iface->lpVtbl->put_Width(browser_iface, LOWORD(lp));
                 browser_iface->lpVtbl->put_Height(browser_iface, HIWORD(lp));
