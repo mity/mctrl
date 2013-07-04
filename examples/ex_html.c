@@ -13,14 +13,17 @@
 #include <mCtrl/html.h>
 
 
-/* Control ID of controls */
-#define IDC_HTML         100
-#define IDC_REBAR        101
-#define IDC_HISTORY      102
-#define IDC_ADDRESS      103
-#define IDC_STATUS       104
-
+/* Window caption */
 #define CAPTION       _T("mCtrl Example: HTML Control")
+
+/* Control ID of controls */
+#define ID_HTML         100
+#define ID_TOOLBAR      101
+#define ID_STATUS       102
+
+/* Toolbar button IDs */
+#define IDM_BACK        200
+#define IDM_FORWARD     201
 
 /* The initial URL refers to the HTML document embedded into this example as
  * a resource. */
@@ -30,6 +33,7 @@
 static HINSTANCE hInst;
 
 static HWND hwndHtml;
+static HWND hwndToolbar;
 static HWND hwndStatus;
 
 
@@ -59,7 +63,10 @@ GenerateDynamicContents(void)
 static void
 HandleNotify(HWND hwnd, NMHDR* hdr)
 {
-    if(hdr->idFrom == IDC_HTML) {
+    if(hdr->idFrom == ID_HTML) {
+        /* The HTML control has sent us info about some change in its internal
+         * state so we may need to update user interface to reflect it. */
+
         if(hdr->code == MC_HN_APPLINK) {
             /* User has activated the application link (app: protocol).
              * If it is the "Say Hello" link in our resource page, we greet
@@ -87,13 +94,14 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
         }
 
         if(hdr->code == MC_HN_STATUSTEXT) {
-            /* Update status bar */
+            /* The HTML control asks us to update status bar. */
             MC_NMHTMLTEXT* nmhtmltext = (MC_NMHTMLTEXT*) hdr;
             SetWindowText(hwndStatus, nmhtmltext->pszText);
         }
 
         if(hdr->code == MC_HN_TITLETEXT) {
-            /* Update title */
+            /* The HTML control asks us to update document title. We show it
+             * in the caption of the main window. */
             MC_NMHTMLTEXT* nmhtmltext = (MC_NMHTMLTEXT*) hdr;
             if(nmhtmltext->pszText[0] != _T('\0')) {
                 TCHAR buffer[512];
@@ -103,6 +111,15 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
                 SetWindowText(hwnd, CAPTION);
             }
         }
+
+        if(hdr->code == MC_HN_HISTORY) {
+            /* Update status of history buttons */
+            MC_NMHTMLHISTORY* nmhtmlhistory = (MC_NMHTMLHISTORY*) hdr;
+            SendMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_BACK,
+                        MAKELPARAM(nmhtmlhistory->bCanBack, 0));
+            SendMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_FORWARD,
+                        MAKELPARAM(nmhtmlhistory->bCanForward, 0));
+        }
     }
 }
 
@@ -111,13 +128,20 @@ static void
 HandleResize(HWND hwnd, UINT uWidth, UINT uHeight)
 {
     RECT rect;
+    UINT toolbarHeight;
     UINT statusHeight;
+    UINT htmlHeight;
 
     SendMessage(hwndStatus, WM_SIZE, 0, 0);
     GetWindowRect(hwndStatus, &rect);
     statusHeight = rect.bottom - rect.top;
 
-    SetWindowPos(hwndHtml, NULL, 0, 0, uWidth, uHeight - statusHeight, SWP_NOZORDER);
+    SendMessage(hwndToolbar, WM_SIZE, 0, 0);
+    GetWindowRect(hwndToolbar, &rect);
+    toolbarHeight = rect.bottom - rect.top;
+
+    htmlHeight = uHeight - statusHeight - toolbarHeight;
+    SetWindowPos(hwndHtml, NULL, 0, toolbarHeight, uWidth, htmlHeight, SWP_NOZORDER);
 }
 
 
@@ -139,13 +163,45 @@ WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             SetFocus(hwndHtml);
             return 0;
 
+        case WM_COMMAND:
+            switch(LOWORD(wParam)) {
+                case IDM_BACK:    SendMessage(hwndHtml, MC_HM_GOBACK, TRUE, 0); break;
+                case IDM_FORWARD: SendMessage(hwndHtml, MC_HM_GOBACK, FALSE, 0); break;
+            }
+            break;
+
         case WM_CREATE:
+        {
+            HIMAGELIST tbImgList;
+            TBBUTTON tbButtons[2];
+
             /* Create the html control */
             hwndHtml = CreateWindow(MC_WC_HTML, INITIAL_URL, WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-                                    0, 0, 0, 0, hwnd, (HMENU) IDC_HTML, hInst, NULL);
+                                    0, 0, 0, 0, hwnd, (HMENU) ID_HTML, hInst, NULL);
+
+            /* Create toolbar control. It provides the 'back' and 'forward'
+             * buttons for walking the browser history. */
+            hwndToolbar = CreateWindow(TOOLBARCLASSNAME, NULL, WS_CHILD | WS_BORDER | WS_VISIBLE,
+                                    0, 0, 0, 0, hwnd, (HMENU) ID_TOOLBAR, hInst, NULL);
+            SendMessage(hwndToolbar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+            memset(tbButtons, 0, sizeof(tbButtons));
+            tbButtons[0].iBitmap = 0;
+            tbButtons[0].idCommand = IDM_BACK;
+            tbButtons[0].fsStyle = BTNS_BUTTON;
+            tbButtons[1].iBitmap = 1;
+            tbButtons[1].idCommand = IDM_FORWARD;
+            tbButtons[1].fsStyle = BTNS_BUTTON;
+            SendMessage(hwndToolbar, TB_ADDBUTTONS, 2, (LPARAM) tbButtons);
+            tbImgList = ImageList_LoadImage(hInst, _T("toolbar"), 24, 1, RGB(255,0,255),
+                                    IMAGE_BITMAP, LR_CREATEDIBSECTION);
+            SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) tbImgList);
+
+            /* Create status control. We show status info the HTML control
+             * sends to us via WM_NOTIFY. */
             hwndStatus = CreateWindow(STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
-                                    0, 0, 0, 0, hwnd, (HMENU) IDC_STATUS, hInst, NULL);
+                                    0, 0, 0, 0, hwnd, (HMENU) ID_STATUS, hInst, NULL);
             return 0;
+        }
 
         case WM_DESTROY:
             PostQuitMessage(0);

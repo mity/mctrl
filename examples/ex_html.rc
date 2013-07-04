@@ -12,3 +12,6 @@
 "doc.html" HTML res/doc.html       /* Initial HTML page */
 "style.css" HTML res/style.css     /* CSS linked from doc.html */
 "image.png" HTML res/image.png     /* An image linked from doc.html */
+
+/* Misc. resources */
+"toolbar" BITMAP res/history.bmp   /* Image list for toolbar */
