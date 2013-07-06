@@ -42,7 +42,7 @@ TCHAR*
 mc_str_load(UINT id)
 {
 #ifndef UNICODE
-    #error mc_str_load() is not (yet?) implemented for ANSI build.
+    #error mc_str_load() is not (yet?) implemented for ANSII build.
 #endif
 
     const UINT lang_id[2] = { MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
@@ -117,11 +117,8 @@ mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize)
         from_str = "";
 
     n = MultiByteToWideChar(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize);
-    if(MC_ERR(n == 0  &&  from_str[0] != '\0')) {
+    if(MC_ERR(n == 0  &&  from_str[0] != '\0'))
         MC_TRACE_ERR("mc_str_inbuf_A2W: MultiByteToWideChar() failed.");
-        to_str[0] = L'\0';
-        return;
-    }
     to_str[to_str_bufsize-1] = L'\0';
 }
 
@@ -136,11 +133,8 @@ mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize)
         from_str = L"";
 
     n = WideCharToMultiByte(CP_ACP, 0, from_str, -1, to_str, to_str_bufsize, NULL, NULL);
-    if(MC_ERR(n == 0  &&  from_str[0] != '\0')) {
+    if(MC_ERR(n == 0  &&  from_str[0] != '\0'))
         MC_TRACE_ERR("mc_str_inbuf_W2A: WideCharToMultiByte() failed.");
-        to_str[0] = '\0';
-        return;
-    }
     to_str[to_str_bufsize-1] = '\0';
 }
 
