@@ -49,6 +49,18 @@
 #endif
 
 
+/* The HTML is the only mCtrl module which needs OLE32.DLL and OLEAUT32.DLL
+ * so lets load theme in run-time. */
+static HMODULE oleaut32_dll;
+static BSTR (WINAPI* html_SysAllocString)(const OLECHAR*);
+static INT (WINAPI* html_SysFreeString)(BSTR);
+
+static HMODULE ole32_dll;
+static HRESULT (WINAPI* html_OleInitialize)(void*);
+static void (WINAPI* html_OleUninitialize)(void);
+static HRESULT (WINAPI* html_CoCreateInstance)(REFCLSID,IUnknown*,DWORD,REFIID,void**);
+
+
 /* Window class name */
 static const TCHAR html_wc[] = MC_WC_HTML;
 
@@ -277,7 +289,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
                     hr = browser_iface->lpVtbl->get_LocationURL(browser_iface, &url);
                     if(hr == S_OK && url != NULL) {
                         html_notify_text(html, MC_HN_DOCUMENTCOMPLETE, url);
-                        SysFreeString(url);
+                        html_SysFreeString(url);
                     }
                     browser_iface->lpVtbl->Release(browser_iface);
                 }
@@ -977,7 +989,7 @@ html_bstr(const void* from_str, int from_type)
         }
     }
 
-    str_b = SysAllocString(str_w);
+    str_b = html_SysAllocString(str_w);
     if(MC_ERR(str_b == NULL))
         MC_TRACE("html_bstr: SysAllocString() failed.");
 
@@ -1063,7 +1075,7 @@ html_goto_url(html_t* html, const void* url, BOOL unicode)
     browser_iface->lpVtbl->Release(browser_iface);
 
     if(V_BSTR(&var) != url_blank)
-        SysFreeString(var.bstrVal);
+        html_SysFreeString(var.bstrVal);
 
     return 0;
 }
@@ -1169,9 +1181,9 @@ err_doc:
 err_dispatch:
     browser_iface->lpVtbl->Release(browser_iface);
 err_browser:
-    SysFreeString(bstr_contents);
+    html_SysFreeString(bstr_contents);
 err_contents:
-    SysFreeString(bstr_id);
+    html_SysFreeString(bstr_id);
 err_id:
     return res;
 }
@@ -1263,7 +1275,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
     /* Initialize OLE. It is here and not in html_init() because it has to
      * be performed in the thread where OLE shall be used (i.e. where
      * the message loop controlling the window is running). */
-    hr = OleInitialize(NULL);
+    hr = html_OleInitialize(NULL);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: OleInitialize() failed [0x%lx]", hr);
         return -1;
@@ -1272,7 +1284,7 @@ html_create(html_t* html, CREATESTRUCT* cs)
     html->ole_initialized = 1;
 
     /* Create browser object */
-    hr = CoCreateInstance(&CLSID_WebBrowser, NULL, CLSCTX_INPROC,
+    hr = html_CoCreateInstance(&CLSID_WebBrowser, NULL, CLSCTX_INPROC,
             &IID_IOleObject, (void**)&html->browser_obj);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("html_create: CoCreateInstance(CLSID_WebBrowser) failed "
@@ -1371,7 +1383,7 @@ html_ncdestroy(html_t* html)
     html->notify_win = NULL;
 
     if(html->ole_initialized)
-        OleUninitialize();
+        html_OleUninitialize();
 
     html_Release(html);
 }
@@ -1579,24 +1591,51 @@ html_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    mc_init_common_controls(ICC_STANDARD_CLASSES);
+    /* Load OLEAUT32.DLL */
+    if(MC_ERR(NULL == (oleaut32_dll = LoadLibrary(_T("OLEAUT32.DLL")))  ||
+              NULL == (html_SysAllocString = (BSTR (WINAPI*)(const OLECHAR*)) GetProcAddress(oleaut32_dll, "SysAllocString"))  ||
+              NULL == (html_SysFreeString = (INT (WINAPI*)(BSTR)) GetProcAddress(oleaut32_dll, "SysFreeString")))) {
+        MC_TRACE("html_init_module: LoadLibrary(OLEAUT32.DLL) failed.");
+        goto err_oleaut32;
+    }
 
+    /* Load OLE32.DLL */
+    if(MC_ERR(NULL == (ole32_dll = LoadLibrary(_T("OLE32.DLL")))  ||
+              NULL == (html_OleInitialize = (HRESULT (WINAPI*)(void*)) GetProcAddress(ole32_dll, "OleInitialize"))  ||
+              NULL == (html_OleUninitialize = (void (WINAPI*)(void)) GetProcAddress(ole32_dll, "OleUninitialize"))  ||
+              NULL == (html_CoCreateInstance = (HRESULT (WINAPI*)(REFCLSID,IUnknown*,DWORD,REFIID,void**)) GetProcAddress(ole32_dll, "CoCreateInstance")))) {
+        MC_TRACE("html_init_module: LoadLibrary(OLE32.DLL) failed.");
+        goto err_ole32;
+    }
+
+    /* Register window class */
+    mc_init_common_controls(ICC_STANDARD_CLASSES);
     wc.style = CS_GLOBALCLASS | CS_PARENTDC;
     wc.lpfnWndProc = html_proc;
     wc.cbWndExtra = sizeof(html_t*);
     wc.lpszClassName = html_wc;
     if(MC_ERR(!RegisterClass(&wc))) {
         MC_TRACE_ERR("html_init_module: RegisterClass() failed");
-        SysFreeString(url_blank);
-        return -1;
+        goto err_register;
     }
 
+    /* Success */
     return 0;
+
+    /* Error path unwinding */
+err_register:
+    FreeLibrary(ole32_dll);
+err_ole32:
+    FreeLibrary(oleaut32_dll);
+err_oleaut32:
+    return -1;
 }
 
 void
 html_fini_module(void)
 {
     UnregisterClass(html_wc, NULL);
+    FreeLibrary(ole32_dll);
+    FreeLibrary(oleaut32_dll);
 }
 
