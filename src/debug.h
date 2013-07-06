@@ -19,6 +19,8 @@
 #ifndef MC_DEBUG_H
 #define MC_DEBUG_H
 
+#include "compat.h"
+
 
 #if defined DEBUG && DEBUG >= 1
     #include <windows.h>
@@ -130,8 +132,8 @@
     void debug_init(void);
     void debug_fini(void);
 #else
-    static inline void debug_init()   {}
-    static inline void debug_fini()   {}
+    static inline void debug_init(void)   {}
+    static inline void debug_fini(void)   {}
 #endif
 
 
