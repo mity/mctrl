@@ -203,10 +203,8 @@ mc_clz(uint32_t val)
     return __builtin_clz(val);
 #else
     unsigned n = 0;
-    while(val > 0) {
-        val = val >> 1;
-        n++;
-    }
+    while(val >= 0x80) { val = val >> 8; n += 8; }
+    while(val >= 1)    { val = val >> 1; n += 1; }
     return (32 - n);
 #endif
 }
