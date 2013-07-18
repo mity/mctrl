@@ -2448,13 +2448,13 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
     if(item == MC_TLI_ROOT  ||  item == NULL) {
         /* Delete all items */
         if(tl->root_head != NULL) {
+            treelist_do_select(tl, NULL);
+            tl->scrolled_item = NULL;
             treelist_delete_notify(tl, tl->root_head);
             treelist_delete_item_helper(tl, tl->root_head, FALSE);
             tl->root_head = NULL;
             tl->root_tail = NULL;
             tl->displayed_items = 0;
-            tl->selected_item = NULL;
-            tl->scrolled_item = NULL;
             treelist_setup_scrollbars(tl);
             if(!tl->no_redraw)
                 InvalidateRect(tl->win, NULL, TRUE);
