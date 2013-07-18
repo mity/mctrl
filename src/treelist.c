@@ -1332,6 +1332,9 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
             treelist_invalidate_item(tl, old_sel, col_ix, 0);
     }
 
+    /* Set selected even if NULL */
+    tl->selected_item = item;
+
     if(item) {
         item->state |= MC_TLIS_SELECTED;
 
@@ -1344,8 +1347,6 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
                     treelist_do_expand(tl, it, FALSE);
             }
         }
-
-        tl->selected_item = item;
 
         if(!tl->no_redraw)
             treelist_invalidate_item(tl, item, col_ix, 0);
@@ -2516,9 +2517,13 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
         tl->displayed_items -= displayed_del_count;
 
     /* If the selected item was deleted too, select another one. */
-    if(tl->selected_item != old_selected_item  &&  sel_replacement != NULL)
+    if(tl->selected_item != old_selected_item)
         treelist_do_select(tl, sel_replacement);
 
+    /* If the scrolled item is still our deleted one, reset */
+    if(tl->scrolled_item == item)
+        tl->scrolled_item = NULL;
+        
     /* Refresh */
     if(tl->displayed_items != old_displayed_items) {
         treelist_setup_scrollbars(tl);
