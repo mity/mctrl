@@ -1332,6 +1332,8 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
             treelist_invalidate_item(tl, old_sel, col_ix, 0);
     }
 
+    tl->selected_item = item;
+
     if(item) {
         item->state |= MC_TLIS_SELECTED;
 
@@ -1344,8 +1346,6 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
                     treelist_do_expand(tl, it, FALSE);
             }
         }
-
-        tl->selected_item = item;
 
         if(!tl->no_redraw)
             treelist_invalidate_item(tl, item, col_ix, 0);
