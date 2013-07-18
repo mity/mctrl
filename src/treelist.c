@@ -1433,6 +1433,8 @@ treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displaye
         int hidden_items = 0;
 
         for(it = item->child_head; it != NULL; it = item_next_displayed_ex(it, item, &ignored)) {
+            if(it == tl->scrolled_item)
+                tl->scrolled_item = NULL;
             if(it == tl->selected_item)
                 treelist_do_select(tl, item);
             hidden_items++;
@@ -2521,6 +2523,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
 
     /* Refresh */
     if(tl->displayed_items != old_displayed_items) {
+        tl->scrolled_item = NULL;
         treelist_setup_scrollbars(tl);
         if(!tl->no_redraw) {
             /* If it was last child of parent, then the parent must be collapsed
@@ -2539,7 +2542,6 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
                     treelist_refresh_hotbutton(tl);
                 }
             }
-            tl->scrolled_item = NULL;
         }
     }
 
