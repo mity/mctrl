@@ -2575,7 +2575,8 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
     }
 
     /* Parent may need to repaint column 0 without expand button. */
-    if(!tl->no_redraw  &&  parent->child_head == NULL  &&  parent->child_tail == NULL)
+    if(!tl->no_redraw  &&  parent != NULL  &&
+       parent->child_head == NULL  &&  parent->child_tail == NULL)
         treelist_invalidate_item(tl, parent, 0, 0);
 
     return TRUE;
