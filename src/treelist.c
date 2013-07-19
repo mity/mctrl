@@ -2406,7 +2406,7 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
 static void
 treelist_delete_notify(treelist_t* tl, treelist_item_t* item)
 {
-    treelist_item_t* stopper = (item->parent ? item->parent : NULL);
+    treelist_item_t* stopper = (item ? item->parent : NULL);
     MC_NMTREELIST nm = { {0}, 0 };
 
     nm.hdr.hwndFrom = tl->win;
@@ -2488,7 +2488,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
             treelist_do_select(tl, NULL);
             tl->scrolled_item = NULL;
 
-            treelist_delete_notify(tl, item);
+            treelist_delete_notify(tl, tl->root_head);
             treelist_delete_item_helper(tl, tl->root_head, FALSE);
             tl->root_head = NULL;
             tl->root_tail = NULL;
