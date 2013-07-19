@@ -135,6 +135,17 @@ item_prev_displayed(treelist_item_t* item)
 }
 
 static BOOL
+item_is_ancestor(treelist_item_t* ancestor, treelist_item_t* item)
+{
+    while(item != NULL) {
+        if(item == ancestor)
+            return TRUE;
+        item = item->parent;
+    }
+    return FALSE;
+}
+
+static BOOL
 item_is_displayed(treelist_item_t* item)
 {
     while(item->parent != NULL) {
@@ -2431,8 +2442,6 @@ treelist_delete_item_helper(treelist_t* tl, treelist_item_t* item, BOOL displaye
         }
 
         /* The deletion of the item */
-        if(tl->selected_item == item)
-            tl->selected_item = NULL;
         if(item->subitems) {
             int i;
             for(i = 0; i < tl->col_count; i++) {
@@ -2457,13 +2466,12 @@ static BOOL
 treelist_delete_item(treelist_t* tl, treelist_item_t* item)
 {
     DWORD old_displayed_items = tl->displayed_items;
-    treelist_item_t* old_selected_item = tl->selected_item;
-    treelist_item_t* sel_replacement;
-    treelist_item_t* parent = NULL;
-    BOOL parent_displayed;
-    BOOL displayed;
+    treelist_item_t* parent;
+    treelist_item_t* sibling_prev;
+    treelist_item_t* sibling_next;
+    BOOL is_displayed;
+    int y;
     int displayed_del_count;
-    int y = -1;
 
     TREELIST_TRACE("treelist_delete_item(%p, %p)", tl, item);
 
@@ -2472,7 +2480,8 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
         if(tl->root_head != NULL) {
             treelist_do_select(tl, NULL);
             tl->scrolled_item = NULL;
-            treelist_delete_notify(tl, tl->root_head);
+
+            treelist_delete_notify(tl, item);
             treelist_delete_item_helper(tl, tl->root_head, FALSE);
             tl->root_head = NULL;
             tl->root_tail = NULL;
@@ -2484,32 +2493,28 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
         return TRUE;
     }
 
-    /* Inspect status of parent */
+    /* Remeber some info about the deleted item. */
     parent = item->parent;
-    if(parent != NULL) {
-        parent_displayed = item_is_displayed(parent);
-        displayed = (parent_displayed  &&  (parent->state & MC_TLIS_EXPANDED));
-    } else {
-        parent_displayed = FALSE;
-        displayed = TRUE;
+    sibling_prev = item->sibling_prev;
+    sibling_next = item->sibling_next;
+    is_displayed = item_is_displayed(item);
+    y = (is_displayed ? treelist_get_item_y(tl, item, TRUE) : -1);
+
+    /* If the deleted subtree contains selection, we must choose another
+     * selection. */
+    if(item_is_ancestor(item, tl->selected_item)) {
+        if(item->sibling_next)
+            treelist_do_select(tl, item->sibling_next);
+        else if(item->sibling_prev)
+            treelist_do_select(tl, item->sibling_prev);
+        else
+            treelist_do_select(tl, parent);
     }
-    if(parent  &&  parent->child_head == parent->child_tail)
-        parent->state &= ~MC_TLIS_EXPANDED;
 
-    /* Remeber top of the dirty rect. */
-    if(displayed)
-        y = treelist_get_item_y(tl, item, TRUE);
+    /* This should be very last notification about the item and its subtree. */
+    treelist_delete_notify(tl, item);
 
-    /* if the deleted subtree contains selection, we must know what to select
-     * instead before we delete it. */
-    if(item->sibling_next)
-        sel_replacement = item->sibling_next;
-    else if(item->sibling_prev)
-        sel_replacement = item->sibling_prev;
-    else
-        sel_replacement = parent;
-
-    /* Disconnect from the tree */
+    /* Disconnect the item from the tree. */
     if(item->sibling_prev) {
         item->sibling_prev->sibling_next = item->sibling_next;
     } else {
@@ -2527,30 +2532,22 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
             tl->root_tail = item->sibling_prev;
     }
     item->sibling_next = NULL;  /* stopper for treelist_delete_item_helper() */
-    if(tl->hotbutton_item == item)
-        tl->hotbutton_item = NULL;
+
+    /* Reset item bookmarks which will need recomputing anyway. */
+    tl->hotbutton_item = NULL;
+    tl->scrolled_item = NULL;
 
     /* Delete the item and whole its subtree, and count how many of deleted
      * items were displayed. */
-    treelist_delete_notify(tl, item);
-    displayed_del_count = treelist_delete_item_helper(tl, item, displayed);
-    if(displayed)
+    displayed_del_count = treelist_delete_item_helper(tl, item, is_displayed);
+    if(is_displayed)
         tl->displayed_items -= displayed_del_count;
-
-    /* If the selected item was deleted too, select another one. */
-    if(tl->selected_item != old_selected_item  &&  sel_replacement != NULL)
-        treelist_do_select(tl, sel_replacement);
 
     /* Refresh */
     if(tl->displayed_items != old_displayed_items) {
-        tl->scrolled_item = NULL;
         treelist_setup_scrollbars(tl);
-        if(!tl->no_redraw) {
-            /* If it was last child of parent, then the parent must be collapsed
-             * and painted without a button */
-            if(parent != NULL  &&  parent->child_head == NULL  &&  parent->child_tail == NULL)
-                treelist_invalidate_item(tl, parent, 0, 0);
 
+        if(!tl->no_redraw) {
             /* Scroll the items below up to the place of the deleted ones. */
             if(y >= 0) {
                 RECT rect;
@@ -2562,8 +2559,17 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
                     treelist_refresh_hotbutton(tl);
                 }
             }
+
+            /* If we were tail child, the previous sibling column 0 may need to
+             * repaint without a ling continuing to us. */
+            if(sibling_prev != NULL  &&  sibling_next == NULL)
+                treelist_invalidate_item(tl, sibling_prev, 0, 0);
         }
     }
+
+    /* Parent may need to repaint column 0 without expand button. */
+    if(!tl->no_redraw  &&  parent->child_head == NULL  &&  parent->child_tail == NULL)
+        treelist_invalidate_item(tl, parent, 0, 0);
 
     return TRUE;
 }
