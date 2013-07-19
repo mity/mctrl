@@ -498,24 +498,21 @@ treelist_set_item_height(treelist_t* tl, int height, BOOL redraw)
     return old_height;
 }
 
-static void
-treelist_setup_scrolled_item(treelist_t* tl)
-{
-    treelist_item_t* item = tl->root_head;
-    int i;
-    int level = 0;
-
-    for(i = 0; i < tl->scroll_y; i++)
-        item = item_next_displayed(item, &level);
-    tl->scrolled_item = item;
-    tl->scrolled_level = level;
-}
-
 static inline treelist_item_t*
 treelist_scrolled_item(treelist_t* tl, int* level)
 {
-    if(tl->scrolled_item == NULL  &&  tl->displayed_items > 0)
-        treelist_setup_scrolled_item(tl);
+    if(tl->scrolled_item == NULL  &&  tl->displayed_items > 0) {
+        /* ->scrolled_item is not know so recompute it. */
+        treelist_item_t* item = tl->root_head;
+        int i;
+        int lvl = 0;
+
+        for(i = 0; i < tl->scroll_y; i++)
+            item = item_next_displayed(item, &lvl);
+        tl->scrolled_item = item;
+        tl->scrolled_level = lvl;
+    }
+
     *level = tl->scrolled_level;
     return tl->scrolled_item;
 }
@@ -1098,7 +1095,7 @@ treelist_get_item_y(treelist_t* tl, treelist_item_t* item, BOOL visible_only)
     GetWindowRect(tl->header_win, &header_rect);
     y = mc_height(&header_rect);
     if(visible_only) {
-        it = tl->scrolled_item;
+        it = treelist_scrolled_item(tl, &ignored);
     } else {
         y -= tl->scroll_y * tl->item_height;
         it = tl->root_head;
@@ -2235,8 +2232,13 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
             RECT rect;
             GetClientRect(tl->win, &rect);
             rect.top = treelist_get_item_y(tl, item, TRUE);
-            if(rect.top < 0)
-                rect.top = treelist_get_item_y(tl, tl->scrolled_item, TRUE);
+            if(rect.top < 0) {
+                treelist_item_t* scrolled_item;
+                int ignored;
+
+                scrolled_item = treelist_scrolled_item(tl, &ignored);
+                rect.top = treelist_get_item_y(tl, scrolled_item, TRUE);
+            }
             ScrollWindowEx(tl->win, 0, tl->item_height, &rect, &rect,
                                NULL, NULL, SW_INVALIDATE | SW_ERASE);
             treelist_refresh_hotbutton(tl);
