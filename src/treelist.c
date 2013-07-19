@@ -1671,13 +1671,18 @@ static void
 treelist_right_button(treelist_t* tl, int x, int y, BOOL dblclick)
 {
     UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
+    POINT pt;
 
     if(mc_send_notify(tl->notify_win, tl->win, notify_code) != 0) {
         /* Application suppresses the default processing of the message */
         return;
     }
 
-    MC_SEND(tl->notify_win, WM_CONTEXTMENU, tl->win, MAKELPARAM(x, y));
+    /* Send WM_CONTEXTMENU */
+    pt.x = x;
+    pt.y = y;
+    ClientToScreen(tl->win, &pt);
+    MC_SEND(tl->notify_win, WM_CONTEXTMENU, tl->win, MAKELPARAM(pt.x, pt.y));
 }
 
 static void
