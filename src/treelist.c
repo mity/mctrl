@@ -1627,10 +1627,16 @@ treelist_left_button(treelist_t* tl, int x, int y, BOOL dblclick)
 {
     MC_TLHITTESTINFO info;
     treelist_item_t* item;
+    UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
 
     info.pt.x = x;
     info.pt.y = y;
     item = treelist_hit_test(tl, &info);
+
+    if(mc_send_notify(tl->notify_win, tl->win, notify_code) != 0) {
+        /* Application suppresses the default processing of the message */
+        goto out;
+    }
 
     if(treelist_is_common_hit(tl, &info)) {
         if(dblclick) {
@@ -1648,8 +1654,22 @@ treelist_left_button(treelist_t* tl, int x, int y, BOOL dblclick)
             treelist_do_expand(tl, item, TRUE);
     }
 
+out:
     if(!dblclick)
         SetFocus(tl->win);
+}
+
+static void
+treelist_right_button(treelist_t* tl, int x, int y, BOOL dblclick)
+{
+    UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
+
+    if(mc_send_notify(tl->notify_win, tl->win, notify_code) != 0) {
+        /* Application suppresses the default processing of the message */
+        return;
+    }
+
+    MC_SEND(tl->notify_win, WM_CONTEXTMENU, tl->win, MAKELPARAM(x, y));
 }
 
 static void
@@ -3003,6 +3023,12 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_LBUTTONDBLCLK:
             treelist_left_button(tl, GET_X_LPARAM(lp), GET_Y_LPARAM(lp),
                                  (msg == WM_LBUTTONDBLCLK));
+            return 0;
+
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONDBLCLK:
+            treelist_right_button(tl, GET_X_LPARAM(lp), GET_Y_LPARAM(lp),
+                                  (msg == WM_RBUTTONDBLCLK));
             return 0;
 
         case WM_KEYDOWN:
