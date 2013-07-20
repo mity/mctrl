@@ -27,8 +27,10 @@
  ************************/
 
 /* Microsoft (and their SDK) does not support using GDI+ from C and C++ is
- * required. Their headers simply are incompatible with C. Hence we do not
- * include any GDI+ related header and instead use our own types.
+ * required. Their headers simply are incompatible with C. We load GDIPLUS.DLL
+ * with LoadLibrary() so the C++ wrapper sugery in their headers cannot be
+ * used. Hence we do not include any GDI+ related header and instead use our
+ * own types.
  */
 
 typedef void* gdix_Graphics;
