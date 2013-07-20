@@ -44,7 +44,7 @@ static const TCHAR chart_wc[] = MC_WC_CHART;    /* Window class name */
 typedef struct chart_axis_tag chart_axis_t;
 struct chart_axis_tag {
     int offset;
-    BYTE factor_exp;
+    CHAR factor_exp;
 };
 
 typedef struct chart_data_tag chart_data_t;
@@ -210,13 +210,13 @@ chart_str_value(chart_axis_t* axis, int value, WCHAR buffer[CHART_STR_VALUE_MAX_
 {
     value += axis->offset;
 
-    if(axis->factor_exp == 0) {
+    if(axis->factor_exp == 0  ||  value == 0) {
         _swprintf(buffer, L"%d", value);
     } else if(axis->factor_exp > 0) {
         int i, n;
         n = _swprintf(buffer, L"%d", value);
         for(i = n; i < n + axis->factor_exp; i++)
-            buffer[n] = L'0';
+            buffer[i] = L'0';
         buffer[n + axis->factor_exp] = L'\0';
     } else {
         int factor = 10;
