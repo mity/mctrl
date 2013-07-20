@@ -14,7 +14,7 @@ obj/color.o: src/color.c src/color.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/defs.h src/husl.h
 obj/compat.o: src/compat.c src/compat.h src/misc.h src/debug.h src/resource.h \
  src/version.h include/mCtrl/defs.h
-obj/debug.o: src/debug.c src/debug.h src/misc.h src/compat.h src/resource.h \
+obj/debug.o: src/debug.c src/debug.h src/compat.h src/misc.h src/resource.h \
  src/version.h include/mCtrl/defs.h
 obj/dialog.o: src/dialog.c src/dialog.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/defs.h include/mCtrl/dialog.h
