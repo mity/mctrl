@@ -42,7 +42,7 @@ TCHAR*
 mc_str_load(UINT id)
 {
 #ifndef UNICODE
-    #error mc_str_load() is not (yet?) implemented for ANSII build.
+    #error mc_str_load() is not (yet?) implemented for ANSI build.
 #endif
 
     const UINT lang_id[2] = { MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
