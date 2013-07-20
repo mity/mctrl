@@ -507,8 +507,10 @@ treelist_scrolled_item(treelist_t* tl, int* level)
         int i;
         int lvl = 0;
 
-        for(i = 0; i < tl->scroll_y; i++)
+        for(i = 0; i < tl->scroll_y; i++) {
             item = item_next_displayed(item, &lvl);
+            MC_ASSERT(item != NULL);
+        }
         tl->scrolled_item = item;
         tl->scrolled_level = lvl;
     }
