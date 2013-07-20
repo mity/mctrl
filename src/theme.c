@@ -768,7 +768,7 @@ mcGetThemeSysColorBrush(HTHEME hTheme, int iColorId)
     if(theme_GetThemeSysColorBrush != NULL)
         return theme_GetThemeSysColorBrush(hTheme, iColorId);
 
-    return CreateSolidBrush(GetSysColor(iColorId));
+    return GetSysColorBrush(iColorId);
 }
 
 HRESULT MCTRL_API
