@@ -60,9 +60,6 @@
                 extern int MC_STATIC_ASSERT_(mc_static_assert_,               \
                                              __COUNTER__)[(cond) ? 1 : -1]
     #endif
-
-    /* Unreachable branch */
-    #define MC_UNREACHABLE               do { MC_ASSERT(FALSE); } while(0)
 #endif
 
 
@@ -74,24 +71,21 @@
     #define MC_DUMP(...)                 do { } while(0)
 #endif
 #ifndef MC_ASSERT
-    #ifdef _MSC_VER
+    #if defined __GNUC__
+        #define MC_ASSERT(cond)          \
+                    do { if(!(cond)) { __builtin_unreachable(); } } while(0)
+    #elif defined _MSC_VER
         #include <intrin.h>
         #define MC_ASSERT(cond)          do { __assume(cond); } while(0)
     #else
         #define MC_ASSERT(cond)          do { } while(0)
     #endif
 #endif
+#ifndef MC_UNREACHABLE
+    #define MC_UNREACHABLE               MC_ASSERT(FALSE)
+#endif
 #ifndef MC_STATIC_ASSERT
     #define MC_STATIC_ASSERT(cond)       /* empty */
-#endif
-#ifndef MC_UNREACHABLE
-    #if defined __GNUC__
-        #define MC_UNREACHABLE           __builtin_unreachable()
-    #elif defined _MSC_VER
-        #define MC_UNREACHABLE           __assume(0)
-    #else
-        #define MC_UNREACHABLE           do { } while(0)
-    #endif
 #endif
 
 /* Helper for tracing message with GetLastError() */
