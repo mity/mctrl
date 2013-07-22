@@ -19,6 +19,7 @@
 #include <windows.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "compat.h"
 #include "misc.h"
 
