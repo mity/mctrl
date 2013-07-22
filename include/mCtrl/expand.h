@@ -180,7 +180,7 @@ void MCTRL_API mcExpand_Terminate(void);
 
 
 /**
- * @name Flags for @c MC_EXM_EXPAND and MC_EXM_TOGGLE
+ * @name Flags for MC_EXM_EXPAND and MC_EXM_TOGGLE
  * @anchor MC_EXE_xxxx
  */
 /*@{*/
