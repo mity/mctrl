@@ -137,7 +137,12 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     hInst = hInstance;
 
     /* Initialize mCtrl control */
-    mcChart_Initialize();
+    if(!mcChart_Initialize()) {
+        MessageBox(NULL, _T("The function mcChart_Initialize() has failed. "
+                   "Perhaps GDIPLUS.DLL is not available on your machine?"),
+                   _T("Error"), MB_OK | MB_ICONERROR);
+        return 1;
+    }
 
     /* Load and show a dialog. */
     mcDialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, DlgProc, MC_DF_DEFAULTFONT);
