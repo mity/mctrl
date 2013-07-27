@@ -3099,6 +3099,11 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             treelist_theme_changed(tl);
             return 0;
 
+        case WM_SYSCOLORCHANGE:
+            if(!tl->no_redraw)
+                InvalidateRect(tl->win, NULL, TRUE);
+            return 0;
+
         case WM_NOTIFYFORMAT:
             if(lp == NF_REQUERY)
                 treelist_notify_format(tl);

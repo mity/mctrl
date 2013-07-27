@@ -660,6 +660,10 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             InvalidateRect(win, NULL, FALSE);
             break;
 
+        case WM_SYSCOLORCHANGE:
+            InvalidateRect(win, NULL, FALSE);
+            break;
+
         case WM_UPDATEUISTATE:
             button_update_ui_state(button, LOWORD(wp), HIWORD(wp));
             InvalidateRect(win, NULL, FALSE);

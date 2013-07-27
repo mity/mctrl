@@ -450,6 +450,11 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             propview_style_changed(pv, wp, (STYLESTRUCT*)lp);
             return 0;
 
+        case WM_SYSCOLORCHANGE:
+            if(!pv->no_redraw)
+                InvalidateRect(win, NULL, TRUE);
+            return 0;
+
         case CCM_SETNOTIFYWINDOW:
         {
             HWND old = pv->notify_win;

@@ -2987,6 +2987,11 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             }
             break;
 
+        case WM_SYSCOLORCHANGE:
+            if(!chart->no_redraw)
+                InvalidateRect(win, NULL, TRUE);
+            break;
+
         case CCM_SETNOTIFYWINDOW:
         {
             HWND old = chart->notify_win;

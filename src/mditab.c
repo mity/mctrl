@@ -1893,6 +1893,11 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             mditab_theme_changed(mditab);
             return 0;
 
+        case WM_SYSCOLORCHANGE:
+            if(!mditab->no_redraw)
+                InvalidateRect(win, NULL, FALSE);
+            break;
+
         case WM_UPDATEUISTATE:
             switch(LOWORD(wp)) {
                 case UIS_CLEAR:       mditab->ui_state &= ~HIWORD(wp); break;

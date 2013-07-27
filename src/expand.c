@@ -888,6 +888,11 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 InvalidateRect(win, NULL, TRUE);
             break;
 
+        case WM_SYSCOLORCHANGE:
+            if(!expand->no_redraw)
+                InvalidateRect(win, NULL, TRUE);
+            return 0;
+
         case WM_UPDATEUISTATE:
             expand_update_ui_state(expand, LOWORD(wp), HIWORD(wp));
             break;
