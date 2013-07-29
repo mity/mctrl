@@ -283,12 +283,11 @@ propview_style_changed(propview_t* pv, int style_type, STYLESTRUCT* ss)
                 mc_send_notify(pv->notify_win, pv->win, NM_OUTOFMEMORY);
             }
         }
-    }
 
-    propview_setup_scrollbars(pv);
-    if(!pv->no_redraw)
-        RedrawWindow(pv->win, NULL, NULL,
-                     RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
+        if(!pv->no_redraw)
+            RedrawWindow(pv->win, NULL, NULL,
+                         RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
+    }
 }
 
 static propview_t*
@@ -448,7 +447,7 @@ propview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_STYLECHANGED:
             propview_style_changed(pv, wp, (STYLESTRUCT*)lp);
-            return 0;
+            break;
 
         case WM_SYSCOLORCHANGE:
             if(!pv->no_redraw)

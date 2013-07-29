@@ -1886,8 +1886,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_WANTARROWS;
 
         case WM_STYLECHANGED:
-            mditab_style_changed(mditab, (STYLESTRUCT*) lp);
-            return 0;
+            if(wp == GWL_STYLE)
+                mditab_style_changed(mditab, (STYLESTRUCT*) lp);
+            break;
 
         case WM_THEMECHANGED:
             mditab_theme_changed(mditab);

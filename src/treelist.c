@@ -3087,11 +3087,10 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_STYLECHANGED:
             if(wp == GWL_STYLE) {
-                tl->style = lp;
-                treelist_setup_scrollbars(tl);
+                STYLESTRUCT* ss = (STYLESTRUCT*) lp;
+                tl->style = ss->styleNew;
                 if(!tl->no_redraw)
                     InvalidateRect(tl->win, NULL, TRUE);
-                return 0;
             }
             break;
 

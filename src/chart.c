@@ -2981,10 +2981,8 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_STATIC;
 
         case WM_STYLECHANGED:
-            if(wp == GWL_STYLE) {
+            if(wp == GWL_STYLE)
                 chart_style_changed(chart, (STYLESTRUCT*) lp);
-                return 0;
-            }
             break;
 
         case WM_SYSCOLORCHANGE:

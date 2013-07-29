@@ -878,6 +878,8 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(wp == GWL_STYLE) {
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
                 expand->style = ss->styleNew;
+                /* No repaint here: All our styles currently only have an
+                 * impact on behavior, not look of the control. */
             }
             break;
 
