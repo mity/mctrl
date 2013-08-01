@@ -135,6 +135,7 @@ extern "C" {
  *
  * These standard notifications are sent by the control:
  * - @c NM_CLICK
+ * - @c NM_CUSTOMDRAW (see @c MC_NMTLCUSTOMDRAW)
  * - @c NM_DBLCLK
  * - @c NM_RCLICK
  * - @c NM_RDBLCLK
@@ -670,7 +671,7 @@ typedef struct MC_TLHITTESTINFO_tag {
 } MC_TLHITTESTINFO;
 
 /**
- * @brief Structure use by control notifications.
+ * @brief Structure used by many control notifications.
  *
  * Many control notifications use this structure to provide the information
  * about what happens. Refer to documentation of particular messages how it
@@ -696,6 +697,24 @@ typedef struct MC_NMTREELIST_tag {
     /** @c lParam of the new item. */
     LPARAM lParamNew;
 } MC_NMTREELIST;
+
+/**
+ * @brief Structure used by the standard notification @c NM_CUSTOMDRAW.
+ */
+typedef struct MC_NMTLCUSTOMDRAW_tag {
+    /** Standard custom-draw structure. See @c NMCUSTOMDRAW documentation on MSDN. */
+    NMCUSTOMDRAW nmcd;
+    /** Level of the item to be painted.
+     *  Valid only if <tt>nmcd.dwDrawStage</tt> has the flags @c CDDS_ITEM. */
+    int iLevel;
+    /** Subitem of the item to be painted.
+     *  Valid only if <tt>nmcd.dwDrawStage</tt> has the flags @c CDDS_SUBITEM. */
+    int iSubItem;
+    /** Item/subitem text color. */
+    COLORREF clrText;
+    /** Item/subitem background color. */
+    COLORREF clrTextBk;
+} MC_NMTLCUSTOMDRAW;
 
 /*@}*/
 

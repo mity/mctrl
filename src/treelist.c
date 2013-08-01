@@ -625,10 +625,6 @@ treelist_paint_lines(treelist_t* tl, treelist_item_t* item, int level, HDC dc,
 static void
 treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
 {
-    COLORREF old_bkcolor;
-
-    old_bkcolor = SetBkColor(dc, GetSysColor(COLOR_WINDOW));
-
     if(tl->theme) {
         int part = TVP_GLYPH;
         int state = ((item->state & MC_TLIS_EXPANDED) ? GLPS_OPENED : GLPS_CLOSED);
@@ -694,8 +690,21 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
             LineTo(dc, x, y + sz_glyph/2);
         }
     }
+}
 
-    SetBkColor(dc, old_bkcolor);
+static inline UINT
+treelist_custom_draw_item_state(treelist_t* tl, treelist_item_t* item)
+{
+    UINT state = 0;
+
+    if(item->state & MC_TLIS_SELECTED) {
+        if(tl->focus)
+            state |= CDIS_FOCUS | CDIS_SELECTED;
+        else if(tl->style & MC_TLS_SHOWSELALWAYS)
+            state |= CDIS_SELECTED;
+    }
+    /* TODO: support for CDIS_HOT */
+    return state;
 }
 
 static void
@@ -705,51 +714,97 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     RECT rect;
     RECT header_rect;
     int header_height;
-    HFONT old_font = NULL;
-    RECT item_rect;
-    treelist_item_t* item;
     HDITEM header_item;
-    int col_ix;
-    int y;
+    treelist_item_t* item;
     int level;
-    COLORREF old_bkcolor;
-    COLORREF old_textcolor;
-    BOOL reset_color_after_whole_row = FALSE;
+    int y;
+    int col_ix;
+    RECT subitem_rect;
+    RECT label_rect;
     BOOL use_theme;
     int state = 0;
-    int padding_h, padding_v;
+    int padding_h = ITEM_PADDING_H;
+    int padding_v = ITEM_PADDING_V;
     int img_w = 0, img_h = 0;
+    MC_NMTLCUSTOMDRAW cd = { { { 0 }, 0 }, 0 };
+    int cd_mode[3];          /* control/item/subitem */
+    HFONT old_font = NULL;
+    BOOL paint_selected;
+    COLORREF item_text_color;
+    COLORREF item_bk_color;
+    COLORREF subitem_text_color;
+    COLORREF subitem_bk_color;
 
     /* We handle WM_ERASEBKGND, so we should never need erasing here. */
     MC_ASSERT(erase == FALSE);
 
+    old_font = GetCurrentObject(dc, OBJ_FONT);
+    if(tl->font)
+        SelectObject(dc, tl->font);
+
+    /* Custom draw: Control pre-paint notification */
+    cd.nmcd.hdr.hwndFrom = tl->win;
+    cd.nmcd.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    cd.nmcd.hdr.code = NM_CUSTOMDRAW;
+    cd.nmcd.dwDrawStage = CDDS_PREPAINT;
+    cd.nmcd.hdc = dc;
+    cd.iLevel = -1;
+    cd.iSubItem = -1;
+    cd.clrText = GetSysColor(COLOR_WINDOWTEXT);
+    cd.clrTextBk = MC_CLR_NONE;
+    cd_mode[0] = MC_SEND(tl->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
+#ifndef CDRF_DOERASE  /* mingw-w64 missing this. Patch sent to them. */
+    #define CDRF_DOERASE 0x81
+#endif
+    if(cd_mode[0] & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
+        goto skip_control_paint;
+
+    /* Control geometry */
     GetClientRect(tl->win, &rect);
     GetWindowRect(tl->header_win, &header_rect);
     header_height = mc_height(&header_rect);
-
-    header_item.mask = HDI_FORMAT;
-
-    if(tl->font)
-        old_font = SelectObject(dc, tl->font);
-    SetBkColor(dc, GetSysColor(COLOR_WINDOW));
-    SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-
-    use_theme = (tl->theme != NULL  &&
-                 mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
-
     if(tl->imglist_normal)
         ImageList_GetIconSize(tl->imglist_normal, &img_w, &img_h);
+    use_theme = (tl->theme != NULL  &&  mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
 
+    /* Paint items */
     for(item = treelist_scrolled_item(tl, &level), y = header_height;
         item != NULL;
         item = item_next_displayed(item, &level), y += tl->item_height)
     {
+        /* Item geometry */
         if(y + tl->item_height < dirty->top)
             continue;
-
         if(y >= dirty->bottom)
             break;
 
+        item_text_color = item->textColor;
+        item_bk_color = item->bkColor;
+
+        /* Custom draw: Item pre-paint notification */
+        if(cd_mode[0] & CDRF_NOTIFYITEMDRAW) {
+            cd.nmcd.dwDrawStage = CDDS_ITEMPREPAINT;
+            cd.nmcd.rc.left = -(tl->scroll_x);
+            cd.nmcd.rc.top = y;
+            cd.nmcd.rc.right = tl->scroll_x_max;
+            cd.nmcd.rc.bottom = y + tl->item_height;
+            cd.nmcd.dwItemSpec = (DWORD_PTR) item;
+            cd.nmcd.uItemState = treelist_custom_draw_item_state(tl, item);
+            cd.nmcd.lItemlParam = item->lp;
+            cd.iLevel = level;
+            cd.iSubItem = -1;
+            cd.clrText = item_text_color;
+            cd.clrTextBk = item_bk_color;
+            cd_mode[1] = MC_SEND(tl->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
+            if(cd_mode[1] & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
+                goto skip_item_paint;
+            item_text_color = cd.clrText;
+            item_bk_color = cd.clrTextBk;
+        } else {
+            cd_mode[1] = 0;
+        }
+
+        /* Determine item state for themed paint */
         if(use_theme) {
             if(item->state & MC_TLIS_SELECTED)
                 state = (tl->focus ? TREIS_SELECTED : TREIS_SELECTEDNOTFOCUS);
@@ -757,142 +812,127 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 state = TREIS_NORMAL;
         }
 
+        /* Paint all subitems */
         for(col_ix = 0; col_ix < tl->col_count; col_ix++) {
-            MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &item_rect);
-            item_rect.left += ITEM_PAINT_MARGIN_H - tl->scroll_x;
-            item_rect.top = y;
-            item_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x - 1;
-            item_rect.bottom = y + tl->item_height;
+            /* Subitem geometry */
+            header_item.mask = HDI_FORMAT;
+            MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &subitem_rect);
+            subitem_rect.left += ITEM_PAINT_MARGIN_H - tl->scroll_x;
+            if(col_ix == 0) {
+                subitem_rect.left += level * tl->item_indent;
+                if(tl->style & MC_TLS_LINESATROOT)
+                    subitem_rect.left += tl->item_indent;
+                subitem_rect.left += ITEM_PADDING_H;
+            }
+            subitem_rect.top = y;
+            subitem_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x - 1;
+            subitem_rect.bottom = y + tl->item_height;
+
+            /* Determine subitem colors */
+            paint_selected = (item->state & MC_TLIS_SELECTED)  &&
+                    ((tl->style & MC_TLS_SHOWSELALWAYS) || tl->focus )  &&
+                    ((tl->style & MC_TLS_FULLROWSELECT) || col_ix == 0);
+            if(paint_selected  &&  !use_theme) {
+                subitem_text_color = GetSysColor(COLOR_HIGHLIGHTTEXT);
+                subitem_bk_color = GetSysColor(COLOR_HIGHLIGHT);
+            } else {
+                subitem_text_color = item_text_color;
+                subitem_bk_color = item_bk_color;
+            }
+
+            /* Custom draw: subitem pre-paint notification */
+            if(cd_mode[1] & CDRF_NOTIFYSUBITEMDRAW) {
+                cd.nmcd.dwDrawStage = CDDS_ITEMPREPAINT | CDDS_SUBITEM;
+                cd.nmcd.rc.left = subitem_rect.left;
+                cd.nmcd.rc.right = subitem_rect.right;
+                cd.iSubItem = col_ix;
+                cd.clrText = subitem_text_color;
+                cd.clrTextBk = subitem_bk_color;
+                cd_mode[2] = MC_SEND(tl->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
+                if(cd_mode[2] & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
+                    goto skip_subitem_paint;
+                subitem_text_color = cd.clrText;
+                subitem_bk_color = cd.clrTextBk;
+            } else {
+                cd_mode[2] = 0;
+            }
+
+            /* Set the colors into DC */
+            SetTextColor(dc, subitem_text_color);
+            if(subitem_bk_color != MC_CLR_NONE) {
+                SetBkMode(dc, OPAQUE);
+                SetBkColor(dc, subitem_bk_color);
+            } else {
+                SetBkMode(dc, TRANSPARENT);
+            }
 
             if(col_ix == 0) {
-
-                /* Paint background if custom background is requested */
-                if(item->bkColor != MC_CLR_DEFAULT) {
-                    int old_right = 0;
-                    int old_left = 0;
-
-                    old_left = item_rect.left;
-                    old_right = item_rect.right;
-                    item_rect.left = 0;
-                    item_rect.right = rect.right;
-
-                    old_bkcolor = SetBkColor(dc, item->bkColor);
-                    ExtTextOut(dc, 0, 0, ETO_OPAQUE, &item_rect, NULL, 0, NULL);
-                    SetBkColor(dc, old_bkcolor);
-
-                    item_rect.left = old_left;
-                    item_rect.right = old_right;
-                }
-
-                /* Paint lines, buttons etc. of the main item */
-                item_rect.left += level * tl->item_indent;
-                if(tl->style & MC_TLS_LINESATROOT)
-                    item_rect.left += tl->item_indent;
+                /* Paint decoration of the main item (line, button etc.) */
                 if((level > 0 || (tl->style & MC_TLS_LINESATROOT))  &&
                    (tl->style & (MC_TLS_HASBUTTONS | MC_TLS_HASLINES))) {
-                    if(tl->style & MC_TLS_HASLINES) {
-                        treelist_paint_lines(tl, item, level, dc, &item_rect);
-                    }
+                    subitem_rect.left -= ITEM_PADDING_H;
+                    if(tl->style & MC_TLS_HASLINES)
+                        treelist_paint_lines(tl, item, level, dc, &subitem_rect);
 
                     if((tl->style & MC_TLS_HASBUTTONS)  &&  item_has_children(item)) {
                         RECT button_rect;
-                        mc_rect_set(&button_rect, item_rect.left - tl->item_indent, item_rect.top,
-                                    item_rect.left, item_rect.bottom);
+                        mc_rect_set(&button_rect, subitem_rect.left - tl->item_indent, subitem_rect.top,
+                                    subitem_rect.left, subitem_rect.bottom);
                         treelist_paint_button(tl, item, dc, &button_rect);
                     }
-
-                    item_rect.left += ITEM_PADDING_H;
+                    subitem_rect.left += ITEM_PADDING_H;
                 }
 
                 /* Paint image of the main item */
                 if(tl->imglist_normal != NULL) {
                     int img;
-
                     if(item->state & MC_TLIS_SELECTED)
                         img = item->img_selected;
                     else if(item->state & MC_TLIS_EXPANDED)
                         img = item->img_expanded;
                     else
                         img = item->img;
-
                     if(img >= 0) {
                         ImageList_DrawEx(tl->imglist_normal, img, dc,
-                                item_rect.left, item_rect.top + (mc_height(&item_rect) - img_h) / 2,
+                                subitem_rect.left, subitem_rect.top + (mc_height(&subitem_rect) - img_h) / 2,
                                 0, 0, CLR_NONE, CLR_DEFAULT, ILD_NORMAL);
                     }
-
-                    item_rect.left += img_w + ITEM_PADDING_H;
+                    subitem_rect.left += img_w + ITEM_PADDING_H;
                 }
 
-                /* Paint label (and background) of the main item */
-                if(use_theme) {
-                    int old_right = 0;
+                /* Calculate label rectangle */
+                mc_rect_copy(&label_rect, &subitem_rect);
+                treelist_label_rect(tl, dc, item->text, DT_LEFT, &label_rect,
+                                    &padding_h, &padding_v);
 
-                    if(tl->style & MC_TLS_FULLROWSELECT) {
-                        old_right = item_rect.right;
-                        item_rect.right = tl->scroll_x_max - tl->scroll_x;
-                    }
-                    if(state != TREIS_NORMAL) {
-                        mcDrawThemeBackground(tl->theme, dc,
-                                TVP_TREEITEM, state, &item_rect, NULL);
-                    }
-                    if(tl->style & MC_TLS_FULLROWSELECT)
-                        item_rect.right = old_right;
-                    treelist_label_rect(tl, dc, item->text, DT_LEFT, &item_rect,
-                                        &padding_h, &padding_v);
-                    mc_rect_inflate(&item_rect, -padding_h, -padding_v);
+                /* Paint background of the main item. We expand it to all
+                 * subitems in case of MC_TLS_FULLROWSELECT and selected item. */
+                if(paint_selected  &&  (tl->style & MC_TLS_FULLROWSELECT))
+                    subitem_rect.right = tl->scroll_x_max - tl->scroll_x;
+                if(use_theme  &&  state != TREIS_NORMAL) {
+                    mcDrawThemeBackground(tl->theme, dc,
+                            TVP_TREEITEM, state, &subitem_rect, NULL);
+                } else {
+                    RECT* r;
+                    if(paint_selected  &&  (tl->style & MC_TLS_FULLROWSELECT))
+                        r = &subitem_rect;
+                    else
+                        r = &label_rect;
+                    if(subitem_bk_color != MC_CLR_NONE)
+                        ExtTextOut(dc, 0, 0, ETO_OPAQUE, r, NULL, 0, NULL);
+                    if(paint_selected  &&  tl->focus)
+                        DrawFocusRect(dc, r);
+                }
+
+                /* Paint label of the main item */
+                mc_rect_inflate(&label_rect, -padding_h, -padding_v);
+                if(use_theme) {
                     mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
-                                        item->text, -1, ITEM_DTFLAGS, 0, &item_rect);
+                                    item->text, -1, ITEM_DTFLAGS, 0, &label_rect);
                     if(!(tl->style & MC_TLS_FULLROWSELECT))
                         state = TREIS_NORMAL;
                 } else {
-                    if(item->state & MC_TLIS_SELECTED) {
-                        int old_right = 0;
-
-                        if(tl->focus) {
-                            old_bkcolor = SetBkColor(dc, GetSysColor(COLOR_HIGHLIGHT));
-                            old_textcolor = SetTextColor(dc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                        } else {
-                            if(!(tl->style & MC_TLS_SHOWSELALWAYS))
-                                goto paint_no_sel;
-                            old_bkcolor = SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
-                            old_textcolor = SetTextColor(dc, GetSysColor(COLOR_BTNTEXT));
-                        }
-                        treelist_label_rect(tl, dc, item->text, DT_LEFT,
-                                            &item_rect, &padding_h, &padding_v);
-                        if(tl->style & MC_TLS_FULLROWSELECT) {
-                            old_right = item_rect.right;
-                            item_rect.right = tl->scroll_x_max - tl->scroll_x;
-                        }
-                        ExtTextOut(dc, 0, 0, ETO_OPAQUE, &item_rect, NULL, 0, NULL);
-                        if(tl->focus)
-                            DrawFocusRect(dc, &item_rect);
-                        if(tl->style & MC_TLS_FULLROWSELECT)
-                            item_rect.right = old_right;
-                        mc_rect_inflate(&item_rect, -padding_h, -padding_v);
-                        DrawText(dc, item->text, -1, &item_rect, ITEM_DTFLAGS);
-
-                        if(tl->style & MC_TLS_FULLROWSELECT) {
-                            reset_color_after_whole_row = TRUE;
-                        } else {
-                            SetBkColor(dc, old_bkcolor);
-                            SetTextColor(dc, old_textcolor);
-                        }
-                    } else {
-paint_no_sel:
-                        if(item->bkColor != MC_CLR_DEFAULT)
-                            old_bkcolor = SetBkColor(dc, item->bkColor);
-                        if(item->textColor != MC_CLR_DEFAULT)
-                            old_textcolor = SetTextColor(dc, item->textColor);
-
-                        mc_rect_inflate(&item_rect, -ITEM_PADDING_H, -ITEM_PADDING_V);
-                        DrawText(dc, item->text, -1, &item_rect, ITEM_DTFLAGS);
-
-                        if(item->bkColor != MC_CLR_DEFAULT)
-                            SetBkColor(dc, old_bkcolor);
-                        if(item->textColor != MC_CLR_DEFAULT)
-                            SetTextColor(dc, old_textcolor);
-                    }
+                    DrawText(dc, item->text, -1, &label_rect, ITEM_DTFLAGS);
                 }
             } else {
                 /* Paint subitem */
@@ -904,40 +944,48 @@ paint_no_sel:
                     case HDF_CENTER:  justify = DT_CENTER; break;
                     default:          justify = DT_LEFT; break;
                 }
-
                 treelist_label_rect(tl, dc, item->subitems[col_ix], justify,
-                                    &item_rect, &padding_h, &padding_v);
-                mc_rect_inflate(&item_rect, -padding_h, -padding_v);
+                                    &subitem_rect, &padding_h, &padding_v);
+                mc_rect_inflate(&subitem_rect, -padding_h, -padding_v);
 
                 if(use_theme) {
                     mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
                             item->subitems[col_ix], -1, ITEM_DTFLAGS | justify,
-                            0, &item_rect);
+                            0, &subitem_rect);
                 } else {
-                    if(item->bkColor != MC_CLR_DEFAULT && !(item->state & MC_TLIS_SELECTED))
-                        old_bkcolor = SetBkColor(dc, item->bkColor);
-                    if(item->textColor != MC_CLR_DEFAULT)
-                        old_textcolor = SetTextColor(dc, item->textColor);
-
-                    DrawText(dc, item->subitems[col_ix], -1, &item_rect,
+                    DrawText(dc, item->subitems[col_ix], -1, &subitem_rect,
                              ITEM_DTFLAGS | justify);
-
-                    if(item->bkColor != MC_CLR_DEFAULT && !(item->state & MC_TLIS_SELECTED))
-                        SetBkColor(dc, old_bkcolor);
-                    if(item->textColor != MC_CLR_DEFAULT)
-                        SetTextColor(dc, old_textcolor);
                 }
             }
+
+            /* Custom draw: Item post-paint notification */
+            if(cd_mode[2] & CDRF_NOTIFYPOSTPAINT) {
+                cd.nmcd.dwDrawStage = CDDS_ITEMPOSTPAINT | CDDS_SUBITEM;
+                MC_SEND(tl->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
+            }
+
+skip_subitem_paint:
+            ;
         }
 
-        if(reset_color_after_whole_row) {
-            SetBkColor(dc, old_bkcolor);
-            SetTextColor(dc, old_textcolor);
-            reset_color_after_whole_row = FALSE;
+        /* Custom draw: Item post-paint notification */
+        if(cd_mode[1] & CDRF_NOTIFYPOSTPAINT) {
+            cd.nmcd.dwDrawStage = CDDS_POSTPAINT;
+            MC_SEND(tl->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
         }
+
+skip_item_paint:
+        ;
     }
 
-    if(tl->font)
+    /* Custom draw: Control post-paint notification */
+    if(cd_mode[0] & CDRF_NOTIFYPOSTPAINT) {
+        cd.nmcd.dwDrawStage = CDDS_POSTPAINT;
+        MC_SEND(tl->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
+    }
+
+skip_control_paint:
+    if(old_font)
         SelectObject(dc, old_font);
 }
 
@@ -2230,15 +2278,14 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
                                 ? item_data->cChildren : 0);
     item->expanding_notify_in_progress = 0;
     item->textColor = ((item_data->fMask & MC_TLIF_TEXTCOLOR)
-                                ? item_data->textColor : MC_CLR_DEFAULT);
+                                ? item_data->textColor :  MC_CLR_DEFAULT);
     item->bkColor = ((item_data->fMask & MC_TLIF_BKCOLOR)
-                                ? item_data->bkColor : MC_CLR_DEFAULT);
+                                ? item_data->bkColor :  MC_CLR_DEFAULT);
 
-    if(item->textColor == MC_CLR_NONE)
-        item->textColor = MC_CLR_DEFAULT;
-
-    if(item->bkColor == MC_CLR_NONE)
-        item->bkColor = MC_CLR_DEFAULT;
+    if(item->textColor == MC_CLR_DEFAULT)
+        item->textColor = GetSysColor(COLOR_WINDOWTEXT);
+    if(item->bkColor == MC_CLR_DEFAULT)
+        item->bkColor = MC_CLR_NONE;
 
     if(parent != NULL) {
         parent_displayed = item_is_displayed(parent);
@@ -2362,15 +2409,15 @@ int col_redraw;
 
     col_redraw = 0;
     if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
-        item->textColor = ((item_data->textColor == MC_CLR_NONE)
-                                ? MC_CLR_DEFAULT : item_data->textColor);
+        item->textColor = ((item_data->textColor == MC_CLR_DEFAULT)
+                                ?  GetSysColor(COLOR_WINDOWTEXT) : item_data->textColor);
         col_redraw = -1; /* Text color change means whole row must
                           * be invalidated */
     }
 
     if(item_data->fMask & MC_TLIF_BKCOLOR) {
-        item->bkColor = ((item_data->bkColor == MC_CLR_NONE)
-                                ? MC_CLR_DEFAULT : item_data->bkColor);
+        item->bkColor = ((item_data->bkColor == MC_CLR_DEFAULT)
+                                ? MC_CLR_NONE : item_data->bkColor);
         col_redraw = -1; /* Background color change means whole row
                           * must be invalidated */
     }
