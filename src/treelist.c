@@ -755,7 +755,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &item_rect);
             item_rect.left += ITEM_PAINT_MARGIN_H - tl->scroll_x;
             item_rect.top = y;
-            item_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x;
+            item_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x - 1;
             item_rect.bottom = y + tl->item_height;
 
             if(col_ix == 0) {
