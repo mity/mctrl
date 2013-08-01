@@ -198,7 +198,7 @@ struct treelist_tag {
 #define MC_TLCF_ALL     (MC_TLCF_FORMAT | MC_TLCF_WIDTH | MC_TLCF_TEXT |      \
                          MC_TLCF_IMAGE | MC_TLCF_ORDER)
 
-#define MC_TLIF_ALL     (MC_TLIF_STATE | MC_TLIF_TEXT | MC_TLIF_LPARAM |      \
+#define MC_TLIF_ALL     (MC_TLIF_STATE | MC_TLIF_TEXT | MC_TLIF_PARAM |       \
                          MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE |              \
                          MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN |           \
                          MC_TLIF_TEXTCOLOR | MC_TLIF_BKCOLOR)
@@ -2194,7 +2194,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     item->state = ((item_data->fMask & MC_TLIF_STATE)
                             ? (item_data->state & item_data->stateMask) : 0);
     item->text = text;
-    item->lp = ((item_data->fMask & MC_TLIF_LPARAM) ? item_data->lParam : 0);
+    item->lp = ((item_data->fMask & MC_TLIF_PARAM) ? item_data->lParam : 0);
     item->img = (SHORT)((item_data->fMask & MC_TLIF_IMAGE)
                                 ? item_data->iImage : MC_I_IMAGENONE);
     item->img_selected = (SHORT)((item_data->fMask & MC_TLIF_SELECTEDIMAGE)
@@ -2302,7 +2302,7 @@ int col_redraw;
         item->text = text;
     }
 
-    if(item_data->fMask & MC_TLIF_LPARAM)
+    if(item_data->fMask & MC_TLIF_PARAM)
         item->lp = item_data->lParam;
 
     if(item_data->fMask & MC_TLIF_STATE) {
@@ -2380,7 +2380,7 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
                      (unicode ? MC_STRW : MC_STRA), item_data->cchTextMax);
     }
 
-    if(item_data->fMask & MC_TLIF_LPARAM)
+    if(item_data->fMask & MC_TLIF_PARAM)
         item_data->lParam = item->lp;
 
     if(item_data->fMask & MC_TLIF_STATE)

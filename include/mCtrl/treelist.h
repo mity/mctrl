@@ -298,6 +298,9 @@ void MCTRL_API mcTreeList_Terminate(void);
 /** @brief Set if @c MC_TLITEM::pszText and @c MC_TLITEM::cchTextMax is valid. */
 #define MC_TLIF_TEXT                 (1 << 1)
 /** @brief Set if @c MC_TLITEM::lParam is valid. */
+#define MC_TLIF_PARAM                (1 << 2)
+/** @brief Set if @c MC_TLITEM::lParam is valid.
+ *  @note Obsolete. Use @c MC_TLIF_PARAM. */
 #define MC_TLIF_LPARAM               (1 << 2)
 /** @brief Set if @c MC_TLITEM::iImage is valid. */
 #define MC_TLIF_IMAGE                (1 << 3)
