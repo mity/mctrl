@@ -20,6 +20,7 @@
 #define MCTRL_DEFS_H
 
 #include <windows.h>
+#include <commctrl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,14 +63,14 @@ extern "C" {
  * @c CLR_NONE from @c <commctrl.h> and applications can use these two macros
  * interchangeably.
  */
-#define MC_CLR_NONE         ((COLORREF)0xffffffffL)
+#define MC_CLR_NONE         CLR_NONE
 /**
  * @brief Default color.
  * @details This is defined to have the same value and meaning as the constant
  * @c CLR_DEFAULT from @c <commctrl.h> and applications can use these two
  * macros interchangeably.
  */
-#define MC_CLR_DEFAULT      ((COLORREF)0xff000000L)
+#define MC_CLR_DEFAULT      CLR_DEFAULT
 
 /**
  * @brief Index of no image in an image list.
@@ -77,7 +78,7 @@ extern "C" {
  * @c I_IMAGENONE from @c <commctrl.h> and applications can use these two
  * macros interchangeably.
  */
-#define MC_I_IMAGENONE      (-2)
+#define MC_I_IMAGENONE      I_IMAGENONE
 
 /**
  * @brief Index of no group.
@@ -85,7 +86,7 @@ extern "C" {
  * @c I_GROUPIDNONE from @c <commctrl.h> and applications can use these two
  * macros interchangeably.
  */
-#define MC_I_GROUPIDNONE    (-2)
+#define MC_I_GROUPIDNONE    I_GROUPIDNONE
 
 /*@}*/
 
