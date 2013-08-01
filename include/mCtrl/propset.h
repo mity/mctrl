@@ -54,7 +54,7 @@ typedef void* MC_HPROPSET;
 /** @ref MC_PROPSETITEMW::hValue, or @ref MC_PROPSETITEMA::hValue is valid. */
 #define MC_PSIMF_VALUE                (0x00000002)
 /** @ref MC_PROPSETITEMW::lParam or @ref MC_PROPSETITEMA::lParam is valid. */
-#define MC_PSIMF_LPARAM               (0x00000004)
+#define MC_PSIMF_PARAM                (0x00000004)
 /** @ref MC_PROPSETITEMW::dwFlags or @ref MC_PROPSETITEMA::dwFlags is valid. */
 #define MC_PSIMF_FLAGS                (0x00000008)
 

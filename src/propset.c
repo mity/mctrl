@@ -32,7 +32,7 @@
 
 #define PROPSET_SUPPORTED_FLAGS        ((DWORD)(MC_PSF_SORTITEMS))
 #define PROPSET_SUPPORTED_ITEM_MASK                                           \
-        ((DWORD)(MC_PSIMF_TEXT | MC_PSIMF_VALUE | MC_PSIMF_LPARAM | MC_PSIMF_FLAGS))
+        ((DWORD)(MC_PSIMF_TEXT | MC_PSIMF_VALUE | MC_PSIMF_PARAM | MC_PSIMF_FLAGS))
 #define PROPSET_SUPPORTED_ITEM_FLAGS   ((DWORD)(0))  // TODO
 
 
@@ -123,7 +123,7 @@ propset_apply(propset_item_t* item, MC_PROPSETITEM* pi, BOOL unicode)
         item->value = (value_t*) pi->hValue;
     }
 
-    if(pi->fMask & MC_PSIMF_LPARAM)
+    if(pi->fMask & MC_PSIMF_PARAM)
         item->lp = pi->lParam;
 
     if(pi->fMask & MC_PSIMF_FLAGS)
@@ -224,7 +224,7 @@ propset_get(propset_t* propset, MC_PROPSETITEM* pi, BOOL unicode)
     if(pi->fMask & MC_PSIMF_VALUE)
         pi->hValue = (MC_HVALUE) item->value;
 
-    if(pi->fMask & MC_PSIMF_LPARAM)
+    if(pi->fMask & MC_PSIMF_PARAM)
         pi->lParam = item->lp;
 
     if(pi->fMask & MC_PSIMF_FLAGS)
