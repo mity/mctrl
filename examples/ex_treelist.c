@@ -214,7 +214,7 @@ WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             return 0;
 
         case WM_CREATE:
-            /* Create the property list view */
+            /* Create the tree list view */
             hwndTreeList = CreateWindowEx(WS_EX_CLIENTEDGE, MC_WC_TREELIST, NULL,
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP | MC_TLS_HEADERDRAGDROP |
                     MC_TLS_HASBUTTONS | MC_TLS_HASLINES | MC_TLS_LINESATROOT |
