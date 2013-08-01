@@ -2454,8 +2454,8 @@ treelist_delete_item_helper(treelist_t* tl, treelist_item_t* item, BOOL displaye
         if(item->subitems) {
             int i;
             for(i = 0; i < tl->col_count; i++) {
-                if(item->subitems[0])
-                    free(item->subitems[0]);
+                if(item->subitems[i])
+                    free(item->subitems[i]);
             }
             free(item->subitems);
         }
