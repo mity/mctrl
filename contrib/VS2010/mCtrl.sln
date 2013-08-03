@@ -33,11 +33,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_menubar", "ex_menubar.vc
 		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_propview", "ex_propview.vcxproj", "{F0E665D0-E321-4C80-978C-6568E3633835}"
-	ProjectSection(ProjectDependencies) = postProject
-		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_chart", "ex_chart.vcxproj", "{A1AFC318-6848-43D7-AEDB-7868087780AE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_treelist", "ex_treelist.vcxproj", "{F374AE02-6ADE-450F-800C-AED21999C6B0}"

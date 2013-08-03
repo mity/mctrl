@@ -48,18 +48,9 @@ obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
  include/mCtrl/chart.h include/mCtrl/dialog.h include/mCtrl/expand.h \
  include/mCtrl/grid.h include/mCtrl/value.h include/mCtrl/table.h \
  include/mCtrl/html.h include/mCtrl/menubar.h include/mCtrl/mditab.h \
- include/mCtrl/propset.h include/mCtrl/propview.h include/mCtrl/version.h \
- include/mCtrl/treelist.h
+ include/mCtrl/version.h include/mCtrl/treelist.h
 obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/defs.h
-obj/propset.o: src/propset.c src/propset.h include/mCtrl/propset.h \
- include/mCtrl/defs.h include/mCtrl/value.h src/misc.h src/compat.h \
- src/debug.h src/resource.h src/version.h src/dsa.h src/value.h \
- src/viewlist.h
-obj/propview.o: src/propview.c src/propview.h include/mCtrl/propview.h \
- include/mCtrl/defs.h include/mCtrl/value.h include/mCtrl/propset.h \
- src/misc.h src/compat.h src/debug.h src/resource.h src/version.h \
- src/value.h src/propset.h src/dsa.h src/viewlist.h
 obj/table.o: src/table.c src/table.h include/mCtrl/table.h \
  include/mCtrl/defs.h include/mCtrl/value.h src/misc.h src/compat.h \
  src/debug.h src/resource.h src/version.h src/value.h src/viewlist.h

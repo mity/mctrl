@@ -10,11 +10,6 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <PropertyGroup Label="Globals">
-    <ProjectGuid>{F0E665D0-E321-4C80-978C-6568E3633835}</ProjectGuid>
-    <Keyword>Win32Proj</Keyword>
-    <RootNamespace>ex_propview</RootNamespace>
-  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -79,9 +74,6 @@
       <AdditionalDependencies>mCtrl.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\examples\ex_propview.c" />
-  </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\examples\ex_manifest.rc" />
   </ItemGroup>

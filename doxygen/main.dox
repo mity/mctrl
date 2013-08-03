@@ -43,11 +43,9 @@
  * - @ref mCtrl/html.h - HTML control
  * - @ref mCtrl/menubar.h - Menu bar control
  * - @ref mCtrl/mditab.h - MDI tab control
- * - @ref mCtrl/propview.h - Property list view control
  * - @ref mCtrl/treelist.h - Tree-list view control
  *
  * @subsection toc_data Control Data Models
- * - @ref mCtrl/propset.h - Property set (data model for the property view control)
  * - @ref mCtrl/table.h - Table (data model for the grid control)
  * - @ref mCtrl/value.h - Value (polymorphic data)
  *

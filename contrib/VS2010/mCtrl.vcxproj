@@ -104,8 +104,6 @@
     <ClCompile Include="..\..\src\menubar.c" />
     <ClCompile Include="..\..\src\misc.c" />
     <ClCompile Include="..\..\src\module.c" />
-    <ClCompile Include="..\..\src\propset.c" />
-    <ClCompile Include="..\..\src\propview.c" />
     <ClCompile Include="..\..\src\table.c" />
     <ClCompile Include="..\..\src\theme.c" />
     <ClCompile Include="..\..\src\treelist.c" />
@@ -121,8 +119,6 @@
     <ClInclude Include="..\..\include\mCtrl\html.h" />
     <ClInclude Include="..\..\include\mCtrl\mditab.h" />
     <ClInclude Include="..\..\include\mCtrl\menubar.h" />
-    <ClInclude Include="..\..\include\mCtrl\propset.h" />
-    <ClInclude Include="..\..\include\mCtrl\propview.h" />
     <ClInclude Include="..\..\include\mCtrl\table.h" />
     <ClInclude Include="..\..\include\mCtrl\value.h" />
     <ClInclude Include="..\..\include\mCtrl\version.h" />
@@ -143,8 +139,6 @@
     <ClInclude Include="..\..\src\misc.h" />
     <ClInclude Include="..\..\src\module.h" />
     <ClInclude Include="..\..\src\optim.h" />
-    <ClInclude Include="..\..\src\propset.h" />
-    <ClInclude Include="..\..\src\propview.h" />
     <ClInclude Include="..\..\src\resource.h" />
     <ClInclude Include="..\..\src\table.h" />
     <ClInclude Include="..\..\src\theme.h" />

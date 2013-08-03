@@ -91,20 +91,6 @@ EXPORTS
     mcMenubar_Terminate
     mcOpenThemeData
     mcOpenThemeDataEx
-    mcPropSet_AddRef
-    mcPropSet_Create
-    mcPropSet_DeleteAllItems
-    mcPropSet_DeleteItem
-    mcPropSet_GetItemA
-    mcPropSet_GetItemCount
-    mcPropSet_GetItemW
-    mcPropSet_InsertItemA
-    mcPropSet_InsertItemW
-    mcPropSet_Release
-    mcPropSet_SetItemA
-    mcPropSet_SetItemW
-    mcPropView_Initialize
-    mcPropView_Terminate
     mcSetThemeAppProperties
     mcSetWindowTheme
     mcSetWindowThemeAttribute

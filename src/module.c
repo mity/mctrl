@@ -151,7 +151,6 @@ DEFINE_MODULE(grid);
 DEFINE_MODULE(html);
 DEFINE_MODULE(mditab);
 DEFINE_MODULE(menubar);
-DEFINE_MODULE(propview);
 DEFINE_MODULE(theme);
 DEFINE_MODULE(treelist);
 
@@ -178,9 +177,6 @@ DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
 static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
 DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)
-
-static module_t* mod_propview_deps[] = { &mod_mc, &mod_theme, &mod_propview };
-DEFINE_PUBLIC_IFACE(propview, PropView, mod_propview_deps)
 
 static module_t* mod_theme_deps[] = { &mod_mc, &mod_theme };
 DEFINE_PUBLIC_IFACE(theme, Theme, mod_theme_deps)

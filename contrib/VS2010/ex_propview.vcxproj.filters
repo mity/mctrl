@@ -11,11 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\examples\ex_propview.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="..\..\..\examples\ex_manifest.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>

@@ -28,8 +28,6 @@
 #include <mCtrl/html.h>
 #include <mCtrl/menubar.h>
 #include <mCtrl/mditab.h>
-#include <mCtrl/propset.h>
-#include <mCtrl/propview.h>
 #include <mCtrl/table.h>
 #include <mCtrl/value.h>
 #include <mCtrl/version.h>
