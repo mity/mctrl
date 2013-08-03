@@ -46,7 +46,7 @@ GenerateDynamicContents(void)
     static UINT uCounter = 1;
     TCHAR buffer[512];
 
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR),
+    _stprintf_s(buffer, sizeof(buffer) / sizeof(TCHAR),
                _T("<p>This paragraph is generated dynamically by the application "
                   "and injected via message <tt>MC_HM_SETTAGCONTENTS</tt>. To "
                   "prove that the following number is incremented anytime this "
@@ -105,7 +105,7 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
             MC_NMHTMLTEXT* nmhtmltext = (MC_NMHTMLTEXT*) hdr;
             if(nmhtmltext->pszText[0] != _T('\0')) {
                 TCHAR buffer[512];
-                _sntprintf(buffer, 512, _T("%s - %s"), nmhtmltext->pszText, CAPTION);
+                _stprintf_s(buffer, 512, _T("%s - %s"), nmhtmltext->pszText, CAPTION);
                 SetWindowText(hwnd, buffer);
             } else {
                 SetWindowText(hwnd, CAPTION);

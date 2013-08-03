@@ -36,7 +36,7 @@ LoadGrid(void)
      * MC_GS_ROWHEADERCUSTOM. */
     for(row = 0; row < 16; row++) {
         TCHAR buffer[32];
-        _sntprintf(buffer, 32, _T("Row %d"), row);
+        _stprintf_s(buffer, 32, _T("Row %d"), row);
         SendMessage(hwndGrid, MC_GM_SETVALUE, MAKEWPARAM(0, row),
                     (LPARAM) mcValue_CreateString(buffer));
     }

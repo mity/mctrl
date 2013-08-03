@@ -103,7 +103,7 @@ SetupTreeList(void)
     MC_TLINSERTSTRUCT insertMoon;
     MC_HTREELISTITEM hSun;
     MC_TLSUBITEM subitem;
-    int i, j;
+    UINT i, j;
 
     col.fMask = MC_TLCF_TEXT | MC_TLCF_WIDTH | MC_TLCF_FORMAT;
     col.cx = 130;
