@@ -18,7 +18,7 @@ EXSTYLE WS_EX_DLGMODALFRAME
 CAPTION "mCtrl Example: EXPAND Control"
 FONT 8, "MS Shell Dlg"
 BEGIN
-    CONTROL "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi fermentum, libero at tincidunt ultricies, turpis purus cursus lorem, at tempor erat purus sit amet quam. Nulla et ante massa. Integer pretium eros sed lectus scelerisque eu dictum orci porttitor.", -1, "STATIC", 0, 7, 7, 286, 24
+    CONTROL "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi fermentum, libero at tincidunt ultricies, turpis purus cursus lorem, at tempor erat purus sit amet quam. Nulla et ante massa. Integer pretium eros sed lectus scelerisque eu dictum orci.", -1, "STATIC", 0, 7, 7, 286, 24
     CONTROL "", IDC_EXPAND, MC_WC_EXPAND, WS_TABSTOP | MC_EXS_CACHESIZES | MC_EXS_ANIMATE, 7, 38, 100, 12
-    CONTROL "Vivamus neque dui, dictum sit amet gravida nec, aliquet et elit. Aenean pretium auctor leo at commodo. Quisque nec eros diam. Suspendisse potenti. Nam quis nisl metus. Praesent eros orci, interdum ut sagittis ut, vulputate et ante. Nullam non leo quis tellus tempus congue. Nullam sed diam nibh, in consequat arcu.", -1, "STATIC", 0, 7, 57, 286, 24
+    CONTROL "Vivamus neque dui, dictum sit amet gravida nec, aliquet et elit. Aenean pretium auctor leo at commodo. Quisque nec eros diam. Suspendisse potenti. Nam quis nisl metus. Praesent eros orci, interdum ut sagittis ut, vulputate et ante. Nullam non leo.", -1, "STATIC", 0, 7, 57, 286, 24
 END
