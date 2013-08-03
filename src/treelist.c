@@ -66,8 +66,14 @@ struct treelist_item_tag {
     SHORT img;
     SHORT img_selected;
     SHORT img_expanded;
-    WORD state     : 15;
+    WORD state     : 14;
     WORD children  : 1;
+
+    /* Flag treelist_do_expand/collapse() is in progress. Used to detect nested
+     * call (i.e. from the notification) to prevent endless recursion.
+     * Typically happens for (MC_TLE_COLLAPSE|MC_TLE_COLLAPSERESET) in
+     * dynamically populated tree list. */
+    WORD expanding_notify_in_progress : 1;
 
     COLORREF textColor;
     COLORREF bkColor;
@@ -1226,8 +1232,6 @@ treelist_do_expand_all(treelist_t* tl)
 {
     treelist_item_t* item;
 
-    /* FIXME: expand notifications? use item_has_children()? */
-
     tl->displayed_items = 0;
     for(item = tl->root_head; item != NULL; item = item_next(item)) {
         tl->displayed_items++;
@@ -1244,6 +1248,7 @@ treelist_do_expand_all(treelist_t* tl)
 static int treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed);
 static int treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed);
 static void treelist_do_select(treelist_t* tl, treelist_item_t* item);
+static void treelist_delete_children(treelist_t* tl, treelist_item_t* item);
 
 static inline BOOL
 treelist_ensure_visible(treelist_t* tl, treelist_item_t* item0, treelist_item_t* item1)
@@ -1383,15 +1388,22 @@ treelist_do_expand(treelist_t* tl, treelist_item_t* item, BOOL surely_displayed)
 
     MC_ASSERT(!(item->state & MC_TLIS_EXPANDED));
 
-    nm.hdr.hwndFrom = tl->win;
-    nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
-    nm.hdr.code = MC_TLN_EXPANDING;
-    nm.action = MC_TLE_EXPAND;
-    nm.hItemNew = item;
-    nm.lParamNew = item->lp;
-    if(MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
-        TREELIST_TRACE("treelist_do_expand: Denied by app.");
-        return -1;
+    if(!item->expanding_notify_in_progress) {
+        LRESULT res;
+
+        nm.hdr.hwndFrom = tl->win;
+        nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+        nm.hdr.code = MC_TLN_EXPANDING;
+        nm.action = MC_TLE_EXPAND;
+        nm.hItemNew = item;
+        nm.lParamNew = item->lp;
+        item->expanding_notify_in_progress = 1;
+        res = MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+        item->expanding_notify_in_progress = 0;
+        if(res != 0) {
+            TREELIST_TRACE("treelist_do_expand: Denied by app.");
+            return -1;
+        }
     }
 
     item->state |= MC_TLIS_EXPANDED;
@@ -1425,15 +1437,22 @@ treelist_do_collapse(treelist_t* tl, treelist_item_t* item, BOOL surely_displaye
 
     MC_ASSERT(item->state & MC_TLIS_EXPANDED);
 
-    nm.hdr.hwndFrom = tl->win;
-    nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
-    nm.hdr.code = MC_TLN_EXPANDING;
-    nm.action = MC_TLE_COLLAPSE;
-    nm.hItemNew = item;
-    nm.lParamNew = item->lp;
-    if(MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
-        TREELIST_TRACE("treelist_do_collapse: Denied by app.");
-        return -1;
+    if(!item->expanding_notify_in_progress) {
+        LRESULT res;
+
+        nm.hdr.hwndFrom = tl->win;
+        nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+        nm.hdr.code = MC_TLN_EXPANDING;
+        nm.action = MC_TLE_COLLAPSE;
+        nm.hItemNew = item;
+        nm.lParamNew = item->lp;
+        item->expanding_notify_in_progress = 1;
+        res = MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
+        item->expanding_notify_in_progress = 0;
+        if(res != 0) {
+            TREELIST_TRACE("treelist_do_collapse: Denied by app.");
+            return -1;
+        }
     }
 
     item->state &= ~MC_TLIS_EXPANDED;
@@ -1491,6 +1510,12 @@ treelist_expand_item(treelist_t* tl, int action, treelist_item_t* item)
                 MC_TRACE("treelist_expand_item: Item already collapsed.");
                 return FALSE;
             }
+
+        case MC_TLE_COLLAPSE | MC_TLE_COLLAPSERESET:
+            if(item->state & MC_TLIS_EXPANDED)
+                treelist_do_collapse(tl, item, FALSE);
+            treelist_delete_children(tl, item);
+            return TRUE;
 
         case MC_TLE_TOGGLE:
             if(expanded)
@@ -2203,6 +2228,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
                                 ? item_data->iExpandedImage : MC_I_IMAGENONE);
     item->children = ((item_data->fMask & MC_TLIF_CHILDREN)
                                 ? item_data->cChildren : 0);
+    item->expanding_notify_in_progress = 0;
     item->textColor = ((item_data->fMask & MC_TLIF_TEXTCOLOR)
                                 ? item_data->textColor : MC_CLR_DEFAULT);
     item->bkColor = ((item_data->fMask & MC_TLIF_BKCOLOR)
@@ -2406,9 +2432,8 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
 }
 
 static void
-treelist_delete_notify(treelist_t* tl, treelist_item_t* item)
+treelist_delete_notify(treelist_t* tl, treelist_item_t* item, treelist_item_t* stopper)
 {
-    treelist_item_t* stopper = (item ? item->parent : NULL);
     MC_NMTREELIST nm = { {0}, 0 };
 
     nm.hdr.hwndFrom = tl->win;
@@ -2419,7 +2444,6 @@ treelist_delete_notify(treelist_t* tl, treelist_item_t* item)
         nm.hItemOld = item;
         nm.lParamOld = item->lp;
         MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm);
-
         item = item_next_ex(item, stopper);
     }
 }
@@ -2490,7 +2514,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
             treelist_do_select(tl, NULL);
             tl->scrolled_item = NULL;
 
-            treelist_delete_notify(tl, tl->root_head);
+            treelist_delete_notify(tl, tl->root_head, NULL);
             treelist_delete_item_helper(tl, tl->root_head, FALSE);
             tl->root_head = NULL;
             tl->root_tail = NULL;
@@ -2502,7 +2526,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
         return TRUE;
     }
 
-    /* Remeber some info about the deleted item. */
+    /* Remember some info about the deleted item. */
     parent = item->parent;
     sibling_prev = item->sibling_prev;
     sibling_next = item->sibling_next;
@@ -2521,7 +2545,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
     }
 
     /* This should be very last notification about the item and its subtree. */
-    treelist_delete_notify(tl, item);
+    treelist_delete_notify(tl, item, item);
 
     /* Disconnect the item from the tree. */
     if(item->sibling_prev) {
@@ -2570,7 +2594,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
             }
 
             /* If we were tail child, the previous sibling column 0 may need to
-             * repaint without a ling continuing to us. */
+             * repaint without a line continuing to us. */
             if(sibling_prev != NULL  &&  sibling_next == NULL)
                 treelist_invalidate_item(tl, sibling_prev, 0, 0);
         }
@@ -2582,6 +2606,72 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
         treelist_invalidate_item(tl, parent, 0, 0);
 
     return TRUE;
+}
+
+static void
+treelist_delete_children(treelist_t* tl, treelist_item_t* item)
+{
+    DWORD old_displayed_items = tl->displayed_items;
+    treelist_item_t* child_head;
+    BOOL is_displayed;
+    int y;
+    int displayed_del_count;
+
+    TREELIST_TRACE("treelist_delete_children(%p, %p)", tl, item);
+
+    MC_ASSERT(item != NULL);
+
+    if(item->child_head == NULL)
+        return;
+
+    /* Remember some info about the item. */
+    is_displayed = item_is_displayed(item->child_head);
+    y = (is_displayed ? treelist_get_item_y(tl, item->child_head, TRUE) : -1);
+
+    /* If the deleted subtree contains selection, we must change selection */
+    if(item_is_ancestor(item, tl->selected_item)  &&  item != tl->selected_item)
+        treelist_do_select(tl, item);
+
+    /* This should be very last notification about the item and its subtree. */
+    treelist_delete_notify(tl, item->child_head, item);
+
+    /* Disconnect the children from the tree. */
+    child_head = item->child_head;
+    item->child_head = NULL;
+    item->child_tail = NULL;
+
+    /* Reset item bookmarks which will need recomputing anyway. */
+    tl->hotbutton_item = NULL;
+    tl->scrolled_item = NULL;
+
+    /* Delete the child items and their subtrees, and count how many of deleted
+     * items were displayed. */
+    displayed_del_count = treelist_delete_item_helper(tl, child_head, is_displayed);
+    if(is_displayed)
+        tl->displayed_items -= displayed_del_count;
+
+    /* Refresh */
+    if(tl->displayed_items != old_displayed_items) {
+        treelist_setup_scrollbars(tl);
+
+        if(!tl->no_redraw) {
+            /* Scroll the items below up to the place of the deleted ones. */
+            if(y >= 0) {
+                RECT rect;
+                GetClientRect(tl->win, &rect);
+                if(y < rect.bottom) {
+                    rect.top = y;
+                    ScrollWindowEx(tl->win, 0, -(displayed_del_count * tl->item_height),
+                                   &rect, &rect, NULL, NULL, SW_INVALIDATE | SW_ERASE);
+                    treelist_refresh_hotbutton(tl);
+                }
+            }
+        }
+    }
+
+    /* Parent may need to repaint column 0 without expand button. */
+    if(!tl->no_redraw)
+        treelist_invalidate_item(tl, item, 0, 0);
 }
 
 static BOOL

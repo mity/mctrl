@@ -117,7 +117,9 @@ extern "C" {
  * for @c MC_TLE_EXPAND.
  *
  * In a similar manner the application may delete the child items if
- * @c MC_NMTREELIST::action is set to @c MC_TLE_COLLAPSE.
+ * @c MC_NMTREELIST::action is set to @c MC_TLE_COLLAPSE. It may do so
+ * by sending @c MC_TLM_EXPAND with @c WPARAM set to
+ * <tt>MC_TLE_COLLAPSE | MC_TLE_COLLAPSERESET</tt>.
  *
  *
  * @section std_msgs Standard Messages
@@ -395,6 +397,9 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLE_EXPAND                0x2
 /** @brief Collapse the child items if expanded, or expand them if collapsed. */
 #define MC_TLE_TOGGLE                0x3
+/** @brief Delete all children of the collapsed item.
+ *  @detail Can be only used together with @c MC_TLE_EXPAND. */
+#define MC_TLE_COLLAPSERESET         0x8000
 
 /*@}*/
 

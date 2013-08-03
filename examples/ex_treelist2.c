@@ -287,27 +287,6 @@ InsertChildren(MC_HTREELISTITEM hItem, HKEY hKey)
     InvalidateRect(hwndTreeList, NULL, TRUE);
 }
 
-static void
-DeleteChildren(MC_HTREELISTITEM hItem)
-{
-    MC_HTREELISTITEM hChildItem;
-    MC_HTREELISTITEM hChildItemNext;
-
-    SendMessage(hwndTreeList, WM_SETREDRAW, FALSE, 0);
-
-    hChildItem = (MC_HTREELISTITEM) SendMessage(hwndTreeList,
-                                    MC_TLM_GETNEXTITEM, MC_TLGN_CHILD, (LPARAM) hItem);
-    while(hChildItem != NULL) {
-        hChildItemNext = (MC_HTREELISTITEM) SendMessage(hwndTreeList,
-                                    MC_TLM_GETNEXTITEM, MC_TLGN_NEXT, (LPARAM) hChildItem);
-        SendMessage(hwndTreeList, MC_TLM_DELETEITEM, 0, (LPARAM) hChildItem);
-        hChildItem = hChildItemNext;
-    }
-
-    SendMessage(hwndTreeList, WM_SETREDRAW, TRUE, 0);
-    InvalidateRect(hwndTreeList, NULL, TRUE);
-}
-
 static LRESULT
 OnTreeListNotify(NMHDR* hdr)
 {
@@ -318,10 +297,13 @@ OnTreeListNotify(NMHDR* hdr)
              * We only insert child items when their parent is being expanded,
              * and delete them when it is being collapsed. */
             MC_NMTREELIST* nm = (MC_NMTREELIST*) hdr;
-            if(nm->action == MC_TLE_EXPAND)
+            if(nm->action == MC_TLE_EXPAND) {
                 InsertChildren(nm->hItemNew, (HKEY) nm->lParamNew);
-            else if(nm->action == MC_TLE_COLLAPSE)
-                DeleteChildren(nm->hItemNew);
+            } else if(nm->action == MC_TLE_COLLAPSE) {
+                SendMessage(hwndTreeList, MC_TLM_EXPAND,
+                            MC_TLE_COLLAPSE | MC_TLE_COLLAPSERESET,
+                            (LPARAM) nm->hItemNew);
+            }
             break;
         }
 
