@@ -1120,7 +1120,7 @@ treelist_get_item_y(treelist_t* tl, treelist_item_t* item, BOOL visible_only)
     }
 }
 
-static int
+static LRESULT
 treelist_ncpaint(treelist_t* tl, HRGN orig_clip)
 {
     HDC dc;
@@ -1128,7 +1128,7 @@ treelist_ncpaint(treelist_t* tl, HRGN orig_clip)
     RECT rect;
     HRGN clip;
     HRGN tmp;
-    int ret;
+    LRESULT ret;
 
     if(tl->theme == NULL)
         return DefWindowProc(tl->win, WM_NCPAINT, (WPARAM)orig_clip, 0);
