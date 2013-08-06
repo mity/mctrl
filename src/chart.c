@@ -2797,7 +2797,7 @@ chart_style_changed(chart_t* chart, STYLESTRUCT* ss)
 
     chart_setup_hot(chart);
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        RedrawWindow(chart->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
 }
 
 static chart_t*
@@ -2975,6 +2975,8 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETREDRAW:
             chart->no_redraw = !wp;
+            if(!chart->no_redraw)
+                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
             return 0;
 
         case WM_GETDLGCODE:
@@ -2987,7 +2989,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SYSCOLORCHANGE:
             if(!chart->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
+                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
             break;
 
         case CCM_SETNOTIFYWINDOW:

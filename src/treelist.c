@@ -2869,7 +2869,7 @@ treelist_theme_changed(treelist_t* tl)
     tl->theme = mcOpenThemeData(tl->win, treelist_tc);
 
     if(!tl->no_redraw)
-        InvalidateRect(tl->win, NULL, TRUE);
+        RedrawWindow(tl->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
 }
 
 static treelist_t*
@@ -3168,8 +3168,11 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETREDRAW:
             tl->no_redraw = !wp;
-            if(!tl->no_redraw  &&  tl->dirty_scrollbars)
-                treelist_setup_scrollbars(tl);
+            if(!tl->no_redraw) {
+                if(tl->dirty_scrollbars)
+                    treelist_setup_scrollbars(tl);
+                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_FRAME);
+            }
             return 0;
 
         case WM_GETDLGCODE:
@@ -3180,7 +3183,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
                 tl->style = ss->styleNew;
                 if(!tl->no_redraw)
-                    InvalidateRect(tl->win, NULL, TRUE);
+                    RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_FRAME);
             }
             break;
 

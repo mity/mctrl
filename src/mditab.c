@@ -1620,8 +1620,10 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
         mditab_animate_abort(mditab);
 
     mditab_layout(mditab, FALSE);
-    if(!mditab->no_redraw)
-        InvalidateRect(mditab->win, NULL, TRUE);
+    if(!mditab->no_redraw) {
+        RedrawWindow(mditab->win, NULL, NULL,
+                     RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
+    }
 }
 
 static void
@@ -1633,7 +1635,7 @@ mditab_theme_changed(mditab_t* mditab)
         mcCloseThemeData(mditab->theme);
     mditab->theme = mcOpenThemeData(mditab->win, mditab_tc);
     if(!mditab->no_redraw)
-        InvalidateRect(mditab->win, NULL, TRUE);
+        RedrawWindow(mditab->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
 
     /* As an optimization, we do not track hot item when not themed, so
      * it might be in inconsistant state now. Refresh the state. */
@@ -1878,6 +1880,8 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETREDRAW:
             mditab->no_redraw = !wp;
+            if(!mditab->no_redraw)
+                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
             return 0;
 
         case WM_GETDLGCODE:
@@ -1896,7 +1900,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SYSCOLORCHANGE:
             if(!mditab->no_redraw)
-                InvalidateRect(win, NULL, FALSE);
+                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE);
             break;
 
         case WM_UPDATEUISTATE:
