@@ -55,16 +55,16 @@ BEGIN
     BEGIN
         BLOCK "000004b0"   /* language: 0 (neutral); charset: 0x04b0 == 1200 (unicode) */
         BEGIN
+            VALUE "ProductName",       "mCtrl Library"
+            VALUE "FileDescription",   "Additional User Experience Controls Library"
+            VALUE "OriginalFilename",  "mCtrl.dll"
+            VALUE "InternalName",      "mCtrl"
+            VALUE "CompanyName",       "morous.org"
+            VALUE "FileVersion",       MC_VERSION_STR
+            VALUE "ProductVersion",    MC_VERSION_STR
 #pragma code_page(1250)
             VALUE "LegalCopyright",    "© 2008-2013 Martin Mitáš"
 #pragma code_page(DEFAULT)
-            VALUE "ProductName",       "mCtrl Library"
-            VALUE "FileDescription",   "mCtrl Library"
-            VALUE "OriginalFilename",  "mCtrl.dll"
-            VALUE "InternalName",      "mCtrl"
-            VALUE "FileVersion",       MC_VERSION_STR
-            VALUE "ProductVersion",    MC_VERSION_STR
-            VALUE "CompanyName",       "morous.org"
             VALUE "WWW",               "http://mctrl.sourceforge.net"
         END
     END
