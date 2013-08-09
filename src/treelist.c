@@ -23,7 +23,6 @@
 /* TODO:
  *  -- Incremental search.
  *  -- Tooltips and style MC_TLS_NOTOOLTIPS.
- *  -- Style MC_TLS_GRIDLINES.
  *  -- Handling state and style MC_TLS_CHECKBOXES.
  *  -- Support editing labels and style MC_TLS_EDITLABELS and related
  *     notifications.
@@ -754,6 +753,30 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     if(tl->imglist_normal)
         ImageList_GetIconSize(tl->imglist_normal, &img_w, &img_h);
     use_theme = (tl->theme != NULL  &&  mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
+
+    /* Paint grid */
+    if(tl->style & MC_TLS_GRIDLINES) {
+        HPEN pen;
+        HPEN old_pen;
+
+        pen = CreatePen(PS_SOLID, 1, mcGetThemeSysColor(tl->theme, COLOR_3DFACE));
+        old_pen = SelectObject(dc, pen);
+
+        for(y = header_height + tl->item_height - 1; y < rect.bottom; y += tl->item_height) {
+            MoveToEx(dc, 0, y, NULL);
+            LineTo(dc, rect.right, y);
+        }
+
+        for(col_ix = 0; col_ix < tl->col_count; col_ix++) {
+            header_item.mask = HDI_FORMAT;
+            MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &subitem_rect);
+            subitem_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x;
+            MoveToEx(dc, subitem_rect.right, header_height, NULL);
+            LineTo(dc, subitem_rect.right, rect.bottom);
+        }
+
+        SelectObject(dc, old_pen);
+    }
 
     /* Paint items */
     for(item = treelist_scrolled_item(tl, &level), y = header_height;

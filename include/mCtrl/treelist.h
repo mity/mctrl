@@ -191,9 +191,8 @@ void MCTRL_API mcTreeList_Terminate(void);
  *  @details Has no effect if none of @ref MC_TLS_HASBUTTONS and
  *  @ref MC_TLS_HASLINES is set. */
 #define MC_TLS_LINESATROOT          0x0004
-#if 0 /* TODO */
+/** @brief Paint grid lines */
 #define MC_TLS_GRIDLINES            0x0008
-#endif
 /** @brief Show selection even when not having a focus. */
 #define MC_TLS_SHOWSELALWAYS        0x0010
 /** @brief Enable full row select in the control and the entire row of selected
