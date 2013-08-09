@@ -32,6 +32,9 @@
 gdix_Status (WINAPI* gdix_CreateFromHDC)(HDC,gdix_Graphics**);
 gdix_Status (WINAPI* gdix_DeleteGraphics)(gdix_Graphics*);
 gdix_Status (WINAPI* gdix_SetSmoothingMode)(gdix_Graphics*,gdix_SmoothingMode);
+gdix_Status (WINAPI* gdix_TranslateWorldTransform)(gdix_Graphics*,gdix_Real,gdix_Real,gdix_MatrixOrder);
+gdix_Status (WINAPI* gdix_RotateWorldTransform)(gdix_Graphics*,gdix_Real,gdix_MatrixOrder);
+gdix_Status (WINAPI* gdix_ResetWorldTransform)(gdix_Graphics*);
 
 /* Pen management */
 gdix_Status (WINAPI* gdix_CreatePen1)(gdix_ARGB,gdix_Real,gdix_Unit,gdix_Pen**);
@@ -165,6 +168,9 @@ gdix_init_module(void)
     GPA(CreateFromHDC,        (HDC,gdix_Graphics**));
     GPA(DeleteGraphics,       (gdix_Graphics*));
     GPA(SetSmoothingMode,     (gdix_Graphics*,gdix_SmoothingMode));
+    GPA(TranslateWorldTransform, (gdix_Graphics*,gdix_Real,gdix_Real,gdix_MatrixOrder));
+    GPA(RotateWorldTransform, (gdix_Graphics*,gdix_Real,gdix_MatrixOrder));
+    GPA(ResetWorldTransform,  (gdix_Graphics*));
 
     GPA(CreatePen1,           (gdix_ARGB,gdix_Real,gdix_Unit,gdix_Pen**));
     GPA(DeletePen,            (gdix_Pen*));

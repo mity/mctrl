@@ -31,6 +31,8 @@
  * with LoadLibrary() so the C++ wrapper sugery in their headers cannot be
  * used. Hence we do not include any GDI+ related header and instead use our
  * own types.
+ *
+ * Note we declare only types/constatnts we need to use in mCtrl.
  */
 
 typedef void* gdix_Graphics;
@@ -61,6 +63,12 @@ struct gdix_RectF_tag {
     gdix_Real y;
     gdix_Real w;
     gdix_Real h;
+};
+
+typedef enum gdix_MatrixOrder_tag gdix_MatrixOrder;
+enum gdix_MatrixOrder_tag {
+    gdix_MatrixOrderPrepend = 0,
+    gdix_MatrixOrderAppend = 1
 };
 
 typedef enum gdix_Unit_tag gdix_Unit;
@@ -96,6 +104,9 @@ enum gdix_FillMode_tag  {
 extern gdix_Status (WINAPI* gdix_CreateFromHDC)(HDC,gdix_Graphics**);
 extern gdix_Status (WINAPI* gdix_DeleteGraphics)(gdix_Graphics*);
 extern gdix_Status (WINAPI* gdix_SetSmoothingMode)(gdix_Graphics*,gdix_SmoothingMode);
+extern gdix_Status (WINAPI* gdix_TranslateWorldTransform)(gdix_Graphics*,gdix_Real,gdix_Real,gdix_MatrixOrder);
+extern gdix_Status (WINAPI* gdix_RotateWorldTransform)(gdix_Graphics*,gdix_Real,gdix_MatrixOrder);
+extern gdix_Status (WINAPI* gdix_ResetWorldTransform)(gdix_Graphics*);
 
 /* Pen management */
 extern gdix_Status (WINAPI* gdix_CreatePen1)(gdix_ARGB,gdix_Real,gdix_Unit,gdix_Pen**);

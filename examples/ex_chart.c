@@ -59,6 +59,9 @@ SetupScatterChart(HWND hwndChart)
 
     SetWindowText(hwndChart, _T("Height vs. Weight"));
 
+    SendMessage(hwndChart, MC_CHM_SETAXISLEGEND, 1, (LPARAM) _T("Height [cm]"));
+    SendMessage(hwndChart, MC_CHM_SETAXISLEGEND, 2, (LPARAM) _T("Weight [kg]"));
+
     dataSet.dwCount = sizeof(maleData) / sizeof(maleData[0]);
     dataSet.piValues = (int*) maleData;
     SendMessage(hwndChart, MC_CHM_INSERTDATASET, 0, (LPARAM) &dataSet);
@@ -83,6 +86,9 @@ SetupCommonChart(HWND hwndChart)
 
     SetWindowText(hwndChart, _T("Yearly Coffee Consumption by Country"));
 
+    SendMessage(hwndChart, MC_CHM_SETAXISLEGEND, 1, (LPARAM) _T("Year"));
+    SendMessage(hwndChart, MC_CHM_SETAXISLEGEND, 2, (LPARAM) _T("Amount [tons]"));
+
     /* The data are since year 2003 */
     SendMessage(hwndChart, MC_CHM_SETAXISOFFSET, 1, 2003);
 
@@ -93,13 +99,13 @@ SetupCommonChart(HWND hwndChart)
 
     dataSet.dwCount = sizeof(denmarkData) / sizeof(denmarkData[0]);
     dataSet.piValues = (int*) denmarkData;
-    SendMessage(hwndChart, MC_CHM_INSERTDATASET, 0, (LPARAM) &dataSet);
-    SendMessage(hwndChart, MC_CHM_SETDATASETLEGEND, 0, (LPARAM) _T("Denmark"));
+    SendMessage(hwndChart, MC_CHM_INSERTDATASET, 1, (LPARAM) &dataSet);
+    SendMessage(hwndChart, MC_CHM_SETDATASETLEGEND, 1, (LPARAM) _T("Denmark"));
 
     dataSet.dwCount = sizeof(greeceData) / sizeof(greeceData[0]);
     dataSet.piValues = (int*) greeceData;
-    SendMessage(hwndChart, MC_CHM_INSERTDATASET, 0, (LPARAM) &dataSet);
-    SendMessage(hwndChart, MC_CHM_SETDATASETLEGEND, 0, (LPARAM) _T("Greece"));
+    SendMessage(hwndChart, MC_CHM_INSERTDATASET, 2, (LPARAM) &dataSet);
+    SendMessage(hwndChart, MC_CHM_SETDATASETLEGEND, 2, (LPARAM) _T("Greece"));
 }
 
 /* Main window procedure */

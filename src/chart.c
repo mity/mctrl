@@ -43,6 +43,7 @@ static const TCHAR chart_wc[] = MC_WC_CHART;    /* Window class name */
 
 typedef struct chart_axis_tag chart_axis_t;
 struct chart_axis_tag {
+    TCHAR* name;
     int offset;
     CHAR factor_exp;
 };
@@ -77,6 +78,7 @@ struct chart_tag {
 typedef struct chart_layout_tag chart_layout_t;
 struct chart_layout_tag {
     SIZE font_size;
+    int margin;
     RECT title_rect;
     RECT body_rect;
     RECT legend_rect;
@@ -299,6 +301,20 @@ chart_tooltip_text_common(chart_t* chart, chart_axis_t* axis,
         chart_str_value(axis, val, val_str);
         mc_str_inbuf(val_str, MC_STRW, buffer, MC_STRT, bufsize);
     }
+}
+
+static inline void
+chart_DrawStringVert(gdix_Graphics* gfx, const WCHAR* str, INT str_len,
+            const gdix_Font* font, const gdix_RectF* rect,
+            const gdix_StringFormat* format, const gdix_Brush* brush)
+{
+    /* Note: It is assumed here the caller has set alignement to
+     *       gdix_StringAlignmentCenter. */
+    gdix_RectF r = { -rect->h/2, -rect->w/2, rect->h, rect->w };
+    gdix_TranslateWorldTransform(gfx, rect->x + rect->w/2, rect->y + rect->h/2, gdix_MatrixOrderPrepend);
+    gdix_RotateWorldTransform(gfx, 270.0, gdix_MatrixOrderPrepend);
+    gdix_DrawString(gfx, str, str_len, font, &r, format, brush);
+    gdix_ResetWorldTransform(gfx);
 }
 
 
@@ -662,6 +678,8 @@ pie_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 
 typedef struct scatter_geometry_tag scatter_geometry_t;
 struct scatter_geometry_tag {
+    gdix_RectF axis_x_name_rect;
+    gdix_RectF axis_y_name_rect;
     gdix_RectF core_rect;
 
     int min_x;
@@ -755,7 +773,7 @@ scatter_calc_geometry(chart_t* chart, chart_layout_t* layout, cache_t* cache,
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
-    label_y_w = 6 * layout->font_size.cx;
+    label_y_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->axis2, geom->min_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
@@ -764,11 +782,33 @@ scatter_calc_geometry(chart_t* chart, chart_layout_t* layout, cache_t* cache,
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
+    /* Compute axis legend width/height */
+    if(chart->axis1.name != NULL) {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom - layout->font_size.cy;
+        geom->axis_x_name_rect.h = layout->font_size.cy;
+    } else {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom;
+        geom->axis_x_name_rect.h  = 0;
+    }
+    if(chart->axis2.name != NULL) {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = layout->font_size.cy;
+    } else {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = 0;
+    }
+
     /* Compute core area */
     geom->core_rect.x = layout->body_rect.left + label_y_w;
     geom->core_rect.y = layout->body_rect.top + (label_y_h+1) / 2;
     geom->core_rect.w = layout->body_rect.right - geom->core_rect.x;
     geom->core_rect.h = layout->body_rect.bottom - label_x_h - geom->core_rect.y;
+    if(geom->axis_x_name_rect.h != 0)
+        geom->core_rect.h -= geom->axis_x_name_rect.h + layout->margin;
+    if(geom->axis_y_name_rect.w != 0) {
+        geom->core_rect.x += geom->axis_y_name_rect.w + layout->margin;
+        geom->core_rect.w -= geom->axis_y_name_rect.w + layout->margin;
+    }
 
     /* Steps for painting secondary lines */
     geom->step_x = chart_round_value(
@@ -784,9 +824,14 @@ scatter_calc_geometry(chart_t* chart, chart_layout_t* layout, cache_t* cache,
      * to anti-aliasing to neiberhood pixels as it looks too ugly. */
     chart_fixup_rect_v(&geom->core_rect, geom->min_y, geom->max_y, geom->step_y);
     chart_fixup_rect_h(&geom->core_rect, geom->min_x, geom->max_x, geom->step_x);
-
     geom->min_step_x = ((geom->min_x + geom->step_x - 1) / geom->step_x) * geom->step_x;
     geom->min_step_y = ((geom->min_y + geom->step_y - 1) / geom->step_y) * geom->step_y;
+
+    /* Refresh axis legend areas after the fix-up */
+    geom->axis_x_name_rect.x = geom->core_rect.x;
+    geom->axis_x_name_rect.w = geom->core_rect.w;
+    geom->axis_y_name_rect.y = geom->core_rect.y;
+    geom->axis_y_name_rect.h = geom->core_rect.h;
 }
 
 static void
@@ -795,6 +840,16 @@ scatter_paint_grid(chart_t* chart, chart_paint_t* ctx, scatter_geometry_t* geom)
     gdix_Real rx, ry;
     int x, y;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+
+    /* Axis legends */
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(95,95,95));
+    if(chart->axis1.name != NULL)
+        gdix_DrawString(ctx->gfx, chart->axis1.name, -1, ctx->font,
+                        &geom->axis_x_name_rect, ctx->format, ctx->brush);
+    if(chart->axis2.name != NULL)
+        chart_DrawStringVert(ctx->gfx, chart->axis2.name, -1, ctx->font,
+                        &geom->axis_y_name_rect, ctx->format, ctx->brush);
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(0,0,0));
 
     /* Secondary lines */
     gdix_SetPenColor(ctx->pen, gdix_ARGB_from_rgb(191,191,191));
@@ -966,6 +1021,8 @@ scatter_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 
 typedef struct line_geometry_tag line_geometry_t;
 struct line_geometry_tag {
+    gdix_RectF axis_x_name_rect;
+    gdix_RectF axis_y_name_rect;
     gdix_RectF core_rect;
 
     int min_count;
@@ -1063,7 +1120,7 @@ line_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
-    label_y_w = 6 * layout->font_size.cx;
+    label_y_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->axis2, geom->min_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
@@ -1072,11 +1129,33 @@ line_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
+    /* Compute axis legend width/height */
+    if(chart->axis1.name != NULL) {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom - layout->font_size.cy;
+        geom->axis_x_name_rect.h = layout->font_size.cy;
+    } else {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom;
+        geom->axis_x_name_rect.h  = 0;
+    }
+    if(chart->axis2.name != NULL) {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = layout->font_size.cy;
+    } else {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = 0;
+    }
+
     /* Compute core area */
     geom->core_rect.x = layout->body_rect.left + label_y_w;
     geom->core_rect.y = layout->body_rect.top + (label_y_h+1) / 2;
     geom->core_rect.w = layout->body_rect.right - geom->core_rect.x;
     geom->core_rect.h = layout->body_rect.bottom - label_x_h - geom->core_rect.y;
+    if(geom->axis_x_name_rect.h != 0)
+        geom->core_rect.h -= geom->axis_x_name_rect.h + layout->margin;
+    if(geom->axis_y_name_rect.w != 0) {
+        geom->core_rect.x += geom->axis_y_name_rect.w + layout->margin;
+        geom->core_rect.w -= geom->axis_y_name_rect.w + layout->margin;
+    }
 
     /* Steps for painting secondary lines */
     geom->step_x = chart_round_value(
@@ -1092,9 +1171,14 @@ line_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
      * to anti-aliasing to neiberhood pixels as it looks too ugly. */
     chart_fixup_rect_h(&geom->core_rect, geom->min_x, geom->max_x, geom->step_x);
     chart_fixup_rect_v(&geom->core_rect, geom->min_y, geom->max_y, geom->step_y);
-
     geom->min_step_x = ((geom->min_x + geom->step_x - 1) / geom->step_x) * geom->step_x;
     geom->min_step_y = ((geom->min_y + geom->step_y - 1) / geom->step_y) * geom->step_y;
+
+    /* Refresh axis legend areas after the fix-up */
+    geom->axis_x_name_rect.x = geom->core_rect.x;
+    geom->axis_x_name_rect.w = geom->core_rect.w;
+    geom->axis_y_name_rect.y = geom->core_rect.y;
+    geom->axis_y_name_rect.h = geom->core_rect.h;
 }
 
 static void
@@ -1103,6 +1187,16 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx, line_geometry_t* geom)
     gdix_Real rx, ry;
     int x, y;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+
+    /* Axis legends */
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(95,95,95));
+    if(chart->axis1.name != NULL)
+        gdix_DrawString(ctx->gfx, chart->axis1.name, -1, ctx->font,
+                        &geom->axis_x_name_rect, ctx->format, ctx->brush);
+    if(chart->axis2.name != NULL)
+        chart_DrawStringVert(ctx->gfx, chart->axis2.name, -1, ctx->font,
+                        &geom->axis_y_name_rect, ctx->format, ctx->brush);
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(0,0,0));
 
     /* Secondary lines */
     gdix_SetPenColor(ctx->pen, gdix_ARGB_from_rgb(191,191,191));
@@ -1352,6 +1446,8 @@ line_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 
 typedef struct column_geometry_tag column_geometry_t;
 struct column_geometry_tag {
+    gdix_RectF axis_x_name_rect;
+    gdix_RectF axis_y_name_rect;
     gdix_RectF core_rect;
 
     int min_count;
@@ -1438,7 +1534,7 @@ column_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
-    label_y_w = 6 * layout->font_size.cx;
+    label_y_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->axis2, geom->min_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
@@ -1447,11 +1543,33 @@ column_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
+    /* Compute axis legend width/height */
+    if(chart->axis1.name != NULL) {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom - layout->font_size.cy;
+        geom->axis_x_name_rect.h = layout->font_size.cy;
+    } else {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom;
+        geom->axis_x_name_rect.h  = 0;
+    }
+    if(chart->axis2.name != NULL) {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = layout->font_size.cy;
+    } else {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = 0;
+    }
+
     /* Compute core area */
     geom->core_rect.x = layout->body_rect.left + label_y_w;
     geom->core_rect.y = layout->body_rect.top + (label_y_h+1) / 2;
     geom->core_rect.w = layout->body_rect.right - geom->core_rect.x;
     geom->core_rect.h = layout->body_rect.bottom - label_x_h - geom->core_rect.y;
+    if(geom->axis_x_name_rect.h != 0)
+        geom->core_rect.h -= geom->axis_x_name_rect.h + layout->margin;
+    if(geom->axis_y_name_rect.w != 0) {
+        geom->core_rect.x += geom->axis_y_name_rect.w + layout->margin;
+        geom->core_rect.w -= geom->axis_y_name_rect.w + layout->margin;
+    }
 
     /* Steps for painting secondary lines */
     geom->step_y = chart_round_value(
@@ -1480,6 +1598,12 @@ column_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
             geom->group_padding = 0;
         }
     }
+
+    /* Refresh axis legend areas after the fix-up */
+    geom->axis_x_name_rect.x = geom->core_rect.x;
+    geom->axis_x_name_rect.w = geom->core_rect.w;
+    geom->axis_y_name_rect.y = geom->core_rect.y;
+    geom->axis_y_name_rect.h = geom->core_rect.h;
 }
 
 static void
@@ -1488,6 +1612,16 @@ column_paint_grid(chart_t* chart, chart_paint_t* ctx, column_geometry_t* geom)
     gdix_Real ry;
     int x, y;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+
+    /* Axis legends */
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(95,95,95));
+    if(chart->axis1.name != NULL)
+        gdix_DrawString(ctx->gfx, chart->axis1.name, -1, ctx->font,
+                        &geom->axis_x_name_rect, ctx->format, ctx->brush);
+    if(chart->axis2.name != NULL)
+        chart_DrawStringVert(ctx->gfx, chart->axis2.name, -1, ctx->font,
+                        &geom->axis_y_name_rect, ctx->format, ctx->brush);
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(0,0,0));
 
     /* Secondary lines */
     gdix_SetPenColor(ctx->pen, gdix_ARGB_from_rgb(191,191,191));
@@ -1677,6 +1811,8 @@ column_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 
 typedef struct bar_geometry_tag bar_geometry_t;
 struct bar_geometry_tag {
+    gdix_RectF axis_x_name_rect;
+    gdix_RectF axis_y_name_rect;
     gdix_RectF core_rect;
 
     int min_count;
@@ -1764,7 +1900,7 @@ bar_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
-    label_y_w = 6 * layout->font_size.cx;
+    label_y_w = 3 * layout->font_size.cx;
     chart_str_value(&chart->axis1, 0, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
@@ -1773,11 +1909,33 @@ bar_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
 
+    /* Compute axis legend width/height */
+    if(chart->axis2.name != NULL) {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom - layout->font_size.cy;
+        geom->axis_x_name_rect.h = layout->font_size.cy;
+    } else {
+        geom->axis_x_name_rect.y = layout->body_rect.bottom;
+        geom->axis_x_name_rect.h  = 0;
+    }
+    if(chart->axis1.name != NULL) {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = layout->font_size.cy;
+    } else {
+        geom->axis_y_name_rect.x = layout->body_rect.left;
+        geom->axis_y_name_rect.w = 0;
+    }
+
     /* Compute core area */
     geom->core_rect.x = layout->body_rect.left + label_y_w;
     geom->core_rect.y = layout->body_rect.top + (label_y_h+1) / 2;
     geom->core_rect.w = layout->body_rect.right - geom->core_rect.x;
     geom->core_rect.h = layout->body_rect.bottom - label_x_h - geom->core_rect.y;
+    if(geom->axis_x_name_rect.h != 0)
+        geom->core_rect.h -= geom->axis_x_name_rect.h + layout->margin;
+    if(geom->axis_y_name_rect.w != 0) {
+        geom->core_rect.x += geom->axis_y_name_rect.w + layout->margin;
+        geom->core_rect.w -= geom->axis_y_name_rect.w + layout->margin;
+    }
 
     /* Steps for painting secondary lines */
     geom->step_x = chart_round_value(
@@ -1806,6 +1964,12 @@ bar_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
             geom->group_padding = 0;
         }
     }
+
+    /* Refresh axis legend areas after the fix-up */
+    geom->axis_x_name_rect.x = geom->core_rect.x;
+    geom->axis_x_name_rect.w = geom->core_rect.w;
+    geom->axis_y_name_rect.y = geom->core_rect.y;
+    geom->axis_y_name_rect.h = geom->core_rect.h;
 }
 
 static void
@@ -1814,6 +1978,16 @@ bar_paint_grid(chart_t* chart, chart_paint_t* ctx, bar_geometry_t* geom)
     gdix_Real rx;
     int x, y;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+
+    /* Axis legends */
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(95,95,95));
+    if(chart->axis2.name != NULL)
+        gdix_DrawString(ctx->gfx, chart->axis2.name, -1, ctx->font,
+                        &geom->axis_x_name_rect, ctx->format, ctx->brush);
+    if(chart->axis1.name != NULL)
+        chart_DrawStringVert(ctx->gfx, chart->axis1.name, -1, ctx->font,
+                        &geom->axis_y_name_rect, ctx->format, ctx->brush);
+    gdix_SetSolidFillColor(ctx->brush, gdix_ARGB_from_rgb(0,0,0));
 
     /* Secondary lines */
     gdix_SetPenColor(ctx->pen, gdix_ARGB_from_rgb(191,191,191));
@@ -2008,33 +2182,32 @@ static void
 chart_calc_layout(chart_t* chart, chart_layout_t* layout)
 {
     TCHAR buf[2];
-    int margin;
     RECT rect;
 
     GetClientRect(chart->win, &rect);
     mc_font_size(chart->font, &layout->font_size);
 
-    margin = (layout->font_size.cy+1) / 2;
+    layout->margin = (layout->font_size.cy+1) / 2;
 
     GetWindowText(chart->win, buf, MC_ARRAY_SIZE(buf));
     if(buf[0] != _T('\0')) {
-        layout->title_rect.left = rect.left + margin;
-        layout->title_rect.top = rect.top + margin;
-        layout->title_rect.right = rect.right - margin;
+        layout->title_rect.left = rect.left + layout->margin;
+        layout->title_rect.top = rect.top + layout->margin;
+        layout->title_rect.right = rect.right - layout->margin;
         layout->title_rect.bottom = layout->title_rect.top + layout->font_size.cy;
     } else {
         mc_rect_set(&layout->title_rect, 0, 0, 0, 0);
     }
 
-    layout->legend_rect.left = rect.right - margin - 12 * layout->font_size.cx;
-    layout->legend_rect.top = layout->title_rect.bottom + margin;
-    layout->legend_rect.right = rect.right - margin;
-    layout->legend_rect.bottom = rect.bottom - margin;
+    layout->legend_rect.left = rect.right - layout->margin - 12 * layout->font_size.cx;
+    layout->legend_rect.top = layout->title_rect.bottom + layout->margin;
+    layout->legend_rect.right = rect.right - layout->margin;
+    layout->legend_rect.bottom = rect.bottom - layout->margin;
 
-    layout->body_rect.left = rect.left + margin;
-    layout->body_rect.top = layout->title_rect.bottom + margin;
-    layout->body_rect.right = layout->legend_rect.left - margin;
-    layout->body_rect.bottom = rect.bottom - margin;
+    layout->body_rect.left = rect.left + layout->margin;
+    layout->body_rect.top = layout->title_rect.bottom + layout->margin;
+    layout->body_rect.right = layout->legend_rect.left - layout->margin;
+    layout->body_rect.bottom = rect.bottom - layout->margin;
 }
 
 static inline void
@@ -2781,6 +2954,43 @@ chart_set_axis_offset(chart_t* chart, int axis_id, int offset)
     return TRUE;
 }
 
+static BOOL
+chart_set_axis_legend(chart_t* chart, int axis_id, void* text, BOOL unicode)
+{
+    TCHAR* str;
+    chart_axis_t* axis;
+
+    switch(axis_id) {
+        case 1:  axis = &chart->axis1; break;
+        case 2:  axis = &chart->axis2; break;
+        default:
+            MC_TRACE("chart_set_axis_legend: Invalid axis %d", axis_id);
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return FALSE;
+    }
+
+    if(text != NULL) {
+        str = (TCHAR*) mc_str(text, unicode ? MC_STRW : MC_STRA, MC_STRT);
+        if(MC_ERR(str == NULL)) {
+            MC_TRACE("chart_set_axis_legend: mc_str() failed.");
+            return FALSE;
+        }
+    } else {
+        str = NULL;
+    }
+
+    if(axis->name != NULL)
+        free(axis->name);
+    axis->name = str;
+
+    chart_setup_hot(chart);
+
+    if(!chart->no_redraw)
+        InvalidateRect(chart->win, NULL, TRUE);
+
+    return TRUE;
+}
+
 static void
 chart_style_changed(chart_t* chart, STYLESTRUCT* ss)
 {
@@ -2851,6 +3061,10 @@ chart_ncdestroy(chart_t* chart)
 {
     mcBufferedPaintUnInit();
     dsa_fini(&chart->data, chart_data_dtor);
+    if(chart->axis1.name != NULL)
+        free(chart->axis1.name);
+    if(chart->axis2.name != NULL)
+        free(chart->axis2.name);
     free(chart);
 }
 
@@ -2952,6 +3166,18 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_CHM_GETTOOLTIPS:
             return (LRESULT) chart->tooltip_win;
+
+
+        case MC_CHM_GETAXISLEGENDW:
+        case MC_CHM_GETAXISLEGENDA:
+            /* TODO */
+            break;
+
+        case MC_CHM_SETAXISLEGENDW:
+        case MC_CHM_SETAXISLEGENDA:
+            return chart_set_axis_legend(chart, wp, (void*)lp,
+                                         (msg == MC_CHM_SETDATASETLEGENDW));
+
 
         case WM_SETTEXT:
         {

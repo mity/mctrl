@@ -458,6 +458,40 @@ typedef struct MC_NMCHDISPINFO_tag {
  */
 #define MC_CHM_GETTOOLTIPS            (MC_CHM_FIRST + 17)
 
+/**
+ * Not yet implemented.
+ */
+#define MC_CHM_GETAXISLEGENDW         (MC_CHM_FIRST + 18)
+
+/**
+ * Not yet implemented.
+ */
+#define MC_CHM_GETAXISLEGENDA         (MC_CHM_FIRST + 19)
+
+/**
+ * @brief Set legend text of axis (unicode variant).
+ *
+ * Note that pie chart does not paint the axis legend.
+ *
+ * @param[in] wParam (@c int) Set to @c 1 to set primary axis, or @c 2 to set
+ * secondary axis.
+ * @param[in] lParam (@c WCHAR*) The legend string.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_CHM_SETAXISLEGENDW         (MC_CHM_FIRST + 20)
+
+/**
+ * @brief Set legend text of axis (ANSI variant).
+ *
+ * Note that pie chart does not paint the axis legend.
+ *
+ * @param[in] wParam (@c int) Set to @c 1 to set primary axis, or @c 2 to set
+ * secondary axis.
+ * @param[in] lParam (@c char*) The legend string.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_CHM_SETAXISLEGENDA         (MC_CHM_FIRST + 21)
+
 /*@}*/
 
 
@@ -495,6 +529,10 @@ typedef struct MC_NMCHDISPINFO_tag {
 #define MC_CHM_GETDATASETLEGEND  MCTRL_NAME_AW(MC_CHM_GETDATASETLEGEND)
 /** Unicode-resolution alias. @sa MC_CHM_SETDATASETLEGENDW MC_CHM_SETDATASETLEGENDA */
 #define MC_CHM_SETDATASETLEGEND  MCTRL_NAME_AW(MC_CHM_SETDATASETLEGEND)
+/** Unicode-resolution alias. @sa MC_CHM_GETAXISLEGENDW MC_CHM_GETAXISLEGENDA */
+#define MC_CHM_GETAXISLEGEND  MCTRL_NAME_AW(MC_CHM_GETAXISLEGEND)
+/** Unicode-resolution alias. @sa MC_CHM_SETAXISLEGENDW MC_CHM_SETAXISLEGENDA */
+#define MC_CHM_SETAXISLEGEND  MCTRL_NAME_AW(MC_CHM_SETAXISLEGEND)
 
 /*@}*/
 
