@@ -826,7 +826,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
             /* Determine subitem colors */
             paint_selected = (item->state & MC_TLIS_SELECTED)  &&
-                    ((tl->style & MC_TLS_SHOWSELALWAYS) || tl->focus )  &&
+                    ((tl->style & MC_TLS_SHOWSELALWAYS) || tl->focus)  &&
                     ((tl->style & MC_TLS_FULLROWSELECT) || col_ix == 0);
             if(paint_selected  &&  !use_theme) {
                 subitem_text_color = GetSysColor(COLOR_HIGHLIGHTTEXT);
@@ -903,7 +903,8 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
                 /* Paint background of the main item. We expand it to all
                  * subitems in case of MC_TLS_FULLROWSELECT and selected item. */
-                if(paint_selected  &&  (tl->style & MC_TLS_FULLROWSELECT))
+                if((tl->style & MC_TLS_FULLROWSELECT)  &&
+                   (paint_selected  ||  (use_theme && state != TREIS_NORMAL)))
                     subitem_rect.right = tl->scroll_x_max - tl->scroll_x;
                 if(use_theme  &&  state != TREIS_NORMAL) {
                     mcDrawThemeBackground(tl->theme, dc,
