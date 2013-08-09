@@ -65,8 +65,8 @@ struct chart_tag {
     DWORD no_redraw      :  1;
     DWORD tracking_leave :  1;
     DWORD tooltip_active :  1;
-    chart_axis_t primary_axis;
-    chart_axis_t secondary_axis;
+    chart_axis_t axis1;
+    chart_axis_t axis2;
     int min_visible_value;
     int max_visible_value;
     int hot_set_ix;
@@ -605,7 +605,7 @@ pie_paint(chart_t* chart, chart_paint_t* ctx)
         label_rect.y = geom.y + 0.75 * geom.r * sinf(label_angle) - ctx->layout.font_size.cy / 2.0;
         label_rect.w = 0;
         label_rect.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->primary_axis, val, buffer);
+        chart_str_value(&chart->axis1, val, buffer);
         gdix_MeasureString(ctx->gfx, buffer, -1, ctx->font, &label_rect,
                            ctx->format, &label_bounds, NULL, NULL);
         if(pie_rect_in_sweep(angle, sweep, geom.x, geom.y, &label_bounds)) {
@@ -652,7 +652,7 @@ pie_hit_test(chart_t* chart, chart_paint_t* ctx, int x, int y,
 static inline void
 pie_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    chart_tooltip_text_common(chart, &chart->primary_axis, buffer, bufsize);
+    chart_tooltip_text_common(chart, &chart->axis1, buffer, bufsize);
 }
 
 
@@ -739,27 +739,27 @@ scatter_calc_geometry(chart_t* chart, chart_layout_t* layout, cache_t* cache,
     if(geom->min_y >= geom->max_y)   geom->max_y = geom->min_y + 1;
 
     /* Round to nice values */
-    geom->min_x = chart_round_value(geom->min_x + chart->primary_axis.offset, FALSE) - chart->primary_axis.offset;
-    geom->max_x = chart_round_value(geom->max_x + chart->primary_axis.offset, TRUE) - chart->primary_axis.offset;
-    geom->min_y = chart_round_value(geom->min_y + chart->secondary_axis.offset, FALSE) - chart->secondary_axis.offset;
-    geom->max_y = chart_round_value(geom->max_y + chart->secondary_axis.offset, TRUE) - chart->secondary_axis.offset;
+    geom->min_x = chart_round_value(geom->min_x + chart->axis1.offset, FALSE) - chart->axis1.offset;
+    geom->max_x = chart_round_value(geom->max_x + chart->axis1.offset, TRUE) - chart->axis1.offset;
+    geom->min_y = chart_round_value(geom->min_y + chart->axis2.offset, FALSE) - chart->axis2.offset;
+    geom->max_y = chart_round_value(geom->max_y + chart->axis2.offset, TRUE) - chart->axis2.offset;
 
     /* Compute space for labels of horizontal axis */
     label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->primary_axis, geom->max_x, buffer);
+    chart_str_value(&chart->axis1, geom->max_x, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->primary_axis, geom->max_x, buffer);
+    chart_str_value(&chart->axis1, geom->max_x, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
-    chart_str_value(&chart->secondary_axis, geom->min_y, buffer);
+    chart_str_value(&chart->axis2, geom->min_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->secondary_axis, geom->max_y, buffer);
+    chart_str_value(&chart->axis2, geom->max_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
@@ -830,7 +830,7 @@ scatter_paint_grid(chart_t* chart, chart_paint_t* ctx, scatter_geometry_t* geom)
         rc.y = geom->core_rect.y + geom->core_rect.h + (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->primary_axis, x, buffer);
+        chart_str_value(&chart->axis1, x, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
     gdix_SetStringFormatAlign(ctx->format, gdix_StringAlignmentFar);
@@ -841,7 +841,7 @@ scatter_paint_grid(chart_t* chart, chart_paint_t* ctx, scatter_geometry_t* geom)
         rc.y = scatter_map_y(y, geom) - (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->secondary_axis, y, buffer);
+        chart_str_value(&chart->axis2, y, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
 }
@@ -951,8 +951,8 @@ scatter_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
         x = chart_value(chart, chart->hot_set_ix, chart->hot_i);
         y = chart_value(chart, chart->hot_set_ix, chart->hot_i+1);
 
-        chart_str_value(&chart->primary_axis, x, x_str);
-        chart_str_value(&chart->secondary_axis, y, y_str);
+        chart_str_value(&chart->axis1, x, x_str);
+        chart_str_value(&chart->axis2, y, y_str);
 
         _sntprintf(buffer, bufsize, _T("%ls / %ls"), x_str, y_str);
         buffer[bufsize-1] = _T('\0');
@@ -1049,25 +1049,25 @@ line_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     if(geom->min_y >= geom->max_y)   geom->max_y = geom->min_y + 1;
 
     /* Round to nice values */
-    geom->min_y = chart_round_value(geom->min_y + chart->secondary_axis.offset, FALSE) - chart->secondary_axis.offset;
-    geom->max_y = chart_round_value(geom->max_y + chart->secondary_axis.offset, TRUE) - chart->secondary_axis.offset;
+    geom->min_y = chart_round_value(geom->min_y + chart->axis2.offset, FALSE) - chart->axis2.offset;
+    geom->max_y = chart_round_value(geom->max_y + chart->axis2.offset, TRUE) - chart->axis2.offset;
 
     /* Compute space for labels of horizontal axis */
     label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->primary_axis, 0, buffer);
+    chart_str_value(&chart->axis1, 0, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->primary_axis, geom->min_count, buffer);
+    chart_str_value(&chart->axis1, geom->min_count, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
-    chart_str_value(&chart->secondary_axis, geom->min_y, buffer);
+    chart_str_value(&chart->axis2, geom->min_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->secondary_axis, geom->max_y, buffer);
+    chart_str_value(&chart->axis2, geom->max_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
@@ -1138,7 +1138,7 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx, line_geometry_t* geom)
         rc.y= geom->core_rect.y + geom->core_rect.h + (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->primary_axis, x, buffer);
+        chart_str_value(&chart->axis1, x, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
 
@@ -1150,7 +1150,7 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx, line_geometry_t* geom)
         rc.y = line_map_y(y, geom) - (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->secondary_axis, y, buffer);
+        chart_str_value(&chart->axis2, y, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
 }
@@ -1342,7 +1342,7 @@ line_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
 static inline void
 line_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    chart_tooltip_text_common(chart, &chart->secondary_axis, buffer, bufsize);
+    chart_tooltip_text_common(chart, &chart->axis2, buffer, bufsize);
 }
 
 
@@ -1424,25 +1424,25 @@ column_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     if(geom->min_y >= geom->max_y)   geom->max_y = geom->min_y + 1;
 
     /* Round to nice values */
-    geom->min_y = chart_round_value(geom->min_y + chart->secondary_axis.offset, FALSE) - chart->secondary_axis.offset;
-    geom->max_y = chart_round_value(geom->max_y + chart->secondary_axis.offset, TRUE) - chart->secondary_axis.offset;
+    geom->min_y = chart_round_value(geom->min_y + chart->axis2.offset, FALSE) - chart->axis2.offset;
+    geom->max_y = chart_round_value(geom->max_y + chart->axis2.offset, TRUE) - chart->axis2.offset;
 
     /* Compute space for labels of horizontal axis */
     label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->primary_axis, 0, buffer);
+    chart_str_value(&chart->axis1, 0, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->primary_axis, geom->min_count, buffer);
+    chart_str_value(&chart->axis1, geom->min_count, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
-    chart_str_value(&chart->secondary_axis, geom->min_y, buffer);
+    chart_str_value(&chart->axis2, geom->min_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->secondary_axis, geom->max_y, buffer);
+    chart_str_value(&chart->axis2, geom->max_y, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
@@ -1513,7 +1513,7 @@ column_paint_grid(chart_t* chart, chart_paint_t* ctx, column_geometry_t* geom)
         rc.y = geom->core_rect.y + geom->core_rect.h + (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->primary_axis, x, buffer);
+        chart_str_value(&chart->axis1, x, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
 
@@ -1525,7 +1525,7 @@ column_paint_grid(chart_t* chart, chart_paint_t* ctx, column_geometry_t* geom)
         rc.y = column_map_y(y, geom) - (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->secondary_axis, y, buffer);
+        chart_str_value(&chart->axis2, y, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
 }
@@ -1667,7 +1667,7 @@ done:
 static inline void
 column_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    chart_tooltip_text_common(chart, &chart->secondary_axis, buffer, bufsize);
+    chart_tooltip_text_common(chart, &chart->axis2, buffer, bufsize);
 }
 
 
@@ -1749,26 +1749,26 @@ bar_calc_geometry(chart_t* chart, BOOL stacked, chart_layout_t* layout,
     if(geom->min_x >= geom->max_x)   geom->max_x = geom->min_x + 1;
 
     /* Round to nice values */
-    geom->min_x = chart_round_value(geom->min_x + chart->secondary_axis.offset, FALSE) - chart->secondary_axis.offset;
-    geom->max_x = chart_round_value(geom->max_x + chart->secondary_axis.offset, TRUE) - chart->secondary_axis.offset;
+    geom->min_x = chart_round_value(geom->min_x + chart->axis2.offset, FALSE) - chart->axis2.offset;
+    geom->max_x = chart_round_value(geom->max_x + chart->axis2.offset, TRUE) - chart->axis2.offset;
 
     /* Compute space for labels of horizontal axis
      * (note for BAR chart this is secondary!!!) */
     label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->secondary_axis, geom->min_x, buffer);
+    chart_str_value(&chart->axis2, geom->min_x, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->secondary_axis, geom->max_x, buffer);
+    chart_str_value(&chart->axis2, geom->max_x, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
     label_x_h = (3 * layout->font_size.cy + 1) / 2;
 
     /* Compute space for labels of verical axis */
     label_y_w = 6 * layout->font_size.cx;
-    chart_str_value(&chart->primary_axis, 0, buffer);
+    chart_str_value(&chart->axis1, 0, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->primary_axis, geom->min_count, buffer);
+    chart_str_value(&chart->axis1, geom->min_count, buffer);
     tw = mc_string_width(buffer, chart->font);
     label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
     label_y_h = layout->font_size.cy;
@@ -1839,7 +1839,7 @@ bar_paint_grid(chart_t* chart, chart_paint_t* ctx, bar_geometry_t* geom)
         rc.y = geom->core_rect.y + geom->core_rect.h + (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->secondary_axis, x, buffer);
+        chart_str_value(&chart->axis2, x, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
 
@@ -1853,7 +1853,7 @@ bar_paint_grid(chart_t* chart, chart_paint_t* ctx, bar_geometry_t* geom)
                 (ctx->layout.font_size.cy+1) / 2;
         rc.w = 0.0;
         rc.h = ctx->layout.font_size.cy;
-        chart_str_value(&chart->primary_axis, y, buffer);
+        chart_str_value(&chart->axis1, y, buffer);
         gdix_DrawString(ctx->gfx, buffer, -1, ctx->font, &rc, ctx->format, ctx->brush);
     }
 }
@@ -1996,7 +1996,7 @@ done:
 static inline void
 bar_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
-    chart_tooltip_text_common(chart, &chart->secondary_axis, buffer, bufsize);
+    chart_tooltip_text_common(chart, &chart->axis2, buffer, bufsize);
 }
 
 
@@ -2690,10 +2690,10 @@ chart_get_factor_exponent(chart_t* chart, int axis_id)
 {
     switch(axis_id) {
         case 1:
-            return chart->primary_axis.factor_exp;
+            return chart->axis1.factor_exp;
 
         case 2:
-            return chart->secondary_axis.factor_exp;
+            return chart->axis2.factor_exp;
 
         default:
             MC_TRACE("chart_get_factor_exponent: Invalid axis %d", axis_id);
@@ -2713,15 +2713,15 @@ chart_set_factor_exponent(chart_t* chart, int axis_id, int exp)
 
     switch(axis_id) {
         case 0:
-            chart->secondary_axis.factor_exp = exp;
+            chart->axis2.factor_exp = exp;
             /* no break */
 
         case 1:
-            chart->primary_axis.factor_exp = exp;
+            chart->axis1.factor_exp = exp;
             break;
 
         case 2:
-            chart->secondary_axis.factor_exp = exp;
+            chart->axis2.factor_exp = exp;
             break;
 
         default:
@@ -2743,10 +2743,10 @@ chart_get_axis_offset(chart_t* chart, int axis_id)
 {
     switch(axis_id) {
         case 1:
-            return chart->primary_axis.offset;
+            return chart->axis1.offset;
 
         case 2:
-            return chart->secondary_axis.offset;
+            return chart->axis2.offset;
 
         default:
             MC_TRACE("chart_get_axis_offset: Invalid axis %d", axis_id);
@@ -2760,11 +2760,11 @@ chart_set_axis_offset(chart_t* chart, int axis_id, int offset)
 {
     switch(axis_id) {
         case 1:
-            chart->primary_axis.offset = offset;
+            chart->axis1.offset = offset;
             break;
 
         case 2:
-            chart->secondary_axis.offset = offset;
+            chart->axis2.offset = offset;
             break;
 
         default:
