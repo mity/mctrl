@@ -179,6 +179,7 @@ struct treelist_tag {
     treelist_item_t* root_tail;
     treelist_item_t* scrolled_item;   /* can be NULL if not known */
     treelist_item_t* selected_item;
+    treelist_item_t* hot_item;
     treelist_item_t* hotbutton_item;
     int scrolled_level;               /* level of the scrolled_item */
     DWORD style                 : 16;
@@ -221,7 +222,7 @@ struct treelist_tag {
 
 
 /* Forward declarations */
-static void treelist_refresh_hotbutton(treelist_t* tl);
+static void treelist_refresh_hot(treelist_t* tl);
 static void treelist_invalidate_item(treelist_t* tl, treelist_item_t* item, int col_ix, int scroll);
 
 
@@ -265,7 +266,7 @@ treelist_do_hscroll(treelist_t* tl, SCROLLINFO* si, int scroll_x)
                     client_rect.right, client_rect.bottom);
         ScrollWindowEx(tl->win, (tl->scroll_x - scroll_x), 0,
                     &scroll_rect, &scroll_rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
-        treelist_refresh_hotbutton(tl);
+        treelist_refresh_hot(tl);
     }
     tl->scroll_x = scroll_x;
     treelist_layout_header(tl);
@@ -334,7 +335,7 @@ treelist_do_vscroll(treelist_t* tl, SCROLLINFO* si, int scroll_y)
                     client_rect.right, client_rect.bottom);
         ScrollWindowEx(tl->win, 0, (tl->scroll_y - scroll_y) * tl->item_height,
                     &scroll_rect, &scroll_rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
-        treelist_refresh_hotbutton(tl);
+        treelist_refresh_hot(tl);
     }
     tl->scroll_y = scroll_y;
     tl->scrolled_item = NULL;
@@ -493,7 +494,7 @@ treelist_set_item_height(treelist_t* tl, int height, BOOL redraw)
         treelist_setup_scrollbars(tl);
         if(redraw  &&  !tl->no_redraw) {
             InvalidateRect(tl->win, NULL, TRUE);
-            treelist_refresh_hotbutton(tl);
+            treelist_refresh_hot(tl);
         }
     }
 
@@ -641,17 +642,8 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
         pt.x = GET_X_LPARAM(pos);
         pt.y = GET_Y_LPARAM(pos);
         ScreenToClient(tl->win, &pt);
-        if(mc_rect_contains_pt(&r, &pt)) {
-            if(mcIsThemePartDefined(tl->theme, TVP_HOTGLYPH, 0)) {
-                /* We may need to unmake the hot state of previously hot
-                 * button. */
-                if(tl->hotbutton_item  &&  tl->hotbutton_item != item)
-                    treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
-
-                part = TVP_HOTGLYPH;
-                tl->hotbutton_item = item;
-            }
-        }
+        if(item == tl->hotbutton_item  &&  mcIsThemePartDefined(tl->theme, TVP_HOTGLYPH, 0))
+            part = TVP_HOTGLYPH;
 
         mcDrawThemeBackground(tl->theme, dc, part, state, &r, NULL);
     } else {
@@ -802,10 +794,18 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
         /* Determine item state for themed paint */
         if(use_theme) {
-            if(item->state & MC_TLIS_SELECTED)
-                state = (tl->focus ? TREIS_SELECTED : TREIS_SELECTEDNOTFOCUS);
-            else
+            if(!IsWindowEnabled(tl->win)) {
+                state = TREIS_DISABLED;
+            } else if(item == tl->selected_item) {
+                if(item == tl->hot_item)
+                    state = TREIS_HOTSELECTED;
+                else
+                    state = (tl->focus ? TREIS_SELECTED : TREIS_SELECTEDNOTFOCUS);
+            } else if(item == tl->hot_item) {
+                state = TREIS_HOT;
+            } else {
                 state = TREIS_NORMAL;
+            }
         }
 
         /* Paint all subitems */
@@ -1251,7 +1251,7 @@ treelist_invalidate_item(treelist_t* tl, treelist_item_t* item, int col_ix, int 
         client_rect.top = rect.bottom;
         ScrollWindowEx(tl->win, 0, scroll * tl->item_height, &client_rect,
                        &client_rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
-        treelist_refresh_hotbutton(tl);
+        treelist_refresh_hot(tl);
     }
 }
 
@@ -1630,59 +1630,6 @@ treelist_get_next_item(treelist_t* tl, int relation, treelist_item_t* item)
     return NULL;
 }
 
-static void
-treelist_mouse_move(treelist_t* tl, int x, int y)
-{
-    MC_TLHITTESTINFO info;
-    treelist_item_t* item;
-    treelist_item_t* hotbutton_item;
-
-    info.pt.x = x;
-    info.pt.y = y;
-    item = treelist_hit_test(tl, &info);
-
-    /* Make sure the right item's button is hot */
-    hotbutton_item = (info.flags & MC_TLHT_ONITEMBUTTON) ? item : NULL;
-    if(hotbutton_item != tl->hotbutton_item) {
-        if(tl->hotbutton_item) {
-            treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
-            tl->hotbutton_item = NULL;
-        }
-        if(hotbutton_item)
-            treelist_invalidate_item(tl, hotbutton_item, 0, 0);
-    }
-
-    if(!tl->tracking_leave) {
-        mc_track_mouse(tl->win, TME_LEAVE);
-        tl->tracking_leave = TRUE;
-    }
-}
-
-static void
-treelist_mouse_leave(treelist_t* tl)
-{
-    /* Undo hot state of the item's button */
-    if(tl->hotbutton_item) {
-        treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
-        tl->hotbutton_item = NULL;
-    }
-
-    tl->tracking_leave = FALSE;
-}
-
-static inline void
-treelist_refresh_hotbutton(treelist_t* tl)
-{
-    DWORD pos;
-    POINT pt;
-
-    pos = GetMessagePos();
-    pt.x = GET_X_LPARAM(pos);
-    pt.y = GET_Y_LPARAM(pos);
-    ScreenToClient(tl->win, &pt);
-    treelist_mouse_move(tl, pt.x, pt.y);
-}
-
 static BOOL
 treelist_is_common_hit(treelist_t* tl, MC_TLHITTESTINFO* info)
 {
@@ -1700,6 +1647,78 @@ treelist_is_common_hit(treelist_t* tl, MC_TLHITTESTINFO* info)
     }
 
     return FALSE;
+}
+
+static void
+treelist_mouse_move(treelist_t* tl, int x, int y)
+{
+    MC_TLHITTESTINFO info;
+    treelist_item_t* item;
+    treelist_item_t* hot_item;
+    treelist_item_t* hotbutton_item;
+
+    info.pt.x = x;
+    info.pt.y = y;
+    item = treelist_hit_test(tl, &info);
+
+    hot_item = treelist_is_common_hit(tl, &info) ? item : NULL;
+    hotbutton_item = (info.flags & MC_TLHT_ONITEMBUTTON) ? item : NULL;
+
+    /* Make sure the right item is hot */
+    if(hot_item != tl->hot_item) {
+        if(tl->hot_item) {
+            treelist_invalidate_item(tl, tl->hot_item, -1, 0);
+            tl->hot_item = NULL;
+        }
+        if(hot_item)
+            treelist_invalidate_item(tl, hot_item, -1, 0);
+        tl->hot_item = hot_item;
+    }
+
+    /* Make sure the right item's button is hot */
+    if(hotbutton_item != tl->hotbutton_item) {
+        if(tl->hotbutton_item) {
+            treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
+            tl->hotbutton_item = NULL;
+        }
+        if(hotbutton_item)
+            treelist_invalidate_item(tl, hotbutton_item, 0, 0);
+        tl->hotbutton_item = hotbutton_item;
+    }
+
+    if(!tl->tracking_leave) {
+        mc_track_mouse(tl->win, TME_LEAVE);
+        tl->tracking_leave = TRUE;
+    }
+}
+
+static void
+treelist_mouse_leave(treelist_t* tl)
+{
+    /* Undo hot state of the item's button */
+    if(tl->hot_item) {
+        treelist_invalidate_item(tl, tl->hot_item, -1, 0);
+        tl->hot_item = NULL;
+    }
+    if(tl->hotbutton_item) {
+        treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
+        tl->hotbutton_item = NULL;
+    }
+
+    tl->tracking_leave = FALSE;
+}
+
+static inline void
+treelist_refresh_hot(treelist_t* tl)
+{
+    DWORD pos;
+    POINT pt;
+
+    pos = GetMessagePos();
+    pt.x = GET_X_LPARAM(pos);
+    pt.y = GET_Y_LPARAM(pos);
+    ScreenToClient(tl->win, &pt);
+    treelist_mouse_move(tl, pt.x, pt.y);
 }
 
 static void
@@ -2309,7 +2328,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
             }
             ScrollWindowEx(tl->win, 0, tl->item_height, &rect, &rect,
                                NULL, NULL, SW_INVALIDATE | SW_ERASE);
-            treelist_refresh_hotbutton(tl);
+            treelist_refresh_hot(tl);
         }
     }
 
@@ -2578,6 +2597,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
     item->sibling_next = NULL;  /* stopper for treelist_delete_item_helper() */
 
     /* Reset item bookmarks which will need recomputing anyway. */
+    tl->hot_item = NULL;
     tl->hotbutton_item = NULL;
     tl->scrolled_item = NULL;
 
@@ -2600,7 +2620,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
                     rect.top = y;
                     ScrollWindowEx(tl->win, 0, -(displayed_del_count * tl->item_height),
                                    &rect, &rect, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                    treelist_refresh_hotbutton(tl);
+                    treelist_refresh_hot(tl);
                 }
             }
 
@@ -2652,6 +2672,7 @@ treelist_delete_children(treelist_t* tl, treelist_item_t* item)
     item->child_tail = NULL;
 
     /* Reset item bookmarks which will need recomputing anyway. */
+    tl->hot_item = NULL;
     tl->hotbutton_item = NULL;
     tl->scrolled_item = NULL;
 
@@ -2674,7 +2695,7 @@ treelist_delete_children(treelist_t* tl, treelist_item_t* item)
                     rect.top = y;
                     ScrollWindowEx(tl->win, 0, -(displayed_del_count * tl->item_height),
                                    &rect, &rect, NULL, NULL, SW_INVALIDATE | SW_ERASE);
-                    treelist_refresh_hotbutton(tl);
+                    treelist_refresh_hot(tl);
                 }
             }
         }
