@@ -74,9 +74,6 @@ struct treelist_item_tag {
      * Typically happens for (MC_TLE_COLLAPSE|MC_TLE_COLLAPSERESET) in
      * dynamically populated tree list. */
     WORD expanding_notify_in_progress : 1;
-
-    COLORREF textColor;
-    COLORREF bkColor;
 };
 
 /* Iterator over ALL items of the control */
@@ -206,8 +203,7 @@ struct treelist_tag {
 
 #define MC_TLIF_ALL     (MC_TLIF_STATE | MC_TLIF_TEXT | MC_TLIF_PARAM |       \
                          MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE |              \
-                         MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN |           \
-                         MC_TLIF_TEXTCOLOR | MC_TLIF_BKCOLOR)
+                         MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN)
 
 #define MC_TLSIF_ALL    (MC_TLSIF_TEXT)
 
@@ -778,8 +774,8 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         if(y >= dirty->bottom)
             break;
 
-        item_text_color = item->textColor;
-        item_bk_color = item->bkColor;
+        item_text_color = GetSysColor(COLOR_WINDOWTEXT);
+        item_bk_color = MC_CLR_NONE;
 
         /* Custom draw: Item pre-paint notification */
         if(cd_mode[0] & CDRF_NOTIFYITEMDRAW) {
@@ -2277,15 +2273,6 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     item->children = ((item_data->fMask & MC_TLIF_CHILDREN)
                                 ? item_data->cChildren : 0);
     item->expanding_notify_in_progress = 0;
-    item->textColor = ((item_data->fMask & MC_TLIF_TEXTCOLOR)
-                                ? item_data->textColor :  MC_CLR_DEFAULT);
-    item->bkColor = ((item_data->fMask & MC_TLIF_BKCOLOR)
-                                ? item_data->bkColor :  MC_CLR_DEFAULT);
-
-    if(item->textColor == MC_CLR_DEFAULT)
-        item->textColor = GetSysColor(COLOR_WINDOWTEXT);
-    if(item->bkColor == MC_CLR_DEFAULT)
-        item->bkColor = MC_CLR_NONE;
 
     if(parent != NULL) {
         parent_displayed = item_is_displayed(parent);
@@ -2343,8 +2330,6 @@ static BOOL
 treelist_set_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
                   BOOL unicode)
 {
-int col_redraw;
-
     TREELIST_TRACE("treelist_set_item(%p, %p, %p, %d)",
                    tl, item, item_data, unicode);
 
@@ -2407,23 +2392,8 @@ int col_redraw;
     if(item_data->fMask & MC_TLIF_CHILDREN)
         item->children = item_data->cChildren;
 
-    col_redraw = 0;
-    if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
-        item->textColor = ((item_data->textColor == MC_CLR_DEFAULT)
-                                ?  GetSysColor(COLOR_WINDOWTEXT) : item_data->textColor);
-        col_redraw = -1; /* Text color change means whole row must
-                          * be invalidated */
-    }
-
-    if(item_data->fMask & MC_TLIF_BKCOLOR) {
-        item->bkColor = ((item_data->bkColor == MC_CLR_DEFAULT)
-                                ? MC_CLR_NONE : item_data->bkColor);
-        col_redraw = -1; /* Background color change means whole row
-                          * must be invalidated */
-    }
-
     if(!tl->no_redraw)
-        treelist_invalidate_item(tl, item, col_redraw, 0);
+        treelist_invalidate_item(tl, item, 0, 0);
 
     return TRUE;
 }
@@ -2468,13 +2438,6 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
     if(item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
         item_data->iExpandedImage = item->img_expanded;
 
-    if(item_data->fMask & MC_TLIF_TEXTCOLOR) {
-        item_data->textColor = item->textColor;
-    }
-
-    if(item_data->fMask & MC_TLIF_BKCOLOR) {
-        item_data->bkColor = item->bkColor;
-    }
     return TRUE;
 }
 

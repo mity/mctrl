@@ -313,10 +313,6 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLIF_EXPANDEDIMAGE        (1 << 5)
 /** @brief Set if @c MC_TLITEM::cChildren is valid. */
 #define MC_TLIF_CHILDREN             (1 << 6)
-/** @brief Set if MC_TLITEM::textColor is valid. */
-#define MC_TLIF_TEXTCOLOR            (1 << 7)
-/** @brief Set if @c MC_TLITEM::bkColor is valid. */
-#define MC_TLIF_BKCOLOR              (1 << 8)
 /*@}*/
 
 
@@ -540,16 +536,6 @@ typedef struct MC_TLITEMW_tag {
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them. */
     int cChildren;
-    /** The custom color currently being used to draw text.  Set to
-     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color.
-     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
-     *  has been specified. */
-    COLORREF textColor;
-    /** The color currently being used to draw the background.  Set to
-     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color.
-     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
-     *  has been specified. */
-    COLORREF bkColor;
 } MC_TLITEMW;
 
 /**
@@ -581,16 +567,6 @@ typedef struct MC_TLITEMA_tag {
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them. */
     int cChildren;
-    /** The custom color currently being used to draw text.  Set to
-     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color.
-     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
-     *  has been specified. */
-    COLORREF textColor;
-    /** The color currently being used to draw the background.  Set to
-     *  @c MC_CLR_DEFAULT (or @c MC_CLR_NONE) to disable custom color.
-     *  Upon retrieval, @c MC_CLR_DEFAULT will be returned if no color
-     *  has been specified. */
-    COLORREF bkColor;
 } MC_TLITEMA;
 
 /**
