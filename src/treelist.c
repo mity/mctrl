@@ -690,7 +690,8 @@ treelist_custom_draw_item_state(treelist_t* tl, treelist_item_t* item)
         else if(tl->style & MC_TLS_SHOWSELALWAYS)
             state |= CDIS_SELECTED;
     }
-    /* TODO: support for CDIS_HOT */
+    if(item == tl->hot_item)
+        state |= CDIS_HOT;
     return state;
 }
 
