@@ -70,24 +70,25 @@ extern "C" {
  * the tree hierarchy, and finally contains data to be displayed in the
  * left-most column.
  *
- * The subitems (@c MC_TLSUBITEM) then just contain display data for the
- * additional columns of each item (currently onle textual label). Note that in
- * this regard, the tree-list control differs from list view control where the
+ * The subitems (@c MC_TLSUBITEM) then just hold data for the additional
+ * columns of each item (currently onle textual label). Note that in this
+ * regard the tree-list control differs from list view control where the
  * items as well as the subitems are actually described by single structure
- * @c LVITEM.
+ * @c LVITEM. (The reason behind this is that the item structure is
+ * principally different due its tree-like nature.)
  *
  * Like the tree control, each item can have its child items, which are
  * displayed or hidden depending on the expanded state of their parent.
  *
  * Inserting the items into the control is very similar to the standard
- * tree view control. The message @c MC_TLM_INSERTITEM gets pointer to the
+ * tree view control. The message @c MC_TLM_INSERTITEM takes pointer to the
  * structure @c MC_TLINSERTSTRUCT describing the item as well as its desired
- * position in the tree. The message returns an item handle (@c MC_HTREELISTITEM)
- * representing the new item, and this may be used to set subitems of the item
- * to insert child items (see below) and for other manipulations with the item.
- * Of course there are also special pseudo handles @c MC_TLI_ROOT, @c
- * MC_TLI_FIRST and @c MC_TLI_LAST which fulfill similar role as the tree view
- * counterparts @c TVI_ROOT, @c TVI_FIRST and @c TVI_LAST.
+ * position in the tree as its parameters. The message returns an item handle
+ * (@c MC_HTREELISTITEM) representing the new item, and this may be used to set
+ * subitems of the item to insert child items (see below) and for other
+ * manipulations with the item. Of course there are also special pseudo handles
+ * @c MC_TLI_ROOT, @c MC_TLI_FIRST and @c MC_TLI_LAST which fulfill similar
+ * role as the tree view counterparts @c TVI_ROOT, @c TVI_FIRST and @c TVI_LAST.
  *
  * Note that when any item is deleted (@c MC_TLM_DELETEITEM), then the whole
  * subtree of its children is deleted as well.
