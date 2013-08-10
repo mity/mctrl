@@ -65,8 +65,9 @@ struct treelist_item_tag {
     SHORT img;
     SHORT img_selected;
     SHORT img_expanded;
-    WORD state     : 14;
-    WORD children  : 1;
+    WORD state             : 8;
+    WORD children          : 1;
+    WORD children_callback : 1;
 
     /* Flag treelist_do_expand/collapse() is in progress. Used to detect nested
      * call (i.e. from the notification) to prevent endless recursion.
@@ -97,7 +98,7 @@ item_next(treelist_item_t* item)
     return item_next_ex(item, NULL);
 }
 
-/* Iteraror over items displayed (i.e. not hidden by collapsed parent) below
+/* Iterator over items displayed (i.e. not hidden by collapsed parent) below
  * the specified 'item', but does not step over the parent 'stopper' */
 static treelist_item_t*
 item_next_displayed_ex(treelist_item_t* item, treelist_item_t* stopper, int* level)
@@ -159,12 +160,6 @@ item_is_displayed(treelist_item_t* item)
     return TRUE;
 }
 
-static inline BOOL
-item_has_children(treelist_item_t* item)
-{
-    return (item->child_head != NULL  ||  item->children != 0);
-}
-
 typedef struct treelist_tag treelist_t;
 struct treelist_tag {
     HWND win;
@@ -218,6 +213,148 @@ struct treelist_tag {
 #define ITEM_PADDING_V             1  /* inner padding of the item */
 #define ITEM_PADDING_H_THEMEEXTRA  2  /* when using theme, use extra more horiz. padding. */
 #define ITEM_DTFLAGS              (DT_EDITCONTROL | DT_SINGLELINE | DT_NOPREFIX | DT_VCENTER | DT_END_ELLIPSIS)
+
+
+typedef struct treelist_dispinfo_tag treelist_dispinfo_t;
+struct treelist_dispinfo_tag {
+    TCHAR* text;
+    int img;
+    int img_selected;
+    int img_expanded;
+    int children;
+};
+
+static void
+treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t* di, DWORD mask)
+{
+    MC_NMTLDISPINFO info;
+
+    MC_ASSERT((mask & ~(MC_TLIF_TEXT | MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE |
+                        MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN)) == 0);
+
+    if(item->text != MC_LPSTR_TEXTCALLBACK) {
+        di->text = item->text;
+        mask &= ~MC_TLIF_TEXT;
+    }
+    if(item->img != MC_I_IMAGECALLBACK) {
+        di->img = item->img;
+        mask &= ~MC_TLIF_IMAGE;
+    }
+    if(item->img_selected != MC_I_IMAGECALLBACK) {
+        di->img_selected = item->img_selected;
+        mask &= ~MC_TLIF_SELECTEDIMAGE;
+    }
+    if(item->img_selected != MC_I_IMAGECALLBACK) {
+        di->img_expanded = item->img_expanded;
+        mask &= ~MC_TLIF_EXPANDEDIMAGE;
+    }
+    if(!item->children_callback) {
+        di->children = item->children;
+        mask &= ~MC_TLIF_CHILDREN;
+    }
+
+    if(mask == 0)
+        return;
+
+    info.hdr.hwndFrom = tl->win;
+    info.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    info.hdr.code = (tl->unicode_notifications ? MC_TLN_GETDISPINFOW : MC_TLN_GETDISPINFOA);
+    info.hItem = (MC_HTREELISTITEM) item;
+    info.item.fMask = mask;
+    info.item.lParam = item->lp;
+    MC_SEND(tl->notify_win, WM_NOTIFY, 0, &info);
+
+    if(mask & MC_TLIF_TEXT) {
+        if(tl->unicode_notifications == MC_IS_UNICODE)
+            di->text = info.item.pszText;
+        else
+            di->text = mc_str(info.item.pszText, (tl->unicode_notifications ? MC_STRW : MC_STRA), MC_STRT);
+    }
+
+    if(mask & MC_TLIF_IMAGE)
+        di->img = info.item.iImage;
+
+    if(mask & MC_TLIF_SELECTEDIMAGE)
+        di->img_selected = info.item.iSelectedImage;
+
+    if(mask & MC_TLIF_EXPANDEDIMAGE)
+        di->img_expanded = info.item.iExpandedImage;
+
+    if(mask & MC_TLIF_CHILDREN)
+        di->children = (info.item.cChildren ? 1 : 0);
+}
+
+static inline void
+treelist_free_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t* di)
+{
+    if(tl->unicode_notifications != MC_IS_UNICODE  &&
+       di->text != item->text  &&  di->text != NULL)
+        free(di->text);
+}
+
+
+typedef struct treelist_subdispinfo_tag treelist_subdispinfo_t;
+struct treelist_subdispinfo_tag {
+    TCHAR* text;
+};
+
+static void
+treelist_get_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
+                         treelist_subdispinfo_t* si, DWORD mask)
+{
+    MC_NMTLSUBDISPINFO info;
+
+    MC_ASSERT((mask & ~MC_TLSIF_TEXT) == 0);
+
+    if(item->text != MC_LPSTR_TEXTCALLBACK) {
+        si->text = item->subitems[subitem_id];
+        mask &= ~MC_TLIF_TEXT;
+    }
+
+    if(mask == 0)
+        return;
+
+    info.hdr.hwndFrom = tl->win;
+    info.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
+    info.hdr.code = (tl->unicode_notifications ? MC_TLN_GETSUBDISPINFOW : MC_TLN_GETSUBDISPINFOA);
+    info.hItem = (MC_HTREELISTITEM) item;
+    info.lItemParam = item->lp;
+    info.subitem.fMask = mask;
+    info.subitem.iSubItem = subitem_id;
+    MC_SEND(tl->notify_win, WM_NOTIFY, 0, &info);
+
+    if(mask & MC_TLSIF_TEXT) {
+        if(tl->unicode_notifications == MC_IS_UNICODE)
+            si->text = info.subitem.pszText;
+        else
+            si->text = mc_str(info.subitem.pszText, (tl->unicode_notifications ? MC_STRW : MC_STRA), MC_STRT);
+    }
+}
+
+static inline void
+treelist_free_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
+                          treelist_subdispinfo_t* si)
+{
+    if(tl->unicode_notifications != MC_IS_UNICODE  &&
+       si->text != item->subitems[subitem_id]  &&  si->text != NULL)
+        free(si->text);
+}
+
+
+static BOOL
+treelist_item_has_children(treelist_t* tl, treelist_item_t* item)
+{
+    treelist_dispinfo_t dispinfo;
+    BOOL res;
+
+    if(item->child_head != NULL)
+        return TRUE;
+
+    treelist_get_dispinfo(tl, item, &dispinfo, MC_TLIF_CHILDREN);
+    res = dispinfo.children;
+    treelist_free_dispinfo(tl, item, &dispinfo);
+    return res;
+}
 
 
 /* Forward declarations */
@@ -887,6 +1024,11 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             }
 
             if(col_ix == 0) {
+                treelist_dispinfo_t dispinfo;
+                treelist_get_dispinfo(tl, item, &dispinfo,
+                        MC_TLIF_TEXT | MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE |
+                        MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN);
+
                 /* Paint decoration of the main item (line, button etc.) */
                 if((level > 0 || (tl->style & MC_TLS_LINESATROOT))  &&
                    (tl->style & (MC_TLS_HASBUTTONS | MC_TLS_HASLINES))) {
@@ -894,7 +1036,9 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                     if(tl->style & MC_TLS_HASLINES)
                         treelist_paint_lines(tl, item, level, dc, &subitem_rect);
 
-                    if((tl->style & MC_TLS_HASBUTTONS)  &&  item_has_children(item)) {
+                    if((tl->style & MC_TLS_HASBUTTONS)  &&
+                       (item->child_head != NULL  ||  dispinfo.children))
+                    {
                         RECT button_rect;
                         mc_rect_set(&button_rect, subitem_rect.left - tl->item_indent, subitem_rect.top,
                                     subitem_rect.left, subitem_rect.bottom);
@@ -907,11 +1051,11 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 if(tl->imglist_normal != NULL) {
                     int img;
                     if(item->state & MC_TLIS_SELECTED)
-                        img = item->img_selected;
+                        img = dispinfo.img_selected;
                     else if(item->state & MC_TLIS_EXPANDED)
-                        img = item->img_expanded;
+                        img = dispinfo.img_expanded;
                     else
-                        img = item->img;
+                        img = dispinfo.img;
                     if(img >= 0) {
                         ImageList_DrawEx(tl->imglist_normal, img, dc,
                                 subitem_rect.left, subitem_rect.top + (mc_height(&subitem_rect) - img_h) / 2,
@@ -949,15 +1093,20 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 mc_rect_inflate(&label_rect, -padding_h, -padding_v);
                 if(use_theme) {
                     mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
-                                    item->text, -1, ITEM_DTFLAGS, 0, &label_rect);
+                                    dispinfo.text, -1, ITEM_DTFLAGS, 0, &label_rect);
                     if(!(tl->style & MC_TLS_FULLROWSELECT))
                         state = TREIS_NORMAL;
                 } else {
-                    DrawText(dc, item->text, -1, &label_rect, ITEM_DTFLAGS);
+                    DrawText(dc, dispinfo.text, -1, &label_rect, ITEM_DTFLAGS);
                 }
+
+                treelist_free_dispinfo(tl, item, &dispinfo);
             } else {
                 /* Paint subitem */
+                treelist_subdispinfo_t subdispinfo;
                 DWORD justify;
+
+                treelist_get_subdispinfo(tl, item, col_ix, &subdispinfo, MC_TLSIF_TEXT);
 
                 MC_SEND(tl->header_win, HDM_GETITEM, col_ix, &header_item);
                 switch(header_item.fmt & HDF_JUSTIFYMASK) {
@@ -971,12 +1120,14 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
                 if(use_theme) {
                     mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
-                            item->subitems[col_ix], -1, ITEM_DTFLAGS | justify,
+                            subdispinfo.text, -1, ITEM_DTFLAGS | justify,
                             0, &subitem_rect);
                 } else {
-                    DrawText(dc, item->subitems[col_ix], -1, &subitem_rect,
+                    DrawText(dc, subdispinfo.text, -1, &subitem_rect,
                              ITEM_DTFLAGS | justify);
                 }
+
+                treelist_free_subdispinfo(tl, item, col_ix, &subdispinfo);
             }
 
             /* Custom draw: Item post-paint notification */
@@ -1090,13 +1241,19 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
                             header_item_rect.right + ITEM_PAINT_MARGIN_H, y + tl->item_height);
 
     if(info->iSubItem == 0) {
+        treelist_dispinfo_t dispinfo;
+
+        treelist_get_dispinfo(tl, item, &dispinfo, MC_TLIF_CHILDREN | MC_TLIF_TEXT);
+
         /* Analyze tree item rect */
         item_rect.left += level * tl->item_indent;
         if(tl->style & MC_TLS_LINESATROOT)
             item_rect.left += tl->item_indent;
         if(level > 0  ||  (tl->style & MC_TLS_LINESATROOT)) {
             if(tl->style & (MC_TLS_HASBUTTONS | MC_TLS_HASLINES)) {
-                if((tl->style & MC_TLS_HASBUTTONS)  &&  item_has_children(item)) {
+                if((tl->style & MC_TLS_HASBUTTONS)  &&
+                   (item->child_head != NULL  ||  dispinfo.children))
+                {
                     RECT button_rect;
                     mc_rect_set(&button_rect, item_rect.left - tl->item_indent, item_rect.top,
                                 item_rect.left, item_rect.bottom);
@@ -1123,10 +1280,13 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
 
         treelist_label_rect(tl, dc, item->text, DT_LEFT, &item_rect,
                             &ignored, &ignored);
+
+        treelist_free_dispinfo(tl, item, &dispinfo);
     } else {
         /* Analyze subitem rect */
         HDITEM header_item;
         DWORD dtjustify;
+        treelist_subdispinfo_t subdispinfo;
 
         header_item.mask = HDI_FORMAT;
         MC_SEND(tl->header_win, HDM_GETITEM, col_ix, &header_item);
@@ -1136,8 +1296,10 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
             default:          dtjustify = DT_LEFT; break;
         }
 
+        treelist_get_subdispinfo(tl, item, col_ix, &subdispinfo, MC_TLSIF_TEXT);
         treelist_label_rect(tl, dc, item->subitems[col_ix], dtjustify,
                             &item_rect, &ignored, &ignored);
+        treelist_free_subdispinfo(tl, item, col_ix, &subdispinfo);
     }
 
     if(info->pt.x < item_rect.left)
@@ -1393,9 +1555,6 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
                        !(GetAsyncKeyState(VK_CONTROL) & 0x8000);
     col_ix = (tl->style & MC_TLS_FULLROWSELECT) ? -1 : 0;
 
-    TREELIST_TRACE("treelist_do_select(%S -> %S)",
-        (old_sel ? old_sel->text : L"[NULL]"), (item ? item->text : L"[NULL]"));
-
     if(old_sel) {
         old_sel->state &= ~MC_TLIS_SELECTED;
 
@@ -1423,7 +1582,7 @@ treelist_do_select(treelist_t* tl, treelist_item_t* item)
 
         if(do_single_expand) {
             treelist_item_t* it;
-            if(item_has_children(item)  &&  !(item->state & MC_TLIS_EXPANDED))
+            if(treelist_item_has_children(tl, item)  &&  !(item->state & MC_TLIS_EXPANDED))
                 treelist_do_expand(tl, item, FALSE);
             for(it = item->parent; it != NULL; it = it->parent) {
                 if(!(it->state & MC_TLIS_EXPANDED))
@@ -1847,7 +2006,7 @@ treelist_key_down(treelist_t* tl, int key)
                 break;
 
             case VK_RIGHT:
-                if(item_has_children(sel)) {
+                if(treelist_item_has_children(tl, sel)) {
                     if(!(sel->state & MC_TLIS_EXPANDED))
                         treelist_do_expand(tl, sel, FALSE);
                     else
@@ -1860,7 +2019,7 @@ treelist_key_down(treelist_t* tl, int key)
                 break;
 
             case VK_ADD:
-                if(!(sel->state & MC_TLIS_EXPANDED)  &&  item_has_children(sel))
+                if(!(sel->state & MC_TLIS_EXPANDED)  &&  treelist_item_has_children(tl, sel))
                     treelist_do_expand(tl, sel, FALSE);
                 break;
 
@@ -2151,7 +2310,8 @@ treelist_delete_column(treelist_t* tl, int col_ix)
         treelist_item_t* item;
 
         for(item = tl->root_head; item != NULL; item = item_next(item)) {
-            if(item->subitems[col_ix])
+            if(item->subitems[col_ix] != NULL  &&
+               item->subitems[col_ix] != MC_LPSTR_TEXTCALLBACK)
                 free(item->subitems[col_ix]);
 
             if(tl->col_count > 1) {
@@ -2262,10 +2422,14 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
         goto err_alloc_item;
     }
     if(item_data->fMask & MC_TLIF_TEXT) {
-        text = mc_str(item_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
-        if(MC_ERR(text == NULL  &&  item_data->pszText != NULL)) {
-            MC_TRACE("treelist_insert_item: mc_str() failed.");
-            goto err_alloc_text;
+        if(item_data->pszText == MC_LPSTR_TEXTCALLBACK) {
+            item->text = item_data->pszText;
+        } else {
+            text = mc_str(item_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+            if(MC_ERR(text == NULL  &&  item_data->pszText != NULL)) {
+                MC_TRACE("treelist_insert_item: mc_str() failed.");
+                goto err_alloc_text;
+            }
         }
     }
     if(tl->col_count > 0) {
@@ -2314,8 +2478,13 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
                                 ? item_data->iSelectedImage : MC_I_IMAGENONE);
     item->img_expanded = (SHORT)((item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
                                 ? item_data->iExpandedImage : MC_I_IMAGENONE);
-    item->children = ((item_data->fMask & MC_TLIF_CHILDREN)
-                                ? item_data->cChildren : 0);
+    if(item_data->fMask & MC_TLIF_CHILDREN) {
+        item->children = (item_data->cChildren != 0);
+        item->children_callback = (item_data->cChildren == MC_I_CHILDRENCALLBACK);
+    } else {
+        item->children = 0;
+        item->children_callback = 0;
+    }
     item->expanding_notify_in_progress = 0;
 
     if(parent != NULL) {
@@ -2361,7 +2530,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
 
     /* Error path */
 err_alloc_subitems:
-    if(text)
+    if(text != NULL  &&  text != MC_LPSTR_TEXTCALLBACK)
         free(text);
 err_alloc_text:
     free(item);
@@ -2393,13 +2562,17 @@ treelist_set_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
     if(item_data->fMask & MC_TLIF_TEXT) {
         TCHAR* text;
 
-        text = mc_str(item_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
-        if(MC_ERR(text == NULL  &&  item_data->pszText != NULL)) {
-            MC_TRACE("treelist_set_item: mc_str() failed.");
-            return FALSE;
+        if(item_data->pszText == MC_LPSTR_TEXTCALLBACK) {
+            text = MC_LPSTR_TEXTCALLBACK;
+        } else {
+            text = mc_str(item_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+            if(MC_ERR(text == NULL  &&  item_data->pszText != NULL)) {
+                MC_TRACE("treelist_set_item: mc_str() failed.");
+                return FALSE;
+            }
         }
 
-        if(item->text)
+        if(item->text != NULL  &&  item->text != MC_LPSTR_TEXTCALLBACK)
             free(item->text);
         item->text = text;
     }
@@ -2433,8 +2606,10 @@ treelist_set_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
     if(item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
         item->img_expanded = item_data->iExpandedImage;
 
-    if(item_data->fMask & MC_TLIF_CHILDREN)
-        item->children = item_data->cChildren;
+    if(item_data->fMask & MC_TLIF_CHILDREN) {
+        item->children = (item_data->cChildren != 0);
+        item->children_callback = (item_data->cChildren == MC_I_CHILDRENCALLBACK);
+    }
 
     if(!tl->no_redraw)
         treelist_invalidate_item(tl, item, 0, 0);
@@ -2446,6 +2621,9 @@ static BOOL
 treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
                   BOOL unicode)
 {
+    DWORD dispinfo_mask;
+    treelist_dispinfo_t dispinfo;
+
     TREELIST_TRACE("treelist_get_item(%p, %p, %p, %d)",
                    tl, item, item_data, unicode);
 
@@ -2462,8 +2640,12 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
         return FALSE;
     }
 
+    dispinfo_mask = item_data->fMask & (MC_TLIF_TEXT | MC_TLIF_IMAGE |
+                MC_TLIF_SELECTEDIMAGE | MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN);
+    treelist_get_dispinfo(tl, item, &dispinfo, dispinfo_mask);
+
     if(item_data->fMask & MC_TLIF_TEXT) {
-        mc_str_inbuf(item->text, MC_STRT, item_data->pszText,
+        mc_str_inbuf(dispinfo.text, MC_STRT, item_data->pszText,
                      (unicode ? MC_STRW : MC_STRA), item_data->cchTextMax);
     }
 
@@ -2474,14 +2656,15 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
         item_data->state = item->state;
 
     if(item_data->fMask & MC_TLIF_IMAGE)
-        item_data->iImage = item->img;
+        item_data->iImage = dispinfo.img;
 
     if(item_data->fMask & MC_TLIF_SELECTEDIMAGE)
-        item_data->iSelectedImage = item->img_selected;
+        item_data->iSelectedImage = dispinfo.img_selected;
 
     if(item_data->fMask & MC_TLIF_EXPANDEDIMAGE)
-        item_data->iExpandedImage = item->img_expanded;
+        item_data->iExpandedImage = dispinfo.img_expanded;
 
+    treelist_free_dispinfo(tl, item, &dispinfo);
     return TRUE;
 }
 
@@ -2532,12 +2715,13 @@ treelist_delete_item_helper(treelist_t* tl, treelist_item_t* item, BOOL displaye
         if(item->subitems) {
             int i;
             for(i = 0; i < tl->col_count; i++) {
-                if(item->subitems[i])
+                if(item->subitems[i] != NULL  &&
+                   item->subitems[i] != MC_LPSTR_TEXTCALLBACK)
                     free(item->subitems[i]);
             }
             free(item->subitems);
         }
-        if(item->text)
+        if(item->text != NULL  &&  item->text != MC_LPSTR_TEXTCALLBACK)
             free(item->text);
         free(item);
 
@@ -2760,13 +2944,18 @@ treelist_set_subitem(treelist_t* tl, treelist_item_t* item,
     if(subitem_data->fMask & MC_TLSIF_TEXT) {
         TCHAR* text;
 
-        text = mc_str(subitem_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
-        if(MC_ERR(text == NULL  &&  subitem_data->pszText != NULL)) {
-            MC_TRACE("treelist_set_subitem: mc_str() failed.");
-            return FALSE;
+        if(subitem_data->pszText == MC_LPSTR_TEXTCALLBACK)
+            text = MC_LPSTR_TEXTCALLBACK;
+        else {
+            text = mc_str(subitem_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+            if(MC_ERR(text == NULL  &&  subitem_data->pszText != NULL)) {
+                MC_TRACE("treelist_set_subitem: mc_str() failed.");
+                return FALSE;
+            }
         }
 
-        if(item->subitems[subitem_data->iSubItem])
+        if(item->subitems[subitem_data->iSubItem] != NULL  &&
+           item->subitems[subitem_data->iSubItem] != MC_LPSTR_TEXTCALLBACK)
             free(item->subitems[subitem_data->iSubItem]);
         item->subitems[subitem_data->iSubItem] = text;
     }
@@ -2805,10 +2994,13 @@ treelist_get_subitem(treelist_t* tl, treelist_item_t* item,
     }
 
     if(subitem_data->fMask & MC_TLSIF_TEXT) {
-        mc_str_inbuf(item->subitems[subitem_data->iSubItem],
-                     MC_STRT,
-                     subitem_data->pszText,
+        treelist_subdispinfo_t subdispinfo;
+
+        treelist_get_subdispinfo(tl, item, subitem_data->iSubItem,
+                                 &subdispinfo, MC_TLSIF_TEXT);
+        mc_str_inbuf(subdispinfo.text, MC_STRT, subitem_data->pszText,
                      (unicode ? MC_STRW : MC_STRA), subitem_data->cchTextMax);
+        treelist_free_subdispinfo(tl, item, subitem_data->iSubItem, &subdispinfo);
     }
 
     return TRUE;

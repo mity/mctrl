@@ -46,6 +46,9 @@ extern "C" {
  * use those constants and types interchangeably as the constants and types are
  * binary compatible.
  *
+ * Note that documentation of the @c <commctrl.h> replacements is quite brief.
+ * Refer to MSDN documentation of their counterparts for more detailed info.
+ *
  * Additionally this header provides miscellaneous constants marking reserved
  * ranges for messages and notifications of mCtrl controls (in a similar manner
  * as @c <commctrl.h> does for @c COMCTL32.DLL controls).
@@ -58,13 +61,35 @@ extern "C" {
 /*@{*/
 
 /** @brief Equivalent of @c CLR_NONE from @c <commctrl.h>. */
-#define MC_CLR_NONE         ((COLORREF) 0xFFFFFFFF)
-
+#define MC_CLR_NONE              ((COLORREF) 0xFFFFFFFF)
 /** @brief Equivalent of @c CLR_DEFAULT from @c <commctrl.h>. */
-#define MC_CLR_DEFAULT      ((COLORREF) 0xFF000000)
+#define MC_CLR_DEFAULT           ((COLORREF) 0xFF000000)
 
+/** @brief Equivalent of @c I_IMAGECALLBACK from @c <commctrl.h>. */
+#define MC_I_IMAGECALLBACK       (-1)
 /** @brief Equivalent of @c I_IMAGENONE from @c <commctrl.h>. */
-#define MC_I_IMAGENONE      (-2)
+#define MC_I_IMAGENONE           (-2)
+
+/** @brief Equivalent of @c I_CHILDRENCALLBACK from @c <commctrl.h>. */
+#define MC_I_CHILDRENCALLBACK    (-1)
+
+/** @brief Equivalent of @c LPSTR_TEXTCALLBACKW from @c <commctrl.h> (Unicode variant). */
+#define MC_LPSTR_TEXTCALLBACKW   ((LPWSTR)(INT_PTR) -1)
+/** @brief Equivalent of @c LPSTR_TEXTCALLBACKA from @c <commctrl.h> (ANSI variant). */
+#define MC_LPSTR_TEXTCALLBACKA   ((LPSTR)(INT_PTR) -1)
+
+/*@}*/
+
+
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+/** @brief Equivalent of @c LPSTR_TEXTCALLBACK from @c <commctrl.h>.
+ *  @details Unicode-resolution alias.
+ *  @sa MC_LPSTR_TEXTCALLBACKW MC_LPSTR_TEXTCALLBACKA */
+#define MC_LPSTR_TEXTCALLBACK    MCTRL_NAME_AW(MC_LPSTR_TEXTCALLBACK)
 
 /*@}*/
 
@@ -74,7 +99,12 @@ extern "C" {
  */
 /*@{*/
 
-/** @brief Equivalent of @c NMCUSTOMDRAWINFO from @c <commctrl.h>. */
+/**
+ * @brief Equivalent of @c NMCUSTOMDRAWINFO from @c <commctrl.h>.
+ *
+ * For more detailed information refer to documentation of @c NMCUSTOMDRAWINFO
+ * on MSDN.
+ */
 typedef struct MC_NMCUSTOMDRAWINFO_tag {
     NMHDR hdr;
     DWORD dwDrawStage;

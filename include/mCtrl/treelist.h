@@ -124,7 +124,23 @@ extern "C" {
  * <tt>MC_TLE_COLLAPSE | MC_TLE_COLLAPSERESET</tt>.
  *
  *
- * @section std_msgs Standard Messages
+ * @section treelist_callbacks Item and Subitem Callbacks
+ *
+ * The control can be told to ask parent instead of remembering some attributes
+ * of items and subitems. Especially for item and subsystem texts, this technique
+ * allows further reduction of memory consumption by the control.
+ *
+ * To use the callbacks, you can set item or subitem texts to
+ * @c MC_LPSTR_TEXTCALLBACK, any item image to @c MC_I_IMAGECALLBACK, and/or
+ * item @c cChildren member to @c MC_I_CHILDRENCALLBACK.
+ *
+ * Whenever the control needs to paint the item/subitem, it then sends a
+ * notification @c MC_TLN_GETDISPINFO (for item) or @c MC_TLN_GETSUBDISPINFO
+ * (for subitem), with @c fMask specifying what members of it the application
+ * has to fill.
+ *
+ *
+ * @section treelist_std_msgs Standard Messages
  *
  * These standard messages are handled by the control:
  * - @c WM_GETFONT
@@ -207,16 +223,17 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLS_DOUBLEBUFFER         0x0080
 /** @brief Hide column headers. */
 #define MC_TLS_NOCOLUMNHEADER       0x0100
-/** @brief Enable column reordering by mouse drag&drop.
+/** @brief Enable column reordering by mouse drag & drop.
  *  @details Note that the left-most column can never be reordered. */
 #define MC_TLS_HEADERDRAGDROP       0x0200
 /** @brief Selected item is automatically expanded, deselected item is
- *  automatcially collapsed (unless user holds <tt>CTRL</tt> key). */
+ *  automatically collapsed (unless user holds <tt>CTRL</tt> key). */
 #define MC_TLS_SINGLEEXPAND         0x0400
 #if 0 /* TODO */
 #define MC_TLS_NOTOOLTIPS           0x0800
 #define MC_TLS_CHECKBOXES           0x1000
 #define MC_TLS_EDITLABELS           0x2000
+#define MC_TLS_EDITSUBLABELS        0x4000
 #endif
 
 /*@}*/
@@ -521,21 +538,22 @@ typedef struct MC_TLITEMW_tag {
     /** Mask determining what bits of @c state are valid.
      *  Ignored when getting the item data. */
     UINT stateMask;
-    /** The item text. */
+    /** The item text. Can be @c MC_LPSTR_TEXTCALLBACK. */
     WCHAR* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
     int cchTextMax;
     /** User data. */
     LPARAM lParam;
-    /** Image. Can be @c MC_I_IMAGENONE. */
+    /** Image. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
     int iImage;
-    /** Image when selected. Can be @c MC_I_IMAGENONE. */
+    /** Image when selected. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
     int iSelectedImage;
-    /** Image when expanded. Can be @c MC_I_IMAGENONE. */
+    /** Image when expanded. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
     int iExpandedImage;
     /** Flag indicating whether the item has children. When set to 1, control
-     *  assumes it has children even though application has not inserted them. */
+     *  assumes it has children even though application has not inserted them.
+     *  Can be @c MC_I_CHILDRENCALLBACK */
     int cChildren;
 } MC_TLITEMW;
 
@@ -552,21 +570,22 @@ typedef struct MC_TLITEMA_tag {
     /** Mask determining what bits of @c state are valid.
      *  Ignored when getting the item data. */
     UINT stateMask;
-    /** The item text. */
+    /** The item text. Can be @c MC_LPSTR_TEXTCALLBACK. */
     char* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
     int cchTextMax;
     /** User data. */
     LPARAM lParam;
-    /** Image. Can be @c MC_I_IMAGENONE. */
+    /** Image. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
     int iImage;
-    /** Image when selected. Can be @c MC_I_IMAGENONE. */
+    /** Image when selected. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
     int iSelectedImage;
-    /** Image when expanded. Can be @c MC_I_IMAGENONE. */
+    /** Image when expanded. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
     int iExpandedImage;
     /** Flag indicating whether the item has children. When set to 1, control
-     *  assumes it has children even though application has not inserted them. */
+     *  assumes it has children even though application has not inserted them.
+     *  Can be @c MC_I_CHILDRENCALLBACK */
     int cChildren;
 } MC_TLITEMA;
 
@@ -580,7 +599,7 @@ typedef struct MC_TLSUBITEMW_tag {
     UINT fMask;
     /** ID of subitem to set or get. */
     int iSubItem;
-    /** Subitem text. */
+    /** Subitem text. Can be @c MC_LPSTR_TEXTCALLBACK. */
     WCHAR* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
@@ -597,7 +616,7 @@ typedef struct MC_TLSUBITEMA_tag {
     UINT fMask;
     /** ID of subitem to set or get. */
     int iSubItem;
-    /** The subitem text. */
+    /** The subitem text. Can be @c MC_LPSTR_TEXTCALLBACK. */
     char* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
@@ -692,6 +711,62 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
     /** Item/subitem background color. */
     COLORREF clrTextBk;
 } MC_NMTLCUSTOMDRAW;
+
+/**
+ * @brief Structure used by notifications @c MC_TLN_GETDISPINFO and
+ * @c MC_TLN_SETDISPINFO (Unicode variant).
+ */
+typedef struct MC_NMTLDISPINFOW_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Handle specifying the item. */
+    MC_HTREELISTITEM hItem;
+    /** Structure that identifies the item. */
+    MC_TLITEMW item;
+} MC_NMTLDISPINFOW;
+
+/**
+ * @brief Structure used by notifications @c MC_TLN_GETDISPINFO and
+ * @c MC_TLN_SETDISPINFO (ANSI variant).
+ */
+typedef struct MC_NMTLDISPINFOA_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Handle specifying the item. */
+    MC_HTREELISTITEM hItem;
+    /** Structure that identifies the item. */
+    MC_TLITEMA item;
+} MC_NMTLDISPINFOA;
+
+/**
+ * @brief Structure used by notifications @c MC_TLN_GETSUBDISPINFO and
+ * @c MC_TLN_SETSUBDISPINFO (Unicode variant).
+ */
+typedef struct MC_NMTLSUBDISPINFOW_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Handle specifying the item. */
+    MC_HTREELISTITEM hItem;
+    /** @c LPARAM of the item. */
+    LPARAM lItemParam;
+    /** Structure that identifies the subitem. */
+    MC_TLSUBITEMW subitem;
+} MC_NMTLSUBDISPINFOW;
+
+/**
+ * @brief Structure used by notifications @c MC_TLN_GETSUBDISPINFO and
+ * @c MC_TLN_SETSUBDISPINFO (ANSI variant).
+ */
+typedef struct MC_NMTLSUBDISPINFOA_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Handle specifying the item. */
+    MC_HTREELISTITEM hItem;
+    /** @c LPARAM of the item. */
+    LPARAM lItemParam;
+    /** Structure that identifies the subitem. */
+    MC_TLSUBITEMA subitem;
+} MC_NMTLSUBDISPINFOA;
 
 /*@}*/
 
@@ -1051,7 +1126,6 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
  */
 /*@{*/
 
-
 /**
  * @brief Fired when deleting an item.
  *
@@ -1127,6 +1201,49 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
  */
 #define MC_TLN_EXPANDED              (MC_TLN_FIRST + 4)
 
+#if 0
+#define MC_TLN_SETDISPINFOW          (MC_TLN_FIRST + 5)
+#define MC_TLN_SETDISPINFOA          (MC_TLN_FIRST + 6)
+#endif
+
+/**
+ * @brief Fired when control needs to retrieve some item data, the parent holds
+ * (Unicode variant).
+ *
+ * This may happen when some members of an item were set to a callback magical
+ * value such as @c MC_LPSTRTEXTCALLBACK, @c MC_I_IMAGECALLBACK and
+ * @c MC_I_CHILDRENCALLBACK.
+ *
+ * @param wParam
+ * @param lParam[in,out] (@ref MC_NMTLDISPINFO*) Pointer to a @c MC_NMTLDISPINFO
+ * structure.
+ * @return None.
+ */
+#define MC_TLN_GETDISPINFOW          (MC_TLN_FIRST + 7)
+
+/**
+ * @brief Fired when control needs to retrieve some item data, the parent holds
+ * (ANSI variant).
+ *
+ * This may happen when some members of an item were set to a callback magical
+ * value such as @c MC_LPSTRTEXTCALLBACK, @c MC_I_IMAGECALLBACK and
+ * @c MC_I_CHILDRENCALLBACK.
+ *
+ * @param wParam
+ * @param lParam[in,out] (@ref MC_NMTLDISPINFO*) Pointer to a @c MC_NMTLDISPINFO
+ * structure.
+ * @return None.
+ */
+#define MC_TLN_GETDISPINFOA          (MC_TLN_FIRST + 8)
+
+#if 0
+#define MC_TLN_SETSUBDISPINFOW       (MC_TLN_FIRST + 9)
+#define MC_TLN_SETSUBDISPINFOA       (MC_TLN_FIRST + 10)
+#endif
+
+#define MC_TLN_GETSUBDISPINFOW       (MC_TLN_FIRST + 11)
+#define MC_TLN_GETSUBDISPINFOA       (MC_TLN_FIRST + 12)
+
 /*@}*/
 
 
@@ -1145,6 +1262,10 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLSUBITEM             MCTRL_NAME_AW(MC_TLSUBITEM)
 /** Unicode-resolution alias. @sa MC_TLINSERTSTRUCTW MC_TLINSERTSTRUCTA */
 #define MC_TLINSERTSTRUCT        MCTRL_NAME_AW(MC_TLINSERTSTRUCT)
+/** Unicode-resolution alias. @sa MC_NMTLDISPINFOW MC_NMTLDISPINFOA */
+#define MC_NMTLDISPINFO          MCTRL_NAME_AW(MC_NMTLDISPINFO)
+/** Unicode-resolution alias. @sa MC_NMTLSUBDISPINFOW MC_NMTLSUBDISPINFOA */
+#define MC_NMTLSUBDISPINFO       MCTRL_NAME_AW(MC_NMTLSUBDISPINFO)
 /** Unicode-resolution alias. @sa MC_TLM_SETCOLUMNW MC_TLM_SETCOLUMNA */
 #define MC_TLM_SETCOLUMN         MCTRL_NAME_AW(MC_TLM_SETCOLUMN)
 /** Unicode-resolution alias. @sa MC_TLM_INSERTCOLUMNW MC_TLM_INSERTCOLUMNA */
@@ -1163,6 +1284,14 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_SETSUBITEM        MCTRL_NAME_AW(MC_TLM_SETSUBITEM)
 /** Unicode-resolution alias. @sa MC_TLM_GETSUBITEMW MC_TLM_GETSUBITEMA */
 #define MC_TLM_GETSUBITEM        MCTRL_NAME_AW(MC_TLM_GETSUBITEM)
+/** Unicode-resolution alias. @sa MC_TLN_SETDISPINFOW MC_TLN_SETDISPINFOA */
+#define MC_TLN_SETDISPINFO       MCTRL_NAME_AW(MC_TLN_SETDISPINFO)
+/** Unicode-resolution alias. @sa MC_TLN_GETDISPINFOW MC_TLN_GETDISPINFOA */
+#define MC_TLN_GETDISPINFO       MCTRL_NAME_AW(MC_TLN_GETDISPINFO)
+/** Unicode-resolution alias. @sa MC_TLN_SETSUBDISPINFOW MC_TLN_SETSUBDISPINFOA */
+#define MC_TLN_SETSUBDISPINFO    MCTRL_NAME_AW(MC_TLN_SETSUBDISPINFO)
+/** Unicode-resolution alias. @sa MC_TLN_GETSUBDISPINFOW MC_TLN_GETSUBDISPINFOA */
+#define MC_TLN_GETSUBDISPINFO    MCTRL_NAME_AW(MC_TLN_GETSUBDISPINFO)
 
 /*@}*/
 
