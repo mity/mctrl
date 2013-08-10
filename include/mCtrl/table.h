@@ -39,7 +39,7 @@ extern "C" {
  * If application sets some of such flags (e.g. @c MC_TF_NOCELLFOREGROUND) and
  * later it attempts to set he corresponding attribute of the cell (e.g.
  * foreground color), the behavior is undefined (setting of some attributes
- * is silantly ignored, or the operation as a whole can fail but application
+ * is silently ignored, or the operation as a whole can fail but application
  * should not rely on exact behavior).
  */
 
@@ -103,7 +103,7 @@ typedef void* MC_HTABLE;
  * @sa mcTable_SetCell mcTable_GetCell
  */
 typedef struct MC_TABLECELL_tag {
-    /** Bitmask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
+    /** Bit-mask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
     DWORD fMask;
     /** Cell value. */
     MC_HVALUE hValue;
@@ -172,7 +172,7 @@ WORD MCTRL_API mcTable_RowCount(MC_HTABLE hTable);
  *
  * If a table dimension decreases, the values from excessive cells are destroyed.
  * If a table dimension increases, the new cells are initialized to empty
- * values (in case of heterogenous table) or to @c NULL values (for homogenous
+ * values (in case of heterogeneous table) or to @c NULL values (for homogeneous
  * table).
  *
  * @param[in] hTable The table.
@@ -185,8 +185,8 @@ BOOL MCTRL_API mcTable_Resize(MC_HTABLE hTable, WORD wColumnCount, WORD wRowCoun
 /**
  * @brief Clear the table.
  *
- * All values are destroyed. In case of homogenous table, all cells are reset
- * to @c NULL values of the particular value type, in case of homogenous
+ * All values are destroyed. In case of homogeneous table, all cells are reset
+ * to @c NULL values of the particular value type, in case of homogeneous
  * table the table becomes empty.
  *
  * @param[in] hTable The table.

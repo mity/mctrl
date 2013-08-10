@@ -31,22 +31,22 @@ extern "C" {
  * @file
  * @brief Dialog functions
  *
- * This module offers functions for creation of modal and modless dialogs
+ * This module offers functions for creation of modal and modeless dialogs
  * in ery similar manner as standard functions @c DialogBox and @c CreateDialog
  * do.
  *
  * Therefore mCtrl functions are very similar to their @c USER32.DLL
- * counterparts, including their function name and parameteres. Actually
+ * counterparts, including their function name and parameters. Actually
  * the only difference is that the mCtrl functions take an extra argument
- * @c dwFlags. When the @c dwFlags is zero, the functions behace exactly as
+ * @c dwFlags. When the @c dwFlags is zero, the functions behave exactly as
  * the original functions.
  *
- * When set to non-zero, the functions provide new fucntionality. Currently
+ * When set to non-zero, the functions provide new functionality. Currently
  * only the flag @c MC_DF_DEFAULTFONT is supported. When set, it forces the
  * dialog to use default font, as defined by MS user interface guide lines.
  *
  * All the functions support the classic dialog templates (@c DLGTEMPLATE)
- * as well as the extended dialog tempolates (@c DLGTEMPLATEEX).
+ * as well as the extended dialog templates (@c DLGTEMPLATEEX).
  */
 
 /**
@@ -59,13 +59,13 @@ extern "C" {
  *
  * When this flag is set, the dialog template is modified so the dialog uses
  * a default font for the particular Windows version, according to the
- * MS user itnerface guide lines.
+ * MS user interface guide lines.
  *
  * Depending on Windows version, it forces the template to use
  * <tt>MS Shell Dlg</tt>, <tt>MS Shell Dlg 2</tt> or <tt>Segoe UI</tt>.
  *
  * Note that when using this flag, the font specified originally in the
- * dialog template is used only as a fallback in cae of any error.
+ * dialog template is used only as a fallback in case of any error.
  *
  * @attention Metrics of the default fonts does differ. When using this font
  * you should test your dialog on multiple Windows version to ensure that no

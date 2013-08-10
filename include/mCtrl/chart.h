@@ -34,14 +34,14 @@ extern "C" {
  * The chart control is intended to display large sets of numerical data in a
  * visually illustrative way.
  *
- * @attention The chart control requires @c GDIPLUS.DLL bersion 1.0 or newer to
+ * @attention The chart control requires @c GDIPLUS.DLL version 1.0 or newer to
  * work correctly. This library was introduced in Windows XP and Windows Server
  * 2003. If your application needs to use this control on Windows 2000, you may
  * need to distribute @c GDIPLUS.DLL along with your application. (Microsoft
  * released @c GDIPLUS.DLL 1.0 as a redistributable for this purpose.)
  *
  * In general, the control is able to hold a multiple series of data (data
- * sets). Each series typically denotes some quantity evolvement in time or its
+ * sets). Each series typically denotes some quantity evolving in time or its
  * dependency on other quantity. In the chart each series is represented with a
  * different color, and accompanied with a legend text.
  *
@@ -53,14 +53,14 @@ extern "C" {
  *
  * To inset, delete or reset the data set values, use messages
  * @c MC_CHM_INSERTDATASET, @c MC_CHM_DELETEDATASET or @c MC_CHM_DELETEALLDATASETS
- * and @c MC_CHM_SETDATASET respectivally.
+ * and @c MC_CHM_SETDATASET respectively.
  *
  * Data sets can have the data only virtually. That is application can provide
  * to the control only an information the data set exists and how large it is.
  * Whenever the control paints and needs really the data, it asks for them
  * with @c MC_CHN_GETDISPINFO message. This is useful especially if the data
- * for the chart are realy large as it avoids duplication of the data in program
- * memory.
+ * for the chart are really large as it avoids duplication of the data in
+ * program memory.
  *
  * To set various other attributes of the data set, you may use
  * @c MC_CHM_SETDATASETLEGEND to set its legend or @c MC_CHM_SETDATASETCOLOR
@@ -83,7 +83,7 @@ extern "C" {
  * chart, but with horizontal and vertical axes swapped.
  *
  * The factor exponent is an integer value in the range (@c -9 to @c +9),
- * and it it is used when painting values for the given axis. An ineteger value
+ * and it it is used when painting values for the given axis. An integer value
  * is multiplied with <tt>(10 ^ exp)</tt>, where @c ^ marks power and
  * @c exp the exponent.
  *
@@ -105,14 +105,14 @@ extern "C" {
  * the primary one is used for displaying data set values.
  *
  * @note The pie chart visually differs quite a lot from majority of the other
- * chart types this control provides. Many control attibutes settable by
+ * chart types this control provides. Many control attributes settable by
  * control messages actually have no impact to the pie chart.
  *
  * The scatter chart (@c MC_CHS_SCATTER) expects to have all data set sizes of
- * even count of values. Unlike the other chart types, tyhe sizes of the data
+ * even count of values. Unlike the other chart types, the sizes of the data
  * sets can differ. The scatter chart interprets each data set as a set of
  * value pairs. Each value with odd index corresponds with the primary (X) axis,
- * and even index with secondary (Y) axis respectivelly.
+ * and even index with secondary (Y) axis respectively.
  *
  * The line chart (@c MC_CHS_LINE), the area chart (@c MC_CHS_AREA), the column
  * chart (@c MC_CHS_COLUMN) and the bar chart (@c MC_CHS_BAR) only expect that
@@ -120,9 +120,9 @@ extern "C" {
  *
  * Stacked variants of the charts above (@c MC_CHS_STACKEDLINE,
  * @c MC_CHS_STACKEDAREA, @c MC_CHS_STCKEDCOLUMN and @c MC_CHS_STACKEDBAR)
- * additionaly expect all the data in all data sets are positive. Actually the
- * charts work for negative values, but the result can be confusing for the
- * user.
+ * additionally expect all the data in all data sets are positive. Actually
+ * the charts work for negative values, but the result can be confusing for
+ * the user.
  *
  *
  * @section std_msgs Standard Messages
@@ -198,7 +198,7 @@ void MCTRL_API mcChart_Terminate(void);
 #define MC_CHS_BAR             0x0008
 /** @brief Stacked bar chart. */
 #define MC_CHS_STACKEDBAR      0x0009
-/** @brief This is not actually a valid style, it's the bitmask of chart type. */
+/** @brief This is not actually a valid style, it's the bit-mask of chart type. */
 #define MC_CHS_TYPEMASK        0x003f
 
 /**
@@ -454,7 +454,7 @@ typedef struct MC_NMCHDISPINFO_tag {
  * @brief Get tooltip associated with the control
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
- * @return (@c HWND) Handle of thetooltip window or @c NULL if no tooltip
+ * @return (@c HWND) Handle of the tooltip window or @c NULL if no tooltip
  * is associated with the control.
  */
 #define MC_CHM_GETTOOLTIPS            (MC_CHM_FIRST + 17)

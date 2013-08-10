@@ -41,10 +41,10 @@ extern "C" {
  * The control is very similar to the standard tab control from
  * @c COMCTL32.DLL, both visually and from developer's point of view.
  * There two main differences:
- * - @c MC_WC_MDITAB does not have the main bodyfor contents of the tab;
+ * - @c MC_WC_MDITAB does not have the main body for contents of the tab;
  *   i.e. the contents of the tab is not really rendered in child window of
  *   the @c MC_WC_MDITAB control.
- * - The contol laso provides few auxiliary buttons on it. They might be
+ * - The control also provides few auxiliary buttons on it. They might be
  *   invisible depending on the control style and internal state. There is
  *   a button to close the current tab, to show pop-up menu of all tabs
  *   and finally buttons scrolling the tabs to left or right if there are too
@@ -62,7 +62,7 @@ extern "C" {
  * MDI, the programmatic interfaces very differs. If you want to replace MDI
  * with this control in an existing application, expect it will take some
  * time.
- * - In MDI, the child MDI windows can be minimalized or restored so they
+ * - In MDI, the child MDI windows can be minimized or restored so they
  *   would not cover whole MDI client window. @c MC_WC_MDITAB control does
  *   not provide any replacement for this (anyway only very few users rarely
  *   used this feature of MDI). If your application needs to allow access
@@ -70,7 +70,7 @@ extern "C" {
  *   with the @c MC_WC_MDITAB (e.g. to allow having multiple top level windows,
  *   each with the @c MC_WC_MDITAB to manage the documents open in each
  *   particular window).
- * - MDI absolutely expects that the application has its submenu Window, with
+ * - MDI absolutely expects that the application has its sub-menu Window, with
  *   all the commands like Tile horizontally or vertically, or too select
  *   another MDI document. @c MC_WC_MDITAB control does not expect that
  *   (still you are free to implement any menu you like ;-)
@@ -133,7 +133,7 @@ void MCTRL_API mcMditab_Terminate(void);
 #define MC_MTS_CBONACTIVETAB         0x0002
 /** @brief Don't show close button */
 #define MC_MTS_CBNONE                0x0003
-/** @brief This is not valid style, its bitmask of @c MC_MTS_CBxxx styles. */
+/** @brief This is not valid style, its bit-mask of @c MC_MTS_CBxxx styles. */
 #define MC_MTS_CBMASK                0x0003
 
 /** @brief Popup tab list button is shown always. This is default. */
@@ -142,7 +142,7 @@ void MCTRL_API mcMditab_Terminate(void);
 #define MC_MTS_TLBONSCROLL           0x0004
 /** @brief Popup tab list button is never displayed. */
 #define MC_MTS_TLBNEVER              0x0008
-/** @brief This is not valid style, but bitmask of @c MC_NTS_TLBxxx styles. */
+/** @brief This is not valid style, but bit-mask of @c MC_NTS_TLBxxx styles. */
 #define MC_MTS_TLBMASK               0x000C
 
 /** @brief Always shows scrolling buttons. */
@@ -155,7 +155,7 @@ void MCTRL_API mcMditab_Terminate(void);
 #define MC_MTS_FOCUSONBUTTONDOWN     0x0040
 /** @brief Never gains focus */
 #define MC_MTS_FOCUSNEVER            0x0080
-/** @brief This is not valid style, but bitmask of @c MC_NTS_FOCUSxxx styles. */
+/** @brief This is not valid style, but bit-mask of @c MC_NTS_FOCUSxxx styles. */
 #define MC_MTS_FOCUSMASK             0x00C0
 
 /** @brief Enable painting with double buffering.
@@ -259,15 +259,15 @@ typedef struct MC_MTITEMA_tag {
  *
  * However if there are too many items to be displayed, the control may
  * shrink the items in order to show more of them to minimize need for
- * scrolling. The minimal width specifies how much the items may be shrinked.
+ * scrolling. The minimal width specifies how much the items may be shrank.
  */
 typedef struct MC_MTITEMWIDTH_tag {
     /** The default item width. If set to zero, default width of each item
      *  depends on its label and icon. If set to non-zero then all items have
      *  the same width, in pixels. */
     DWORD dwDefWidth;
-    /** The minimal item width. If set to zero, the items are never shrinked.
-     *  If set to non-zero, the valiue specifies the minimal width of all
+    /** The minimal item width. If set to zero, the items are never shrank.
+     *  If set to non-zero, the value specifies the minimal width of all
      *  items. */
     DWORD dwMinWidth;
 } MC_MTITEMWIDTH;
@@ -340,7 +340,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_GETITEMCOUNT       (MC_MTM_FIRST + 0)
 
 /**
- * @brief Gets imagelist.
+ * @brief Gets image-list.
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@c HIMAGELIST) The image list, or @c NULL.
@@ -350,11 +350,11 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_GETIMAGELIST       (MC_MTM_FIRST + 1)
 
 /**
- * @brief Sets imagelist.
+ * @brief Sets image-list.
  *
  * The tab items can refer to the images in the list with @c MC_MTITEM::iImage.
  * @param wParam Reserved, set to zero.
- * @param[in] lParam (@c HIMAGELIST) The imagelist.
+ * @param[in] lParam (@c HIMAGELIST) The image-list.
  * @return (@c HIMAGELIST) Old image list, or @c NULL.
  *
  * @sa MC_MTM_GETIMAGELIST
@@ -470,7 +470,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_SETCURSEL          (MC_MTM_FIRST + 12)
 
 /**
- * @brief Gets indes of selected tab.
+ * @brief Gets index of selected tab.
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
  * @return (@c int) Index of selected tab, or @c -1.
@@ -480,8 +480,8 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 /**
  * @brief Asks to close item.
  *
- * It causes to send @c MC_MTN_CLOSEITEM notification and depening on its
- * return value it then can cause deleteing the item.
+ * It causes to send @c MC_MTN_CLOSEITEM notification and depending on its
+ * return value it then can cause deleting the item.
  * @param[in] wParam (@c int) Index of the item to be closed.
  * @param lParam Reserved, set to zero.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -575,11 +575,11 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * when it is being destroyed.
  *
  * Depending on the value returned from the notification, calling
- * @c MC_MTN_DELETEITEM notifications for all the items can be supressed.
+ * @c MC_MTN_DELETEITEM notifications for all the items can be suppressed.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@c NMHDR*)
  * @return Application should return @c FALSE to receive subsequent
- * @ref MC_MTN_DELETEITEM for each item; or @c TRUE to supress sending them.
+ * @ref MC_MTN_DELETEITEM for each item; or @c TRUE to suppress sending them.
  */
 #define MC_MTN_DELETEALLITEMS     (MC_MTN_FIRST + 2)
 

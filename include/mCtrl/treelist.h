@@ -47,11 +47,11 @@ extern "C" {
  * Usually the very first step after creation of the control, application sets
  * its columns. The messages (@c MC_TLM_INSERTCOLUMN, @c MC_TLM_SETCOLUMN etc.)
  * and structure (@c MC_TLCOLUMN) for this task are very similar to the
- * corresponsing messages of the standard list view control.
+ * corresponding messages of the standard list view control.
  *
  * Note however that the tree-list control manages the left-most column
  * (i.e. the column with index 0) a bit specially. This column is always used
- * for displaying the tree-like hiearchy of all items and the control prevents
+ * for displaying the tree-like hierarchy of all items and the control prevents
  * such changes, which would make the column with index 0 on other position
  * then the left-most one (i.e. for column 0, its @c MC_TLCOLUMN::iOrder is
  * always 0 too).
@@ -72,7 +72,7 @@ extern "C" {
  * left-most column.
  *
  * The subitems (@c MC_TLSUBITEM) then just hold data for the additional
- * columns of each item (currently onle textual label). Note that in this
+ * columns of each item (currently only textual label). Note that in this
  * regard the tree-list control differs from list view control where the
  * items as well as the subitems are actually described by single structure
  * @c LVITEM. (The reason behind this is that the item structure is
@@ -98,8 +98,8 @@ extern "C" {
  * @section treelist_dynamic Dynamically Populated Tree-lists
  *
  * Every single item inserted into the control takes about 40 bytes (32-bit
- * build) or about 80 bytes respectivelly (64-bit build), excluding label
- * strings and subitems. If you need to create tree hiearchy of huge number of
+ * build) or about 80 bytes respectively (64-bit build), excluding label
+ * strings and subitems. If you need to create tree hierarchy of huge number of
  * items, it may consume quite large amount of memory.
  *
  * The control addresses this issue by allowing application to populate the
@@ -113,7 +113,7 @@ extern "C" {
  * items, and sets @c MC_TLITEM::cChildren ti indicate whether the item has
  * children or not.
  *
- * When user attempots to expand the item, the application has to insert the
+ * When user attempts to expand the item, the application has to insert the
  * child items dynamically. To achieve this, the application must handle the
  * notification @c MC_TLN_EXPANDING and check the @c MC_NMTREELIST::action
  * for @c MC_TLE_EXPAND.
@@ -187,7 +187,7 @@ void MCTRL_API mcTreeList_Terminate(void);
  *  @details To include buttons with root items, application must also use
  *  @ref MC_TLS_LINESATROOT. */
 #define MC_TLS_HASBUTTONS           0x0001
-/** @brief Use lines to show hiearchy of items. */
+/** @brief Use lines to show hierarchy of items. */
 #define MC_TLS_HASLINES             0x0002
 /** @brief Use lines to link root items.
  *  @details Has no effect if none of @ref MC_TLS_HASBUTTONS and
@@ -255,20 +255,20 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLFMT_RIGHT            0x1
 /** @brief Text is centered. */
 #define MC_TLFMT_CENTER           0x2
-/** @brief A bitmask of bits for justification. */
+/** @brief A bit-mask of bits for justification. */
 #define MC_TLFMT_JUSTIFYMASK      0x3
 
 /*@}*/
 
 
 /**
- * @name Item Pseudohandles
+ * @name Item Pseudo-handles
  * @anchor MC_TLI_xxxx
  */
 /*@{*/
 
 /**
- * @brief Special handle value denoiting root item.
+ * @brief Special handle value denoting root item.
  * @details Can be used only where explicitly allowed.
  * @sa MC_TLM_INSERTITEM MC_TLM_DELETEITEM
  */
@@ -384,7 +384,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 
 
 /**
- * @name Action Flags for @ref MC_TLM_EXPAND
+ * @name Action Flags for MC_TLM_EXPAND
  * @anchor MC_TLE_xxxx
  */
 /*@{*/
@@ -403,7 +403,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 
 
 /**
- * @name Item Relationship Flags for @ref MC_TLM_GETNEXTITEM
+ * @name Item Relationship Flags for MC_TLM_GETNEXTITEM
  * @anchor MC_TLGN_xxxx
  */
 /*@{*/
@@ -428,14 +428,14 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLGN_FIRSTVISIBLE         0x5
 /** @brief Get next visible item, or @c NULL if no visible item follows.
  *  @details The next visible item is the item painted just after the specified
- *  item. I.e. it is determined regardless the tree hiearchy. It does not check
- *  if the next item is in the viewport defined by vertical scrollbar. */
+ *  item. I.e. it is determined regardless the tree hierarchy. It does not check
+ *  if the next item is in the view-port defined by vertical scrollbar. */
 #define MC_TLGN_NEXTVISIBLE          0x6
 /** @brief Get previous visible item, or @c NULL if no visible item precedes
  *  the specified item.
  *  @details The previous visible item is the item painted just before the
- *  specified item. I.e. it is determined regardless the tree hiearchy. It does
- *  not check if the previous item is in the viewport defined by vertical
+ *  specified item. I.e. it is determined regardless the tree hierarchy. It does
+ *  not check if the previous item is in the view-port defined by vertical
  * scrollbar. */
 #define MC_TLGN_PREVIOUSVISIBLE      0x7
 /** @brief Get selected item, or @c NULL if no item is selected. */
@@ -459,11 +459,11 @@ void MCTRL_API mcTreeList_Terminate(void);
  * @sa MC_TLM_INSERTCOLUMNW MC_TLM_SETCOLUMNW MC_TLM_GETCOLUMNW
  */
 typedef struct MC_TLCOLUMNW_tag {
-    /** Bitmask specifying what other members are valid.
+    /** Bit-mask specifying what other members are valid.
      *  See @ref MC_TLCF_xxxx. */
     UINT fMask;
-    /** Alignement of the column header and the subitem text in the column.
-     *  Note the alignement of leftmost column is always @c MC_TLFMT_LEFT;
+    /** Alignment of the column header and the subitem text in the column.
+     *  Note the alignment of leftmost column is always @c MC_TLFMT_LEFT;
      *  it cannot be changed. See @ref MC_TLFMT_xxxx. */
     int fmt;
     /** Width of the column in pixels. */
@@ -483,11 +483,11 @@ typedef struct MC_TLCOLUMNW_tag {
  * @sa MC_TLM_INSERTCOLUMNA MC_TLM_SETCOLUMNA MC_TLM_GETCOLUMNA
  */
 typedef struct MC_TLCOLUMNA_tag {
-    /** Bitmask specifying what other members are valid.
+    /** Bit-mask specifying what other members are valid.
      *  See @ref MC_TLCF_xxxx. */
     UINT fMask;
-    /** Alignement of the column header and the subitem text in the column.
-     *  Note the alignement of leftmost column is always @c MC_TLFMT_LEFT;
+    /** Alignment of the column header and the subitem text in the column.
+     *  Note the alignment of leftmost column is always @c MC_TLFMT_LEFT;
      *  it cannot be changed. See @ref MC_TLFMT_xxxx. */
     int fmt;
     /** Width of the column in pixels. */
@@ -513,12 +513,12 @@ typedef void* MC_HTREELISTITEM;
  * @sa MC_TLM_INSERTITEMW MC_TLM_SETITEMW MC_TLM_GETITEMW
  */
 typedef struct MC_TLITEMW_tag {
-    /** Bitmask specifying what other members are valid.
+    /** Bit-mask specifying what other members are valid.
      *  See @ref MC_TLIF_xxxx. */
     UINT fMask;
     /** State of the item. See @ref MC_TLIS_xxxx. */
     UINT state;
-    /** Mask detrmining what bits of @c state are valid.
+    /** Mask determining what bits of @c state are valid.
      *  Ignored when getting the item data. */
     UINT stateMask;
     /** The item text. */
@@ -530,9 +530,9 @@ typedef struct MC_TLITEMW_tag {
     LPARAM lParam;
     /** Image. Can be @c MC_I_IMAGENONE. */
     int iImage;
-    /** Image whem selected. Can be @c MC_I_IMAGENONE. */
+    /** Image when selected. Can be @c MC_I_IMAGENONE. */
     int iSelectedImage;
-    /** Image whem expanded. Can be @c MC_I_IMAGENONE. */
+    /** Image when expanded. Can be @c MC_I_IMAGENONE. */
     int iExpandedImage;
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them. */
@@ -544,12 +544,12 @@ typedef struct MC_TLITEMW_tag {
  * @sa MC_TLM_INSERTITEMA MC_TLM_SETITEMA MC_TLM_GETITEMA
  */
 typedef struct MC_TLITEMA_tag {
-    /** Bitmask specifying what other members are valid.
+    /** Bit-mask specifying what other members are valid.
      *  See @ref MC_TLIF_xxxx. */
     UINT fMask;
     /** State of the item. See @ref MC_TLIS_xxxx. */
     UINT state;
-    /** Mask detrmining what bits of @c state are valid.
+    /** Mask determining what bits of @c state are valid.
      *  Ignored when getting the item data. */
     UINT stateMask;
     /** The item text. */
@@ -561,9 +561,9 @@ typedef struct MC_TLITEMA_tag {
     LPARAM lParam;
     /** Image. Can be @c MC_I_IMAGENONE. */
     int iImage;
-    /** Image whem selected. Can be @c MC_I_IMAGENONE. */
+    /** Image when selected. Can be @c MC_I_IMAGENONE. */
     int iSelectedImage;
-    /** Image whem expanded. Can be @c MC_I_IMAGENONE. */
+    /** Image when expanded. Can be @c MC_I_IMAGENONE. */
     int iExpandedImage;
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them. */
@@ -575,7 +575,7 @@ typedef struct MC_TLITEMA_tag {
  * @sa MC_TLM_SETSUBITEMW MC_TLM_GETSUBITEMW
  */
 typedef struct MC_TLSUBITEMW_tag {
-    /** Bitmask specifying what other members are valid.
+    /** Bit-mask specifying what other members are valid.
      *  See @ref MC_TLSIF_xxxx. */
     UINT fMask;
     /** ID of subitem to set or get. */
@@ -592,7 +592,7 @@ typedef struct MC_TLSUBITEMW_tag {
  * @sa MC_TLM_SETSUBITEMA MC_TLM_GETSUBITEMA
  */
 typedef struct MC_TLSUBITEMA_tag {
-    /** Bitmask specifying what other members are valid.
+    /** Bit-mask specifying what other members are valid.
      *  See @ref MC_TLSIF_xxxx. */
     UINT fMask;
     /** ID of subitem to set or get. */
@@ -704,7 +704,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /**
  * @brief Insert a new column (Unicode variant).
  * @param[in] wParam (@c int) Index of the new column.
- * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
+ * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column structure.
  * @return Return the index of the new column, or @c -1 on failure.
  */
 #define MC_TLM_INSERTCOLUMNW         (MC_TLM_FIRST + 0)
@@ -712,7 +712,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /**
  * @brief Insert a new column (ANSI variant).
  * @param[in] wParam (@c int) Index of the new column.
- * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
+ * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column structure.
  * @return Return the index of the new column, or @c -1 on failure.
  */
 #define MC_TLM_INSERTCOLUMNA         (MC_TLM_FIRST + 1)
@@ -720,7 +720,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /**
  * @brief Sets attributes of a column (Unicode variant).
  * @param[in] wParam (@c int) Index of the new column.
- * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
+ * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column structure.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_TLM_SETCOLUMNW            (MC_TLM_FIRST + 2)
@@ -728,7 +728,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /**
  * @brief Sets attributes of a column (ANSI variant).
  * @param[in] wParam (@c int) Index of the new column.
- * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
+ * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column structure.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_TLM_SETCOLUMNA            (MC_TLM_FIRST + 3)
@@ -736,7 +736,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /**
  * @brief Gets attributes of a column (Unicode variant).
  * @param[in] wParam (@c int) Index of the new column.
- * @param[out] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
+ * @param[out] lParam (@ref MC_TLCOLUMN*)  Pointer to the column structure.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_TLM_GETCOLUMNW            (MC_TLM_FIRST + 4)
@@ -744,7 +744,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /**
  * @brief Gets attributes of a column (ANSI variant).
  * @param[in] wParam (@c int) Index of the new column.
- * @param[out] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
+ * @param[out] lParam (@ref MC_TLCOLUMN*)  Pointer to the column structure.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_TLM_GETCOLUMNA            (MC_TLM_FIRST + 5)
@@ -993,10 +993,10 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_EXPAND                (MC_TLM_FIRST + 27)
 
 /**
- * @brief Get item of the specified relationship to a spacified item.
+ * @brief Get item of the specified relationship to a specified item.
  * @param[in] wParam (@c int) Flag determining the item to retrieve.
  * See @ref MC_TLGN_xxxx.
- * @param[in] lParam (@ref MC_HTREELISTITEM) Hnadle of an item.
+ * @param[in] lParam (@ref MC_HTREELISTITEM) Handle of an item.
  * @return (@c MC_HTREELISTITEM) Handle of the item in the specified
  * relationship, or @c NULL.
  */
@@ -1023,13 +1023,14 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /**
  * @brief Associates an image list with the control.
  *
- * Note the control does not delete the previouslz associated image list.
+ * Note the control does not delete the previously associated image list.
  * It also does not delete the currently associated image list when destroying
  * the control.
  *
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c HIMAGELIST) Handle to the image list.
- * @return (@c HIMAGELIST) Image list handle previously asscoated with the control.
+ * @return (@c HIMAGELIST) Image list handle previously associated with
+ * the control.
  */
 #define MC_TLM_SETIMAGELIST          (MC_TLM_FIRST + 31)
 
@@ -1038,7 +1039,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
  *
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
- * @return (@c HIMAGELIST) Image list handle asscoated with the control.
+ * @return (@c HIMAGELIST) Image list handle associated with the control.
  */
 #define MC_TLM_GETIMAGELIST          (MC_TLM_FIRST + 32)
 
@@ -1076,7 +1077,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
  * structure.
  * @return Application may prevent @c TRUE to prevent the selection change,
- * or @c FALSE oterwise to allow it.
+ * or @c FALSE otherwise to allow it.
  */
 #define MC_TLN_SELCHANGING           (MC_TLN_FIRST + 1)
 
@@ -1101,13 +1102,13 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
  * The members @c hItemNew and @c lParamNew of @c MC_NMTREELIST specify
  * the item which is changing its state. The member @c action is set to
  * @c MC_TLE_EXPAND or MC_TLE_COLLAPSE to specify that the item is going
- * to expand or collapse respectivelly.
+ * to expand or collapse respectively.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
  * structure.
  * @return Application may prevent @c TRUE to prevent the item state change,
- * or @c FALSE oterwise to allow it.
+ * or @c FALSE otherwise to allow it.
  */
 #define MC_TLN_EXPANDING             (MC_TLN_FIRST + 3)
 
@@ -1117,7 +1118,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
  * The members @c hItemNew and @c lParamNew of @c MC_NMTREELIST specify
  * the item which has changed its state, The member @c action is set to
  * @c MC_TLE_EXPAND or MC_TLE_COLLAPSE to specify that the item has expanded
- * or collapsed respectivelly.
+ * or collapsed respectively.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST

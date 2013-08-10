@@ -58,15 +58,15 @@ extern "C" {
  * As said above, from applications point of view the values are represented
  * by an opaque type @c MC_HVALUE. It is just an handle to the value.
  *
- * It is usually usewful to pass the handle here or there in application but
- * the applcation has to be designed in a way that it is clear who owns the
+ * It is usually useful to pass the handle here or there in application but
+ * the application has to be designed in a way that it is clear who owns the
  * handle, i.e. when it can be safely destroyed.
  *
  * Also note the when an application asks for a value from some control
  * (e.g. grid, @c ref MC_WC_GRID) or a data model (e.g. table, @ref MC_HTABLE),
  * it usually gets a <tt>const MC_HVALUE</tt>. It is directly the handle managed
  * by the control, not its copy. The application should not store the value
- * handle as there is no guaranty when the control or data model respectivelly
+ * handle as there is no guaranty when the control or data model respectively
  * will reset the value, or even destroy it.
  *
  * If the application needs to store the information represented by the value,
@@ -135,7 +135,7 @@ typedef void* MC_HVALUE;
 #define MC_VALUETYPEID_INT64            3
 /** @brief ID for 64-bit unsigned integer value type. */
 #define MC_VALUETYPEID_UINT64           4
-/** @brief ID for unicode string value type. */
+/** @brief ID for Unicode string value type. */
 #define MC_VALUETYPEID_STRINGW          5
 /** @brief ID for ANSI string value type. */
 #define MC_VALUETYPEID_STRINGA          6

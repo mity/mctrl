@@ -26,7 +26,7 @@
  *   uses the suffix "W", while ANSI uses suffix "A". Public headers offer
  *   Unicode/ANSI resolution name which is defined to be one or other,
  *   according to as the preprocessor macro @c UNICODE is defined.
- * - Of course mCtrl attempots to provide consistent look and feel of the
+ * - Of course mCtrl attempts to provide consistent look and feel of the
  *   controls with standard Windows GUI controls. This includes support
  *   for XP theming, also known as
  *   <a href="http://msdn.microsoft.com/en-us/library/bb773187%28v=vs.85%29.aspx">
@@ -41,22 +41,29 @@
  *
  * Using mCtrl is as easy as of any other library. Include the relevant
  * public headers (in the downloaded packages under <tt>include/mCtrl</tt>.
- *
- * Within mCtrl, each GUI control has its own header file.
+ * Within mCtrl, each GUI control or other module has its own header file.
  *
  * Note that to minimize the chance of filename clashes you should instruct
  * your C compiler to search for include files to <tt>include</tt> directory
- * and then specify the mCtrl subdirectory within the include directoives.
+ * and then specify the mCtrl subdirectory within the include directives.
  *
  * @code
  * #include <mCtrl/some_header.h>
  * @endcode
  *
- * And link with the appropriate import library. Since version 0.7.0 the
- * prebuilt mCtrl packages provide two import libraries, both of them
- * are in @c lib subdirectory of the prebuilt mCtrl packages:
- * - @c libmctrl.a intended for gcc-based toolchains (e.g. mingw).
- * - @c mCtrl.lib intended for MS Visual Studio and Microsofrt C compiler.
+ * Alternatively, there is also all-in-one header, which includes all mCtrl
+ * public headers.
  *
- * Of course you have then distribute your applications with @c MCTRL.DLL.
+ * @code
+ * #include <mCtrl.h>
+ * @endcode
+ *
+ * Finally, link with the appropriate import library. Import libraries live
+ * in subdirectory @c lib or @c lib64 (for 32-bit or 64-bit binaries
+ * respectively). In both directories, thw following import libs can be found:
+ * - @c libmctrl.a intended for gcc-based toolchains (e.g. mingw).
+ * - @c mCtrl.lib intended for MS Visual Studio and Microsoft C compiler.
+ *
+ * Of course you have then distribute your applications with @c MCTRL.DLL,
+ * which is located in subdirectory @c bin or @c bin64 respectively.
  */

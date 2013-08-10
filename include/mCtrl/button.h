@@ -46,13 +46,13 @@ extern "C" {
  * a plenty of applications (including some made by Microsoft itself) for
  * some time, the split buttons are only supported by @c COMCTL32.DLL since
  * Windows Vista. Applications wanting to use them on previous versions of
- * Windows have to reimplement them manually - or they now can use
+ * Windows have to re-implement them manually - or they now can use
  * @c MC_WC_BUTTON instead.
  * See @ref sec_button_split for more info.
  *
  * In all other aspects the @c MC_WC_BUTTON control behaves as the standard
  * @c BUTTON (strictly speaking it inherits those features by subclassing)
- * as available on the Windows version and @c COMCTL32.DLL version avaiable
+ * as available on the Windows version and @c COMCTL32.DLL version available
  * on the system where your application runs.
  * So you can use @c MC_WC_BUTTON everywhere, instead of all buttons
  * and use the standard flags when creating them, e.g. @c BS_GROUPBOX or
@@ -67,11 +67,11 @@ extern "C" {
  * in Windows XP), then the button simply does not look consistently with
  * other controls in your application.
  *
- * If you use @c MC_WC_BUTTON, the button is styled if XP styles are avaiable
+ * If you use @c MC_WC_BUTTON, the button is styled if XP styles are available
  * and enabled on the system. If your application supports XP theming, you
  * should prefer @c MC_WC_BUTTON windows class over @c BUTTON for icon buttons.
  *
- * Comparision of icon button without and with Windows XP Styles:
+ * Comparison of icon button without and with Windows XP Styles:
  * @image html button_icon.png
  *
  * From developer's point of view, the use of icon button is absolutely the
@@ -86,10 +86,10 @@ extern "C" {
  *
  * @section sec_button_split Split Buttons
  *
- * Split button is a push button devided to two parts. The main part behaves
- * as the normal push buttons and the other part (called dropdown) opens some
+ * Split button is a push button divided to two parts. The main part behaves
+ * as the normal push buttons and the other part (called drop-down) opens some
  * options closely related with the function of the main button part.
- * In a typical use-case the dropdown launches a popup menu.
+ * In a typical use-case the drop-down launches a popup menu.
  *
  * @image html button_split.png
  *
@@ -99,7 +99,7 @@ extern "C" {
  * To handle clicks on the main part of the button, handle @c WM_COMMAND
  * as for any other normal push buttons.
  *
- * To handle clicks on the dropdown part of the button, handle message
+ * To handle clicks on the drop-down part of the button, handle message
  * @c WM_NOTIFY. If the message originates from @ref MC_BS_SPLITBUTTON control,
  * recast @c LPARAM to @ref MC_NMBCDROPDOWN* and check if
  * <tt>MC_NMBCDROPDOWN::hdr.code</tt> is @ref MC_BST_DROPDOWNPUSHED.
@@ -107,7 +107,7 @@ extern "C" {
  * Note that all the mCtrl split button styles and messages supported by
  * @c MCTRL.DLL (those defined in this header with the prefix @c "MC_") have
  * values equal to their standard counterparts as defined by Microsoft SDK
- * in @c <commctrl.h> so they can be used interchangably. The advamtage of
+ * in @c <commctrl.h> so they can be used interchangeably. The advantage of
  * those mCtrl ones is that they are defined always when you include
  * @c <mCtrl/button.h>, while the standard identifiers in @c <commctrl.h>
  * are defined only if <tt>_WIN32_WINNT >= 0x0600</tt>.
@@ -195,7 +195,7 @@ void MCTRL_API mcButton_Terminate(void);
 /*@{*/
 
 /**
- * @brief State of the split button when dropdown button is pressed.
+ * @brief State of the split button when drop-down button is pressed.
  *
  * It is a possible value returned by standard @c BM_GETSTATE message.
  * It is equivalent to standard @c BST_DROPDOWNPUSHED.
@@ -222,7 +222,7 @@ void MCTRL_API mcButton_Terminate(void);
 typedef struct MC_NMBCDROPDOWN_tag {
     /** Standard notification structure header. */
     NMHDR hdr;
-    /** Client rectangle of the dropdown button. */
+    /** Client rectangle of the drop-down button. */
     RECT rcButton;
 } MC_NMBCDROPDOWN;
 
@@ -235,7 +235,7 @@ typedef struct MC_NMBCDROPDOWN_tag {
 /*@{*/
 
 /**
- * @brief Notification fired when user clicks on the dropdown button.
+ * @brief Notification fired when user clicks on the drop-down button.
  *
  * It is equivalent to standard @c BCN_DROPDOWN. It is passed via
  * the @c WM_NOTIFY message.

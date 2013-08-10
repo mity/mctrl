@@ -39,7 +39,7 @@ extern "C" {
  * More generic way is to use a de-facto standard way by calling the function
  * @c DllGetVersion. @c MCTRL.DLL exports this function, as a lot of standard
  * DLLs distributed by Microsoft does. Note this function has no declaration
- * in any mCtrl public header, as it is inteded to be used with @c LoadLibrary
+ * in any mCtrl public header, as it is intended to be used with @c LoadLibrary
  * only. Prototype of the function looks like this:
  *
  * @code

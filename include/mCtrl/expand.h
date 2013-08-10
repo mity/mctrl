@@ -36,7 +36,7 @@ extern "C" {
  *
  * In addition, when collapsing, the control automatically disables and hides
  * all child windows of the managed window which fall out of the visible area;
- * and when expaning it enables and shows all the child windows revealed by the
+ * and when expanding it enables and shows all the child windows revealed by the
  * resize operation. Application can disable this behavior with the style
  * @c MC_EXS_IGNORECHILDREN.
  *
@@ -63,8 +63,8 @@ extern "C" {
  * If you use style @c MC_EXS_CACHESIZES, the computed sizes are retained
  * for next use, i.e. the sizes are computed only once.
  *
- * You can set expanded and collapsed sizes explicitely with message
- * @c MC_EXM_SETCOLLAPSEDSIZE and @c MC_EXM_SETEXPANDEDSIZE respectivelly.
+ * You can set expanded and collapsed sizes explicitly with message
+ * @c MC_EXM_SETCOLLAPSEDSIZE and @c MC_EXM_SETEXPANDEDSIZE respectively.
  *
  *
  * @section Initial State
@@ -74,7 +74,7 @@ extern "C" {
  * initialized, e.g. if the expand control is not last control created in the
  * dialog.
  *
- * Therefore it is supposed that application explicitely sends the message
+ * Therefore it is supposed that application explicitly sends the message
  * @c MC_EXM_EXPAND after the dialog and all its children are created, usually
  * as part of the @c WM_INITDIALOG handling.
  *
@@ -186,7 +186,7 @@ void MCTRL_API mcExpand_Terminate(void);
  */
 /*@{*/
 
-/** @brief Perform the expand/collapsed without using an animation. */
+/** @brief Perform the expand/collapse without using an animation. */
 #define MC_EXE_NOANIMATE           (1 << 0)
 
 /*@}*/
@@ -285,7 +285,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * When application receives the message, the control is logically already in
  * the desired style, so it can ask about it using @c MC_EXM_ISEXPANDED.
  *
- * However the size of the preant window may be different from the desired
+ * However the size of the parent window may be different from the desired
  * state if the control animates it, as that takes some time.
  * When the parent resizing is also finished, the application will receive
  * notification @c MC_EXN_EXPANDED.
@@ -297,7 +297,7 @@ void MCTRL_API mcExpand_Terminate(void);
 #define MC_EXN_EXPANDING           (MC_EXN_FIRST + 0)
 
 /**
- * @brief Fired after the control has finished resing the parent window.
+ * @brief Fired after the control has finished resizing of the parent window.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@c NMHDR*)

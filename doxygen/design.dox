@@ -5,7 +5,7 @@
  *
  * In general, mCtrl follows Win32API conventions in error handling. On error,
  * the mCtrl functions set the error code with @c SetLastError() and then
- * typically return a value indicating an error has occured. In most cases
+ * typically return a value indicating an error has occurred. In most cases
  * this error indicator is 0, -1, @c FALSE or @c NULL, depending on the
  * function and type it returns.
  *
@@ -30,7 +30,7 @@
  * strings as well. If a function, message of a control or a structure
  * uses string, there are usually two flavors of the entity: one for Unicode
  * and one for the ANSI string. When calling a function or sending a message,
- * ANSI strings in paramaters and structure members are converted to Unicode
+ * ANSI strings in parameters and structure members are converted to Unicode
  * on input and Unicode to ANSI on output.
  *
  * Identifiers of the Unicode flavor then have the @c "W" suffix and ANSI have
@@ -65,7 +65,7 @@
  * Note that for performance reasons mCtrl functions do not test whether the
  * module is properly initialized, so the function can fail in any means
  * if the module is not initialized, or can work if the function does not
- * currently rely on the initialziation. But note that in the latter case
+ * currently rely on the initialization. But note that in the latter case
  * there is no guaranty the behavior does not change in future versions of
  * mCtrl.
  *
@@ -97,13 +97,13 @@
  * 0x1300 to 0x1fff.
  *
  *
- * @section sec_multithreading About Multithreading
+ * @section sec_multithreading About Multi-threading
  *
- * mCtrl is designed to be multithreading friendly. In general, all functions
+ * mCtrl is designed to be multi-threading friendly. In general, all functions
  * are reentrant. I.e. you can call the same @c MCTRL.DLL function concurrently
  * from multiple threads.
  *
- * However remeber that access to data visible externally through @c MCTRL.DLL
+ * However remember that access to data visible externally through @c MCTRL.DLL
  * interface is not synchronized: If you have such data (e.g. @ref MC_HVALUE
  * or @ref MC_HTABLE and then want to manipulate with the data concurrently
  * from multiple threads, @c MCTRL.DLL does not synchronize for you: It's

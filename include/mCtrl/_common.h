@@ -37,16 +37,16 @@ extern "C" {
  * for sake of consistency and for sake of easiness of mCtrl adoption by
  * developers with Win32API experience.
  *
- * However we don't want to include that header in mpublic mCtrl headers as,
+ * However we don't want to include that header in public mCtrl headers as,
  * in general, mCtrl interface should be more self-contained.
  *
- * Therefore this headers defines some constants and types which are eqivalent
- * to those in @c <commctrl.h>, with just a prefix @c MC_ prepended.
- * Note that applications including both mCtrl headers and @c commctrl.h can
+ * Therefore this headers defines some constants and types which are equivalent
+ * to those in @c <commctrl.h>, with name beginning with a prefix @c MC_.
+ * Note that applications including both mCtrl headers and @c <commctrl.h> can
  * use those constants and types interchangeably as the constants and types are
  * binary compatible.
  *
- * Additionally this header provides miscelaneous constants marking reserved
+ * Additionally this header provides miscellaneous constants marking reserved
  * ranges for messages and notifications of mCtrl controls (in a similar manner
  * as @c <commctrl.h> does for @c COMCTL32.DLL controls).
  */

@@ -41,7 +41,7 @@ extern "C" {
  * the underlying @c MC_HTABLE. Thus the table can be resized, its contents can
  * be changed and so on without use of the @c MC_HTABLE API.
  *
- * By default, the control creates an empty heterogenous table during
+ * By default, the control creates an empty heterogeneous table during
  * its creation. You can avoid that by the style @c MC_GS_NOTABLECREATE.
  * In that case however you have to attach some table to the control manually
  * with the message @c MC_GM_SETTABLE. Until you do so, all messages attempting
@@ -183,7 +183,7 @@ typedef struct MC_GGEOMETRY_tag {
 /*@{*/
 
 /**
- * @brief Gets handle of table attached to the controlo or @c NULL if none is
+ * @brief Gets handle of table attached to the control or @c NULL if none is
  * attached.
  *
  * Note that calling the message does not change reference counter of the

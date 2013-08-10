@@ -33,7 +33,7 @@ extern "C" {
  *
  * As the control name suggests, the control is intended to display HTML
  * documents. Actually the control is thin wrapper of Internet Explorer
- * COM object, so it can do much more: display a plethory of multimedia files,
+ * COM object, so it can do much more: display a plethora of multimedia files,
  * take use of javascript etc.
  *
  * The easiest way how to show some document is to specify URL of target
@@ -54,12 +54,12 @@ extern "C" {
  * @section html_proto_res Resource Protocol
  *
  * The @c res: protocol is especially useful. It allows you to embed some
- * resources like HTML pages, cascading stylesheets (CSS), images (PNG, JPG etc.),
- * javascripts into binary of your application or any DLL it uses.
+ * resources like HTML pages, cascading style sheets (CSS), images (PNG, JPG
+ * etc.), javascripts into binary of your application or any DLL it uses.
  *
- * All resources  addessable by the control must be of type @c RT_HTML. This
+ * All resources  addressable by the control must be of type @c RT_HTML. This
  * includes not just the HTML document themselves but also all their files,
- * images, stylesheets, javascript files and any other resources linked from
+ * images, style sheets, javascript files and any other resources linked from
  * the HTML pages, or URL passed to the control.
  *
  * You can link to such resources with url in format "res://modname/res_id"
@@ -67,11 +67,11 @@ extern "C" {
  * program or any DLL it loads) and @c res_id is ID of the resource in the
  * resource script (RC).
  *
- * Alhtough it can be both string or number identifier, we recommend to prefer
+ * Although it can be both string or number identifier, we recommend to prefer
  * string identifiers which end with dummy &quot;file extension&quot;, hence
  * making a hint to the browser about the image type. Without this the browser
  * tries to guess what type of the data the resource is, and that may be
- * unrealiable. Remember the heuristics also differ in various verisons of MSIE.
+ * unreliable. Remember the heuristics also differ in various versions of MSIE.
  *
  * For example if you have a HTML file named @c some_page.html and an image
  * file @c image.png which can be linked from the HTML page, add the following
@@ -257,7 +257,7 @@ void MCTRL_API mcHtml_Terminate(void);
  * @param[in] wParam (@c BOOL) Set to @c TRUE to test going back in history or
  * @c FALSE to going forward.
  * @param lParam Reserved, set to zero.
- * @return (@c BOOL) @c TRUE if can go back or forward respectivelly, @c FALSE otherwise.
+ * @return (@c BOOL) @c TRUE if can go back or forward respectively, @c FALSE otherwise.
  * @see MC_HM_GOBACK
  */
 #define MC_HM_CANBACK         (MC_HM_FIRST + 15)
@@ -381,7 +381,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
 /**
  * @brief Fired when the browser would like to change status text.
  *
- * IE usually shows this text in its statusbar.
+ * IE usually shows this text in its status bar.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMHTMLTEXT*) Pointer to a structure specifying
@@ -403,7 +403,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
 #define MC_HN_TITLETEXT          (MC_HN_FIRST + 4)
 
 /**
- * @brief Fired when possibility of going back or foward in history changes.
+ * @brief Fired when possibility of going back or forward in history changes.
  *
  * This allow application to enable or disable the corresponding command
  * buttons.

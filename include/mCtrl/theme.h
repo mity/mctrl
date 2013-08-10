@@ -45,18 +45,18 @@ extern "C" {
  * as earlier versions does not support themed controls and mCtrl tries to be
  * consistent with rest of the application.
  *
- * The wrapper functions provided by this module simpply have the same name
+ * The wrapper functions provided by this module simply have the same name
  * as functions exported from @c UXTHEME.DLL, with the prefix <tt>mc</tt>
  * prepended. Each wrapper simply calls its counterpart in @c UXTHEME.DLL
  * if it is loaded and available (as some @c UXTHEME.DLL functions were
  * introduced later then on Windows XP).
  *
- * If the @c UXTHEME.DLL is not used, or if the particulkar function is not
+ * If the @c UXTHEME.DLL is not used, or if the particular function is not
  * available, then most of the wrapper functions just fail gracefully and
- * return @c E_NOTIMPL, @c NULL, @c 0 or @c FALSE, depedning on the return type.
+ * return @c E_NOTIMPL, @c NULL, @c 0 or @c FALSE, depending on the return type.
  *
  * However there are also wrapper functions which provide some fallback
- * implementation. Those cases are described in description of particvular
+ * implementation. Those cases are described in description of particular
  * functions.
  *
  * @note Note that future versions of mCtrl can provide fallback implementation
