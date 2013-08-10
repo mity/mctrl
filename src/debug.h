@@ -43,9 +43,9 @@
                                    "Assertion '" #cond "' failed.",           \
                                    "Assert", MB_OK);                          \
                 if(IsDebuggerPresent())                                       \
-                    DebugBreak();                                             \
+                    __debugbreak();                                           \
                 else                                                          \
-                    exit(EXIT_FAILURE);                                       \
+                    abort();                                                  \
             }                                                                 \
         } while(0)
 
