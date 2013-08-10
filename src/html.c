@@ -1344,13 +1344,8 @@ html_create(html_t* html, CREATESTRUCT* cs)
     browser_iface->lpVtbl->Release(browser_iface);
 
     /* Goto specified URL if any */
-    if(cs->lpszName != NULL && cs->lpszName[0] != _T('\0')) {
-#ifdef UNICODE
-        html_goto_url(html, cs->lpszName, TRUE);
-#else
-        html_goto_url(html, cs->lpszName, FALSE);
-#endif
-    }
+    if(cs->lpszName != NULL && cs->lpszName[0] != _T('\0'))
+        html_goto_url(html, cs->lpszName, MC_IS_UNICODE);
 
     return 0;
 }
@@ -1514,9 +1509,14 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_NOTIFYFORMAT:
-            if(lp == NF_REQUERY)
-                html_notify_format(html);
-            return (html->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
+            switch(lp) {
+                case NF_REQUERY:
+                    html_notify_format(html);
+                    return (html->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
+                case NF_QUERY:
+                    return (MC_IS_UNICODE ? NFR_UNICODE : NFR_ANSI);
+            }
+            break;
 
         case CCM_SETUNICODEFORMAT:
         {

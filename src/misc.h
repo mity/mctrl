@@ -53,11 +53,18 @@
 #include "mCtrl/_common.h"
 
 
-/***************************
- *** Miscelaneous Macros ***
- ***************************/
+/****************************
+ *** Miscellaneous Macros ***
+ ****************************/
 
-/* Mininum and maximum et al. */
+/* Whether we are unicode build */
+#ifdef UNICODE
+    #define MC_IS_UNICODE      TRUE
+#else
+    #define MC_IS_UNICODE      FALSE
+#endif
+
+/* Minimum and maximum et al. */
 #define MC_MIN(a,b)            ((a) < (b) ? (a) : (b))
 #define MC_MAX(a,b)            ((a) > (b) ? (a) : (b))
 #define MC_MIN3(a,b,c)         MC_MIN(MC_MIN((a), (b)), (c))

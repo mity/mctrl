@@ -2969,11 +2969,7 @@ treelist_create(treelist_t* tl)
         MC_TRACE_ERR("treelist_create: CreateWindow(header) failed");
         return -1;
     }
-#ifdef UNICODE
-    MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, TRUE, 0);
-#else
-    MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, FALSE, 0);
-#endif
+    MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, MC_IS_UNICODE, 0);
 
     tl->theme = mcOpenThemeData(tl->win, treelist_tc);
     return 0;
@@ -3253,9 +3249,14 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_NOTIFYFORMAT:
-            if(lp == NF_REQUERY)
-                treelist_notify_format(tl);
-            return (tl->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
+            switch(lp) {
+                case NF_REQUERY:
+                    treelist_notify_format(tl);
+                    return (tl->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
+                case NF_QUERY:
+                    return (MC_IS_UNICODE ? NFR_UNICODE : NFR_ANSI);
+            }
+            break;
 
         case CCM_SETUNICODEFORMAT:
         {
