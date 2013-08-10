@@ -43,7 +43,7 @@
  *   In comments and function names in this module, the term "displayed item"
  *   means the item is not hidden due any collapsed item on its parent chain
  *   upward to the root. It does NOT mean the item must be scrolled into the
- *   current viewport.
+ *   current view-port.
  */
 
 
@@ -97,7 +97,7 @@ item_next(treelist_item_t* item)
     return item_next_ex(item, NULL);
 }
 
-/* Iteraror over items displayed (i.e. not hidden by collpased parent) below
+/* Iteraror over items displayed (i.e. not hidden by collapsed parent) below
  * the specified 'item', but does not step over the parent 'stopper' */
 static treelist_item_t*
 item_next_displayed_ex(treelist_item_t* item, treelist_item_t* stopper, int* level)
@@ -2842,7 +2842,7 @@ static int
 treelist_header_notify(treelist_t* tl, NMHEADER* info)
 {
     switch(info->hdr.code) {
-        case HDN_BEGINDRAG:   /* We disable reoder of the column[0] */
+        case HDN_BEGINDRAG:   /* We disable reorder of the column[0] */
         case HDN_ENDDRAG:     /* (both as source as well as destination) */
             if(info->iItem == 0)
                 return TRUE;
