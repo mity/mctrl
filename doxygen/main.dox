@@ -49,10 +49,14 @@
  * - @ref mCtrl/table.h - Table (data model for the grid control)
  * - @ref mCtrl/value.h - Value (polymorphic data)
  *
- * @subsection toc_misc Miscellaneous
+ * @subsection toc_util Utility Headers
  * - @ref mctrl.h - All-in-one header
  * - @ref mCtrl/dialog.h - Dialog functions
- * - @ref mCtrl/defs.h - Miscellaneous macros and constants
  * - @ref mCtrl/theme.h - Theme wrapper functions
  * - @ref mCtrl/version.h - Retrieving mCtrl version
+ *
+ * @subsection toc_misc Miscellaneous Headers
+ * (Do not include these directly.)
+ * - @ref mCtrl/_defs.h - Miscellaneous macros
+ * - @ref mCtrl/_common.h - Common constants and types
  */

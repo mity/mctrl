@@ -19,7 +19,8 @@
 #ifndef MCTRL_TABLE_H
 #define MCTRL_TABLE_H
 
-#include <mCtrl/defs.h>
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 #include <mCtrl/value.h>
 
 #ifdef __cplusplus

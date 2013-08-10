@@ -19,7 +19,8 @@
 #ifndef MCTRL_CHART_H
 #define MCTRL_CHART_H
 
-#include <mCtrl/defs.h>
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -17,8 +17,8 @@
  * invalid combination of multiple parameters; or when calling any function
  * without having the particular mCtrl module initialized), mCtrl uses very
  * pragmatic approach: Such error conditions are only checked if it is
- * reasonably easy to do so. Some more checks can be enabled if you use
- * debug build of mCtrl (see @ref sec_debug).
+ * reasonably easy to do so. Some more checks can be enabled in debug builds
+ * of mCtrl.
  *
  *
  * @section sec_strings About Strings

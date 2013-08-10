@@ -19,7 +19,8 @@
 #ifndef MCTRL_VERSION_H
 #define MCTRL_VERSION_H
 
-#include <mCtrl/defs.h>
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -49,7 +49,8 @@
 #include "resource.h"
 #include "version.h"
 
-#include "mCtrl/defs.h"
+#include "mCtrl/_defs.h"
+#include "mCtrl/_common.h"
 
 
 /***************************

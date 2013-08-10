@@ -19,7 +19,8 @@
 #ifndef MCTRL_GRID_H
 #define MCTRL_GRID_H
 
-#include <mCtrl/defs.h>
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 #include <mCtrl/value.h>
 #include <mCtrl/table.h>
 

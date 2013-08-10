@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 Martin Mitas
+ * Copyright (c) 2013 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,11 +16,10 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MCTRL_DEFS_H
-#define MCTRL_DEFS_H
+#ifndef MCTRL_COMMON_H
+#define MCTRL_COMMON_H
 
-#include <windows.h>
-#include <commctrl.h>
+#include <mCtrl/_defs.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,27 +28,28 @@ extern "C" {
 
 /**
  * @file
- * @brief Common definitions
+ * @brief Common constants and types
  *
- * This helper header file provides some macro definitions shared by other
- * public mCtrl headers. They all include this header so you shouldn't need
- * to include this header file directly.
+ * @warning You should not include this header directly. It is included by all
+ * public mCtrl headers.
+ *
+ * Many mCtrl controls implement features outlined after @c <commctrl.h>,
+ * for sake of consistency and for sake of easiness of mCtrl adoption by
+ * developers with Win32API experience.
+ *
+ * However we don't want to include that header in mpublic mCtrl headers as,
+ * in general, mCtrl interface should be more self-contained.
+ *
+ * Therefore this headers defines some constants and types which are eqivalent
+ * to those in @c <commctrl.h>, with just a prefix @c MC_ prepended.
+ * Note that applications including both mCtrl headers and @c commctrl.h can
+ * use those constants and types interchangeably as the constants and types are
+ * binary compatible.
+ *
+ * Additionally this header provides miscelaneous constants marking reserved
+ * ranges for messages and notifications of mCtrl controls (in a similar manner
+ * as @c <commctrl.h> does for @c COMCTL32.DLL controls).
  */
-
-
-/**
- * Helper macro specifying the calling convention of functions exported
- * by @c MCTRL.DLL. You should not use it directly.
- */
-#define MCTRL_API                   __stdcall
-
-
-#ifdef UNICODE
-     /** Helper macro for unicode resolution. You should not use it directly. */
-     #define MCTRL_NAME_AW(name)    name##W
-#else
-     #define MCTRL_NAME_AW(name)    name##A
-#endif
 
 
 /**
@@ -57,36 +57,33 @@ extern "C" {
  */
 /*@{*/
 
-/**
- * @brief No color.
- * @details This is defined to have the same  value and meaning as the constant
- * @c CLR_NONE from @c <commctrl.h> and applications can use these two macros
- * interchangeably.
- */
-#define MC_CLR_NONE         CLR_NONE
-/**
- * @brief Default color.
- * @details This is defined to have the same value and meaning as the constant
- * @c CLR_DEFAULT from @c <commctrl.h> and applications can use these two
- * macros interchangeably.
- */
-#define MC_CLR_DEFAULT      CLR_DEFAULT
+/** @brief Equivalent of @c CLR_NONE from @c <commctrl.h>. */
+#define MC_CLR_NONE         ((COLORREF) 0xFFFFFFFF)
+
+/** @brief Equivalent of @c CLR_DEFAULT from @c <commctrl.h>. */
+#define MC_CLR_DEFAULT      ((COLORREF) 0xFF000000)
+
+/** @brief Equivalent of @c I_IMAGENONE from @c <commctrl.h>. */
+#define MC_I_IMAGENONE      (-2)
+
+/*@}*/
+
 
 /**
- * @brief Index of no image in an image list.
- * @details This is defined to have the same value and meaning as the constant
- * @c I_IMAGENONE from @c <commctrl.h> and applications can use these two
- * macros interchangeably.
+ * @name Common Types
  */
-#define MC_I_IMAGENONE      I_IMAGENONE
+/*@{*/
 
-/**
- * @brief Index of no group.
- * @details This is defined to have the same value and meaning as the constant
- * @c I_GROUPIDNONE from @c <commctrl.h> and applications can use these two
- * macros interchangeably.
- */
-#define MC_I_GROUPIDNONE    I_GROUPIDNONE
+/** @brief Equivalent of @c NMCUSTOMDRAWINFO from @c <commctrl.h>. */
+typedef struct MC_NMCUSTOMDRAWINFO_tag {
+    NMHDR hdr;
+    DWORD dwDrawStage;
+    HDC hdc;
+    RECT rc;
+    DWORD_PTR dwItemSpec;
+    UINT  uItemState;
+    LPARAM lItemlParam;
+} MC_NMCUSTOMDRAW;
 
 /*@}*/
 
@@ -152,9 +149,8 @@ extern "C" {
 /*@}*/
 
 
-
 #ifdef __cplusplus
 }  /* extern "C" */
 #endif
 
-#endif  /* MCTRL_DEFS_H */
+#endif  /* MCTRL_COMMON_H */

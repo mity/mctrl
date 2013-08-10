@@ -19,7 +19,8 @@
 #ifndef MCTRL_TREELIST_H
 #define MCTRL_TREELIST_H
 
-#include <mCtrl/defs.h>
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -395,7 +396,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 /** @brief Collapse the child items if expanded, or expand them if collapsed. */
 #define MC_TLE_TOGGLE                0x3
 /** @brief Delete all children of the collapsed item.
- *  @detail Can be only used together with @c MC_TLE_EXPAND. */
+ *  @details Can be only used together with @c MC_TLE_EXPAND. */
 #define MC_TLE_COLLAPSERESET         0x8000
 
 /*@}*/
@@ -678,8 +679,8 @@ typedef struct MC_NMTREELIST_tag {
  * @brief Structure used by the standard notification @c NM_CUSTOMDRAW.
  */
 typedef struct MC_NMTLCUSTOMDRAW_tag {
-    /** Standard custom-draw structure. See @c NMCUSTOMDRAW documentation on MSDN. */
-    NMCUSTOMDRAW nmcd;
+    /** Standard custom-draw structure. */
+    MC_NMCUSTOMDRAW nmcd;
     /** Level of the item to be painted.
      *  Valid only if <tt>nmcd.dwDrawStage</tt> has the flags @c CDDS_ITEM. */
     int iLevel;

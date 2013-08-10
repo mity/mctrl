@@ -19,9 +19,10 @@
 #ifndef MCTRL_H
 #define MCTRL_H
 
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 #include <mCtrl/button.h>
 #include <mCtrl/chart.h>
-#include <mCtrl/defs.h>
 #include <mCtrl/dialog.h>
 #include <mCtrl/expand.h>
 #include <mCtrl/grid.h>

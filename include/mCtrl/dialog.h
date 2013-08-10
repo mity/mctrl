@@ -19,7 +19,8 @@
 #ifndef MCTRL_DIALOG_H
 #define MCTRL_DIALOG_H
 
-#include <mCtrl/defs.h>
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 
 #ifdef __cplusplus
 extern "C" {

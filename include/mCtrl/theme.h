@@ -20,7 +20,8 @@
 #ifndef MCTRL_THEME_H
 #define MCTRL_THEME_H
 
-#include <mCtrl/defs.h>
+#include <mCtrl/_defs.h>
+#include <mCtrl/_common.h>
 
 #include <vssym32.h>
 #include <vsstyle.h>
