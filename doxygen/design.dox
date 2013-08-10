@@ -1,85 +1,85 @@
-/** 
+/**
  * @page page_design Design Notes
  *
  * @section sec_error_handling About Error Handling
- * 
- * In general, mCtrl follows Win32API conventions in error handling. On error, 
- * the mCtrl functions set the error code with @c SetLastError() and then 
+ *
+ * In general, mCtrl follows Win32API conventions in error handling. On error,
+ * the mCtrl functions set the error code with @c SetLastError() and then
  * typically return a value indicating an error has occured. In most cases
- * this error indicator is 0, -1, @c FALSE or @c NULL, depending on the 
+ * this error indicator is 0, -1, @c FALSE or @c NULL, depending on the
  * function and type it returns.
  *
- * If a function fails, any output parameters are undefined and you 
- * cannot rely on their value. 
+ * If a function fails, any output parameters are undefined and you
+ * cannot rely on their value.
  *
  * Also note that for the category of caller's programmatic errors (e.g.
- * when application specifies an invalid value in a function parameter or 
- * invalid combination of multiple parameters; or when calling any function 
- * without having the particular mCtrl module initialized), mCtrl uses very 
- * pragmatic approach: Such error conditions are only checked if it is 
- * reasonably easy to do so. Some more checks can be enabled if you use 
+ * when application specifies an invalid value in a function parameter or
+ * invalid combination of multiple parameters; or when calling any function
+ * without having the particular mCtrl module initialized), mCtrl uses very
+ * pragmatic approach: Such error conditions are only checked if it is
+ * reasonably easy to do so. Some more checks can be enabled if you use
  * debug build of mCtrl (see @ref sec_debug).
  *
  *
  * @section sec_strings About Strings
- * 
- * @c MCTRL.DLL supports Unicode and strings held internally in the library 
- * are encoded in Unicode. 
+ *
+ * @c MCTRL.DLL supports Unicode and strings held internally in the library
+ * are encoded in Unicode.
  *
  * However on interface level, @c MCTRL.DLL supports both Unicode and ANSI
- * strings as well. If a function, message of a control or a structure 
+ * strings as well. If a function, message of a control or a structure
  * uses string, there are usually two flavors of the entity: one for Unicode
  * and one for the ANSI string. When calling a function or sending a message,
- * ANSI strings in paramaters and structure members are converted to Unicode 
+ * ANSI strings in paramaters and structure members are converted to Unicode
  * on input and Unicode to ANSI on output.
  *
  * Identifiers of the Unicode flavor then have the @c "W" suffix and ANSI have
- * @c "A" suffix, in the same way as Win32API does. The public headers also 
+ * @c "A" suffix, in the same way as Win32API does. The public headers also
  * provide preprocessor macros without the suffix, as an alias for the one
  * of the two depending whether @c UNICODE is defined or not.
  *
  * In case of notifications sent by control to the application, the mCtrl
  * also follows the Windows custom practice: Controls which may need to send
- * a notification with string data send @c WM_NOTIFYFORMAT message to its 
+ * a notification with string data send @c WM_NOTIFYFORMAT message to its
  * parent during creation and then respect the parent's desire.
  *
  * This means you may use @c MCTRL.DLL easily in Unicode-enabled application
  * as well as in ANSI applications.
  *
- * 
+ *
  * @section sec_init About Initialization and Termination
- * 
+ *
  * mCtrl functionality is divided into several modules, each having its own
- * public header file. Almost every module corresponds to an implementation 
- * of one GUI control. With few trivial exceptions, each module has its own 
+ * public header file. Almost every module corresponds to an implementation
+ * of one GUI control. With few trivial exceptions, each module has its own
  * initialization and termination function.
  *
- * Before you may use any functionality of the module you have to initialize 
- * it and after you stop using it you should terminate it to free any 
+ * Before you may use any functionality of the module you have to initialize
+ * it and after you stop using it you should terminate it to free any
  * resources the module uses.
  *
  * For controls, the initialization routine typically registers the control's
- * window class with @c RegisterClass(), and the termination function 
+ * window class with @c RegisterClass(), and the termination function
  * unregisters it with @c UnregisterClass().
  *
  * Note that for performance reasons mCtrl functions do not test whether the
  * module is properly initialized, so the function can fail in any means
- * if the module is not initialized, or can work if the function does not 
+ * if the module is not initialized, or can work if the function does not
  * currently rely on the initialziation. But note that in the latter case
  * there is no guaranty the behavior does not change in future versions of
  * mCtrl.
  *
- * The initialization function can be always called multiple times (even 
- * concurrently for multiple threads). Each module has its own initialization 
+ * The initialization function can be always called multiple times (even
+ * concurrently for multiple threads). Each module has its own initialization
  * counter, incremented in the initialization function and decremented in
  * the termination function. The module is really uninitialized only after
  * the counter drops back down to zero.
  *
- * @attention Note that if you are using @c MCTRL.DLL from your dynamic 
- * library, you may not call the initialization and termination functions 
- * in context of @c DllMain(). Windows severly limits what can be done safely 
- * in the @c DllMain() context. Even if it would be safe for some modules 
- * currently there is no guaranty that future version of mCtrl won't use 
+ * @attention Note that if you are using @c MCTRL.DLL from your dynamic
+ * library, you may not call the initialization and termination functions
+ * in context of @c DllMain(). Windows severly limits what can be done safely
+ * in the @c DllMain() context. Even if it would be safe for some modules
+ * currently there is no guaranty that future version of mCtrl won't use
  * anything problematic in this regard.
  *
  *
@@ -88,7 +88,7 @@
  * mCtrl makes this promise (valid also for future versions of @c MCTRL.DLL):
  * All mCtrl controls only implement private messages in the range 0x0401
  * (@c WM_USER + 1) to 0x1299 (@c WM_USER + 0x0eff).
- * 
+ *
  * Beside that mCtrl controls support some common control general messages
  * (@c CCM_xxxx which start at 0x2000; e.g. @c CCM_SETUNICODEFORMAT).
  *
@@ -98,7 +98,7 @@
  *
  *
  * @section sec_multithreading About Multithreading
- * 
+ *
  * mCtrl is designed to be multithreading friendly. In general, all functions
  * are reentrant. I.e. you can call the same @c MCTRL.DLL function concurrently
  * from multiple threads.
@@ -110,7 +110,24 @@
  * application developer's to do so in order to avoid race conditions.
  *
  * Also note that some mCtrl modules may include yet another limitations.
- * Any such limitations are described in documentation of such the particular 
- * modules. (The @ref MC_WC_HTML control is a prominent example of such 
+ * Any such limitations are described in documentation of such the particular
+ * modules. (The @ref MC_WC_HTML control is a prominent example of such
  * limitation.)
+ *
+ *
+ * @section sec_dll_deps DLL Dependencies
+ *
+ * The policy for mCtrl is to make hard dependencies only on DLLs available on
+ * on all supported Windows versions. Some features may depend on existence of
+ * newer or optional DLLs.
+ *
+ * In particular, all controls may use visual styles (@c UXTHEME.DLL) when
+ * system supports it.
+ *
+ * Also note that chart control (@ref mCtrl/chart.h) requires GDI+
+ * (@c GDIPLUS.DLL) for its functioning. This library is available standardly
+ * on Windows XP and newer. Plain Windows 2000, without any service pack, are
+ * not equipped with it. However Microsoft has released distributable version
+ * of @c GDIPLUS.DLL: If your application relies on this control, and you want
+ * to support Windows 2000, you should distribute the @c GDIPLUS.DLL with it.
  */
