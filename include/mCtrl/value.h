@@ -318,19 +318,19 @@ const WCHAR* MCTRL_API mcValue_GetStringW(const MC_HVALUE hValue);
 
 
 /**
- * @name @c ANSII String Value Functions
+ * @name @c ANSI String Value Functions
  */
 /*@{*/
 
 /**
- * @brief ANSII string factory function.
+ * @brief ANSI string factory function.
  * @param[in] lpszStr The string.
  * @return The value or @c NULL on failure.
  */
 MC_HVALUE MCTRL_API mcValue_CreateStringA(const char* lpszStr);
 
 /**
- * @brief ANSII string getter function.
+ * @brief ANSI string getter function.
  * @param[in] hValue The value.
  * @return The string, or @c NULL on failure.
  */
@@ -362,19 +362,19 @@ const WCHAR* MCTRL_API mcValue_GetImmStringW(const MC_HVALUE hValue);
 
 
 /**
- * @name ANSII Immutable String Value Functions
+ * @name ANSI Immutable String Value Functions
  */
 /*@{*/
 
 /**
- * @brief ANSII immutable string factory function.
+ * @brief ANSI immutable string factory function.
  * @param[in] lpszStr The string.
  * @return The value or @c NULL on failure.
  */
 MC_HVALUE MCTRL_API mcValue_CreateImmStringA(const char* lpszStr);
 
 /**
- * @brief ANSII immutable string getter function.
+ * @brief ANSI immutable string getter function.
  * @param[in] hValue The value.
  * @return The string, or @c NULL on failure.
  */

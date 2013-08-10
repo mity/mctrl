@@ -242,7 +242,7 @@ INT_PTR MCTRL_API mcDialogBoxParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                                   (lpDialogFunc),0L,(dwFlags))
 
 /**
- * Creates and runs modal dialog (ANSII variant).
+ * Creates and runs modal dialog (ANSI variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
