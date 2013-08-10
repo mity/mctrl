@@ -164,7 +164,7 @@ void MCTRL_API mcChart_Terminate(void);
  */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_CHARTW           L"mCtrl.chart"
 /** Window class name (ANSI variant). */
 #define MC_WC_CHARTA            "mCtrl.chart"
@@ -271,7 +271,7 @@ typedef struct MC_CHDATASET_tag {
  * @brief Structure for notification @c MC_CHN_GETDISPINFO.
  */
 typedef struct MC_NMCHDISPINFO_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** Mask of members the control asks for. See @ref MC_CHDIF_xxxx. */
     DWORD fMask;
@@ -387,7 +387,7 @@ typedef struct MC_NMCHDISPINFO_tag {
 #define MC_CHM_GETDATASETLEGENDA      (MC_CHM_FIRST + 9)
 
 /**
- * @brief Set legend text of the data set (unicode variant).
+ * @brief Set legend text of the data set (Unicode variant).
  * @param[in] wParam (@c int) Index of the data set.
  * @param[in] lParam (@c WCHAR*) The legend string.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -469,7 +469,7 @@ typedef struct MC_NMCHDISPINFO_tag {
 #define MC_CHM_GETAXISLEGENDA         (MC_CHM_FIRST + 19)
 
 /**
- * @brief Set legend text of axis (unicode variant).
+ * @brief Set legend text of axis (Unicode variant).
  *
  * Note that pie chart does not paint the axis legend.
  *

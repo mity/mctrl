@@ -81,7 +81,7 @@ extern "C" {
 /*@{*/
 
 /**
- * Creates modeless dialog (unicode variant).
+ * Creates modeless dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -109,7 +109,7 @@ HWND MCTRL_API mcCreateDialogParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                 DWORD dwFlags);
 
 /**
- * Creates modeless dialog (unicode variant).
+ * Creates modeless dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -135,7 +135,7 @@ HWND MCTRL_API mcCreateDialogParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                                      (lpDialogFunc),0L,(dwFlags))
 
 /**
- * Creates modeless dialog (unicode variant).
+ * Creates modeless dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -163,7 +163,7 @@ HWND MCTRL_API mcCreateDialogIndirectParamA(HINSTANCE hInstance,
                 DLGPROC lpDialogFunc, LPARAM lParamInit, DWORD dwFlags);
 
 /**
- * Creates modeless dialog (unicode variant).
+ * Creates modeless dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -197,7 +197,7 @@ HWND MCTRL_API mcCreateDialogIndirectParamA(HINSTANCE hInstance,
 /*@{*/
 
 /**
- * Creates and runs modal dialog (unicode variant).
+ * Creates and runs modal dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -227,7 +227,7 @@ INT_PTR MCTRL_API mcDialogBoxParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
                 DWORD dwFlags);
 
 /**
- * Creates and runs modal dialog (unicode variant).
+ * Creates and runs modal dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplateName
  * @param hWndParent
@@ -256,7 +256,7 @@ INT_PTR MCTRL_API mcDialogBoxParamA(HINSTANCE hInstance, LPCSTR lpTemplateName,
 
 
 /**
- * Creates and runs modal dialog (unicode variant).
+ * Creates and runs modal dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent
@@ -286,7 +286,7 @@ INT_PTR MCTRL_API mcDialogBoxIndirectParamA(HINSTANCE hInstance,
                 DLGPROC lpDialogFunc, LPARAM lParamInit, DWORD dwFlags);
 
 /**
- * Creates and runs modal dialog (unicode variant).
+ * Creates and runs modal dialog (Unicode variant).
  * @param hInstance
  * @param lpTemplate
  * @param hWndParent

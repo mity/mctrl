@@ -85,7 +85,7 @@ void MCTRL_API mcGrid_Terminate(void);
  */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_GRIDW            L"mCtrl.grid"
 /** Window class name (ANSI variant). */
 #define MC_WC_GRIDA             "mCtrl.grid"

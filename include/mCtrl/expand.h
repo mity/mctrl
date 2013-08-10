@@ -112,7 +112,7 @@ void MCTRL_API mcExpand_Terminate(void);
  */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_EXPANDW          L"mCtrl.expand"
 /** Window class name (ANSI variant). */
 #define MC_WC_EXPANDA           "mCtrl.expand"

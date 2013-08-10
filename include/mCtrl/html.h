@@ -183,7 +183,7 @@ void MCTRL_API mcHtml_Terminate(void);
  */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_HTMLW            L"mCtrl.html"
 /** Window class name (ANSI variant). */
 #define MC_WC_HTMLA             "mCtrl.html"
@@ -208,7 +208,7 @@ void MCTRL_API mcHtml_Terminate(void);
 /*@{*/
 
 /**
- * @brief Displays a document specified by the given URL (unicode variant).
+ * @brief Displays a document specified by the given URL (Unicode variant).
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c const @c WCHAR*) The URL.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -270,11 +270,11 @@ void MCTRL_API mcHtml_Terminate(void);
 /*@{*/
 
 /**
- * @brief Structure used for notifications with URL parameter (unicode variant).
+ * @brief Structure used for notifications with URL parameter (Unicode variant).
  * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLW_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** String representation of the URL. */
     LPCWSTR pszUrl;
@@ -285,7 +285,7 @@ typedef struct MC_NMHTMLURLW_tag {
  * @sa MC_HN_APPLINK MC_HN_DOCUMENTCOMPLETE
  */
 typedef struct MC_NMHTMLURLA_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** String representation of the URL. */
     LPCSTR pszUrl;
@@ -296,7 +296,7 @@ typedef struct MC_NMHTMLURLA_tag {
  * @sa MC_HN_PROGRESS
  */
 typedef struct MC_NMHTMLPROGRESS_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** Current progress. */
     LONG lProgress;
@@ -305,11 +305,11 @@ typedef struct MC_NMHTMLPROGRESS_tag {
 } MC_NMHTMLPROGRESS;
 
 /**
- * @brief Structure used for notifications with textual parameter (unicode variant).
+ * @brief Structure used for notifications with textual parameter (Unicode variant).
  * @sa MC_HN_STATUSTEXT MC_HN_TITLETEXT
  */
 typedef struct MC_NMHTMLTEXTW_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** The string. */
     LPCWSTR pszText;
@@ -320,7 +320,7 @@ typedef struct MC_NMHTMLTEXTW_tag {
  * @sa MC_HN_STATUSTEXT MC_HN_TITLETEXT
  */
 typedef struct MC_NMHTMLTEXTA_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** The string. */
     LPCSTR pszText;
@@ -331,7 +331,7 @@ typedef struct MC_NMHTMLTEXTA_tag {
  * @sa MC_HN_HISTORY
  */
 typedef struct MC_NMHTMLHISTORY_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** @c TRUE if going back in history is possible. */
     BOOL bCanBack;

@@ -154,7 +154,7 @@ void MCTRL_API mcButton_Terminate(void);
  */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_BUTTONW          L"mCtrl.button"
 /** Window class name (ANSI variant). */
 #define MC_WC_BUTTONA           "mCtrl.button"
@@ -219,7 +219,7 @@ void MCTRL_API mcButton_Terminate(void);
  * <tt>_WIN32_WINNT >= 0x0600</tt>.
  */
 typedef struct MC_NMBCDROPDOWN_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** Client rectangle of the dropdown button. */
     RECT rcButton;

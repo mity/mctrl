@@ -111,7 +111,7 @@ void MCTRL_API mcMditab_Terminate(void);
  */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_MDITABW        L"mCtrl.mditab"
 /** Window class name (ANSI variant). */
 #define MC_WC_MDITABA         "mCtrl.mditab"
@@ -213,7 +213,7 @@ void MCTRL_API mcMditab_Terminate(void);
 /*@{*/
 
 /**
- * @brief Structure for manipulating with the tab item (unicode variant).
+ * @brief Structure for manipulating with the tab item (Unicode variant).
  * @sa MC_MTM_INSERTITEM MC_MTM_SETITEM MC_MTM_GETITEM
  */
 typedef struct MC_MTITEMW_tag {
@@ -285,7 +285,7 @@ typedef struct MC_MTHITTESTINFO_tag {
  * @brief Structure for notification @ref MC_MTN_SELCHANGE.
  */
 typedef struct MC_NMMTSELCHANGE_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** Index of previously selected tab. */
     int iItemOld;
@@ -301,7 +301,7 @@ typedef struct MC_NMMTSELCHANGE_tag {
  * @brief Structure for notification @ref MC_MTN_DELETEITEM.
  */
 typedef struct MC_NMMTDELETEITEM_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** Index of the item being deleted. */
     int iItem;
@@ -314,7 +314,7 @@ typedef struct MC_NMMTDELETEITEM_tag {
  * @brief Structure for notification @ref MC_MTN_CLOSEITEM.
  */
 typedef struct MC_NMMTCLOSEITEM_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** Index of the item being closed. */
     int iItem;
@@ -375,7 +375,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_DELETEALLITEMS     (MC_MTM_FIRST + 3)
 
 /**
- * @brief Inserts new tab into the tab control (unicode variant).
+ * @brief Inserts new tab into the tab control (Unicode variant).
  *
  * @param[in] wParam (@c int) Index of the new item.
  * @param[in] lParam (@ref MC_MTITEM*) Pointer to detailed data of the new
@@ -394,7 +394,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_INSERTITEMA        (MC_MTM_FIRST + 5)
 
 /**
- * @brief Sets tab in the tab control (unicode variant).
+ * @brief Sets tab in the tab control (Unicode variant).
  * @param[in] wParam (@c int) Index of the item.
  * @param[in] lParam (@ref MC_MTITEMW*) Pointer to detailed data of the tab.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -410,7 +410,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_SETITEMA           (MC_MTM_FIRST + 7)
 
 /**
- * @brief Gets tab data from the tab control (unicode variant).
+ * @brief Gets tab data from the tab control (Unicode variant).
  *
  * Application has to set @c MC_MTITEM::dwMask prior sending the message to
  * indicate what attributes of the item to retrieve. If the application uses

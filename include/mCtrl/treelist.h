@@ -169,7 +169,7 @@ void MCTRL_API mcTreeList_Terminate(void);
  * @name Window Class */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_TREELISTW           L"mCtrl.treelist"
 /** Window class name (ANSI variant). */
 #define MC_WC_TREELISTA            "mCtrl.treelist"
@@ -454,7 +454,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 /*@{*/
 
 /**
- * @brief Structure describing column of the tree-list view (unicode variant).
+ * @brief Structure describing column of the tree-list view (Unicode variant).
  * @sa MC_TLM_INSERTCOLUMNW MC_TLM_SETCOLUMNW MC_TLM_GETCOLUMNW
  */
 typedef struct MC_TLCOLUMNW_tag {
@@ -508,7 +508,7 @@ typedef void* MC_HTREELISTITEM;
 
 
 /**
- * @brief Structure describing item of the tree-list view (unicode variant).
+ * @brief Structure describing item of the tree-list view (Unicode variant).
  * @sa MC_TLM_INSERTITEMW MC_TLM_SETITEMW MC_TLM_GETITEMW
  */
 typedef struct MC_TLITEMW_tag {
@@ -570,7 +570,7 @@ typedef struct MC_TLITEMA_tag {
 } MC_TLITEMA;
 
 /**
- * @brief Structure describing subitem of the tree-list view (unicode variant).
+ * @brief Structure describing subitem of the tree-list view (Unicode variant).
  * @sa MC_TLM_SETSUBITEMW MC_TLM_GETSUBITEMW
  */
 typedef struct MC_TLSUBITEMW_tag {
@@ -604,7 +604,7 @@ typedef struct MC_TLSUBITEMA_tag {
 } MC_TLSUBITEMA;
 
 /**
- * @brief Structure used for inserting an item (unicode variant).
+ * @brief Structure used for inserting an item (Unicode variant).
  * @sa MC_TLM_INSERTITEMW
  */
 typedef struct MC_TLINSERTSTRUCTW_tag {
@@ -660,7 +660,7 @@ typedef struct MC_TLHITTESTINFO_tag {
  * item it has to use @ref MC_TLM_GETITEM message to retrieve it.
  */
 typedef struct MC_NMTREELIST_tag {
-    /** Common notification structure header. */
+    /** Standard notification structure header. */
     NMHDR hdr;
     /** Notification specific value. */
     UINT action;
@@ -701,7 +701,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 /*@{*/
 
 /**
- * @brief Insert a new column (unicode variant).
+ * @brief Insert a new column (Unicode variant).
  * @param[in] wParam (@c int) Index of the new column.
  * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
  * @return Return the index of the new column, or @c -1 on failure.
@@ -717,7 +717,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_INSERTCOLUMNA         (MC_TLM_FIRST + 1)
 
 /**
- * @brief Sets attributes of a column (unicode variant).
+ * @brief Sets attributes of a column (Unicode variant).
  * @param[in] wParam (@c int) Index of the new column.
  * @param[in] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -733,7 +733,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_SETCOLUMNA            (MC_TLM_FIRST + 3)
 
 /**
- * @brief Gets attributes of a column (unicode variant).
+ * @brief Gets attributes of a column (Unicode variant).
  * @param[in] wParam (@c int) Index of the new column.
  * @param[out] lParam (@ref MC_TLCOLUMN*)  Pointer to the column struture.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
@@ -792,7 +792,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_GETCOLUMNWIDTH        (MC_TLM_FIRST + 10)
 
 /**
- * @brief Insert new item into the control (unicode variant).
+ * @brief Insert new item into the control (Unicode variant).
  *
  * Note application may set @c MC_TLINSERTSTRUCT::hParent to @c MC_TLI_ROOT
  * to insert the new item as the root item, and similarly the member
@@ -822,7 +822,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_INSERTITEMA           (MC_TLM_FIRST + 12)
 
 /**
- * @brief Set item attributes (unicode variant).
+ * @brief Set item attributes (Unicode variant).
  * @param[in] wParam (@ref MC_HTREELISTITEM) Handle of the item.
  * @param[in] lParam (@ref MC_TLITEMW*) Pointer to the structure
  * specifying new attributes of the item.
@@ -840,7 +840,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_SETITEMA              (MC_TLM_FIRST + 14)
 
 /**
- * @brief Get item attributes (unicode variant).
+ * @brief Get item attributes (Unicode variant).
  *
  * Application has to set @c MC_TLITEM::fMask prior sending the message to
  * indicate what attributes of the item to retrieve. If the application uses
@@ -906,7 +906,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_GETITEMHEIGHT         (MC_TLM_FIRST + 19)
 
 /**
- * @brief Set subitem attributes (unicode variant).
+ * @brief Set subitem attributes (Unicode variant).
  * @param[in] wParam (@ref MC_HTREELISTITEM) Handle of the item.
  * @param[in] lParam (@ref MC_TLSUBITEMW*) Pointer to the structure
  * specifying new attributes of the item.
@@ -924,7 +924,7 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 #define MC_TLM_SETSUBITEMA           (MC_TLM_FIRST + 21)
 
 /**
- * @brief Get subitem attributes (unicode variant).
+ * @brief Get subitem attributes (Unicode variant).
  *
  * Application has to set @c MC_TLSUBITEM::iSubItem to indicate which subitem
  * it is interested in and @c MC_TLSUBITEM::fMask prior sending the message to

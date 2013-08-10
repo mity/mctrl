@@ -214,7 +214,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
  */
 /*@{*/
 
-/** Window class name (unicode variant). */
+/** Window class name (Unicode variant). */
 #define MC_WC_MENUBARW       L"mCtrl.menubar"
 /** Window class name (ANSI variant). */
 #define MC_WC_MENUBARA        "mCtrl.menubar"
