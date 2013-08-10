@@ -115,7 +115,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\mCtrl\button.h" />
-    <ClInclude Include="..\..\include\mCtrl\defs.h" />
     <ClInclude Include="..\..\include\mCtrl\dialog.h" />
     <ClInclude Include="..\..\include\mCtrl\grid.h" />
     <ClInclude Include="..\..\include\mCtrl\html.h" />
@@ -124,6 +123,8 @@
     <ClInclude Include="..\..\include\mCtrl\table.h" />
     <ClInclude Include="..\..\include\mCtrl\value.h" />
     <ClInclude Include="..\..\include\mCtrl\version.h" />
+    <ClInclude Include="..\..\include\mCtrl\_common.h" />
+    <ClInclude Include="..\..\include\mCtrl\_defs.h" />
     <ClInclude Include="..\..\src\button.h" />
     <ClInclude Include="..\..\src\chart.h" />
     <ClInclude Include="..\..\src\color.h" />
