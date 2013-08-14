@@ -3395,6 +3395,8 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             /* Fall through */
         case WM_KILLFOCUS:
             tl->focus = (msg == WM_SETFOCUS);
+            mc_send_notify(tl->notify_win, win,
+                           (msg == WM_SETFOCUS ? NM_SETFOCUS : NM_KILLFOCUS));
             if(!tl->no_redraw  &&  tl->selected_item != NULL) {
                 treelist_invalidate_item(tl, tl->selected_item,
                         ((tl->style & MC_TLS_FULLROWSELECT) ? -1 : 0), 0);
