@@ -67,37 +67,6 @@ fi
 echo "$MKZIP" >&3
 
 
-##################
-# Detect lib.exe #
-##################
-
-# 1. Try lib.exe in $PATH
-# 2. Try default install place(s) for MSVC 11.0
-# 3. Try default install place(s) for MSVC 10.0
-
-echo -n "Detecting lib.exe... " >&3
-if which lib.exe ; then
-    LIBEXE="lib.exe"
-else
-    for msvc in "/c/Program Files/Microsoft Visual Studio 11.0" \
-                "/c/Program Files (x86)/Microsoft Visual Studio 11.0" \
-                "/c/Program Files/Microsoft Visual Studio 10.0" \
-                "/c/Program Files (x86)/Microsoft Visual Studio 10.0"; do
-        if [ -d "$msvc" ]; then
-            LIBEXE="$msvc/VC/bin/lib.exe"
-            # lib.exe needs some DLLs from here:
-            export PATH=$PATH:"$msvc/Common7/IDE"
-            break
-        fi
-    done
-fi
-if [ "x$LIBEXE" = x ]; then
-    echo "Not found: MSVC import libs won't be generated" >&3
-else
-    echo "$LIBEXE" >&3
-fi
-
-
 #########################
 # Build 64-bit binaries #
 #########################
@@ -116,12 +85,8 @@ fi
 
 if [ x$HAVE_X86_64 != x ]; then
     echo -n "Create 64-bit MSVC import lib... " >&3
-    if [ "x$LIBEXE" != x ]; then
-        (cd $TMP/mCtrl-$VERSION && "$LIBEXE" /machine:x64 /def:src/mCtrl.def /out:lib/mCtrl.lib >> $CWD/build-x86_64.log 2>&1)
-        echo "Done." >&3
-    else
-        echo "Skipped: lib.exe not found." >&3
-    fi
+    cp $TMP/mCtrl-$VERSION/lib/libmctrl.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
+    echo "Done." >&3
 
     mv $TMP/mCtrl-$VERSION/bin $TMP/mCtrl-$VERSION/bin64
     mv $TMP/mCtrl-$VERSION/lib $TMP/mCtrl-$VERSION/lib64
@@ -147,12 +112,8 @@ fi
 
 if [ x$HAVE_X86 != x ]; then
     echo -n "Create 32-bit MSVC import lib... " >&3
-    if [ "x$LIBEXE" != x ]; then
-        (cd $TMP/mCtrl-$VERSION && "$LIBEXE" /machine:x86 /def:src/mCtrl.def /out:lib/mCtrl.lib >> $CWD/build-x86.log 2>&1)
-        echo "Done." >&3
-    else
-        echo "Skipped: lib.exe not found." >&3
-    fi
+    cp $TMP/mCtrl-$VERSION/lib/libmctrl.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
+    echo "Done." >&3
 fi
 
 
