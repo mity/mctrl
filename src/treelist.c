@@ -244,7 +244,7 @@ treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t
         di->img_selected = item->img_selected;
         mask &= ~MC_TLIF_SELECTEDIMAGE;
     }
-    if(item->img_selected != MC_I_IMAGECALLBACK) {
+    if(item->img_expanded != MC_I_IMAGECALLBACK) {
         di->img_expanded = item->img_expanded;
         mask &= ~MC_TLIF_EXPANDEDIMAGE;
     }
