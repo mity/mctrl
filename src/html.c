@@ -1370,7 +1370,7 @@ static inline void
 html_ncdestroy(html_t* html)
 {
     /* Reset window handles for case the html_t survives the window death.
-     * That can happen (altough it is probably unlikely) if IE engine holds
+     * That can happen (although it is probably unlikely) if IE engine holds
      * a reference of any our COM object for a longer time, e.g. because of
      * a multithreading. */
     html->win = NULL;

@@ -34,7 +34,7 @@ extern "C" {
  * As the control name suggests, the control is intended to display HTML
  * documents. Actually the control is thin wrapper of Internet Explorer
  * COM object, so it can do much more: display a plethora of multimedia files,
- * take use of javascript etc.
+ * take use of JavaScript etc.
  *
  * The easiest way how to show some document is to specify URL of target
  * document as control's window name. For example when created with
@@ -55,11 +55,12 @@ extern "C" {
  *
  * The @c res: protocol is especially useful. It allows you to embed some
  * resources like HTML pages, cascading style sheets (CSS), images (PNG, JPG
- * etc.), javascripts into binary of your application or any DLL it uses.
+ * etc.) or JavaScript files into binary of your application or any DLL it
+ * uses.
  *
  * All resources  addressable by the control must be of type @c RT_HTML. This
  * includes not just the HTML document themselves but also all their files,
- * images, style sheets, javascript files and any other resources linked from
+ * images, style sheets, JavaScript files and any other resources linked from
  * the HTML pages, or URL passed to the control.
  *
  * You can link to such resources with url in format "res://modname/res_id"
@@ -96,13 +97,13 @@ extern "C" {
  *
  * Whenever user clicks on a link with URL starting with the @c "app:"
  * the control sends notification @ref MC_HN_APPLINK to its parent window
- * which is supposed to react programatically. The control itself does not
+ * which is supposed to react programmatically. The control itself does not
  * interpret application link URLs in any way.
  *
  *
  * @section html_generated_contents Generated Contents
  *
- * Generating HTML contents programatically is also possible to some degree.
+ * Generating HTML contents programmatically is also possible to some degree.
  * Note however that the application is not supposed to generate whole
  * documents but only smaller snippets of them.
  *
