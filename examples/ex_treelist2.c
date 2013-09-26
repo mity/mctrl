@@ -95,14 +95,14 @@ StringizeData(TCHAR* pszBuffer, DWORD dwBufferLen, DWORD dwType, BYTE* data, DWO
             DWORD dw = *((DWORD*)data);
             if(dwType == REG_DWORD_BIG_ENDIAN)
                 dw = SWAP32(dw);
-            _stprintf_s(pszBuffer, dwBufferLen, _T("%u (0x%x)"), dw, dw);
+            _sntprintf(pszBuffer, dwBufferLen, _T("%u (0x%x)"), dw, dw);
             break;
         }
 
         case REG_QWORD:
         {
             ULONGLONG qw = *((ULONGLONG*)data);
-            _stprintf_s(pszBuffer, dwBufferLen, _T("%I64u (0x%I64x)"), qw, qw);
+            _sntprintf(pszBuffer, dwBufferLen, _T("%I64u (0x%I64x)"), qw, qw);
             break;
         }
 
@@ -112,7 +112,7 @@ StringizeData(TCHAR* pszBuffer, DWORD dwBufferLen, DWORD dwType, BYTE* data, DWO
         case REG_MULTI_SZ:
             /* For REG_MULTI_SZ we show only the 1st string. It is enough for
              * purposes of this example. */
-            _stprintf_s(pszBuffer, dwBufferLen, _T("\"%.*s\""),
+            _sntprintf(pszBuffer, dwBufferLen, _T("\"%.*s\""),
                            dwDataLen / sizeof(TCHAR), (TCHAR*) data);
             pszBuffer[dwBufferLen-1] = _T('\0');
             break;
@@ -123,11 +123,11 @@ StringizeData(TCHAR* pszBuffer, DWORD dwBufferLen, DWORD dwType, BYTE* data, DWO
             DWORD i;
             DWORD dwOffset;
 
-            dwOffset = _stprintf_s(pszBuffer, dwBufferLen, _T("[%d bytes]"), (int)dwDataLen);
+            dwOffset = _sntprintf(pszBuffer, dwBufferLen, _T("[%d bytes]"), (int)dwDataLen);
             for(i = 0; i < dwDataLen; i++) {
                 if(dwOffset >= dwBufferLen - _tcslen(_T(" 0xAB")) - 1)
                     break;
-                _stprintf_s(pszBuffer + dwOffset, dwBufferLen - dwDataLen,
+                _sntprintf(pszBuffer + dwOffset, dwBufferLen - dwDataLen,
                            _T(" 0x%0x"), data[i]);
                 dwOffset += _tcslen(_T(" 0xAB"));
             }

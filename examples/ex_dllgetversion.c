@@ -49,7 +49,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     }
 
     /* Show the results */
-    _stprintf_s(buffer, 64, _T("Detected mCtrl.dll version %u.%u.%u"),
+    _sntprintf(buffer, 64, _T("Detected mCtrl.dll version %u.%u.%u"),
                vi.dwMajorVersion, vi.dwMinorVersion, vi.dwBuildNumber);
     MessageBox(NULL, buffer, _T("mCtrl Sample: DllGetVersion"), MB_OK);
 

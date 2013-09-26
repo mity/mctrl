@@ -107,7 +107,7 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if(HIWORD(wParam) == 0  &&  lParam == 0) {   /* The message came from the menu bar */
                 if(LOWORD(wParam) >= 100) {              /* Ignore std. messages like IDCANCEL et al. */
                     TCHAR buffer[64];
-                    _stprintf_s(buffer, 64, _T("Received WM_COMMAND from menuitem ID %d."), (int) LOWORD(wParam));
+                    _sntprintf(buffer, 64, _T("Received WM_COMMAND from menuitem ID %d."), (int) LOWORD(wParam));
                     MessageBox(hWnd, buffer, _T("Click!"), MB_ICONINFORMATION | MB_OK);
                     return 0;
                 }

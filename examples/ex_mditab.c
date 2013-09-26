@@ -37,7 +37,7 @@ AddNewTab(void)
     /* Setup tab icon and label */
     uCounter++;
     item.iImage = uCounter % 11; /* we have 11 icons in the image list */
-    _stprintf_s(buffer, 32, _T("Tab %u"), uCounter);
+    _sntprintf(buffer, 32, _T("Tab %u"), uCounter);
 
     /* Add the new tab as last tab */
     n = SendMessage(hwndMdiTab, MC_MTM_GETITEMCOUNT, 0, 0);
