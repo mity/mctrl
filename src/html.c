@@ -969,19 +969,18 @@ html_bstr(const void* from_str, int from_type)
     WCHAR* str_w;
     BSTR str_b;
 
-    if(from_str == NULL)
-        return NULL;
+    if(from_str == NULL) {
+        /* According to MSDN, BSTR should never be NULL. */
+        from_str = L"";
+        from_type = MC_STRW;
+    }
 
     if(from_type == MC_STRW) {
         str_w = (WCHAR*) from_str;
-        if(str_w[0] == L'\0')
-            return NULL;
     } else {
         char* str_a;
         MC_ASSERT(from_type == MC_STRA);
         str_a = (char*) from_str;
-        if(str_a[0] == '\0')
-            return NULL;
         str_w = (WCHAR*) mc_str(str_a, from_type, MC_STRW);
         if(MC_ERR(str_w == NULL)) {
             MC_TRACE("html_bstr: mc_str() failed.");
@@ -993,7 +992,7 @@ html_bstr(const void* from_str, int from_type)
     if(MC_ERR(str_b == NULL))
         MC_TRACE("html_bstr: SysAllocString() failed.");
 
-    if(from_type == MC_STRA)
+    if(str_w != from_str)
         free(str_w);
 
     return str_b;
