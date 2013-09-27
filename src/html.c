@@ -1126,8 +1126,6 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
         goto err_id;
     }
 
-    if(contents == NULL)
-        contents = (unicode ? (void*)L"" : (void*)"");
     bstr_contents = html_bstr(contents, (unicode ? MC_STRW : MC_STRA));
     if(MC_ERR(bstr_contents == NULL)) {
         MC_TRACE("html_set_element_contents: html_bstr(contents) failed");
