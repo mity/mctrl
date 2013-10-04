@@ -1142,7 +1142,7 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     }
 
     hr = browser_iface->lpVtbl->get_Document(browser_iface, &dispatch_iface);
-    if(MC_ERR(FAILED(hr))) {
+    if(MC_ERR(FAILED(hr)  ||  dispatch_iface == NULL)) {
         MC_TRACE("html_set_element_contents: get_Document() failed [0x%lx]", hr);
         goto err_dispatch;
     }
@@ -1156,13 +1156,13 @@ html_set_element_contents(html_t* html, const void* id, const void* contents,
     }
 
     hr = doc_iface->lpVtbl->getElementById(doc_iface, bstr_id, &elem_iface);
-    if(MC_ERR(FAILED(hr))) {
+    if(MC_ERR(FAILED(hr)  ||  elem_iface == NULL)) {
         MC_TRACE("html_set_element_contents: getElementById() failed [0x%lx]", hr);
         goto err_elem;
     }
 
     hr = elem_iface->lpVtbl->put_innerHTML(elem_iface, bstr_contents);
-    if(hr != S_OK) {
+    if(MC_ERR(hr != S_OK)) {
         MC_TRACE("html_set_element_contents: put_innerHTML() failed [0x%lx]", hr);
         goto err_inner_html;
     }
