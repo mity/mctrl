@@ -21,7 +21,6 @@
 
 /* TODO:
  *  -- Support to make a chevron in a parent ReBar easy to do.
- *  -- Fix the artifact bug (for now it is worked around, see below).
  */
 
 
@@ -29,16 +28,6 @@
  * Create an Internet Explorer-Style Menu Bar":
  * http://msdn.microsoft.com/en-us/library/windows/desktop/bb775450%28v=vs.85%29.aspx
  */
-
-
-/* We have a bug somewhere which causes that when the menu is dropped down
- * by mouse and the mouse is then moved ober other toolbar button, the firstly
- * pressed button is displayed as hot.
- *
- * For now we "solved" by a very hacky workaround, which is guarded by this
- * macro. Comment this out to see and debug the bug...
- */
-#define MENUBAR_ARTIFACT_WORKAROUND        1
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -223,13 +212,18 @@ menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
     MENUBAR_TRACE("menubar_dropdown(%p, %d)", mb, item);
 
-    MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
 
-#ifndef MENUBAR_ARTIFACT_WORKAROUND
-    menubar_dropdown_helper(mb);
-#endif
+    /* We cannot just immediately open the popup menu: This function may be
+     * called in the context of a TBN_DROPDOWN notification, and the toolbar
+     * won't update hot item until we return from the notification. So
+     * postpone it to the end of message queue.
+     *
+     * Note we misuse TB_CUSTOMIZE, which does not send it down to original
+     * win procedure, so there is no risk of message id clash.
+     */
+    MC_POST(mb->win, TB_CUSTOMIZE, 0, 0);
 }
 
 static void
@@ -494,7 +488,6 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case TB_ADDBUTTONS:
         case TB_BUTTONSTRUCTSIZE:
         case TB_CHANGEBITMAP:
-        case TB_CUSTOMIZE:
         case TB_DELETEBUTTON:
         case TB_ENABLEBUTTON:
         case TB_HIDEBUTTON:
@@ -519,12 +512,14 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             MC_TRACE("menubar_proc: Suppressing message TB_xxxx (%d)", msg);
             SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
             return 0;  /* FALSE == NULL == 0 */
-    }
 
-#ifdef MENUBAR_ARTIFACT_WORKAROUND
-    if(mb && mb->pressed_item >= 0 && !mb->is_dropdown_active)
-        menubar_dropdown_helper(mb);
-#endif
+        case TB_CUSTOMIZE:
+            /* Actually we suppress TB_CUSTOMIZE as the message above (i.e.
+             * not passing it into the original proc), but we also misuse
+             * is for our internal purpose of showing the popup menu. */
+            menubar_dropdown_helper(mb);
+            return 0;
+    }
 
     return MENUBAR_SENDMSG(win, msg, wp, lp);
 }
