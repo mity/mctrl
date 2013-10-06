@@ -297,7 +297,7 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
             break;
     }
 
-    /* If we have not consum the key, report it to the caller. */
+    /* If we have not consume the key, report it to the caller. */
     return FALSE;
 }
 
@@ -321,7 +321,7 @@ menubar_nccreate(HWND win, CREATESTRUCT *cs)
     /* Lets be a little friendly to the app. developers: If the parent is
      * ReBar control, lets send WM_NOTIFY/WM_COMMAND to the ReBar's parent
      * as ReBar really is not interested in it, and embedding the menubar
-     * in the ReBar is actually main advantage of this control in comparision
+     * in the ReBar is actually main advantage of this control in comparison
      * with the standard window menu. */
     GetClassName(cs->hwndParent, parent_class, MC_ARRAY_SIZE(parent_class));
     if(_tcscmp(parent_class, _T("ReBarWindow32")) == 0)
@@ -744,7 +744,7 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
 
         case WM_SYSCHAR:
         case WM_CHAR:
-            /* Handle hotkeys (<ALT> + something) */
+            /* Handle hot keys (<ALT> + something) */
             if(lpMsg->lParam & 0x20000000) {
                 UINT item;
                 if(MENUBAR_SENDMSG(hwndMenubar, TB_MAPACCELERATOR, lpMsg->wParam, &item) != 0) {
