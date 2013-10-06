@@ -551,68 +551,70 @@ menubar_ht_change_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 static LRESULT CALLBACK
 menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
 {
-    MSG* msg = (MSG*)lp;
-    menubar_t* mb = menubar_ht_mb;
+    if(code >= 0) {
+        MSG* msg = (MSG*)lp;
+        menubar_t* mb = menubar_ht_mb;
 
-    MC_ASSERT(mb != NULL);
+        MC_ASSERT(mb != NULL);
 
-    switch(msg->message) {
-        case WM_MENUSELECT:
-            menubar_ht_sel_menu = (HMENU)msg->lParam;
-            menubar_ht_sel_item = LOWORD(msg->wParam);
-            menubar_ht_sel_flags = HIWORD(msg->wParam);
-            MENUBAR_TRACE("menubar_ht_proc: WM_MENUSELECT %p %d", menubar_ht_sel_menu, menubar_ht_sel_item);
-            break;
+        switch(msg->message) {
+            case WM_MENUSELECT:
+                menubar_ht_sel_menu = (HMENU)msg->lParam;
+                menubar_ht_sel_item = LOWORD(msg->wParam);
+                menubar_ht_sel_flags = HIWORD(msg->wParam);
+                MENUBAR_TRACE("menubar_ht_proc: WM_MENUSELECT %p %d", menubar_ht_sel_menu, menubar_ht_sel_item);
+                break;
 
-        case WM_MOUSEMOVE:
-        {
-            POINT pt = msg->pt;
-            int item;
+            case WM_MOUSEMOVE:
+            {
+                POINT pt = msg->pt;
+                int item;
 
-            MapWindowPoints(NULL, mb->win, &pt, 1);
-            item = MENUBAR_SENDMSG(mb->win, TB_HITTEST, 0, (LPARAM)&pt);
-            if(menubar_ht_last_pos.x != pt.x  ||  menubar_ht_last_pos.y != pt.y) {
-                menubar_ht_last_pos = pt;
-                if(item != mb->pressed_item  &&
-                   0 <= item  &&  item < MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0)) {
-                    MENUBAR_TRACE("menubar_ht_proc: Change dropdown by mouse move "
-                                  "[%d -> %d]", mb->pressed_item, item);
-                    menubar_ht_change_dropdown(mb, item, FALSE);
+                MapWindowPoints(NULL, mb->win, &pt, 1);
+                item = MENUBAR_SENDMSG(mb->win, TB_HITTEST, 0, (LPARAM)&pt);
+                if(menubar_ht_last_pos.x != pt.x  ||  menubar_ht_last_pos.y != pt.y) {
+                    menubar_ht_last_pos = pt;
+                    if(item != mb->pressed_item  &&
+                       0 <= item  &&  item < MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0)) {
+                        MENUBAR_TRACE("menubar_ht_proc: Change dropdown by mouse move "
+                                      "[%d -> %d]", mb->pressed_item, item);
+                        menubar_ht_change_dropdown(mb, item, FALSE);
+                    }
                 }
+                break;
             }
-            break;
+
+            case WM_KEYDOWN:
+                switch(msg->wParam) {
+                    case VK_LEFT:
+                        if(menubar_ht_sel_menu == NULL  ||
+                           menubar_ht_sel_menu == GetSubMenu(mb->menu, mb->pressed_item))
+                        {
+                            int item = mb->pressed_item - 1;
+                            if(item < 0)
+                                item = MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0) - 1;
+                            MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_LEFT");
+                            if(item != mb->pressed_item)
+                                menubar_ht_change_dropdown(mb, item, TRUE);
+                        }
+                        break;
+
+                    case VK_RIGHT:
+                        if(menubar_ht_sel_menu == NULL  ||
+                           !(menubar_ht_sel_flags & MF_POPUP) ||
+                           (menubar_ht_sel_flags & (MF_GRAYED | MF_DISABLED)))
+                        {
+                            int item = mb->pressed_item + 1;
+                            if(item >= MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0))
+                                item = 0;
+                            MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_RIGHT");
+                            if(item != mb->pressed_item)
+                                menubar_ht_change_dropdown(mb, item, TRUE);
+                        }
+                        break;
+                }
+                break;
         }
-
-        case WM_KEYDOWN:
-            switch(msg->wParam) {
-                case VK_LEFT:
-                    if(menubar_ht_sel_menu == NULL  ||
-                       menubar_ht_sel_menu == GetSubMenu(mb->menu, mb->pressed_item))
-                    {
-                        int item = mb->pressed_item - 1;
-                        if(item < 0)
-                            item = MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0) - 1;
-                        MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_LEFT");
-                        if(item != mb->pressed_item)
-                            menubar_ht_change_dropdown(mb, item, TRUE);
-                    }
-                    break;
-
-                case VK_RIGHT:
-                    if(menubar_ht_sel_menu == NULL  ||
-                       !(menubar_ht_sel_flags & MF_POPUP) ||
-                       (menubar_ht_sel_flags & (MF_GRAYED | MF_DISABLED)))
-                    {
-                        int item = mb->pressed_item + 1;
-                        if(item >= MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0))
-                            item = 0;
-                        MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_RIGHT");
-                        if(item != mb->pressed_item)
-                            menubar_ht_change_dropdown(mb, item, TRUE);
-                    }
-                    break;
-            }
-            break;
     }
 
     return CallNextHookEx(menubar_ht_hook, code, wp, lp);
