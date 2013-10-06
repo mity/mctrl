@@ -59,6 +59,10 @@ struct menubar_tag {
 };
 
 
+static menubar_t* active_menubar = NULL;
+static menubar_t* activate_with_f10 = FALSE;
+
+
 #define MENUBAR_ITEM_LABEL_MAXSIZE     32
 #define MENUBAR_SEPARATOR_WIDTH        10
 
@@ -160,17 +164,30 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
 }
 
 static void
-menubar_dropdown_helper(menubar_t* mb)
+menubar_reset_hot_item(menubar_t* mb)
+{
+    int item;
+    POINT pt;
+
+    GetCursorPos(&pt);
+    MapWindowPoints(NULL, mb->win, &pt, 1);
+    item = MENUBAR_SENDMSG(mb->win, TB_HITTEST, 0, &pt);
+    MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, item, 0);
+}
+
+static void
+menubar_perform_dropdown(menubar_t* mb)
 {
     int item;
     DWORD btn_state;
     TPMPARAMS pmparams = {0};
-    MENUBAR_TRACE("menubar_dropdown_helper(%p)", mb);
+    MENUBAR_TRACE("menubar_perform_dropdown(%p)", mb);
 
     pmparams.cbSize = sizeof(TPMPARAMS);
 
     mb->is_dropdown_active = TRUE;
     menubar_ht_enable(mb);
+    SetFocus(mb->win);
 
     while(mb->pressed_item >= 0) {
         item = mb->pressed_item;
@@ -183,6 +200,7 @@ menubar_dropdown_helper(menubar_t* mb)
         mb->select_from_keyboard = FALSE;
         mb->continue_hot_track = FALSE;
 
+        MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, item, 0);
         btn_state = MENUBAR_SENDMSG(mb->win, TB_GETSTATE, item, 0);
         MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item,
                         MAKELONG(btn_state | TBSTATE_PRESSED, 0));
@@ -190,12 +208,12 @@ menubar_dropdown_helper(menubar_t* mb)
         MENUBAR_SENDMSG(mb->win, TB_GETITEMRECT, item, &pmparams.rcExclude);
         MapWindowPoints(mb->win, HWND_DESKTOP, (POINT*)&pmparams.rcExclude, 2);
 
-        MENUBAR_TRACE("menubar_dropdown_helper: ENTER TrackPopupMenuEx()");
+        MENUBAR_TRACE("menubar_perform_dropdown: ENTER TrackPopupMenuEx()");
         TrackPopupMenuEx(GetSubMenu(mb->menu, item),
                          TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_VERTICAL,
                          pmparams.rcExclude.left, pmparams.rcExclude.bottom,
                          mb->win, &pmparams);
-        MENUBAR_TRACE("menubar_dropdown_helper: LEAVE TrackPopupMenuEx()");
+        MENUBAR_TRACE("menubar_perform_dropdown: LEAVE TrackPopupMenuEx()");
 
         MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(btn_state, 0));
 
@@ -203,8 +221,10 @@ menubar_dropdown_helper(menubar_t* mb)
             mb->pressed_item = -1;
     }
 
+    menubar_reset_hot_item(mb);
     menubar_ht_disable(mb);
     mb->is_dropdown_active = FALSE;
+    SetFocus(mb->old_focus);
 }
 
 static inline void
@@ -255,14 +275,12 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
 {
     switch(vk) {
         case VK_ESCAPE:
-            MENUBAR_TRACE("menubar_key_down(VK_ESCAPE)");
-            if(mb->hot_item >= 0) {
-                MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
-                if(mb->win == GetFocus())
-                    SetFocus(mb->old_focus);
-                return TRUE;
-            }
-            break;
+        case VK_F10:
+            MENUBAR_TRACE("menubar_key_down(VK_ESCAPE/VK_F10)");
+            SetFocus(mb->old_focus);
+            menubar_reset_hot_item(mb);
+            active_menubar = NULL;
+            return TRUE;
 
         case VK_LEFT:
             MENUBAR_TRACE("menubar_key_down(VK_LEFT)");
@@ -451,16 +469,18 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return TRUE;
 
         case WM_SETFOCUS:
-            mb->old_focus = (HWND) wp;
+            MENUBAR_TRACE("menubar_proc(WM_SETFOCUS): old focus %p", (HWND) wp);
+            if(win != (HWND) wp)
+                mb->old_focus = (HWND) wp;
+            active_menubar = mb;
             break;
 
         case WM_KILLFOCUS:
-            if(mb->old_focus != NULL) {
-                SetFocus(mb->old_focus);
-                mb->old_focus = NULL;
-            }
+            MENUBAR_TRACE("menubar_proc: WM_KILLFOCUS");
+            mb->old_focus = NULL;
             MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
             MENUBAR_SENDMSG(mb->win, WM_CHANGEUISTATE, MAKELONG(UIS_SET, UISF_HIDEACCEL), 0);
+            active_menubar = NULL;
             break;
 
         case WM_CREATE:
@@ -517,7 +537,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             /* Actually we suppress TB_CUSTOMIZE as the message above (i.e.
              * not passing it into the original proc), but we also misuse
              * is for our internal purpose of showing the popup menu. */
-            menubar_dropdown_helper(mb);
+            menubar_perform_dropdown(mb);
             return 0;
     }
 
@@ -652,6 +672,8 @@ menubar_ht_enable(menubar_t* mb)
     }
 
     menubar_ht_mb = mb;
+    GetCursorPos(&menubar_ht_last_pos);
+    MapWindowPoints(NULL, mb->win, &menubar_ht_last_pos, 1);
 
 err_hook:
     LeaveCriticalSection(&menubar_ht_lock);
@@ -724,20 +746,36 @@ menubar_fini_module(void)
 BOOL MCTRL_API
 mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
 {
+    menubar_t* mb = (menubar_t*) GetWindowLongPtr(hwndMenubar, extra_offset);
+
     switch(lpMsg->message) {
+        case WM_SYSKEYDOWN:
+        case WM_KEYDOWN:
+            /* Handle <F10> or <ALT> */
+            if(GetFocus() == mb->win)
+                break;
+            if((lpMsg->wParam == VK_F10 || lpMsg->wParam == VK_MENU)  &&
+               !(lpMsg->lParam & 0x20000000)  &&  !(GetKeyState(VK_SHIFT) & 0x8000)  &&
+               active_menubar == NULL)
+            {
+                if(activate_with_f10 == NULL)
+                    activate_with_f10 = mb;
+                return TRUE;
+            }
+            break;
+
         case WM_SYSKEYUP:
         case WM_KEYUP:
             /* Handle <F10> or <ALT> */
             if((lpMsg->wParam == VK_F10 || lpMsg->wParam == VK_MENU)  &&
-               !(lpMsg->lParam & 0x20000000)  &&
-               !(GetKeyState(VK_SHIFT) & 0x8000)) {
-                /* Toggle focus */
-                if(hwndMenubar != GetFocus()) {
+               !(lpMsg->lParam & 0x20000000)  &&  !(GetKeyState(VK_SHIFT) & 0x8000)  &&
+               active_menubar == NULL)
+            {
+                if(mb == activate_with_f10) {
                     SetFocus(hwndMenubar);
-                } else {
-                    menubar_t* mb = (menubar_t*) GetWindowLongPtr(hwndMenubar, extra_offset);
-                    SetFocus(mb->old_focus);
+                    MENUBAR_SENDMSG(hwndMenubar, TB_SETHOTITEM, 0, 0);
                 }
+                activate_with_f10 = NULL;
                 return TRUE;
             }
             break;
@@ -748,7 +786,6 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             if(lpMsg->lParam & 0x20000000) {
                 UINT item;
                 if(MENUBAR_SENDMSG(hwndMenubar, TB_MAPACCELERATOR, lpMsg->wParam, &item) != 0) {
-                    menubar_t* mb = (menubar_t*) GetWindowLongPtr(hwndMenubar, extra_offset);
                     menubar_dropdown(mb, item, TRUE);
                     return TRUE;
                 }
