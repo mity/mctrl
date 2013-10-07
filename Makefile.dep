@@ -49,7 +49,8 @@ obj/mditab.o: src/mditab.c src/mditab.h include/mCtrl/mditab.h \
  include/mCtrl/theme.h
 obj/menubar.o: src/menubar.c src/menubar.h include/mCtrl/menubar.h \
  include/mCtrl/_defs.h include/mCtrl/_common.h src/misc.h src/compat.h \
- src/debug.h src/resource.h src/version.h
+ src/debug.h src/resource.h src/version.h src/theme.h \
+ include/mCtrl/theme.h
 obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h include/mCtrl/_defs.h include/mCtrl/_common.h src/module.h \
  src/theme.h include/mCtrl/theme.h include/mctrl.h include/mCtrl/button.h \

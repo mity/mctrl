@@ -17,6 +17,7 @@
  */
 
 #include "menubar.h"
+#include "theme.h"
 
 
 /* TODO:
@@ -65,6 +66,8 @@ static menubar_t* activate_with_f10 = FALSE;
 
 #define MENUBAR_ITEM_LABEL_MAXSIZE     32
 #define MENUBAR_SEPARATOR_WIDTH        10
+
+#define MENUBAR_DTFLAGS               (DT_CENTER | DT_VCENTER | DT_SINGLELINE)
 
 #define MENUBAR_SENDMSG(win,msg,wp,lp)    \
         CallWindowProc(orig_toolbar_proc, (win), (msg), (WPARAM)(wp), (LPARAM)(lp))
@@ -246,7 +249,7 @@ menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
     MC_POST(mb->win, TB_CUSTOMIZE, 0, 0);
 }
 
-static void
+static LRESULT
 menubar_notify(menubar_t* mb, NMHDR* hdr)
 {
     switch(hdr->code) {
@@ -267,7 +270,64 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
             mb->hot_item = (info->dwFlags & HICF_LEAVING) ? -1 : info->idNew;
             break;
         }
+
+        case NM_CUSTOMDRAW:
+        {
+            NMTBCUSTOMDRAW* info = (NMTBCUSTOMDRAW*) hdr;
+            switch(info->nmcd.dwDrawStage) {
+                case CDDS_PREPAINT:
+                    if(mc_win_version >= MC_WIN_VISTA  &&  theme_IsAppThemed())
+                        return CDRF_DODEFAULT;
+                    else if(mc_win_version < MC_WIN_XP)
+                        return CDRF_DODEFAULT;
+                    else
+                        return CDRF_NOTIFYITEMDRAW;
+
+                case CDDS_ITEMPREPAINT:
+                {
+                    int text_color_id;
+                    int bk_color_id;
+                    TCHAR buffer[256];
+                    TBBUTTONINFO btn;
+                    UINT flags = MENUBAR_DTFLAGS;
+                    HDC dc = info->nmcd.hdc;
+                    HFONT old_font;
+
+                    if(info->nmcd.uItemState & (CDIS_HOT | CDIS_SELECTED)) {
+                        text_color_id = COLOR_HIGHLIGHTTEXT;
+                        bk_color_id = COLOR_HIGHLIGHT;
+                    } else {
+                        text_color_id = COLOR_MENUTEXT;
+                        bk_color_id = -1;
+                    }
+
+                    btn.cbSize = sizeof(TBBUTTONINFO);
+                    btn.dwMask = TBIF_TEXT;
+                    btn.pszText = buffer;
+                    btn.cchText = MC_ARRAY_SIZE(buffer);
+                    MENUBAR_SENDMSG(mb->win, TB_GETBUTTONINFO, info->nmcd.dwItemSpec, &btn);
+
+                    if(MENUBAR_SENDMSG(mb->win, WM_QUERYUISTATE, 0, 0) & UISF_HIDEACCEL)
+                        flags |= DT_HIDEPREFIX;
+
+                    if(bk_color_id >= 0)
+                        FillRect(dc, &info->nmcd.rc, (HBRUSH) (INT_PTR) (bk_color_id+1));
+
+                    SetTextColor(dc, GetSysColor(text_color_id));
+                    old_font = SelectObject(dc, (HFONT) MENUBAR_SENDMSG(mb->win, WM_GETFONT, 0, 0));
+                    SetBkMode(dc, TRANSPARENT);
+                    DrawText(dc, buffer, -1, &info->nmcd.rc, flags);
+                    SelectObject(dc, old_font);
+                    return CDRF_SKIPDEFAULT;
+                }
+
+                default:
+                    return CDRF_DODEFAULT;
+            }
+        }
     }
+
+    return MC_SEND(mb->notify_win, WM_NOTIFY, hdr->idFrom, hdr);
 }
 
 static BOOL
@@ -365,6 +425,9 @@ menubar_create(menubar_t* mb, CREATESTRUCT *cs)
 
     MENUBAR_SENDMSG(mb->win, TB_SETPARENT, mb->win, 0);
     MENUBAR_SENDMSG(mb->win, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+    MENUBAR_SENDMSG(mb->win, TB_SETBITMAPSIZE, 0, MAKELONG(0, 0));
+    MENUBAR_SENDMSG(mb->win, TB_SETPADDING, 0, MAKELONG(10, 6));
+    MENUBAR_SENDMSG(mb->win, TB_SETDRAWTEXTFLAGS, MENUBAR_DTFLAGS, MENUBAR_DTFLAGS);
 
     /* Add some styles we consider default */
     SetWindowLongPtr(mb->win, GWL_STYLE, cs->style | TBSTYLE_FLAT |
@@ -425,10 +488,8 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_NOTIFY:
         {
             NMHDR* hdr = (NMHDR*) lp;
-            if(hdr->hwndFrom == win) {
-                menubar_notify(mb, hdr);
-                return MC_SEND(mb->notify_win, msg, wp, lp);
-            }
+            if(hdr->hwndFrom == win)
+                return menubar_notify(mb, hdr);
             break;
         }
 

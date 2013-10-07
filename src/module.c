@@ -175,7 +175,7 @@ DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
-static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
+static module_t* mod_menubar_deps[] = { &mod_mc, &mod_theme, &mod_menubar };
 DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)
 
 static module_t* mod_theme_deps[] = { &mod_mc, &mod_theme };
