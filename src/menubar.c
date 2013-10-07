@@ -425,13 +425,13 @@ menubar_create(menubar_t* mb, CREATESTRUCT *cs)
 
     MENUBAR_SENDMSG(mb->win, TB_SETPARENT, mb->win, 0);
     MENUBAR_SENDMSG(mb->win, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    MENUBAR_SENDMSG(mb->win, TB_SETBITMAPSIZE, 0, MAKELONG(0, 0));
+    MENUBAR_SENDMSG(mb->win, TB_SETBITMAPSIZE, 0, MAKELONG(0, -2));
     MENUBAR_SENDMSG(mb->win, TB_SETPADDING, 0, MAKELONG(10, 6));
     MENUBAR_SENDMSG(mb->win, TB_SETDRAWTEXTFLAGS, MENUBAR_DTFLAGS, MENUBAR_DTFLAGS);
 
     /* Add some styles we consider default */
     SetWindowLongPtr(mb->win, GWL_STYLE, cs->style | TBSTYLE_FLAT |
-                     TBSTYLE_LIST | TBSTYLE_TRANSPARENT | CCS_NODIVIDER);
+                     TBSTYLE_TRANSPARENT | CCS_NODIVIDER);
 
     if(cs->lpCreateParams != NULL) {
         if(MC_ERR(menubar_set_menu(mb, (HMENU) cs->lpCreateParams) != 0)) {
