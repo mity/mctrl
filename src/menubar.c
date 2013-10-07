@@ -287,7 +287,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
                 {
                     int text_color_id;
                     int bk_color_id;
-                    TCHAR buffer[256];
+                    TCHAR buffer[MENUBAR_ITEM_LABEL_MAXSIZE];
                     TBBUTTONINFO btn;
                     UINT flags = MENUBAR_DTFLAGS;
                     HDC dc = info->nmcd.hdc;
