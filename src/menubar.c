@@ -336,7 +336,8 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
     switch(vk) {
         case VK_ESCAPE:
         case VK_F10:
-            MENUBAR_TRACE("menubar_key_down(VK_ESCAPE/VK_F10)");
+        case VK_MENU:
+            MENUBAR_TRACE("menubar_key_down(VK_ESCAPE/VK_F10/VK_MENU)");
             SetFocus(mb->old_focus);
             menubar_reset_hot_item(mb);
             active_menubar = NULL;
@@ -666,7 +667,13 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
             }
 
             case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:
                 switch(msg->wParam) {
+                    case VK_MENU:
+                    case VK_F10:
+                        menubar_ht_change_dropdown(mb, -1, TRUE);
+                        return 0;
+
                     case VK_LEFT:
                         if(menubar_ht_sel_menu == NULL  ||
                            menubar_ht_sel_menu == GetSubMenu(mb->menu, mb->pressed_item))
@@ -813,11 +820,10 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
             /* Handle <F10> or <ALT> */
-            if(GetFocus() == mb->win)
+            if(active_menubar != NULL)
                 break;
-            if((lpMsg->wParam == VK_F10 || lpMsg->wParam == VK_MENU)  &&
-               !(lpMsg->lParam & 0x20000000)  &&  !(GetKeyState(VK_SHIFT) & 0x8000)  &&
-               active_menubar == NULL)
+            if((lpMsg->wParam == VK_MENU || (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
+               !(GetKeyState(VK_SHIFT) & 0x8000))
             {
                 if(activate_with_f10 == NULL)
                     activate_with_f10 = mb;
@@ -828,9 +834,10 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
         case WM_SYSKEYUP:
         case WM_KEYUP:
             /* Handle <F10> or <ALT> */
-            if((lpMsg->wParam == VK_F10 || lpMsg->wParam == VK_MENU)  &&
-               !(lpMsg->lParam & 0x20000000)  &&  !(GetKeyState(VK_SHIFT) & 0x8000)  &&
-               active_menubar == NULL)
+            if(active_menubar != NULL)
+                break;
+            if((lpMsg->wParam == VK_MENU || (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
+               !(GetKeyState(VK_SHIFT) & 0x8000))
             {
                 if(mb == activate_with_f10) {
                     SetFocus(hwndMenubar);
@@ -844,7 +851,7 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
         case WM_SYSCHAR:
         case WM_CHAR:
             /* Handle hot keys (<ALT> + something) */
-            if(lpMsg->lParam & 0x20000000) {
+            if(lpMsg->wParam != VK_MENU  &&  (lpMsg->lParam & 0x20000000)) {
                 UINT item;
                 if(MENUBAR_SENDMSG(hwndMenubar, TB_MAPACCELERATOR, lpMsg->wParam, &item) != 0) {
                     menubar_dropdown(mb, item, TRUE);
