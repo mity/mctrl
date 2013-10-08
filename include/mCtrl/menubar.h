@@ -347,7 +347,11 @@ BOOL MCTRL_API mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
  * @brief Updates the menubar to reflect changes in the installed menu.
  *
  * Application has to send this messages after it changes the top-level menu
- * items (e.g. adds or deleted a sub-menu, enables or disables a sub-menu etc.).
+ * items (e.g. adds or deletes a sub-menu, enables or disables a sub-menu etc.).
+ *
+ * Note that it is needed only if the top-level items changes (i.e. the items
+ * directly visible on the horizontal menubar. Contents of pop-up menus can
+ * be changed without sending this notification.
  *
  * @param wParam Reserved, set to zero.
  * @param lParam Reserved, set to zero.
