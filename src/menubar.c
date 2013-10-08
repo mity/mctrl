@@ -107,6 +107,26 @@ static void menubar_ht_enable(menubar_t* mb);
 static void menubar_ht_disable(menubar_t* mb);
 
 
+static void
+menubar_update_ui_state(menubar_t* mb, BOOL keyboard_activity)
+{
+    WORD action;
+
+    if(mc_win_version < MC_WIN_XP)  /* Win 2000 does not support ui state */
+        return;
+
+    if(keyboard_activity) {
+        action = UIS_CLEAR;
+    } else {
+        BOOL show_accel_always;
+        if(!SystemParametersInfo(SPI_GETMENUUNDERLINES, 0, &show_accel_always, 0))
+            show_accel_always = TRUE;
+        action = (show_accel_always ? UIS_CLEAR : UIS_SET);
+    }
+
+    MENUBAR_SENDMSG(mb->win, WM_CHANGEUISTATE, MAKELONG(action, UISF_HIDEACCEL), 0);
+}
+
 static int
 menubar_set_menu(menubar_t* mb, HMENU menu)
 {
@@ -379,6 +399,7 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
                 if(item < 0)
                     item = MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0) - 1;
                 MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, item, 0);
+                menubar_update_ui_state(mb, TRUE);
                 return TRUE;
             }
             break;
@@ -390,6 +411,7 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
                 if(item >= MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0))
                     item = 0;
                 MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, item, 0);
+                menubar_update_ui_state(mb, TRUE);
                 return TRUE;
             }
             break;
@@ -400,6 +422,7 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
             MENUBAR_TRACE("menubar_key_down(VK_DOWN/VK_UP/VK_RETURN)");
             if(mb->hot_item >= 0) {
                 menubar_dropdown(mb, mb->hot_item, TRUE);
+                menubar_update_ui_state(mb, TRUE);
                 return TRUE;
             }
             break;
@@ -470,6 +493,7 @@ menubar_create(menubar_t* mb, CREATESTRUCT *cs)
         }
     }
 
+    menubar_update_ui_state(mb, FALSE);
     return 0;
 }
 
@@ -570,7 +594,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             MENUBAR_TRACE("menubar_proc: WM_KILLFOCUS");
             mb->old_focus = NULL;
             MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
-            MENUBAR_SENDMSG(mb->win, WM_CHANGEUISTATE, MAKELONG(UIS_SET, UISF_HIDEACCEL), 0);
+            menubar_update_ui_state(mb, FALSE);
             active_menubar = NULL;
             break;
 
@@ -713,6 +737,7 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                             MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_LEFT");
                             if(item != mb->pressed_item)
                                 menubar_ht_change_dropdown(mb, item, TRUE);
+                            menubar_update_ui_state(mb, TRUE);
                         }
                         break;
 
@@ -727,6 +752,7 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                             MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_RIGHT");
                             if(item != mb->pressed_item)
                                 menubar_ht_change_dropdown(mb, item, TRUE);
+                            menubar_update_ui_state(mb, TRUE);
                         }
                         break;
                 }
@@ -854,6 +880,8 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             if((lpMsg->wParam == VK_MENU || (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
                !(GetKeyState(VK_SHIFT) & 0x8000))
             {
+                if(lpMsg->wParam == VK_MENU)
+                    menubar_update_ui_state(mb, TRUE);
                 if(activate_with_f10 == NULL)
                     activate_with_f10 = mb;
                 return TRUE;
@@ -871,6 +899,7 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
                 if(mb == activate_with_f10) {
                     SetFocus(hwndMenubar);
                     MENUBAR_SENDMSG(hwndMenubar, TB_SETHOTITEM, 0, 0);
+                    menubar_update_ui_state(mb, TRUE);
                 }
                 activate_with_f10 = NULL;
                 return TRUE;
@@ -883,6 +912,7 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             if(lpMsg->wParam != VK_MENU  &&  (lpMsg->lParam & 0x20000000)) {
                 UINT item;
                 if(MENUBAR_SENDMSG(hwndMenubar, TB_MAPACCELERATOR, lpMsg->wParam, &item) != 0) {
+                    menubar_update_ui_state(mb, TRUE);
                     menubar_dropdown(mb, item, TRUE);
                     return TRUE;
                 }
