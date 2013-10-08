@@ -123,7 +123,7 @@ menubar_update_ui_state(menubar_t* mb, BOOL keyboard_activity)
 }
 
 static int
-menubar_set_menu(menubar_t* mb, HMENU menu)
+menubar_set_menu(menubar_t* mb, HMENU menu, BOOL is_refresh)
 {
     BYTE* buffer = NULL;
     TBBUTTON* buttons;
@@ -132,11 +132,8 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
 
     MENUBAR_TRACE("menubar_set_menu(%p, %p)", mb, menu);
 
-    /* Uninstall the old menu */
-#if 0  /* not possible as long as MC_MBM_REFRESH works as it does now */
-    if(menu == mb->menu)
-        return;
-#endif
+    if(menu == mb->menu  &&  !is_refresh)
+        return 0;
 
     /* If dropped down, cancel it */
     if(mb->pressed_item >= 0) {
@@ -144,6 +141,7 @@ menubar_set_menu(menubar_t* mb, HMENU menu)
         MENUBAR_SENDMSG(mb->win, WM_CANCELMODE, 0, 0);
     }
 
+    /* Uninstall the old menu */
     if(mb->menu != NULL) {
         n = MENUBAR_SENDMSG(mb->win, TB_BUTTONCOUNT, 0, 0);
         for(i = 0; i < n; i++)
@@ -482,7 +480,7 @@ menubar_create(menubar_t* mb, CREATESTRUCT *cs)
                      TBSTYLE_TRANSPARENT | CCS_NODIVIDER);
 
     if(cs->lpCreateParams != NULL) {
-        if(MC_ERR(menubar_set_menu(mb, (HMENU) cs->lpCreateParams) != 0)) {
+        if(MC_ERR(menubar_set_menu(mb, (HMENU) cs->lpCreateParams, FALSE) != 0)) {
             MC_TRACE("menubar_create: menubar_set_menu() failed.");
             return -1;
         }
@@ -512,12 +510,10 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case MC_MBM_REFRESH:
-            // TODO: Do it in a more effecient way then by reinstalling
-            //       all buttons.
             lp = (LPARAM)mb->menu;
             /* no break */
         case MC_MBM_SETMENU:
-            return (menubar_set_menu(mb, (HMENU)lp) == 0 ? TRUE : FALSE);
+            return (menubar_set_menu(mb, (HMENU)lp, (msg == MC_MBM_REFRESH)) == 0 ? TRUE : FALSE);
 
         case TB_SETPARENT:
         case CCM_SETNOTIFYWINDOW:
