@@ -20,11 +20,6 @@
 #include "theme.h"
 
 
-/* TODO:
- *  -- Support to make a chevron in a parent ReBar easy to do.
- */
-
-
 /* The MenuBar implementation is partially based on the MSDN article "How to
  * Create an Internet Explorer-Style Menu Bar":
  * http://msdn.microsoft.com/en-us/library/windows/desktop/bb775450%28v=vs.85%29.aspx
@@ -921,4 +916,87 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
     }
 
     return FALSE;
+}
+
+BOOL MCTRL_API
+mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
+                                   NMREBARCHEVRON* lpRebarChevron)
+{
+    REBARBANDINFO band_info;
+    menubar_t* mb;
+    RECT rect;
+    HMENU menu;
+    MENUITEMINFO mii;
+    TCHAR buffer[MENUBAR_ITEM_LABEL_MAXSIZE];
+    int i, n;
+    TPMPARAMS params;
+
+    /* Verify lpRebarChevron is from notification we assume. */
+    if(MC_ERR(lpRebarChevron->hdr.code != RBN_CHEVRONPUSHED)) {
+        MC_TRACE("mcMenubar_HandleRebarChevronPushed: Not RBN_CHEVRONPUSHED");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    /* Verify/get the menubar handle */
+    band_info.cbSize = REBARBANDINFO_V3_SIZE;
+    band_info.fMask = RBBIM_CHILD;
+    MC_SEND(lpRebarChevron->hdr.hwndFrom, RB_GETBANDINFO, lpRebarChevron->uBand, &band_info);
+    if(hwndMenubar != NULL) {
+        if(MC_ERR(hwndMenubar != band_info.hwndChild)) {
+            MC_TRACE("mcMenubar_HandleRebarChevronPushed: "
+                     "Notification not about band with the specified menubar.");
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return FALSE;
+        }
+    } else {
+        hwndMenubar = band_info.hwndChild;
+        if(MC_ERR(hwndMenubar == NULL)) {
+            MC_TRACE("mcMenubar_HandleRebarChevronPushed: "
+                     "The band does not host any child window");
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return FALSE;
+        }
+    }
+
+    /* Create popup menu for not completely visible menu items */
+    mb = (menubar_t*) GetWindowLongPtr(hwndMenubar, extra_offset);
+    GetClientRect(hwndMenubar, &rect);
+    menu = CreatePopupMenu();
+    if(MC_ERR(menu == NULL)) {
+        MC_TRACE_ERR("mcMenubar_HandleRebarChevronPushed: CreatePopupMenu() failed.");
+        return FALSE;
+    }
+    mii.cbSize = sizeof(MENUITEMINFO);
+    mii.fMask = MIIM_STRING | MIIM_STATE | MIIM_ID | MIIM_SUBMENU;
+    mii.dwTypeData = buffer;
+    mii.cch = MC_ARRAY_SIZE(buffer);
+    n = MENUBAR_SENDMSG(hwndMenubar, TB_BUTTONCOUNT, 0, 0);
+    for(i = n-1; i >= 0; i--) {
+        RECT item_rect;
+
+        MENUBAR_SENDMSG(hwndMenubar, TB_GETITEMRECT, i, &item_rect);
+        if(item_rect.right < rect.right)
+            break;
+
+        mii.cch = MC_ARRAY_SIZE(buffer);
+        GetMenuItemInfo(mb->menu, i, TRUE, &mii);
+        InsertMenuItem(menu, 0, TRUE, &mii);
+    }
+    params.cbSize = sizeof(TPMPARAMS);
+    mc_rect_copy(&params.rcExclude, &lpRebarChevron->rc);
+
+    /* Run the menu */
+    MapWindowPoints(hwndMenubar, NULL, (POINT*) &params.rcExclude, 2);
+    TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_VERTICAL,
+                     params.rcExclude.left, params.rcExclude.bottom, mb->win, &params);
+
+    /* Destroy the popup menu. Note submenus have to survive as they are shared
+     * with the menubar itself. */
+    n = GetMenuItemCount(menu);
+    for(i = 0; i < n; i++)
+        RemoveMenu(menu, 0, MF_BYPOSITION);
+    DestroyMenu(menu);
+
+    return TRUE;
 }

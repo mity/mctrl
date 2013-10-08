@@ -34,14 +34,14 @@ extern "C" {
  * The @c MC_WC_MENUBAR is implantation of a control generally known as
  * Internet Explorer-Style Menu Bar. It is a control which can host a menu
  * (here represented by a menu handle, @c HMENU), but which generally works
- * as a tool-bar.
+ * as a toolbar.
  *
- * The standard menus take whole width of the window for their menu-bars,
+ * The standard menus take whole width of the window for their menubars,
  * and there can only be used one menu in a top-level windows. Child windows
- * cann ot have a menu at all (well, we are not talking about pop-up menus).
+ * can not have a menu at all (well, we are not talking about pop-up menus).
  *
- * The @c MC_WC_MENUBAR offers solution to these problems. It has been designed
- * with especially following use cases in mind:
+ * The @c MC_WC_MENUBAR offers solution to these limitations. It has been
+ * designed especially with following use cases in mind:
  *
  * - Embedding the menu into a standard ReBar control from @c COMCTL32.DLL.
  *
@@ -49,24 +49,24 @@ extern "C" {
  *   is normally enforced for normal menu of a window or dialog.
  *
  * - Possibility to create this control in child windows, or having multiple
- *   menu-bars in a single window.
+ *   menubars in a single window.
  *
  *
- * @section sec_mb_subclass Subclassed Tool Bar
+ * @section sec_mb_subclass Superclassed Tool Bar
  *
- * Actually the @c MC_WC_MENUBAR is implemented as a subclass of the standard
- * tool-bar (from @c COMCTL32.DLL) control, so you can use its style, and also
- * some tool-bar messages.
+ * Actually the @c MC_WC_MENUBAR is implemented as a superclass of the standard
+ * toolbar (from @c COMCTL32.DLL) control, so you can use its style, and also
+ * some toolbar messages.
  *
- * Of course there are also differences: The menu-bar control automatically sets
- * some tool-bar styles when created, as it sees fit for its purpose. Application
+ * Of course there are also differences: The menubar control automatically sets
+ * some toolbar styles when created, as it sees fit for its purpose. Application
  * still can reset it with @c SetWindowLong and @c GWL_STYLE.
  *
- * Furthermore the menu-bar control does not support tool-bar messages which add,
- * modify or remove tool-bar buttons. The control just manages them
+ * Furthermore the menubar control does not support toolbar messages which add,
+ * modify or remove toolbar buttons. The control just manages them
  * automatically to reflect the installed menu.
  *
- * I.e. sending any of these tool-bar messages to the control always fails:
+ * I.e. sending any of these toolbar messages to the control always fails:
  * - @c TB_ADDBITMAP
  * - @c TB_ADDSTRING
  * - @c TB_ADDBUTTONS
@@ -98,41 +98,41 @@ extern "C" {
  *
  * @section sec_mb_create Installing a Menu
  *
- * To install a menu in the menu-bar, you may set parameter @c lpParam of
+ * To install a menu in the menubar, you may set parameter @c lpParam of
  * @c CreateWindow or @c CreateWindowEx to the handle of the menu (@c HMENU).
- * Or, after the menu-bar is created, you may install a menu with the
+ * Or, after the menubar is created, you may install a menu with the
  * message @c MC_MBM_SETMENU.
  *
  * Either way the application is responsible to keep the menu handle valid
- * as long as the menu-bar exists (or until other menu is installed in the
- * menu-bar).
+ * as long as the menubar exists (or until other menu is installed in the
+ * menubar).
  *
  * Note however that changes to the menu are not automatically reflected in the
- * menu-bar. If application programatically changes top-level items of the menu
+ * menubar. If application programatically changes top-level items of the menu
  * (for example add new pop-ups, disable some of them etc.), it then has to
  * send @c MC_MBM_REFRESH to reflect the changes.
  *
  *
  * @section sec_mb_notifications Notifications
  *
- * The control sends notifications of both, the tool-bar and menu.
+ * The control sends notifications of both, the toolbar and menu.
  *
  * To handle the actions corresponding to the menu items, application
  * uses the notification @c WM_COMMAND as with a normal menu. It can also
  * take use of @c WM_MENUSELECT and @c WM_INITMENU.
  *
- * Tool-bar notifications are sent through @c WM_NOTIFY. For example,
+ * toolbar notifications are sent through @c WM_NOTIFY. For example,
  * @c TBN_DROPDOWN or @c TBN_HOTITEMCHANGE are sent as any other notifications
- * normal tool-bar fires.
+ * normal toolbar fires.
  *
  * All the notifications are sent by default to a window which was parent of
- * the menu-bar when creating the menu-bar. One exception is if the parent is
+ * the menubar when creating the menubar. One exception is if the parent is
  * a ReBar control: Because it will often be the case and the ReBar control
  * cannot handle the notifications properly, they are then sent to the
- * grand-father of the menu-bar (i.e. parent of the ReBar).
+ * grand-father of the menubar (i.e. parent of the ReBar).
  *
  * Application can also explicitly set the target window of the notifications
- * with the standard tool-bar message @c TB_SETPARENT.
+ * with the standard toolbar message @c TB_SETPARENT.
  *
  *
  * @section sec_mb_hotkeys Hot Keys
@@ -142,11 +142,12 @@ extern "C" {
  * the function @c mcIsMenubarMessage to handle hot keys of the menu items
  * and allow to activate the menu with the key @c F10.
  *
- * Hence code of the message loop in applications using the menu-bar control
+ * Hence code of the message loop in applications using the menubar control
  * should be similar to the example below:
  *
  * @code
  * MSG msg;
+ *
  * while(GetMessage(&msg, NULL, 0, 0)) {
  *     if(TranslateAccelerator(hWnd, hAccel, &msg))
  *         continue;
@@ -158,6 +159,72 @@ extern "C" {
  *     TranslateMessage(&msg);
  *     DispatchMessage(&msg);
  * }
+ * @endcode
+ *
+ *
+ * @section sec_mb_in_rebar Embedding in a ReBar Control
+ *
+ * Application may often need to embed the menubar control in a ReBar control.
+ * To do so, the application developer need to embed the menubar control
+ * in a Rebar control band. That is usually performed with a code similar to
+ * this one:
+ *
+ * @code
+ * REBARBANDINFO band = {0};
+ * DWORD dwBtnSize;
+ *
+ * band.cbSize = sizeof(REBARBANDINFO);
+ * band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_ID;
+ * band.fStyle = RBBS_GRIPPERALWAYS | RBBS_TOPALIGN | RBBS_VARIABLEHEIGHT;
+ * band.hwndChild = hwndMenubar;
+ * dwBtnSize = (DWORD)SendMessage(band.hwndChild, TB_GETBUTTONSIZE, 0,0);
+ * band.cyChild = HIWORD(dwBtnSize);
+ * band.cxMinChild = 0;
+ * band.cyMinChild = HIWORD(dwBtnSize);
+ * band.cyMaxChild = HIWORD(dwBtnSize);
+ * band.cyIntegral = HIWORD(dwBtnSize);
+ * band.cx = 240;  // or other value as appropriate for the menu and dialog window size
+ * band.wID = BAND_MENUBAR;  // band ID identifying the one with the menubar
+ * SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
+ * @endcode
+ *
+ * If the application developer desires to support chevron on the band hosting
+ * the menubar, additional steps are required:
+ *
+ * -# Application developer should consider using the extended toolbar style
+ * @c TBSTYLE_EX_HIDECLIPPEDBUTTONS:
+ * @code
+ * SendMessage(hwndMenubar, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_HIDECLIPPEDBUTTONS);
+ * @endcode
+ * -# The @c band.fStyle in the code above has to specify @c RBBS_USECHEVRON in addition.
+ * -# The member @c band.cxIdeal has to be initialized in the @c REBARBANDINFO above,
+ * before inserting the new band:
+ * @code
+ * SIZE szIdeal;
+ *
+ * band.fMask |= RBBIM_IDEALSIZE;
+ * band.cxIdeal = szIdeal.cx;
+ * SendMessage(hwndMenubar, TB_GETIDEALSIZE, FALSE, (LPARAM) &szIdeal);
+ * @endcode
+ * -# The dialog procedure has to handle @c RBN_CHEVRONPUSHED notification from
+ * the rebar control. If the notification is about the band hosting a menubar,
+ * the function @c mcMenubar_HandleRebarChevronPushed() should be called in
+ * response.
+ * @code
+ * ...
+ * case WM_NOTIFY:
+ * {
+ *     NMHDR* hdr = (NMHDR*) lParam;
+ *     if(hdr->hwndFrom == hwndRebar  &&  hdr->code == RBN_CHEVRONPUSHED) {
+ *         NMREBARCHEVRON* nm = (NMREBARCHEVRON*) hdr;
+ *         if(nm->wID == BAND_MENUBAR)
+ *             mcMenubar_HandleRebarChevronPushed(hwndMenubar, nm);
+ *             break;
+ *         }
+ *     }
+ *     break;
+ * }
+ * ...
  * @endcode
  *
  *
@@ -197,15 +264,54 @@ void MCTRL_API mcMenubar_Terminate(void);
 
 /**
  * @brief Determines whether a message is intended for the specified
- * menu-bar control and, if it is, processes the message.
+ * menubar control and, if it is, processes the message.
  *
  * The application typically calls this function in main message loop.
  *
- * @param hwndMenubar The menu-bar control.
+ * @param hwndMenubar The menubar control.
  * @param lpMsg The message.
  * @return @c TRUE, if the message has been processed; @c FALSE otherwise.
  */
 BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
+
+
+#ifndef DOXYGEN
+typedef struct tagNMREBARCHEVRON NMREBARCHEVRON;
+#endif
+
+/**
+ * @brief Helper function for ReBar chevron support.
+ *
+ * Application can embed the menubar control in a ReBar control. In such case
+ * the application may want to support the chevron (ReBar window style @c
+ * RBBS_USECHEVRON).
+ *
+ * In such case the application gets the notification @c RBN_CHEVRONPUSHED
+ * whenever the ReBar band is too small for complete menubar and user clicks
+ * the chevron button. In such case the application should propagate the
+ * notification (when about the band with the menubar) to this function,
+ * which creates and opens a pop-up for all the menu items not visible due
+ * the insufficient space.
+ *
+ * In case of success (the function returns @c TRUE), the function returns
+ * only after the chevron popup menu was closed.
+ *
+ * @param hwndMenubar The menubar control, or @c NULL. If menubar handle is
+ * provided, the function verifies that the notification is about the menubar
+ * and returns @c FALSE if it is not. When @c NULL, it is responsibility of the
+ * application to ensure the notification is about the band hosting a menubar
+ * control.
+ * @param lpRebarChevron Pointer to the structure @c NMREBARCHEVRON associated
+ * with the @c RBN_CHEVRONPUSHED notification.
+ * @return @c TRUE if the pop-up menu for the chevron button has been created
+ * and opened, @c FALSE otherwise.
+ *
+ * @attention If @c hwndMenubar is @c NULL and the @c lpRebarChevron is
+ * notification about a ReBar band which hosts other window then a menubar
+ * control, the application behavior is undefined. The application may crash.
+ */
+BOOL MCTRL_API mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
+                                                  NMREBARCHEVRON* lpRebarChevron);
 
 /*@}*/
 
@@ -229,7 +335,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
 /*@{*/
 
 /**
- * @brief Install a menu into the menu-bar.
+ * @brief Install a menu into the menubar.
  *
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@c HMENU) The menu to install.
@@ -238,7 +344,7 @@ BOOL MCTRL_API mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg);
 #define MC_MBM_SETMENU            (MC_MBM_FIRST + 0)
 
 /**
- * @brief Updates the menu-bar to reflect changes in the installed menu.
+ * @brief Updates the menubar to reflect changes in the installed menu.
  *
  * Application has to send this messages after it changes the top-level menu
  * items (e.g. adds or deleted a sub-menu, enables or disables a sub-menu etc.).

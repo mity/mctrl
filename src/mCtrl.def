@@ -87,6 +87,7 @@ EXPORTS
     mcIsThemePartDefined
     mcMditab_Initialize
     mcMditab_Terminate
+    mcMenubar_HandleRebarChevronPushed
     mcMenubar_Initialize
     mcMenubar_Terminate
     mcOpenThemeData

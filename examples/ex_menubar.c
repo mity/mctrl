@@ -24,11 +24,16 @@ static HMENU hMenuSm;
 static HWND hwndMenubarSmall;
 
 
+#define BAND_MENUBAR        1
+#define BAND_TOOLBAR        2
+
+
 /* Create the menubar control */
 static void
 CreateMenuBar(HWND hWnd)
 {
     REBARBANDINFO band = {0};
+    SIZE szIdeal;
     DWORD dwBtnSize;
     HWND hwndToolbar;
     HIMAGELIST hImgList;
@@ -44,19 +49,23 @@ CreateMenuBar(HWND hWnd)
     hwndMenubar = CreateWindow(MC_WC_MENUBAR, _T(""), WS_CHILD | WS_VISIBLE |
             WS_CLIPCHILDREN | WS_CLIPSIBLINGS | CCS_NORESIZE | CCS_NOPARENTALIGN,
             0, 0, 0, 0, hwndRebar, (HMENU) 1001, hInst, (LPVOID) hMenu);
+    SendMessage(hwndMenubar, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_HIDECLIPPEDBUTTONS);
+    SendMessage(hwndMenubar, TB_GETIDEALSIZE, FALSE, (LPARAM) &szIdeal);
 
     /* Embed the menubar in the ReBar */
     band.cbSize = sizeof(REBARBANDINFO);
-    band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
+    band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE | RBBIM_IDEALSIZE | RBBIM_ID;
     band.fStyle = RBBS_GRIPPERALWAYS | RBBS_TOPALIGN | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
     band.hwndChild = hwndMenubar;
     dwBtnSize = (DWORD)SendMessage(band.hwndChild, TB_GETBUTTONSIZE, 0,0);
     band.cyChild = HIWORD(dwBtnSize);
-    band.cxMinChild = LOWORD(dwBtnSize);
+    band.cxMinChild = 0;
     band.cyMinChild = HIWORD(dwBtnSize);
     band.cyMaxChild = HIWORD(dwBtnSize);
     band.cyIntegral = HIWORD(dwBtnSize);
-    band.cx = 200;
+    band.cx = 240;
+    band.cxIdeal = szIdeal.cx;
+    band.wID = BAND_MENUBAR;
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
 
     /* Create yet another ReBar band with a dummy toolbar, so user can play by
@@ -85,6 +94,7 @@ CreateMenuBar(HWND hWnd)
     band.cyMaxChild = HIWORD(dwBtnSize);
     band.cyIntegral = HIWORD(dwBtnSize);
     band.cx = 16 * LOWORD(dwBtnSize);
+    band.wID = BAND_TOOLBAR;
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM) &band);
 }
 
@@ -113,6 +123,35 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
             }
             break;
+
+        case WM_NOTIFY:
+        {
+            /* Handle notifications for the ReBar control */
+            NMHDR* hdr = (NMHDR*) lParam;
+            if(hdr->hwndFrom == hwndRebar) {
+                switch(hdr->code) {
+                    /* Cancel drag'n'drop for the menubar's band, so it is
+                     * always on the top just below window caption. */
+                    case RBN_BEGINDRAG:
+                    {
+                        NMREBAR* nm = (NMREBAR*) hdr;
+                        if(nm->wID == BAND_MENUBAR)
+                            return -1;
+                        break;
+                    }
+
+                    /* Handle chevron for the menubar's band. */
+                    case RBN_CHEVRONPUSHED:
+                    {
+                        NMREBARCHEVRON* nm = (NMREBARCHEVRON*) hdr;
+                        if(nm->wID == BAND_MENUBAR)
+                            mcMenubar_HandleRebarChevronPushed(hwndMenubar, nm);
+                        break;
+                    }
+                }
+            }
+            break;
+        }
 
         case WM_SIZE:
             /* Ensure the ReBar is resized on top of the main window */
