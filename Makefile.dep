@@ -43,6 +43,10 @@ obj/html.o: src/html.c src/html.h include/mCtrl/html.h include/mCtrl/_defs.h \
 obj/husl.o: src/husl.c src/husl.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/_defs.h \
  include/mCtrl/_common.h
+obj/imgview.o: src/imgview.c src/imgview.h include/mCtrl/imgview.h \
+ include/mCtrl/_defs.h include/mCtrl/_common.h src/misc.h src/compat.h \
+ src/debug.h src/resource.h src/version.h src/gdix.h src/theme.h \
+ include/mCtrl/theme.h
 obj/mditab.o: src/mditab.c src/mditab.h include/mCtrl/mditab.h \
  include/mCtrl/_defs.h include/mCtrl/_common.h src/misc.h src/compat.h \
  src/debug.h src/resource.h src/version.h src/dsa.h src/theme.h \
@@ -56,8 +60,8 @@ obj/misc.o: src/misc.c src/misc.h src/compat.h src/debug.h src/resource.h \
  src/theme.h include/mCtrl/theme.h include/mctrl.h include/mCtrl/button.h \
  include/mCtrl/chart.h include/mCtrl/dialog.h include/mCtrl/expand.h \
  include/mCtrl/grid.h include/mCtrl/value.h include/mCtrl/table.h \
- include/mCtrl/html.h include/mCtrl/menubar.h include/mCtrl/mditab.h \
- include/mCtrl/version.h include/mCtrl/treelist.h
+ include/mCtrl/html.h include/mCtrl/imgview.h include/mCtrl/menubar.h \
+ include/mCtrl/mditab.h include/mCtrl/version.h include/mCtrl/treelist.h
 obj/module.o: src/module.c src/module.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/_defs.h \
  include/mCtrl/_common.h

@@ -66,10 +66,17 @@ gdix_Status (WINAPI* gdix_AddPathArc)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,g
 gdix_Status (WINAPI* gdix_AddPathLine)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 gdix_Status (WINAPI* gdix_AddPathRectangle)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 
+/* Image methods */
+gdix_Status (WINAPI* gdix_LoadImageFromFile)(const WCHAR*,gdix_Image**);
+gdix_Status (WINAPI* gdix_LoadImageFromStream)(IStream*,gdix_Image**);
+gdix_Status (WINAPI* gdix_DisposeImage)(gdix_Image*);
+gdix_Status (WINAPI* gdix_GetImageBounds)(gdix_Image*,gdix_RectF*,gdix_Unit*);
+
 /* Draw methods */
 gdix_Status (WINAPI* gdix_DrawLine)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 gdix_Status (WINAPI* gdix_DrawLines)(gdix_Graphics*,gdix_Pen*,const gdix_PointF*,INT);
 gdix_Status (WINAPI* gdix_DrawPie)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+gdix_Status (WINAPI* gdix_DrawImageRectRect)(gdix_Graphics*,gdix_Image*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Unit,const gdix_ImageAttributes*,void*,void*);
 
 /* Fill methods */
 gdix_Status (WINAPI* gdix_FillRectangle)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
@@ -197,9 +204,15 @@ gdix_init_module(void)
     GPA(SetStringFormatFlags, (gdix_StringFormat*,INT));
     GPA(SetStringFormatAlign, (gdix_StringFormat*,gdix_StringAlignment));
 
+    GPA(LoadImageFromFile,    (const WCHAR*,gdix_Image**));
+    GPA(LoadImageFromStream,  (IStream*,gdix_Image**));
+    GPA(DisposeImage,         (gdix_Image*));
+    GPA(GetImageBounds,       (gdix_Image*,gdix_RectF*,gdix_Unit*));
+
     GPA(DrawLine,             (gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
     GPA(DrawLines,            (gdix_Graphics*,gdix_Pen*,const gdix_PointF*,INT));
     GPA(DrawPie,              (gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
+    GPA(DrawImageRectRect,    (gdix_Graphics*,gdix_Image*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Unit,const gdix_ImageAttributes*,void*,void*));
 
     GPA(FillRectangle,        (gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real));
     GPA(FillPolygon,          (gdix_Graphics*,gdix_Brush*,const gdix_PointF*,INT,gdix_FillMode));

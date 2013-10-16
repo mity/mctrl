@@ -1,0 +1,35 @@
+/*
+ * This file contains example code for mCtrl library. Code of this example
+ * (but not the library itself) has been released into the public domain.
+ */
+
+#include <windows.h>
+#include <mCtrl/imgview.h>
+#include "ex_imgview.h"
+
+
+/* Manifest enabling XP themes */
+1 RT_MANIFEST res/manifest.xml
+
+
+/* PNG image */
+50 RCDATA res/lenna.bmp
+51 RCDATA res/lenna.png
+52 RCDATA res/lenna.jpg
+53 RCDATA res/lenna.gif
+
+
+/* Dialog box */
+IDD_DIALOG DIALOG 100, 100, 324, 219
+STYLE WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME
+EXSTYLE WS_EX_DLGMODALFRAME
+CAPTION "mCtrl Example: IMGVIEW Control"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    /* Several image view controls, each referring to different image format
+     * and different control style and size to show possible scaling options. */
+    CONTROL 50, -1, MC_WC_IMGVIEW, 0, 7, 7, 100, 100, WS_EX_STATICEDGE
+    CONTROL 51, -1, MC_WC_IMGVIEW, MC_IVS_REALSIZEIMAGE, 112, 7, 100, 100, WS_EX_STATICEDGE
+    CONTROL 52, -1, MC_WC_IMGVIEW, MC_IVS_REALSIZECONTROL, 7, 112, 205, 100, WS_EX_STATICEDGE
+    CONTROL 53, -1, MC_WC_IMGVIEW, MC_IVS_REALSIZECONTROL, 217, 7, 100, 205, WS_EX_STATICEDGE
+END

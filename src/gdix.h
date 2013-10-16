@@ -28,11 +28,11 @@
 
 /* Microsoft (and their SDK) does not support using GDI+ from C and C++ is
  * required. Their headers simply are incompatible with C. We load GDIPLUS.DLL
- * with LoadLibrary() so the C++ wrapper sugery in their headers cannot be
+ * with LoadLibrary() so the C++ wrapper sugary in their headers cannot be
  * used. Hence we do not include any GDI+ related header and instead use our
  * own types.
  *
- * Note we declare only types/constatnts we need to use in mCtrl.
+ * Note we declare only types and constants we need to use in mCtrl.
  */
 
 typedef void* gdix_Graphics;
@@ -42,6 +42,9 @@ typedef void* gdix_Pen;
 typedef void* gdix_Font;
 typedef void* gdix_StringFormat;
 typedef void* gdix_Path;
+typedef void* gdix_Image;
+typedef void* gdix_ImageAttributes;
+typedef gdix_Image gdix_Bitmap;
 
 typedef float gdix_Real;
 typedef DWORD gdix_ARGB;
@@ -138,10 +141,17 @@ extern gdix_Status (WINAPI* gdix_AddPathArc)(gdix_Path*,gdix_Real,gdix_Real,gdix
 extern gdix_Status (WINAPI* gdix_AddPathLine)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 extern gdix_Status (WINAPI* gdix_AddPathRectangle)(gdix_Path*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 
+/* Image methods */
+extern gdix_Status (WINAPI* gdix_LoadImageFromFile)(const WCHAR*,gdix_Image**);
+extern gdix_Status (WINAPI* gdix_LoadImageFromStream)(IStream*,gdix_Image**);
+extern gdix_Status (WINAPI* gdix_DisposeImage)(gdix_Image*);
+extern gdix_Status (WINAPI* gdix_GetImageBounds)(gdix_Image*,gdix_RectF*,gdix_Unit*);
+
 /* Draw methods */
 extern gdix_Status (WINAPI* gdix_DrawLine)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
 extern gdix_Status (WINAPI* gdix_DrawLines)(gdix_Graphics*,gdix_Pen*,const gdix_PointF*,INT);
 extern gdix_Status (WINAPI* gdix_DrawPie)(gdix_Graphics*,gdix_Pen*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real);
+extern gdix_Status (WINAPI* gdix_DrawImageRectRect)(gdix_Graphics*,gdix_Image*,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Real,gdix_Unit,const gdix_ImageAttributes*,void*,void*);
 
 /* Fill methods */
 extern gdix_Status (WINAPI* gdix_FillRectangle)(gdix_Graphics*,gdix_Brush*,gdix_Real,gdix_Real,gdix_Real,gdix_Real);

@@ -25,6 +25,7 @@ EXAMPLES = $(BINDIR)/ex_button.exe          \
            $(BINDIR)/ex_expand.exe          \
            $(BINDIR)/ex_grid.exe            \
            $(BINDIR)/ex_html.exe            \
+           $(BINDIR)/ex_imgview.exe         \
            $(BINDIR)/ex_mditab.exe          \
            $(BINDIR)/ex_menubar.exe         \
            $(BINDIR)/ex_treelist.exe        \
@@ -55,6 +56,7 @@ $(BINDIR)/ex_dllgetversion.exe: $(OBJDIR)/ex_dllgetversion.o $(OBJDIR)/ex_manife
 $(BINDIR)/ex_expand.exe: $(OBJDIR)/ex_expand.o $(OBJDIR)/ex_expand_rc.o
 $(BINDIR)/ex_grid.exe: $(OBJDIR)/ex_grid.o $(OBJDIR)/ex_grid_rc.o
 $(BINDIR)/ex_html.exe: $(OBJDIR)/ex_html.o $(OBJDIR)/ex_html_rc.o
+$(BINDIR)/ex_imgview.exe: $(OBJDIR)/ex_imgview.o $(OBJDIR)/ex_imgview_rc.o
 $(BINDIR)/ex_menubar.exe: $(OBJDIR)/ex_menubar.o $(OBJDIR)/ex_menubar_rc.o
 $(BINDIR)/ex_mditab.exe: $(OBJDIR)/ex_mditab.o $(OBJDIR)/ex_mditab_rc.o
 $(BINDIR)/ex_treelist.exe: $(OBJDIR)/ex_treelist.o $(OBJDIR)/ex_manifest_rc.o

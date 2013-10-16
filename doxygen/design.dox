@@ -124,10 +124,11 @@
  * In particular, all controls may use visual styles (@c UXTHEME.DLL) when
  * system supports it.
  *
- * Also note that chart control (@ref mCtrl/chart.h) requires GDI+
- * (@c GDIPLUS.DLL) for its functioning. This library is available standardly
- * on Windows XP and newer. Plain Windows 2000, without any service pack, are
- * not equipped with it. However Microsoft has released distributable version
- * of @c GDIPLUS.DLL: If your application relies on this control, and you want
- * to support Windows 2000, you should distribute the @c GDIPLUS.DLL with it.
+ * Also note that chart control (@ref mCtrl/chart.h) and image view control
+ * (@ref mCtrl/imgview.h) require GDI+ (@c GDIPLUS.DLL) for its functioning.
+ * This library is available standardly on Windows XP and newer. Plain Windows
+ * 2000, without any service pack, are not equipped with it. However Microsoft
+ * has released distributable version of @c GDIPLUS.DLL: If your application
+ * relies on this control, and you want to support Windows 2000, you should
+ * distribute the @c GDIPLUS.DLL with it.
  */

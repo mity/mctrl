@@ -149,6 +149,7 @@ DEFINE_MODULE(expand);
 DEFINE_MODULE(gdix);
 DEFINE_MODULE(grid);
 DEFINE_MODULE(html);
+DEFINE_MODULE(imgview);
 DEFINE_MODULE(mditab);
 DEFINE_MODULE(menubar);
 DEFINE_MODULE(theme);
@@ -171,6 +172,9 @@ DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 
 static module_t* mod_html_deps[] = { &mod_mc, &mod_theme, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
+
+static module_t* mod_imgview_deps[] = { &mod_mc, &mod_gdix, &mod_imgview };
+DEFINE_PUBLIC_IFACE(imgview, ImgView, mod_imgview_deps)
 
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
