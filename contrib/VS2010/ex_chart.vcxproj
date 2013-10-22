@@ -54,7 +54,6 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../../include</AdditionalIncludeDirectories>
-      <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -76,7 +75,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../../include</AdditionalIncludeDirectories>
-      <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <Link>
