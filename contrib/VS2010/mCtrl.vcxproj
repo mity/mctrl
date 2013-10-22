@@ -102,6 +102,7 @@
     <ClCompile Include="..\..\src\guid.c" />
     <ClCompile Include="..\..\src\html.c" />
     <ClCompile Include="..\..\src\husl.c" />
+    <ClCompile Include="..\..\src\imgview.c" />
     <ClCompile Include="..\..\src\mditab.c" />
     <ClCompile Include="..\..\src\menubar.c" />
     <ClCompile Include="..\..\src\misc.c" />
@@ -118,6 +119,7 @@
     <ClInclude Include="..\..\include\mCtrl\dialog.h" />
     <ClInclude Include="..\..\include\mCtrl\grid.h" />
     <ClInclude Include="..\..\include\mCtrl\html.h" />
+    <ClInclude Include="..\..\include\mCtrl\imgview.h" />
     <ClInclude Include="..\..\include\mCtrl\mditab.h" />
     <ClInclude Include="..\..\include\mCtrl\menubar.h" />
     <ClInclude Include="..\..\include\mCtrl\table.h" />
@@ -137,6 +139,7 @@
     <ClInclude Include="..\..\src\grid.h" />
     <ClInclude Include="..\..\src\html.h" />
     <ClInclude Include="..\..\src\husl.h" />
+    <ClInclude Include="..\..\src\imgview.h" />
     <ClInclude Include="..\..\src\mditab.h" />
     <ClInclude Include="..\..\src\menubar.h" />
     <ClInclude Include="..\..\src\misc.h" />
