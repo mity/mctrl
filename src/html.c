@@ -1591,21 +1591,27 @@ html_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    /* Load OLEAUT32.DLL */
-    if(MC_ERR(NULL == (oleaut32_dll = LoadLibrary(_T("OLEAUT32.DLL")))  ||
-              NULL == (html_SysAllocString = (BSTR (WINAPI*)(const OLECHAR*)) GetProcAddress(oleaut32_dll, "SysAllocString"))  ||
-              NULL == (html_SysFreeString = (INT (WINAPI*)(BSTR)) GetProcAddress(oleaut32_dll, "SysFreeString")))) {
-        MC_TRACE("html_init_module: LoadLibrary(OLEAUT32.DLL) failed.");
+    /* Load OLEAUT32.DLL and OLE32.DLL */
+    oleaut32_dll = LoadLibrary(_T("OLEAUT32.DLL"));
+    if(MC_ERR(oleaut32_dll == NULL)) {
+        MC_TRACE_ERR("html_init_module: LoadLibrary(OLEAUT32.DLL) failed.");
         goto err_oleaut32;
     }
-
-    /* Load OLE32.DLL */
-    if(MC_ERR(NULL == (ole32_dll = LoadLibrary(_T("OLE32.DLL")))  ||
-              NULL == (html_OleInitialize = (HRESULT (WINAPI*)(void*)) GetProcAddress(ole32_dll, "OleInitialize"))  ||
-              NULL == (html_OleUninitialize = (void (WINAPI*)(void)) GetProcAddress(ole32_dll, "OleUninitialize"))  ||
-              NULL == (html_CoCreateInstance = (HRESULT (WINAPI*)(REFCLSID,IUnknown*,DWORD,REFIID,void**)) GetProcAddress(ole32_dll, "CoCreateInstance")))) {
-        MC_TRACE("html_init_module: LoadLibrary(OLE32.DLL) failed.");
+    ole32_dll = LoadLibrary(_T("OLE32.DLL"));
+    if(MC_ERR(oleaut32_dll == NULL)) {
+        MC_TRACE_ERR("html_init_module: LoadLibrary(OLE32.DLL) failed.");
         goto err_ole32;
+    }
+    html_SysAllocString = (BSTR (WINAPI*)(const OLECHAR*)) GetProcAddress(oleaut32_dll, "SysAllocString");
+    html_SysFreeString = (INT (WINAPI*)(BSTR)) GetProcAddress(oleaut32_dll, "SysFreeString");
+    html_OleInitialize = (HRESULT (WINAPI*)(void*)) GetProcAddress(ole32_dll, "OleInitialize");
+    html_OleUninitialize = (void (WINAPI*)(void)) GetProcAddress(ole32_dll, "OleUninitialize");
+    html_CoCreateInstance = (HRESULT (WINAPI*)(REFCLSID,IUnknown*,DWORD,REFIID,void**)) GetProcAddress(ole32_dll, "CoCreateInstance");
+    if(MC_ERR(html_SysAllocString == NULL  ||  html_SysFreeString == NULL  ||
+              html_OleInitialize == NULL  ||  html_OleUninitialize == NULL  ||
+              html_CoCreateInstance == NULL)) {
+        MC_TRACE_ERR("html_init_module: GetProcAddress() failed.");
+        goto err_procaddr;
     }
 
     /* Register window class */
@@ -1624,6 +1630,7 @@ html_init_module(void)
 
     /* Error path unwinding */
 err_register:
+err_procaddr:
     FreeLibrary(ole32_dll);
 err_ole32:
     FreeLibrary(oleaut32_dll);
