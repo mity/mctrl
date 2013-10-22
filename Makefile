@@ -83,9 +83,11 @@ TARGET_LIB = $(LIBDIR)/lib$(basename $(BASENAME)).a
 # The main targets #
 ####################
 
+.DEFAULT_GOAL := mctrl
+
 .PHONY: all examples doc clean distclean mctrl
 
-all: mctrl
+all: mctrl examples doc
 
 mctrl: $(TARGET) $(TARGET_LIB)
 
