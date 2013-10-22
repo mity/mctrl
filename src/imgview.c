@@ -236,7 +236,7 @@ imgview_stream_Clone(IStream* self, IStream** other)
         return STG_E_INSUFFICIENTMEMORY;
 
     copy->pos = s->pos;
-    (*other)->lpVtbl = self->lpVtbl;
+    *other = &copy->stream;
     return S_OK;
 }
 
