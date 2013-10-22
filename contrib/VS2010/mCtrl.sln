@@ -53,6 +53,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_treelist2", "ex_treelist
 		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ex_imgview", "ex_imgview.vcxproj", "{548E1938-D069-47A8-9647-C52CA606D95D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{54608990-7E98-4EBC-8E31-909BD095C16F} = {54608990-7E98-4EBC-8E31-909BD095C16F}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -103,6 +108,10 @@ Global
 		{95379D6B-F627-476C-A31E-6920F40D03B5}.Debug|Win32.Build.0 = Debug|Win32
 		{95379D6B-F627-476C-A31E-6920F40D03B5}.Release|Win32.ActiveCfg = Release|Win32
 		{95379D6B-F627-476C-A31E-6920F40D03B5}.Release|Win32.Build.0 = Release|Win32
+		{548E1938-D069-47A8-9647-C52CA606D95D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{548E1938-D069-47A8-9647-C52CA606D95D}.Debug|Win32.Build.0 = Debug|Win32
+		{548E1938-D069-47A8-9647-C52CA606D95D}.Release|Win32.ActiveCfg = Release|Win32
+		{548E1938-D069-47A8-9647-C52CA606D95D}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
