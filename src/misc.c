@@ -25,6 +25,7 @@
  *** Globals ***
  ***************/
 
+HINSTANCE mc_instance;
 DWORD mc_win_version;
 DWORD mc_comctl32_version;
 
@@ -627,6 +628,7 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
             MC_TRACE("DllMain(DLL_PROCESS_ATTACH): MCTRL.DLL version %hs (%d bit)",
                      MC_VERSION_STR, 8 * sizeof(void*));
 
+            mc_instance = instance;
             debug_init();
             DisableThreadLibraryCalls(instance);
             module_init();
