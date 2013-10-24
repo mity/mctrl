@@ -30,7 +30,7 @@
 
 
 /* Uncomment this to have more verbose traces from this module. */
-#define TREELIST_DEBUG     0
+/* #define TREELIST_DEBUG     1 */
 
 #ifdef TREELIST_DEBUG
     #define TREELIST_TRACE       MC_TRACE
@@ -156,6 +156,8 @@ item_prev_displayed(treelist_item_t* item)
     return item->parent;
 }
 
+/* This function isn't needed right now, but we'll keep it around... */
+#if 0
 static BOOL
 item_is_ancestor(treelist_item_t* ancestor, treelist_item_t* item)
 {
@@ -166,6 +168,7 @@ item_is_ancestor(treelist_item_t* ancestor, treelist_item_t* item)
     }
     return FALSE;
 }
+#endif
 
 static BOOL
 item_is_displayed(treelist_item_t* item)
@@ -2367,8 +2370,8 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
 
         ScrollWindowEx(tl->win, mc_width(&header_item_rect), 0, &rect, &rect,
                     NULL, NULL, SW_ERASE | SW_INVALIDATE);
-        //if(tl->selected_item != NULL  &&  (tl->style & MC_TLS_FULLROWSELECT))
-        //    treelist_invalidate_item(tl, tl->selected_item, -1, 0);
+        if(tl->style & MC_TLS_FULLROWSELECT)
+            treelist_invalidate_selected(tl, -1, 0);
     }
 
     return col_ix;
@@ -2519,8 +2522,8 @@ treelist_delete_column(treelist_t* tl, int col_ix)
 
         ScrollWindowEx(tl->win, -mc_width(&header_item_rect), 0, &rect, &rect,
                     NULL, NULL, SW_ERASE | SW_INVALIDATE);
-        //if(tl->selected_item != NULL  &&  (tl->style & MC_TLS_FULLROWSELECT))
-        //    treelist_invalidate_item(tl, tl->selected_item, -1, 0);
+        if(tl->style & MC_TLS_FULLROWSELECT)
+            treelist_invalidate_selected(tl, -1, 0);
     }
 
     return TRUE;
@@ -2941,17 +2944,6 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
     is_displayed = item_is_displayed(item);
     y = (is_displayed ? treelist_get_item_y(tl, item, TRUE) : -1);
 
-    /* If the deleted subtree contains selection, we must choose another
-     * selection. */
-//    if(item_is_ancestor(item, tl->selected_item)) {
-//        if(item->sibling_next)
-//            treelist_do_select(tl, item->sibling_next);
-//        else if(item->sibling_prev)
-//            treelist_do_select(tl, item->sibling_prev);
-//        else
-//            treelist_do_select(tl, parent);
-//    }
-
     /* This should be very last notification about the item and its subtree. */
     treelist_delete_notify(tl, item, item);
 
@@ -3036,10 +3028,6 @@ treelist_delete_children(treelist_t* tl, treelist_item_t* item)
     /* Remember some info about the item. */
     is_displayed = item_is_displayed(item->child_head);
     y = (is_displayed ? treelist_get_item_y(tl, item->child_head, TRUE) : -1);
-
-    /* If the deleted subtree contains selection, we must change selection */
-    //if(item_is_ancestor(item, tl->selected_item)  &&  item != tl->selected_item)
-    //    treelist_do_select(tl, item);
 
     /* This should be very last notification about the item and its subtree. */
     treelist_delete_notify(tl, item->child_head, item);
@@ -3259,8 +3247,8 @@ treelist_header_notify(treelist_t* tl, NMHEADER* info)
                     ScrollWindowEx(tl->win, new_width - old_width, 0, &rect, &rect,
                                    NULL, NULL, SW_ERASE | SW_INVALIDATE);
                     treelist_invalidate_column(tl, info->iItem);
-                    //if(tl->selected_item != NULL  &&  (tl->style & MC_TLS_FULLROWSELECT))
-                    //    treelist_invalidate_item(tl, tl->selected_item, -1, 0);
+                    if(tl->style & MC_TLS_FULLROWSELECT)
+                        treelist_invalidate_selected(tl, -1, 0);
                 }
             }
             return FALSE;
