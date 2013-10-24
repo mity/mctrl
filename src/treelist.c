@@ -1794,7 +1794,7 @@ treelist_get_next_item(treelist_t* tl, int relation, treelist_item_t* item)
     }
 
     if(MC_ERR(item == NULL)) {
-        MC_TRACE("treelist_expand_item: hItem == TVI_ROOT not allowed "
+        MC_TRACE("treelist_get_next_item: hItem == TVI_ROOT not allowed "
                  "for specified relation %d", relation);
         SetLastError(ERROR_INVALID_PARAMETER);
         return NULL;
@@ -1808,7 +1808,7 @@ treelist_get_next_item(treelist_t* tl, int relation, treelist_item_t* item)
         case MC_TLGN_PREVIOUSVISIBLE:  return item_prev_displayed(item);
     }
 
-    MC_TRACE("treelist_expand_item: Unknown relation %d", relation);
+    MC_TRACE("treelist_get_next_item: Unknown relation %d", relation);
     SetLastError(ERROR_INVALID_PARAMETER);
     return NULL;
 }
