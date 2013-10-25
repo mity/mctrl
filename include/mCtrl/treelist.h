@@ -1123,6 +1123,15 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  */
 #define MC_TLM_GETIMAGELIST          (MC_TLM_FIRST + 32)
 
+/**
+ * @brief Returns the number of currently selected items.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c int) The number of items selected.
+ */
+#define MC_TLM_GETSELECTEDCOUNT     (MC_TLM_FIRST + 33)
+
 /*@}*/
 
 
