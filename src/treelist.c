@@ -104,19 +104,6 @@ item_next(treelist_item_t* item)
     return item_next_ex(item, NULL);
 }
 
-static treelist_item_t*
-item_next_selected(treelist_item_t* item)
-{
-    if(item == NULL)
-        return item;
-
-    do {
-        item = item_next(item);
-    } while(item != NULL && !(item->state & MC_TLIS_SELECTED));
-
-    return item;
-}
-
 /* Iterator over items displayed (i.e. not hidden by collapsed parent) below
  * the specified 'item', but does not step over the parent 'stopper' */
 static treelist_item_t*
@@ -194,7 +181,8 @@ struct treelist_tag {
     treelist_item_t* root_head;
     treelist_item_t* root_tail;
     treelist_item_t* scrolled_item;   /* can be NULL if not known */
-    treelist_item_t* last_selected;
+    treelist_item_t* selected_from;
+    treelist_item_t* selected_last;
     treelist_item_t* hot_item;
     treelist_item_t* hotbutton_item;
     int scrolled_level;               /* level of the scrolled_item */
@@ -212,6 +200,7 @@ struct treelist_tag {
     WORD scroll_y;                    /* in rows */
     int scroll_x;                     /* in pixels */
     int scroll_x_max;
+    unsigned int selected_count;
 };
 
 
@@ -381,14 +370,36 @@ treelist_item_has_children(treelist_t* tl, treelist_item_t* item)
 static treelist_item_t*
 treelist_first_selected(treelist_t* tl)
 {
-treelist_item_t *item = tl->root_head;
+treelist_item_t *walk;
+treelist_item_t *ret;
 
-    while(item != NULL) {
-        if(item->state & MC_TLIS_SELECTED)
-            break;
+    if(tl->selected_count == 0)
+        return NULL;
+        
+    if(tl->selected_count == 1)
+        return tl->selected_last;
+    
+    ret = NULL;
+    walk = tl->selected_last;
+    do {
+        if(walk->state & MC_TLIS_SELECTED)
+            ret = walk;
+        walk = walk->sibling_prev;
+    } while(walk != NULL);
+    
+    return ret;
+}
 
-        item = item_next_selected(item);
-    }
+static treelist_item_t*
+treelist_next_selected(treelist_t* tl, treelist_item_t* item) 
+{
+    if(tl->selected_count <= 1)
+        return NULL;    /* treelist_first_selected() already returned all selected items. */
+
+    do {
+        item = item->sibling_next;
+    } while(item != NULL && !(item->state & MC_TLIS_SELECTED));
+    
     return item;
 }
 
@@ -1501,7 +1512,7 @@ treelist_invalidate_selected(treelist_t* tl, int col_ix, int scroll)
 
     while(item != NULL) {
         treelist_invalidate_item(tl, item, col_ix, scroll);
-        item = item_next_selected(item);
+        item = treelist_next_selected(tl, item);
     }
 }
 
@@ -1576,14 +1587,16 @@ treelist_clear_select(treelist_t* tl)
 {
     treelist_item_t* item;
 
-    item = tl->root_head;
+    item = treelist_first_selected(tl);
     while(item != NULL) {
         item->state &= ~MC_TLIS_SELECTED;
         if(!tl->no_redraw)
             treelist_invalidate_item(tl, item, (tl->style & MC_TLS_FULLROWSELECT) ? -1 : 0, 0);
 
-        item = item_next_selected(item);
+        item = treelist_next_selected(tl, item);
     }
+    
+    tl->selected_count = 0;
 }
 
 static void
@@ -1598,6 +1611,7 @@ treelist_do_unselect_ex(treelist_t* tl, treelist_item_t* item, int modifier)
             return;
         case TREELIST_SELECT_ANOTHER:
             item->state &= ~MC_TLIS_SELECTED;
+            tl->selected_count--;
             break;
         case TREELIST_SELECT_THROUGH:
             break;
@@ -1607,21 +1621,6 @@ treelist_do_unselect_ex(treelist_t* tl, treelist_item_t* item, int modifier)
         treelist_invalidate_item(tl, item, (tl->style & MC_TLS_FULLROWSELECT) ? -1 : 0, 0);
 }
 
-static int
-treelist_count_selected(treelist_t* tl)
-{
-    int ret = 0;
-    treelist_item_t* item;
-
-    item = treelist_first_selected(tl);
-    while(item != NULL) {
-        ret++;
-        item = item_next_selected(item);
-    }
-
-    return ret;
-}
-
 static void
 treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
 {
@@ -1629,18 +1628,17 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
     treelist_item_t* old_sel = NULL;
     treelist_item_t* intermediate_sel = NULL;
     int col_ix;
-    int range_level;
     MC_NMTREELIST nm = { {0}, 0 };
 
     /* If only one is selected, use it as the old selection */
-    if(treelist_count_selected(tl) == 1)
-        old_sel = treelist_first_selected(tl);
+    if(tl->selected_count == 1)
+        old_sel = tl->selected_last;
     /* Otherwise, use the last selected item */
-    else if(tl->last_selected != NULL)
-        old_sel = tl->last_selected;
+    else if(tl->selected_last != NULL)
+        old_sel = tl->selected_last;
 
     if(!(tl->style & MC_TLS_MULTISEL)) {
-        tl->last_selected = NULL;
+        treelist_do_unselect_ex(tl, tl->selected_last, TREELIST_SELECT_ONE);
 
     } else if((modifier == TREELIST_SELECT_THROUGH ||
                modifier == TREELIST_SELECT_ONE)) {
@@ -1693,23 +1691,25 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
      * as the last selected item.  If not, clear all selections and
      * treat this operation as selecting just one new item.
      */
-    if(item != NULL && tl->last_selected != NULL &&
-       tl->last_selected->parent != item->parent) {
+    if(item != NULL && tl->selected_last != NULL &&
+       tl->selected_last->parent != item->parent) {
 
         modifier = TREELIST_SELECT_ONE;
         treelist_clear_select(tl);
-        tl->last_selected = NULL;
     }
 
     /* Range select */
-    if(item != NULL && (modifier & TREELIST_SELECT_THROUGH) && tl->last_selected != NULL) {
+    if(item != NULL && (modifier & TREELIST_SELECT_THROUGH) && tl->selected_from != NULL) {
 
         /* Loop through to find either the last selected item or the
          * currently selected item, whichever is first
          */
-        intermediate_sel = tl->root_head;
-        while(intermediate_sel != item && intermediate_sel != tl->last_selected) {
-            intermediate_sel = item_next_displayed(intermediate_sel, &range_level);
+        intermediate_sel = item->parent->child_head;
+        while(intermediate_sel != item && 
+              intermediate_sel != NULL &&
+              intermediate_sel != tl->selected_from) 
+        {
+            intermediate_sel = intermediate_sel->sibling_next;
         }
 
         if(MC_ERR(intermediate_sel == NULL)) {
@@ -1720,26 +1720,29 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
         /* If the range is one (last selected equals our new selection),
          * just set it to selected instantly
          */
-        if(item == tl->last_selected)
+        if(item == tl->selected_from) {
             item->state |= MC_TLIS_SELECTED;
+            tl->selected_count = 1;
 
         /* Otherwise, select every item until we encounter either the current
          * item or the last selected item.
          */
-        else {
+        } else {
 
             do {
                 intermediate_sel->state |= MC_TLIS_SELECTED;
+                tl->selected_count += 1;
                 if(!tl->no_redraw)
                     treelist_invalidate_item(tl, intermediate_sel, -1, 0);
                 intermediate_sel = intermediate_sel->sibling_next;
             } while(intermediate_sel != NULL &&
                     intermediate_sel != item &&
-                    intermediate_sel != tl->last_selected);
+                    intermediate_sel != tl->selected_from);
 
             /* And select the last one... */
             if(intermediate_sel != NULL) {
                 intermediate_sel->state |= MC_TLIS_SELECTED;
+                tl->selected_count += 1;
                 if(!tl->no_redraw)
                     treelist_invalidate_item(tl, intermediate_sel, -1, 0);
             }
@@ -1748,7 +1751,10 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
     /* Single select or additional select */
     } else if(item) {
         item->state |= MC_TLIS_SELECTED;
-
+        
+        tl->selected_count++;
+        tl->selected_from = item;
+        
         if(do_single_expand) {
             treelist_item_t* it;
             if(treelist_item_has_children(tl, item)  &&  !(item->state & MC_TLIS_EXPANDED))
@@ -1764,7 +1770,7 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
     }
 
     /* Store the item as the last selected */
-    tl->last_selected = item;
+    tl->selected_last = item;
 
     /* Send MC_TLN_SELCHANGED */
     nm.hdr.hwndFrom = tl->win;
@@ -1962,7 +1968,7 @@ treelist_get_next_item(treelist_t* tl, int relation, treelist_item_t* item)
             if(item == NULL)
                 return treelist_first_selected(tl);
             else
-                return item_next_selected(item);
+                return treelist_next_selected(tl, item);
         case MC_TLGN_ROOT:
             return tl->root_head;
         case MC_TLGN_CHILD:
@@ -2128,13 +2134,15 @@ treelist_left_button(treelist_t* tl, int x, int y, BOOL dblclick, WPARAM wp)
                     treelist_do_select_ex(tl, item, select_modifier);
                 }
 
-            } else
+            } else if(item->state & MC_TLIS_SELECTED)
+                treelist_do_unselect_ex(tl, item, TREELIST_SELECT_ONE);
+            else
                 treelist_do_select(tl, item);
 
             /* Even if we Control-unselect this item, it still
              * acts as our last selection, an expected behavior.
              */
-            tl->last_selected = item;
+            tl->selected_last = item;
         }
     } else if(info.flags & MC_TLHT_ONITEMBUTTON) {
         if(item->state & MC_TLIS_EXPANDED)
@@ -2169,7 +2177,23 @@ treelist_right_button(treelist_t* tl, int x, int y, BOOL dblclick, WPARAM wp)
 static void
 treelist_key_down(treelist_t* tl, int key)
 {
-    if(GetKeyState(VK_CONTROL) & 0x8000) {
+
+    if(GetKeyState(VK_SHIFT) & 0x8000) {
+        if(tl->selected_last != NULL && (tl->style & MC_TLS_MULTISEL)) {
+            int select_modifier = TREELIST_SELECT_THROUGH;
+            if(GetKeyState(VK_CONTROL) & 0x8000) 
+                select_modifier |= TREELIST_SELECT_ANOTHER;
+                
+            switch(key) {
+                case VK_UP:     
+                    treelist_do_select_ex(tl, tl->selected_last->sibling_prev, select_modifier);
+                    break;
+                case VK_DOWN:   
+                    treelist_do_select_ex(tl, tl->selected_last->sibling_next, select_modifier);
+                    break;
+            }
+        }
+    } else if(GetKeyState(VK_CONTROL) & 0x8000) {
         switch(key) {
             case VK_PRIOR:  treelist_vscroll(tl, SB_PAGEUP); break;
             case VK_NEXT:   treelist_vscroll(tl, SB_PAGEDOWN); break;
@@ -2185,7 +2209,7 @@ treelist_key_down(treelist_t* tl, int key)
         treelist_item_t* sel;
         int ignored;
 
-        old_sel = tl->last_selected;
+        old_sel = tl->selected_last;
         sel = old_sel;
 
         switch(key) {
@@ -2935,8 +2959,10 @@ treelist_delete_item_helper(treelist_t* tl, treelist_item_t* item, BOOL displaye
         if(item->text != NULL  &&  item->text != MC_LPSTR_TEXTCALLBACK)
             free(item->text);
 
-        if(item == tl->last_selected)
-            tl->last_selected = NULL;
+        if(item == tl->selected_last)
+            tl->selected_last = NULL;
+        if(item == tl->selected_from)
+            tl->selected_from = NULL;
 
         free(item);
 
@@ -2972,7 +2998,9 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
             tl->root_head = NULL;
             tl->root_tail = NULL;
             tl->displayed_items = 0;
-            tl->last_selected = NULL;
+            tl->selected_last = NULL;
+            tl->selected_from = NULL;
+            tl->selected_count = 0;
             treelist_setup_scrollbars(tl);
             if(!tl->no_redraw)
                 InvalidateRect(tl->win, NULL, TRUE);
@@ -3045,7 +3073,7 @@ treelist_delete_item(treelist_t* tl, treelist_item_t* item)
     }
 
     /* If we now have no selected items, select its old parent */
-    if(treelist_count_selected(tl) == 0)
+    if(tl->selected_count == 0)
         treelist_do_select(tl, parent);
 
     /* Parent may need to repaint column 0 without expand button. */
@@ -3343,7 +3371,9 @@ treelist_nccreate(HWND win, CREATESTRUCT* cs)
     tl->item_height = treelist_natural_item_height(tl);
     tl->item_indent = ITEM_INDENT_MIN;
 
-    tl->last_selected = NULL;
+    tl->selected_from = NULL;
+    tl->selected_last = NULL;
+    tl->selected_count = 0;
 
     treelist_notify_format(tl);
 
@@ -3540,7 +3570,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (LRESULT) tl->imglist_normal;
 
         case MC_TLM_GETSELECTEDCOUNT:
-            return (LRESULT) treelist_count_selected(tl);
+            return (LRESULT)tl->selected_count;
 
         case WM_NOTIFY:
             if(((NMHDR*)lp)->hwndFrom == tl->header_win)
