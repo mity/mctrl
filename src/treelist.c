@@ -381,11 +381,11 @@ treelist_item_t *ret;
     
     ret = NULL;
     walk = tl->selected_last;
-    do {
+    while(walk != NULL) {
         if(walk->state & MC_TLIS_SELECTED)
             ret = walk;
         walk = walk->sibling_prev;
-    } while(walk != NULL);
+    }
     
     return ret;
 }
@@ -1637,7 +1637,7 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
     else if(tl->selected_last != NULL)
         old_sel = tl->selected_last;
 
-    if(!(tl->style & MC_TLS_MULTISEL)) {
+    if(!(tl->style & MC_TLS_MULTISELECT)) {
         treelist_do_unselect_ex(tl, tl->selected_last, TREELIST_SELECT_ONE);
 
     } else if((modifier == TREELIST_SELECT_THROUGH ||
@@ -2120,7 +2120,7 @@ treelist_left_button(treelist_t* tl, int x, int y, BOOL dblclick, WPARAM wp)
             else
                 treelist_do_expand(tl, item, TRUE);
         } else {
-            if(tl->style & MC_TLS_MULTISEL) {
+            if(tl->style & MC_TLS_MULTISELECT) {
                 select_modifier = TREELIST_SELECT_ONE;
 
                 if(wp & MK_SHIFT)
@@ -2179,17 +2179,19 @@ treelist_key_down(treelist_t* tl, int key)
 {
 
     if(GetKeyState(VK_SHIFT) & 0x8000) {
-        if(tl->selected_last != NULL && (tl->style & MC_TLS_MULTISEL)) {
+        if(tl->selected_last != NULL && (tl->style & MC_TLS_MULTISELECT)) {
             int select_modifier = TREELIST_SELECT_THROUGH;
             if(GetKeyState(VK_CONTROL) & 0x8000) 
                 select_modifier |= TREELIST_SELECT_ANOTHER;
                 
             switch(key) {
-                case VK_UP:     
-                    treelist_do_select_ex(tl, tl->selected_last->sibling_prev, select_modifier);
+                case VK_UP:
+                    if(tl->selected_last->sibling_prev != NULL)
+                        treelist_do_select_ex(tl, tl->selected_last->sibling_prev, select_modifier);
                     break;
-                case VK_DOWN:   
-                    treelist_do_select_ex(tl, tl->selected_last->sibling_next, select_modifier);
+                case VK_DOWN:
+                    if(tl->selected_last->sibling_next != NULL)
+                        treelist_do_select_ex(tl, tl->selected_last->sibling_next, select_modifier);
                     break;
             }
         }
@@ -2959,10 +2961,13 @@ treelist_delete_item_helper(treelist_t* tl, treelist_item_t* item, BOOL displaye
         if(item->text != NULL  &&  item->text != MC_LPSTR_TEXTCALLBACK)
             free(item->text);
 
+        /* Update any selection information now */
         if(item == tl->selected_last)
             tl->selected_last = NULL;
         if(item == tl->selected_from)
             tl->selected_from = NULL;
+        if(item->state & MC_TLIS_SELECTED)
+            tl->selected_count--;
 
         free(item);
 

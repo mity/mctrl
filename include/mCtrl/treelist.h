@@ -233,7 +233,8 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLS_SINGLEEXPAND         0x0400
 /** @brief Allows mutlitple selections
  *  @details If set, the control supports multiple selections */
- #define MC_TLS_MULTISEL            0x0800
+ #define MC_TLS_MULTISELECT         0x0800
+ 
 #if 0 /* TODO */
 #define MC_TLS_NOTOOLTIPS           0x1000
 #define MC_TLS_CHECKBOXES           0x2000
