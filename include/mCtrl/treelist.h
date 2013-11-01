@@ -231,11 +231,15 @@ void MCTRL_API mcTreeList_Terminate(void);
 /** @brief Selected item is automatically expanded, deselected item is
  *  automatically collapsed (unless user holds <tt>CTRL</tt> key). */
 #define MC_TLS_SINGLEEXPAND         0x0400
+/** @brief Allows mutlitple selections
+ *  @details If set, the control supports multiple selections */
+ #define MC_TLS_MULTISELECT         0x0800
+ 
 #if 0 /* TODO */
-#define MC_TLS_NOTOOLTIPS           0x0800
-#define MC_TLS_CHECKBOXES           0x1000
-#define MC_TLS_EDITLABELS           0x2000
-#define MC_TLS_EDITSUBLABELS        0x4000
+#define MC_TLS_NOTOOLTIPS           0x1000
+#define MC_TLS_CHECKBOXES           0x2000
+#define MC_TLS_EDITLABELS           0x4000
+#define MC_TLS_EDITSUBLABELS        0x8000
 #endif
 
 /*@}*/
@@ -1119,6 +1123,15 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @return (@c HIMAGELIST) Image list handle associated with the control.
  */
 #define MC_TLM_GETIMAGELIST          (MC_TLM_FIRST + 32)
+
+/**
+ * @brief Returns the number of currently selected items.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c int) The number of items selected.
+ */
+#define MC_TLM_GETSELECTEDCOUNT     (MC_TLM_FIRST + 33)
 
 /*@}*/
 
