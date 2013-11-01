@@ -375,10 +375,10 @@ treelist_item_t *ret;
 
     if(tl->selected_count == 0)
         return NULL;
-        
+
     if(tl->selected_count == 1)
         return tl->selected_last;
-    
+
     ret = NULL;
     walk = tl->selected_last;
     while(walk != NULL) {
@@ -386,12 +386,12 @@ treelist_item_t *ret;
             ret = walk;
         walk = walk->sibling_prev;
     }
-    
+
     return ret;
 }
 
 static treelist_item_t*
-treelist_next_selected(treelist_t* tl, treelist_item_t* item) 
+treelist_next_selected(treelist_t* tl, treelist_item_t* item)
 {
     if(tl->selected_count <= 1)
         return NULL;    /* treelist_first_selected() already returned all selected items. */
@@ -399,7 +399,7 @@ treelist_next_selected(treelist_t* tl, treelist_item_t* item)
     do {
         item = item->sibling_next;
     } while(item != NULL && !(item->state & MC_TLIS_SELECTED));
-    
+
     return item;
 }
 
@@ -1595,7 +1595,7 @@ treelist_clear_select(treelist_t* tl)
 
         item = treelist_next_selected(tl, item);
     }
-    
+
     tl->selected_count = 0;
 }
 
@@ -1705,9 +1705,9 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
          * currently selected item, whichever is first
          */
         intermediate_sel = item->parent->child_head;
-        while(intermediate_sel != item && 
+        while(intermediate_sel != item &&
               intermediate_sel != NULL &&
-              intermediate_sel != tl->selected_from) 
+              intermediate_sel != tl->selected_from)
         {
             intermediate_sel = intermediate_sel->sibling_next;
         }
@@ -1751,10 +1751,10 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
     /* Single select or additional select */
     } else if(item) {
         item->state |= MC_TLIS_SELECTED;
-        
+
         tl->selected_count++;
         tl->selected_from = item;
-        
+
         if(do_single_expand) {
             treelist_item_t* it;
             if(treelist_item_has_children(tl, item)  &&  !(item->state & MC_TLIS_EXPANDED))
@@ -2181,9 +2181,9 @@ treelist_key_down(treelist_t* tl, int key)
     if(GetKeyState(VK_SHIFT) & 0x8000) {
         if(tl->selected_last != NULL && (tl->style & MC_TLS_MULTISELECT)) {
             int select_modifier = TREELIST_SELECT_THROUGH;
-            if(GetKeyState(VK_CONTROL) & 0x8000) 
+            if(GetKeyState(VK_CONTROL) & 0x8000)
                 select_modifier |= TREELIST_SELECT_ANOTHER;
-                
+
             switch(key) {
                 case VK_UP:
                     if(tl->selected_last->sibling_prev != NULL)
@@ -2216,11 +2216,13 @@ treelist_key_down(treelist_t* tl, int key)
 
         switch(key) {
             case VK_UP:
-                sel = item_prev_displayed(sel);
+                if(sel != NULL)
+                    sel = item_prev_displayed(sel);
                 break;
 
             case VK_DOWN:
-                sel = item_next_displayed(sel, &ignored);
+                if(sel != NULL)
+                    sel = item_next_displayed(sel, &ignored);
                 break;
 
             case VK_HOME:
@@ -2232,18 +2234,22 @@ treelist_key_down(treelist_t* tl, int key)
                 break;
 
             case VK_LEFT:
-                if(sel->state & MC_TLIS_EXPANDED)
-                    treelist_do_collapse(tl, sel, FALSE);
-                else
-                    sel = sel->parent;
+                if(sel != NULL) {
+                    if(sel->state & MC_TLIS_EXPANDED)
+                        treelist_do_collapse(tl, sel, FALSE);
+                    else
+                        sel = sel->parent;
+                }
                 break;
 
             case VK_RIGHT:
-                if(treelist_item_has_children(tl, sel)) {
-                    if(!(sel->state & MC_TLIS_EXPANDED))
-                        treelist_do_expand(tl, sel, FALSE);
-                    else
-                        sel = sel->child_head;
+                if(sel != NULL) {
+                    if(treelist_item_has_children(tl, sel)) {
+                        if(!(sel->state & MC_TLIS_EXPANDED))
+                            treelist_do_expand(tl, sel, FALSE);
+                        else
+                            sel = sel->child_head;
+                    }
                 }
                 break;
 
@@ -2252,12 +2258,12 @@ treelist_key_down(treelist_t* tl, int key)
                 break;
 
             case VK_ADD:
-                if(!(sel->state & MC_TLIS_EXPANDED)  &&  treelist_item_has_children(tl, sel))
+                if(sel != NULL && !(sel->state & MC_TLIS_EXPANDED)  &&  treelist_item_has_children(tl, sel))
                     treelist_do_expand(tl, sel, FALSE);
                 break;
 
             case VK_SUBTRACT:
-                if((sel->state & MC_TLIS_EXPANDED))
+                if(sel != NULL && (sel->state & MC_TLIS_EXPANDED))
                     treelist_do_collapse(tl, sel, FALSE);
                 break;
 
@@ -2269,7 +2275,7 @@ treelist_key_down(treelist_t* tl, int key)
                 n = treelist_items_per_page(tl);
                 if(n < 1)
                     n = 1;
-                while(n > 0) {
+                while(sel != NULL && n > 0) {
                     treelist_item_t* tmp;
                     if(key == VK_NEXT)
                         tmp = item_next_displayed(sel, &ignored);
@@ -2284,15 +2290,12 @@ treelist_key_down(treelist_t* tl, int key)
             }
 
             case VK_BACK:
-                sel = sel->parent;
+                if(sel != NULL)
+                    sel = sel->parent;
                 break;
 
             case VK_SPACE:
                 /* TODO: if has checkbox, toggle its state */
-                break;
-
-            case VK_ESCAPE:
-                treelist_clear_select(tl);
                 break;
         }
 
