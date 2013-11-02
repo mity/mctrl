@@ -370,8 +370,8 @@ treelist_item_has_children(treelist_t* tl, treelist_item_t* item)
 static treelist_item_t*
 treelist_first_selected(treelist_t* tl)
 {
-treelist_item_t *walk;
-treelist_item_t *ret;
+    treelist_item_t *walk;
+    treelist_item_t *ret;
 
     if(tl->selected_count == 0)
         return NULL;
