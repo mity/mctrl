@@ -231,10 +231,11 @@ void MCTRL_API mcTreeList_Terminate(void);
 /** @brief Selected item is automatically expanded, deselected item is
  *  automatically collapsed (unless user holds <tt>CTRL</tt> key). */
 #define MC_TLS_SINGLEEXPAND         0x0400
-/** @brief Allows mutlitple selections
- *  @details If set, the control supports multiple selections */
- #define MC_TLS_MULTISELECT         0x0800
- 
+/** @brief Allow multiple selected items.
+ *  @details Note that only sibling items (i.e. items with the same parent item)
+ *  can be selected at the same time. */
+#define MC_TLS_MULTISELECT          0x0800
+
 #if 0 /* TODO */
 #define MC_TLS_NOTOOLTIPS           0x1000
 #define MC_TLS_CHECKBOXES           0x2000
