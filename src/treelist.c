@@ -1637,15 +1637,6 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
     else if(tl->selected_last != NULL)
         old_sel = tl->selected_last;
 
-    if(!(tl->style & MC_TLS_MULTISELECT)) {
-        treelist_do_unselect_ex(tl, tl->selected_last, TREELIST_SELECT_ONE);
-
-    } else if((modifier == TREELIST_SELECT_THROUGH ||
-               modifier == TREELIST_SELECT_ONE)) {
-
-        treelist_clear_select(tl);
-    }
-
     /* Send MC_TLN_SELCHANGING */
     nm.hdr.hwndFrom = tl->win;
     nm.hdr.idFrom = GetWindowLong(tl->win, GWL_ID);
@@ -1661,6 +1652,15 @@ treelist_do_select_ex(treelist_t* tl, treelist_item_t* item, int modifier)
     if(MC_SEND(tl->notify_win, WM_NOTIFY, nm.hdr.idFrom, &nm) != FALSE) {
         TREELIST_TRACE("treelist_do_select_ex: Denied by app.");
         return;
+    }
+
+    if(!(tl->style & MC_TLS_MULTISELECT)) {
+        treelist_do_unselect_ex(tl, tl->selected_last, TREELIST_SELECT_ONE);
+
+    } else if((modifier == TREELIST_SELECT_THROUGH ||
+               modifier == TREELIST_SELECT_ONE)) {
+
+        treelist_clear_select(tl);
     }
 
     do_single_expand = (tl->style & MC_TLS_SINGLEEXPAND)  &&
@@ -2177,7 +2177,6 @@ treelist_right_button(treelist_t* tl, int x, int y, BOOL dblclick, WPARAM wp)
 static void
 treelist_key_down(treelist_t* tl, int key)
 {
-
     if(GetKeyState(VK_SHIFT) & 0x8000) {
         if(tl->selected_last != NULL && (tl->style & MC_TLS_MULTISELECT)) {
             int select_modifier = TREELIST_SELECT_THROUGH;
