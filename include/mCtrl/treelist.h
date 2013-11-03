@@ -124,6 +124,18 @@ extern "C" {
  * <tt>MC_TLE_COLLAPSE | MC_TLE_COLLAPSERESET</tt>.
  *
  *
+ * @section treelist_multiselect Multi-selection
+ *
+ * The control supports selecting multiple items. To enable this feature, use
+ * the style @c MC_TLS_MULTISELECT. However note that only sibling items, i.e.
+ * items belonging to the same parent (or root items) can form the
+ * multi-selection.
+ *
+ * Also note that when this style is used, the selection-related notifications
+ * @c MC_TLS_SELCHANING and @c MC_TLS_SELCHANGED behave differently. Refer to
+ * their respective documentation for more details.
+ *
+ *
  * @section treelist_callbacks Item and Subitem Callbacks
  *
  * The control can be told to ask parent instead of remembering some attributes
@@ -228,8 +240,11 @@ void MCTRL_API mcTreeList_Terminate(void);
 /** @brief Enable column reordering by mouse drag & drop.
  *  @details Note that the left-most column can never be reordered. */
 #define MC_TLS_HEADERDRAGDROP       0x0200
-/** @brief Selected item is automatically expanded, deselected item is
- *  automatically collapsed (unless user holds <tt>CTRL</tt> key). */
+/** @brief Selected item is automatically expanded and deselected item is
+ *  automatically collapsed.
+ *  @details The user can disable avoid this by pressing <CTRL> when clicking
+ *  on an item. Also note this style is ignored completely if style
+ *  @c MC_TLS_MULTISELECT is used. */
 #define MC_TLS_SINGLEEXPAND         0x0400
 /** @brief Allow multiple selected items.
  *  @details Note that only sibling items (i.e. items with the same parent item)
@@ -462,7 +477,12 @@ void MCTRL_API mcTreeList_Terminate(void);
  *  not check if the previous item is in the view-port defined by vertical
  * scrollbar. */
 #define MC_TLGN_PREVIOUSVISIBLE      0x7
-/** @brief Get selected item, or @c NULL if no item is selected. */
+/** @brief Get (next) selected item, or @c NULL if no (other) item is selected.
+ *  @details If the style @c MC_TLS_MULTISELECT is used, this can also be used
+ *  to retrieve all selected items: To get first selected item, use zero
+ *  as @c LPARAM of @c MC_TLM_GETNEXTITEM. To get next selected item, use
+ *  @c non-NULL @c LPARAM. After @c MC_TLM_GETNEXTITEM returns @c NULL, you
+ *  have enumerated over all selected items. */
 #define MC_TLGN_CARET                0x9
 /** @brief Get last visible item, or @c NULL if there are no items.
  *  @note This is not symmetric to @c MC_TLGN_FIRSTVISIBLE. It gets the last
@@ -1158,10 +1178,15 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Fired when a selection item is about to change.
  *
- * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify
- * the current selection (@c NULL, if no item is selected). The members
- * @c hItemNew and @c lParamNew specify new selection (@c or NULL, if no
- * item is being selected).
+ * When style @c MC_TLS_MULTISELECT is not used, @c MC_NMTREELIST describes
+ * how the selection changes: The members @c hItemOld and @c lParamOld
+ * describe the current selection, and the members @c hItemNew and @c lParamNew
+ * specify the to-be-selection.
+ *
+ * However when style @c MC_TLS_MULTISELECT is used, the notification behaves
+ * differently: The notification is only sent for items which are going to be
+ * selected (once per such item), and the members @c hItemOld and @c lParamOld
+ * are always set to @c NULL.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
@@ -1174,10 +1199,15 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Fired when selection has changed.
  *
- * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify the
- * previous selection (@c NULL, if no item has been selected). The members
- * @c hItemNew and @c lParamNew specify new selection (@c or NULL, if no
- * item is now selected.).
+ * When style @c MC_TLS_MULTISELECT is not used, @c MC_NMTREELIST describes
+ * how the selection has changed: The members @c hItemOld and @c lParamOld
+ * describe the old selection, and the members @c hItemNew and @c lParamNew
+ * specify the new selection.
+ *
+ * However when style @c MC_TLS_MULTISELECT is used, the notification behaves
+ * differently: It sends notification just once for the control and all
+ * @c MC_NMTREELIST members are set to @c NULL. Application can iterate through
+ * currently selected items by using the message @c MC_TLM_GETNEXTITEM.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
