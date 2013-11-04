@@ -141,7 +141,9 @@ html_QueryInterface(html_t* html, REFIID riid, void** obj)
     if(InlineIsEqualGUID(riid, &IID_IUnknown)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IUnknown)", riid);
         *obj = (void*)&html->dispatch;
-    } else if(InlineIsEqualGUID(riid, &IID_IDispatch)) {
+    } else if(InlineIsEqualGUID(riid, &IID_IDispatch) ||
+              InlineIsEqualGUID(riid, &DIID_DWebBrowserEvents) ||
+              InlineIsEqualGUID(riid, &DIID_DWebBrowserEvents2)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IDispatch)", riid);
         *obj = (void*)&html->dispatch;
     } else if(InlineIsEqualGUID(riid, &IID_IOleClientSite)) {
