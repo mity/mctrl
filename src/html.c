@@ -298,16 +298,19 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         }
 
         case DISPID_STATUSTEXTCHANGE:
+            HTML_TRACE("dispatch_Invoke: DISPID_STATUSTEXTCHANGE");
             html_notify_text(html, MC_HN_STATUSTEXT, V_BSTR(&params->rgvarg[0]));
             break;
 
         case DISPID_TITLECHANGE:
+            HTML_TRACE("dispatch_Invoke: DISPID_TITLECHANGE");
             html_notify_text(html, MC_HN_TITLETEXT, V_BSTR(&params->rgvarg[0]));
             break;
 
         case DISPID_COMMANDSTATECHANGE:
         {
             LONG cmd = V_I4(&params->rgvarg[1]);
+            HTML_TRACE("dispatch_Invoke: DISPID_COMMANDSTATECHANGE");
 
             if(cmd == CSC_NAVIGATEBACK  ||  cmd == CSC_NAVIGATEFORWARD) {
                 MC_NMHTMLHISTORY notify;
@@ -333,6 +336,8 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
          * and older. */
         {
             VARIANT_BOOL* cancel = V_BOOLREF(&params->rgvarg[0]);
+            HTML_TRACE("dispatch_Invoke: DISPID_NEWWINDOW2");
+
             if(html_notify_text(html, MC_HN_NEWWINDOW, L"") == 0) {
                 *cancel = VARIANT_TRUE;
                 HTML_TRACE("dispatch_Invoke(DISPID_NEWWINDOW2): Canceled.");
@@ -344,6 +349,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         {
             BSTR url = V_BSTR(&params->rgvarg[0]);
             VARIANT_BOOL* cancel = V_BOOLREF(&params->rgvarg[3]);
+            HTML_TRACE("dispatch_Invoke: DISPID_NEWWINDOW3");
 
             if(html_notify_text(html, MC_HN_NEWWINDOW, url) == 0) {
                 *cancel = VARIANT_TRUE;
@@ -353,7 +359,7 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
         }
 
         default:
-            HTML_TRACE("dispatch_Invoke: disp_id %d", disp_id);
+            HTML_TRACE("dispatch_Invoke: unsupported disp_id %d", disp_id);
             return DISP_E_MEMBERNOTFOUND;
     }
 
