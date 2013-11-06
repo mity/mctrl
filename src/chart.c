@@ -325,67 +325,26 @@ chart_DrawStringVert(gdix_Graphics* gfx, const WCHAR* str, INT str_len,
 static void
 tooltip_create(chart_t* chart)
 {
-    TTTOOLINFO info = { 0 };
-    NMTOOLTIPSCREATED ttc = { { 0 }, 0 };
-
-    chart->tooltip_win = CreateWindow(TOOLTIPS_CLASS, NULL, WS_POPUP,
-                                      0, 0, 0, 0, chart->win, 0, 0, 0);
-    if(MC_ERR(chart->tooltip_win == NULL)) {
-        MC_TRACE_ERR("tooltip_create: CreateWindow() failed");
-        return;
-    }
-
-    info.cbSize = sizeof(TTTOOLINFO);
-    info.uFlags = TTF_IDISHWND | TTF_TRACK | TTF_ABSOLUTE;
-    info.hwnd = chart->win;
-    MC_SEND(chart->tooltip_win, TTM_ADDTOOL, 0, &info);
-
-    ttc.hdr.hwndFrom = chart->win;
-    ttc.hdr.idFrom = GetWindowLong(chart->win, GWL_ID);
-    ttc.hdr.code = NM_TOOLTIPSCREATED;
-    ttc.hwndToolTips = chart->tooltip_win;
-    MC_SEND(chart->notify_win, WM_NOTIFY, ttc.hdr.idFrom, &ttc);
+    chart->tooltip_win = mc_tooltip_create(chart->win, chart->notify_win, TRUE);
 }
 
 static void
 tooltip_activate(chart_t* chart, BOOL show)
 {
-    TTTOOLINFO info = { 0 };
-
-    info.cbSize = sizeof(TTTOOLINFO);
-    info.hwnd = chart->win;
-    MC_SEND(chart->tooltip_win, TTM_TRACKACTIVATE, show, &info);
-
+    mc_tooltip_track_activate(chart->win, chart->tooltip_win, show);
     chart->tooltip_active = show;
 }
 
 static void
 tooltip_set_pos(chart_t* chart, int x, int y)
 {
-    TTTOOLINFO info = { 0 };
-    DWORD size;
-    POINT pt;
-
-    info.cbSize = sizeof(TTTOOLINFO);
-    info.hwnd = chart->win;
-
-    size = MC_SEND(chart->tooltip_win, TTM_GETBUBBLESIZE, 0, &info);
-    pt.x = x - LOWORD(size) / 2;
-    pt.y = y - HIWORD(size) - 5;
-    ClientToScreen(chart->win, &pt);
-    MC_SEND(chart->tooltip_win, TTM_TRACKPOSITION, 0, MAKELPARAM(pt.x, pt.y));
+    mc_tooltip_set_track_pos(chart->win, chart->tooltip_win, x, y);
 }
 
 static void
 tooltip_set_text(chart_t* chart, const TCHAR* str)
 {
-    TTTOOLINFO info = { 0 };
-
-    info.cbSize = sizeof(TTTOOLINFO);
-    info.uFlags = TTF_IDISHWND | TTF_TRACK | TTF_ABSOLUTE;
-    info.hwnd = chart->win;
-    info.lpszText = (TCHAR*) str;
-    MC_SEND(chart->tooltip_win, TTM_UPDATETIPTEXT, 0, &info);
+    mc_tooltip_set_text(chart->win, chart->tooltip_win, str);
 }
 
 static void
