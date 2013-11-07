@@ -661,6 +661,16 @@ mc_tooltip_track_activate(HWND parent, HWND tooltip, BOOL show)
 }
 
 void
+mc_tooltip_activate(HWND parent, HWND tooltip, BOOL show)
+{
+    TTTOOLINFO info = { 0 };
+
+    info.cbSize = sizeof(TTTOOLINFO);
+    info.hwnd = parent;
+    MC_SEND(tooltip, TTM_ACTIVATE, show, &info);
+}
+
+void
 mc_tooltip_set_track_pos(HWND parent, HWND tooltip, int x, int y)
 {
     TTTOOLINFO info = { 0 };

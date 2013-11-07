@@ -250,6 +250,9 @@ void MCTRL_API mcTreeList_Terminate(void);
  *  @details Note that only sibling items (i.e. items with the same parent item)
  *  can be selected at the same time. */
 #define MC_TLS_MULTISELECT          0x0800
+/** @brief Disables tooltips.
+ *  @details If items have tooltips, they will not be displayed on dwell. */
+#define MC_TLS_NOTOOLTIPS           0x1000
 
 #if 0 /* TODO */
 #define MC_TLS_NOTOOLTIPS           0x1000
@@ -353,6 +356,8 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLIF_EXPANDEDIMAGE        (1 << 5)
 /** @brief Set if @c MC_TLITEM::cChildren is valid. */
 #define MC_TLIF_CHILDREN             (1 << 6)
+/** @brief Set if @c MC_TLITEM::pszTooltip is valid. */
+#define MC_TLIF_TOOLTIP              (1 << 7)
 /*@}*/
 
 
@@ -570,6 +575,11 @@ typedef struct MC_TLITEMW_tag {
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
     int cchTextMax;
+    /** The tooltip text. Can be @c MC_LPSTR_TEXTCALLBACK. */
+    WCHAR* pszTooltip;
+    /** Size of the buffer pointed with @c pszTooltip.
+     *  Ignored when setting the item data. */
+    int cchTooltipMax;
     /** User data. */
     LPARAM lParam;
     /** Image. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
@@ -602,6 +612,11 @@ typedef struct MC_TLITEMA_tag {
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
     int cchTextMax;
+    /** The tooltip text. Can be @c MC_LPSTR_TEXTCALLBACK. */
+    char* pszTooltip;
+    /** Size of the buffer pointed with @c pszTooltip.
+     *  Ignored when setting the item data. */
+    int cchTooltipMax;
     /** User data. */
     LPARAM lParam;
     /** Image. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
