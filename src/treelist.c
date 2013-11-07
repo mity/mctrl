@@ -22,7 +22,6 @@
 
 /* TODO:
  *  -- Incremental search.
- *  -- Tooltips and style MC_TLS_NOTOOLTIPS.
  *  -- Handling state and style MC_TLS_CHECKBOXES.
  *  -- Support editing labels and style MC_TLS_EDITLABELS and related
  *     notifications.
@@ -60,6 +59,7 @@ struct treelist_item_tag {
     treelist_item_t* child_tail;
 
     TCHAR* text;
+    TCHAR* tooltip;
     TCHAR** subitems;
     LPARAM lp;
     SHORT img;
@@ -185,6 +185,7 @@ struct treelist_tag {
     DWORD item_height_set       :  1;
     DWORD focus                 :  1;
     DWORD tracking_leave        :  1;
+    DWORD tooltip_active        :  1;
     DWORD displayed_items;
     WORD col_count;
     WORD item_height;
@@ -193,6 +194,7 @@ struct treelist_tag {
     int scroll_x;                     /* in pixels */
     int scroll_x_max;
     unsigned int selected_count;
+    POINT tooltip_location;
 };
 
 
@@ -201,7 +203,8 @@ struct treelist_tag {
 
 #define MC_TLIF_ALL     (MC_TLIF_STATE | MC_TLIF_TEXT | MC_TLIF_PARAM |       \
                          MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE |              \
-                         MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN)
+                         MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN |           \
+                         MC_TLIF_TOOLTIP)
 
 #define MC_TLSIF_ALL    (MC_TLSIF_TEXT)
 
@@ -221,6 +224,7 @@ struct treelist_tag {
 typedef struct treelist_dispinfo_tag treelist_dispinfo_t;
 struct treelist_dispinfo_tag {
     TCHAR* text;
+    TCHAR* tooltip;
     int img;
     int img_selected;
     int img_expanded;
@@ -233,11 +237,16 @@ treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t
     MC_NMTLDISPINFO info;
 
     MC_ASSERT((mask & ~(MC_TLIF_TEXT | MC_TLIF_IMAGE | MC_TLIF_SELECTEDIMAGE |
-                        MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN)) == 0);
+                        MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN |
+                        MC_TLIF_TOOLTIP)) == 0);
 
     if(item->text != MC_LPSTR_TEXTCALLBACK) {
         di->text = item->text;
         mask &= ~MC_TLIF_TEXT;
+    }
+    if(item->tooltip != MC_LPSTR_TEXTCALLBACK) {
+        di->tooltip = item->tooltip;
+        mask &= ~MC_TLIF_TOOLTIP;
     }
     if(item->img != MC_I_IMAGECALLBACK) {
         di->img = item->img;
@@ -273,6 +282,13 @@ treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t
         else
             di->text = mc_str(info.item.pszText, (tl->unicode_notifications ? MC_STRW : MC_STRA), MC_STRT);
     }
+    
+    if(mask & MC_TLIF_TOOLTIP) {
+        if(tl->unicode_notifications == MC_IS_UNICODE)
+            di->tooltip = info.item.pszTooltip;
+        else
+            di->tooltip = mc_str(info.item.pszTooltip, (tl->unicode_notifications ? MC_STRW : MC_STRA), MC_STRT);
+    }
 
     if(mask & MC_TLIF_IMAGE)
         di->img = info.item.iImage;
@@ -290,9 +306,12 @@ treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t
 static inline void
 treelist_free_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t* di)
 {
-    if(tl->unicode_notifications != MC_IS_UNICODE  &&
-       di->text != item->text  &&  di->text != NULL)
-        free(di->text);
+    if(tl->unicode_notifications != MC_IS_UNICODE) {
+        if(di->text != item->text  &&  di->text != NULL)
+            free(di->text);
+        if(di->tooltip != item->tooltip  &&  di->tooltip != NULL)
+            free(di->tooltip);
+    }
 }
 
 
@@ -1199,6 +1218,43 @@ skip_control_paint:
         SelectObject(dc, old_font);
 }
 
+/***************
+ *** Tooltip ***
+ ***************/
+
+static void
+tooltip_create(treelist_t* tl)
+{
+    tl->tooltip_win = mc_tooltip_create(tl->win, tl->notify_win, FALSE);
+}
+
+static void
+tooltip_activate(treelist_t* tl, BOOL show)
+{
+    mc_tooltip_track_activate(tl->win, tl->tooltip_win, show);
+    tl->tooltip_active = show;
+}
+
+static void
+tooltip_set_pos(treelist_t* tl, int x, int y)
+{
+    mc_tooltip_set_track_pos(tl->win, tl->tooltip_win, x, y);
+}
+
+static void
+tooltip_set_text(treelist_t* tl, const TCHAR* str)
+{
+    mc_tooltip_set_text(tl->win, tl->tooltip_win, str);
+}
+
+static void
+tooltip_destroy(treelist_t* tl)
+{
+    if(tl->tooltip_win != NULL)
+        DestroyWindow(tl->tooltip_win);
+    tl->tooltip_win = NULL;
+}
+
 static treelist_item_t*
 treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
 {
@@ -2042,6 +2098,11 @@ treelist_mouse_move(treelist_t* tl, int x, int y)
     info.pt.y = y;
     item = treelist_hit_test(tl, &info);
 
+    if(tl->tooltip_location.x != x || tl->tooltip_location.y != y) {
+        tooltip_activate(tl, FALSE);
+        mc_track_mouse(tl->win, TME_HOVER);
+    }
+
     /* Hot items only draw differently if we have themes, so... */
     if(tl->theme != NULL && mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0)) {
 
@@ -2057,6 +2118,7 @@ treelist_mouse_move(treelist_t* tl, int x, int y)
             if(hot_item)
                 treelist_invalidate_item(tl, hot_item, -1, 0);
             tl->hot_item = hot_item;
+            
         }
 
         /* Make sure the right item's button is hot */
@@ -2072,8 +2134,37 @@ treelist_mouse_move(treelist_t* tl, int x, int y)
     }
 
     if(!tl->tracking_leave) {
-        mc_track_mouse(tl->win, TME_LEAVE);
+        mc_track_mouse(tl->win, TME_LEAVE | TME_HOVER);
         tl->tracking_leave = TRUE;
+    }
+}
+
+static void
+treelist_mouse_hover(treelist_t* tl, int x, int y)
+{
+    MC_TLHITTESTINFO info;
+    treelist_item_t* item;
+    treelist_dispinfo_t dispinfo;
+    
+    /* If tooltips are disabled, exit now */
+    if(tl->style & MC_TLS_NOTOOLTIPS)
+        return;
+        
+    info.pt.x = x; tl->tooltip_location.x = x;
+    info.pt.y = y; tl->tooltip_location.y = y;
+    item = treelist_hit_test(tl, &info);
+    if(item == NULL && tl->tooltip_active) {
+        tooltip_activate(tl, FALSE);
+        return;
+    }
+    
+    tooltip_set_pos(tl, x, y);
+    treelist_get_dispinfo(tl, item, &dispinfo, MC_TLIF_TOOLTIP);
+    if(dispinfo.tooltip != NULL) {
+        tooltip_set_text(tl, dispinfo.tooltip);
+        tooltip_activate(tl, TRUE);
+    } else if(tl->tooltip_active) {
+        tooltip_activate(tl, FALSE);
     }
 }
 
@@ -2623,6 +2714,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     treelist_item_t* prev;
     treelist_item_t* next;
     TCHAR* text = NULL;
+    TCHAR* tooltip = NULL;
     TCHAR** subitems;
     treelist_item_t* item;
     BOOL parent_displayed;
@@ -2670,6 +2762,17 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
             text = mc_str(item_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
             if(MC_ERR(text == NULL  &&  item_data->pszText != NULL)) {
                 MC_TRACE("treelist_insert_item: mc_str() failed.");
+                goto err_alloc_tooltip;
+            }
+        }
+    }
+    if(item_data->fMask & MC_TLIF_TOOLTIP) {
+        if(item_data->pszTooltip == MC_LPSTR_TEXTCALLBACK) {
+            item->tooltip = item_data->pszTooltip;
+        } else {
+            tooltip = mc_str(item_data->pszTooltip, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+            if(MC_ERR(tooltip == NULL  &&  item_data->pszTooltip != NULL)) {
+                MC_TRACE("treelist_insert_item: mc_str() failed.");
                 goto err_alloc_text;
             }
         }
@@ -2713,6 +2816,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     item->state = ((item_data->fMask & MC_TLIF_STATE)
                             ? (item_data->state & item_data->stateMask) : 0);
     item->text = text;
+    item->tooltip = tooltip;
     item->lp = ((item_data->fMask & MC_TLIF_PARAM) ? item_data->lParam : 0);
     item->img = (SHORT)((item_data->fMask & MC_TLIF_IMAGE)
                                 ? item_data->iImage : MC_I_IMAGENONE);
@@ -2772,6 +2876,9 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
 
     /* Error path */
 err_alloc_subitems:
+    if(tooltip != NULL  &&  tooltip != MC_LPSTR_TEXTCALLBACK)
+        free(tooltip);
+err_alloc_tooltip:
     if(text != NULL  &&  text != MC_LPSTR_TEXTCALLBACK)
         free(text);
 err_alloc_text:
@@ -2817,6 +2924,24 @@ treelist_set_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
         if(item->text != NULL  &&  item->text != MC_LPSTR_TEXTCALLBACK)
             free(item->text);
         item->text = text;
+    }
+    
+    if(item_data->fMask & MC_TLIF_TOOLTIP) {
+        TCHAR* tooltip;
+
+        if(item_data->pszTooltip == MC_LPSTR_TEXTCALLBACK) {
+            tooltip = MC_LPSTR_TEXTCALLBACK;
+        } else {
+            tooltip = mc_str(item_data->pszTooltip, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+            if(MC_ERR(tooltip == NULL  &&  item_data->pszTooltip != NULL)) {
+                MC_TRACE("treelist_set_item: mc_str() failed.");
+                return FALSE;
+            }
+        }
+
+        if(item->tooltip != NULL  &&  item->tooltip != MC_LPSTR_TEXTCALLBACK)
+            free(item->tooltip);
+        item->tooltip = tooltip;
     }
 
     if(item_data->fMask & MC_TLIF_PARAM)
@@ -2883,7 +3008,8 @@ treelist_get_item(treelist_t* tl, treelist_item_t* item, MC_TLITEM* item_data,
     }
 
     dispinfo_mask = item_data->fMask & (MC_TLIF_TEXT | MC_TLIF_IMAGE |
-                MC_TLIF_SELECTEDIMAGE | MC_TLIF_EXPANDEDIMAGE | MC_TLIF_CHILDREN);
+                MC_TLIF_SELECTEDIMAGE | MC_TLIF_EXPANDEDIMAGE | 
+                MC_TLIF_CHILDREN | MC_TLIF_TOOLTIP);
     treelist_get_dispinfo(tl, item, &dispinfo, dispinfo_mask);
 
     if(item_data->fMask & MC_TLIF_TEXT) {
@@ -2965,6 +3091,8 @@ treelist_delete_item_helper(treelist_t* tl, treelist_item_t* item, BOOL displaye
         }
         if(item->text != NULL  &&  item->text != MC_LPSTR_TEXTCALLBACK)
             free(item->text);
+        if(item->tooltip != NULL  &&  item->tooltip != MC_LPSTR_TEXTCALLBACK)
+            free(item->tooltip);
 
         /* Update any selection information now */
         if(item->state & MC_TLIS_SELECTED)
@@ -3424,6 +3552,9 @@ treelist_create(treelist_t* tl)
         return -1;
     }
     MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, MC_IS_UNICODE, 0);
+    
+    if(!(tl->style & MC_TLS_NOTOOLTIPS))
+        tooltip_create(tl);
 
     tl->theme = mcOpenThemeData(tl->win, treelist_tc);
     return 0;
@@ -3432,8 +3563,14 @@ treelist_create(treelist_t* tl)
 static void
 treelist_destroy(treelist_t* tl)
 {
+    if(tl->tooltip_win != NULL) {
+        if(tl->tooltip_active) 
+            tooltip_activate(tl, FALSE);
+        tooltip_destroy(tl);
+    }
+    
     treelist_delete_item(tl, NULL);
-
+    
     if(tl->theme) {
         mcCloseThemeData(tl->theme);
         tl->theme = NULL;
@@ -3615,6 +3752,10 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_MOUSELEAVE:
             treelist_mouse_leave(tl);
+            return 0;
+
+        case WM_MOUSEHOVER:
+            treelist_mouse_hover(tl, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
         case WM_VSCROLL:
