@@ -21,6 +21,15 @@
 #include "resource.h"
 
 
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(DEFAULT)
+
+
+
+/**********************************
+ *** Language neutral resources ***
+ **********************************/
+
 IDR_GLYPHS           BITMAP  "res/glyphs.bmp"
 
 IDR_EXPAND_GLYPHS_19 BITMAP  "res/expand-19x19.bmp"
@@ -28,15 +37,9 @@ IDR_EXPAND_GLYPHS_24 BITMAP  "res/expand-24x24.bmp"
 IDR_EXPAND_GLYPHS_29 BITMAP  "res/expand-29x29.bmp"
 
 
-/* Per-language resources */
-
-#include "res/lang-cs.rc"       /* Czech */
-#include "res/lang-en.rc"       /* English */
-#include "res/lang-fr.rc"       /* French */
-#pragma code_page(DEFAULT)
-
-
-/* Version info */
+/********************
+ *** Version info ***
+ ********************/
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION    MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_RELEASE, 0
@@ -73,3 +76,14 @@ BEGIN
         VALUE "Translation", 0, 1200
     END
 END
+
+
+/******************************
+ *** Per-language resources ***
+ ******************************/
+
+#include "res/lang-cs.rc"       /* Czech */
+#include "res/lang-en.rc"       /* English */
+#include "res/lang-fr.rc"       /* French */
+
+
