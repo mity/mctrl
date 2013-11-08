@@ -324,7 +324,7 @@ imgview_load_image_from_resource(HINSTANCE instance, const TCHAR* name)
         return NULL;
     }
     res_data = LockResource(res_global);
-    if(MC_ERR(res_global == NULL)) {
+    if(MC_ERR(res_data == NULL)) {
         MC_TRACE_ERR("imgview_load_image_from_resource: LockResource() failed");
         return NULL;
     }
