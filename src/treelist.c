@@ -137,7 +137,6 @@ item_prev_displayed(treelist_item_t* item)
     return item->parent;
 }
 
-/* This function isn't needed right now, but we'll keep it around... */
 static BOOL
 item_is_ancestor(treelist_item_t* ancestor, treelist_item_t* item)
 {
