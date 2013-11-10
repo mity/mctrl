@@ -58,28 +58,28 @@ extern "C" {
  * etc.) or JavaScript files into binary of your application or any DLL it
  * uses.
  *
- * All resources  addressable by the control must be of type @c RT_HTML. This
- * includes not just the HTML document themselves but also all their files,
- * images, style sheets, JavaScript files and any other resources linked from
- * the HTML pages, or URL passed to the control.
+ * You can link to such resources with URL in format
+ * "res://modname/res_type/res_id" where @c modname is name of the binary
+ * module (usually filename of your program or any DLL it loads; or a full path
+ * to other .EXE or .DLL file), @c res_type is type of the resource and @c
+ * res_id is ID of the resource in the resource script (RC).
  *
- * You can link to such resources with url in format "res://modname/res_id"
- * where @c modname is name of the binary module (usually filename of your
- * program or any DLL it loads) and @c res_id is ID of the resource in the
- * resource script (RC).
+ * The type can be omitted in the URL. The control then assumes type 23
+ * (@c RT_HTML).
  *
- * Although it can be both string or number identifier, we recommend to prefer
- * string identifiers which end with dummy &quot;file extension&quot;, hence
- * making a hint to the browser about the image type. Without this the browser
- * tries to guess what type of the data the resource is, and that may be
- * unreliable. Remember the heuristics also differ in various versions of MSIE.
+ * Although @c res_id can be both string or number identifier, we recommend
+ * to prefer string identifiers which end with dummy &quot;file extension&quot;,
+ * hence making a hint to the browser about the image type. Without this the
+ * browser tries to guess what type of the data the resource is, and that may
+ * be unreliable. Remember the heuristics also differ in various versions of
+ * MSIE.
  *
  * For example if you have a HTML file named @c some_page.html and an image
  * file @c image.png which can be linked from the HTML page, add the following
  * lines into your resource script:
  * @code
- * "some_page.html" HTML some_page.html
- * "image.png" HTML image.png
+ * some_page.html HTML path/to/some_page.html
+ * image.png HTML path/to/image.png
  * @endcode
  * which is used to build a @c MYLIBRARY.DLL used by your application then
  * your application can simply send the message @c MC_HM_GOTOURL with URL
