@@ -308,7 +308,7 @@ treelist_get_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
 
     MC_ASSERT((mask & ~MC_TLSIF_TEXT) == 0);
 
-    if(item->text != MC_LPSTR_TEXTCALLBACK) {
+    if(item->subitems[subitem_id] != MC_LPSTR_TEXTCALLBACK) {
         si->text = item->subitems[subitem_id];
         mask &= ~MC_TLIF_TEXT;
     }
@@ -1151,7 +1151,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                     case HDF_CENTER:  justify = DT_CENTER; break;
                     default:          justify = DT_LEFT; break;
                 }
-                treelist_label_rect(tl, dc, item->subitems[col_ix], justify,
+                treelist_label_rect(tl, dc, subdispinfo.text, justify,
                                     &subitem_rect, &padding_h, &padding_v);
                 mc_rect_inflate(&subitem_rect, -padding_h, -padding_v);
 
@@ -1334,7 +1334,7 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
         }
 
         treelist_get_subdispinfo(tl, item, col_ix, &subdispinfo, MC_TLSIF_TEXT);
-        treelist_label_rect(tl, dc, item->subitems[col_ix], dtjustify,
+        treelist_label_rect(tl, dc, subdispinfo.text, dtjustify,
                             &item_rect, &ignored, &ignored);
         treelist_free_subdispinfo(tl, item, col_ix, &subdispinfo);
     }
