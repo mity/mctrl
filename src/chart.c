@@ -183,7 +183,7 @@ chart_round_value(int value, BOOL up)
         return (up ? INT32_MAX : nice_numbers[count-1]);
 
     /* Although we could use binary search here, I expect vast majority of use
-     * cases to have relatively small values, so in general the seqencial
+     * cases to have relatively small values, so in general the sequential
      * search is probably more effective here. */
     i = 0;
     while(value > nice_numbers[i])
