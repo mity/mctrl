@@ -60,20 +60,37 @@ struct treelist_item_tag {
     treelist_item_t* child_tail;
 
     TCHAR* text;
-    TCHAR** subitems;
+
+    /* For new items, we try to use a callback_map: Each bit corresponds to
+     * a column where zero means the subitem is NULL, and 1 means it is
+     * MC_LPSTR_TEXTCALLBACK.
+     *
+     * subitems[] is only allocated lazily when needed, i.e. any subitem is
+     * set to a string (i.e. not NULL and not MC_LPSTR_TEXTCALLBACK), or if
+     * the callback_map cannot hold the 1 because there are too many subitems
+     * (i.e. if col_count >= 8 * sizeof(callback_map)).
+     *
+     * However once allocated, it keeps allocated for lifetime of the item.
+     */
+    union {
+        TCHAR** subitems;
+        uintptr_t callback_map;
+    };
+
     LPARAM lp;
     SHORT img;
     SHORT img_selected;
     SHORT img_expanded;
-    WORD state             : 8;
-    WORD children          : 1;
-    WORD children_callback : 1;
-
+    WORD state                        : 8;
+    WORD children                     : 1;
+    WORD children_callback            : 1;
     /* Flag treelist_do_expand/collapse() is in progress. Used to detect nested
      * call (i.e. from the notification) to prevent endless recursion.
      * Typically happens for (MC_TLE_COLLAPSE|MC_TLE_COLLAPSERESET) in
      * dynamically populated tree list. */
     WORD expanding_notify_in_progress : 1;
+    /* If set, then ->subitems[] is alloc'ed and valid, otherwise ->callback_map */
+    WORD has_alloced_subitems         : 1;
 };
 
 /* Iterator over ALL items of the control */
@@ -160,6 +177,7 @@ item_is_displayed(treelist_item_t* item)
     return TRUE;
 }
 
+
 typedef struct treelist_tag treelist_t;
 struct treelist_tag {
     HWND win;
@@ -225,6 +243,64 @@ struct treelist_dispinfo_tag {
     int img_expanded;
     int children;
 };
+
+
+#define CALLBACK_MAP_SIZE       (sizeof(uintptr_t) * 8)
+#define CALLBACK_MAP_BIT(i)     ((uintptr_t)1 << (i))
+
+
+static inline TCHAR*
+treelist_subitem_text(treelist_t* tl, treelist_item_t* item, int subitem_id)
+{
+    int i = subitem_id - 1;
+
+    if(item->has_alloced_subitems)
+        return item->subitems[i];
+    else if(i < CALLBACK_MAP_SIZE  &&  (item->callback_map & CALLBACK_MAP_BIT(i)))
+        return MC_LPSTR_TEXTCALLBACK;
+    else
+        return NULL;
+}
+
+static int
+treelist_subitems_alloc(treelist_t* tl, treelist_item_t* item, WORD col_count)
+{
+    TCHAR** subitems;
+    WORD count = col_count - 1;
+
+    /* col_count is used to request more space when called from
+     * treelist_insert_column() for the new column */
+    MC_ASSERT(col_count == tl->col_count || col_count == tl->col_count + 1);
+    MC_ASSERT(item->has_alloced_subitems == FALSE);
+
+    subitems = (TCHAR**) malloc(sizeof(TCHAR*) * count);
+    if(MC_ERR(subitems == NULL)) {
+        MC_TRACE("treelist_subitem_alloc: malloc() failed.");
+        mc_send_notify(tl->win, tl->notify_win, NM_OUTOFMEMORY);
+        return -1;
+    }
+
+    if(item->callback_map == 0) {
+        memset(subitems, 0, sizeof(TCHAR*) * count);
+    } else {
+        int i;
+        int n = MC_MIN(count, CALLBACK_MAP_SIZE);
+
+        for(i = 0; i < n; i++) {
+            if(item->callback_map & CALLBACK_MAP_BIT(i))
+                subitems[i] = MC_LPSTR_TEXTCALLBACK;
+            else
+                subitems[i] = NULL;
+        }
+
+        if(count > CALLBACK_MAP_SIZE)
+            memset(subitems + CALLBACK_MAP_SIZE, 0, sizeof(TCHAR*) * (count - CALLBACK_MAP_SIZE));
+    }
+
+    item->subitems = subitems;
+    item->has_alloced_subitems = TRUE;
+    return 0;
+}
 
 static void
 treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t* di, DWORD mask)
@@ -305,11 +381,14 @@ treelist_get_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
                          treelist_subdispinfo_t* si, DWORD mask)
 {
     MC_NMTLSUBDISPINFO info;
+    TCHAR* text;
 
     MC_ASSERT((mask & ~MC_TLSIF_TEXT) == 0);
 
-    if(item->subitems[subitem_id] != MC_LPSTR_TEXTCALLBACK) {
-        si->text = item->subitems[subitem_id];
+    text = treelist_subitem_text(tl, item, subitem_id);
+
+    if(text != MC_LPSTR_TEXTCALLBACK) {
+        si->text = text;
         mask &= ~MC_TLIF_TEXT;
     }
 
@@ -337,8 +416,7 @@ static inline void
 treelist_free_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
                           treelist_subdispinfo_t* si)
 {
-    if(tl->unicode_notifications != MC_IS_UNICODE  &&
-       si->text != item->subitems[subitem_id]  &&  si->text != NULL)
+    if(si->text != NULL  &&  (!item->has_alloced_subitems || si->text != item->subitems[subitem_id-1]))
         free(si->text);
 }
 
@@ -2398,29 +2476,67 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         return -1;
     }
 
-    /* Realloc all subitems and init the new one. We do it in two passes
-     * to simplify error handling, even at the cost of some performance.
-     * Most apps adds column before adding any data. */
-    if(tl->root_head != NULL) {
+    /* Update subitems. Hopefully, sane applications should not insert columns
+     * after inserting the data, hence MC_UNLIKELY. */
+    if(MC_UNLIKELY(tl->root_head != NULL)) {
         treelist_item_t* item;
+        uintptr_t i = col_ix - 1;
 
+        /* Realloc subitems[] to make a space for rearranging the data. Note
+         * the rearranging is delayed until we succeed to reallocate everything
+         * to simplify the error handling (to not keep some items in incorrect
+         * state).
+         *
+         * Note if an error really happens, some items may be already realloc'ed
+         * and we waste the new space in them. But gosh, if app adds columns
+         * while having some data in the tree, it deserves the punishment....
+         */
         for(item = tl->root_head; item != NULL; item = item_next(item)) {
-            TCHAR** subitems;
+            if(item->has_alloced_subitems) {
+                TCHAR** subitems;
 
-            subitems = (TCHAR**) realloc(item->subitems, (tl->col_count + 1) * sizeof(TCHAR*));
-            if(MC_ERR(subitems == NULL)) {
-                MC_TRACE("treelist_insert_column: realloc(subitems) failed.");
-                mc_send_notify(tl->notify_win, tl->win, NM_OUTOFMEMORY);
-                MC_SEND(tl->header_win, HDM_DELETEITEM, col_ix, 0);
-                return -1;
+                subitems = (TCHAR**) realloc(item->subitems, (tl->col_count + 1) * sizeof(TCHAR*));
+                if(MC_ERR(subitems == NULL)) {
+                    MC_TRACE("treelist_insert_column: realloc(subitems) failed.");
+                    mc_send_notify(tl->notify_win, tl->win, NM_OUTOFMEMORY);
+                    MC_SEND(tl->header_win, HDM_DELETEITEM, col_ix, 0);
+                    return -1;
+                }
+                item->subitems = subitems;
+            } else {
+                /* If there are too many columns and the new column would cause
+                 * to shift a set bit in the callback_map out of it, we need
+                 * to switch to alloc'ed subitems. */
+                if(i < CALLBACK_MAP_SIZE  &&
+                   (item->callback_map & CALLBACK_MAP_BIT(CALLBACK_MAP_SIZE-1)))
+                {
+                    if(MC_ERR(treelist_subitems_alloc(tl, item, tl->col_count + 1) != 0)) {
+                        MC_TRACE("treelist_insert_column: treelist_subitems_alloc() failed.");
+                        MC_SEND(tl->header_win, HDM_DELETEITEM, col_ix, 0);
+                        return -1;
+                    }
+                }
             }
-            item->subitems = subitems;
         }
 
+        /* All items are now successfully realloc'ed, so we may rearrange
+         * the data in them. */
         for(item = tl->root_head; item != NULL; item = item_next(item)) {
-            memmove(item->subitems + (col_ix+1), item->subitems + col_ix,
-                    (tl->col_count - col_ix) * sizeof(TCHAR*));
-            item->subitems[col_ix] = NULL;
+            if(item->has_alloced_subitems) {
+                memmove(item->subitems + (i+1), item->subitems + i,
+                        (tl->col_count - col_ix) * sizeof(TCHAR*));
+                item->subitems[i] = NULL;
+            } else {
+                if(item->callback_map != 0  &&  i < CALLBACK_MAP_SIZE-1) {
+                    /* mask0 specifies columns to keep on the same place,
+                     * mask1 specifies columns to shift to make a space for
+                     * the i-th one. */
+                    uintptr_t mask0 = CALLBACK_MAP_BIT(i)-1;
+                    uintptr_t mask1 = ~mask0;
+                    item->callback_map = (item->callback_map & mask0) |
+                                         ((item->callback_map & mask1) << 1);
+                }
+            }
         }
     }
 
@@ -2547,36 +2663,43 @@ treelist_delete_column(treelist_t* tl, int col_ix)
         return FALSE;
     }
 
-    if(tl->root_head != NULL) {
+    /* Update subitems. Hopefully, sane applications should not remove columns
+     * after inserting the data, hence MC_UNLIKELY. */
+    if(MC_UNLIKELY(tl->root_head != NULL)) {
         treelist_item_t* item;
+        int i = col_ix - 1;
 
         for(item = tl->root_head; item != NULL; item = item_next(item)) {
-            if(item->subitems[col_ix] != NULL  &&
-               item->subitems[col_ix] != MC_LPSTR_TEXTCALLBACK)
-                free(item->subitems[col_ix]);
+            if(item->has_alloced_subitems) {
+                if(item->subitems[i] != NULL  &&
+                   item->subitems[i] != MC_LPSTR_TEXTCALLBACK)
+                    free(item->subitems[i]);
 
-            if(tl->col_count > 1) {
-                TCHAR** subitems;
-                subitems = (TCHAR**) malloc((tl->col_count - 1) * sizeof(TCHAR*));
-                if(subitems != NULL) {
-                    memcpy(subitems,
-                           item->subitems,
-                           col_ix * sizeof(TCHAR*));
-                    memcpy(subitems + col_ix,
-                           item->subitems + (col_ix+1),
-                           (tl->col_count - col_ix - 1) * sizeof(TCHAR*));
-                    free(item->subitems);
-                    item->subitems = subitems;
+                if(tl->col_count > 1) {
+                    TCHAR** subitems = item->subitems;
+
+                    memmove(subitems + i, subitems + (i + 1),
+                            (tl->col_count - i - 1) * sizeof(TCHAR*));
+
+                    subitems = (TCHAR**) realloc(subitems, (tl->col_count - 1) * sizeof(TCHAR*));
+                    if(MC_ERR(subitems == NULL))
+                        MC_TRACE("treelist_delete_column: realloc() failed.");
+                    else
+                        item->subitems = subitems;
                 } else {
-                    /* malloc() failed: Just move the subitems inplace. */
-                    MC_TRACE("treelist_delete_column: malloc() failed.");
-                    memmove(item->subitems + col_ix,
-                            item->subitems + (col_ix+1),
-                            (tl->col_count - col_ix - 1) * sizeof(TCHAR*));
+                    free(item->subitems);
+                    item->subitems = NULL;
+                    item->has_alloced_subitems = FALSE;
                 }
             } else {
-                free(item->subitems);
-                item->subitems = NULL;
+                if(item->callback_map != 0) {
+                    /* mask0 specifies columns to keep on the same place,
+                     * mask1 specifies columns to shift to erase the i-th one. */
+                    uintptr_t mask0 = CALLBACK_MAP_BIT(i)-1;
+                    uintptr_t mask1 = (i < CALLBACK_MAP_SIZE-1 ? ~(CALLBACK_MAP_BIT(i+1)-1) : 0);
+                    item->callback_map = (item->callback_map & mask0) |
+                                         ((item->callback_map & mask1) >> 1);
+                }
             }
         }
     }
@@ -2622,7 +2745,6 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     treelist_item_t* prev;
     treelist_item_t* next;
     TCHAR* text = NULL;
-    TCHAR** subitems;
     treelist_item_t* item;
     BOOL parent_displayed;
     BOOL displayed;
@@ -2673,16 +2795,6 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
             }
         }
     }
-    if(tl->col_count > 0) {
-        subitems = (TCHAR**) malloc(tl->col_count * sizeof(TCHAR*));
-        if(MC_ERR(subitems == NULL)) {
-            MC_TRACE("treelist_insert_item: malloc(subitems) failed");
-            goto err_alloc_subitems;
-        }
-        memset(subitems, 0, tl->col_count * sizeof(TCHAR*));
-    } else {
-        subitems = NULL;
-    }
 
     /* Connect it to the family */
     item->parent = parent;
@@ -2708,7 +2820,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     }
 
     /* Setup the item data */
-    item->subitems = subitems;
+    item->callback_map = 0;
     item->state = ((item_data->fMask & MC_TLIF_STATE)
                             ? (item_data->state & item_data->stateMask) : 0);
     item->text = text;
@@ -2727,6 +2839,7 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
         item->children_callback = 0;
     }
     item->expanding_notify_in_progress = 0;
+    item->has_alloced_subitems = 0;
 
     if(parent != NULL) {
         parent_displayed = item_is_displayed(parent);
@@ -2770,9 +2883,6 @@ treelist_insert_item(treelist_t* tl, MC_TLINSERTSTRUCT* insert, BOOL unicode)
     return item;
 
     /* Error path */
-err_alloc_subitems:
-    if(text != NULL  &&  text != MC_LPSTR_TEXTCALLBACK)
-        free(text);
 err_alloc_text:
     free(item);
 err_alloc_item:
@@ -2953,9 +3063,9 @@ treelist_delete_item_helper(treelist_t* tl, treelist_item_t* item, BOOL displaye
         }
 
         /* The deletion of the item */
-        if(item->subitems) {
+        if(item->has_alloced_subitems) {
             int i;
-            for(i = 0; i < tl->col_count; i++) {
+            for(i = 0; i < tl->col_count - 1; i++) {
                 if(item->subitems[i] != NULL  &&
                    item->subitems[i] != MC_LPSTR_TEXTCALLBACK)
                     free(item->subitems[i]);
@@ -3199,22 +3309,45 @@ treelist_set_subitem(treelist_t* tl, treelist_item_t* item,
     }
 
     if(subitem_data->fMask & MC_TLSIF_TEXT) {
-        TCHAR* text;
+        int i = subitem_data->iSubItem - 1;
 
-        if(subitem_data->pszText == MC_LPSTR_TEXTCALLBACK)
-            text = MC_LPSTR_TEXTCALLBACK;
-        else {
-            text = mc_str(subitem_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
-            if(MC_ERR(text == NULL  &&  subitem_data->pszText != NULL)) {
-                MC_TRACE("treelist_set_subitem: mc_str() failed.");
+        if(!item->has_alloced_subitems  &&
+           ((subitem_data->pszText != NULL && subitem_data->pszText != MC_LPSTR_TEXTCALLBACK) ||
+            (subitem_data->pszText == MC_LPSTR_TEXTCALLBACK  &&  i >= CALLBACK_MAP_SIZE)))
+        {
+            /* ->callback_map cannot be used anymore to hold the subitems. */
+            if(MC_ERR(treelist_subitems_alloc(tl, item, tl->col_count) != 0)) {
+                MC_TRACE("treelist_set_subitem: treelist_subitems_alloc() failed.");
                 return FALSE;
             }
         }
 
-        if(item->subitems[subitem_data->iSubItem] != NULL  &&
-           item->subitems[subitem_data->iSubItem] != MC_LPSTR_TEXTCALLBACK)
-            free(item->subitems[subitem_data->iSubItem]);
-        item->subitems[subitem_data->iSubItem] = text;
+        if(item->has_alloced_subitems) {
+            TCHAR* text;
+
+            if(subitem_data->pszText == MC_LPSTR_TEXTCALLBACK)
+                text = MC_LPSTR_TEXTCALLBACK;
+            else {
+                text = mc_str(subitem_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+                if(MC_ERR(text == NULL  &&  subitem_data->pszText != NULL)) {
+                    MC_TRACE("treelist_set_subitem: mc_str() failed.");
+                    return FALSE;
+                }
+            }
+
+            if(item->subitems[i] != NULL  &&
+               item->subitems[i] != MC_LPSTR_TEXTCALLBACK)
+                free(item->subitems[i]);
+            item->subitems[i] = text;
+        } else {
+            MC_ASSERT(subitem_data->pszText == NULL  ||
+                      subitem_data->pszText == MC_LPSTR_TEXTCALLBACK);
+
+            if(subitem_data->pszText == MC_LPSTR_TEXTCALLBACK)
+                item->callback_map |= CALLBACK_MAP_BIT(i);
+            else
+                item->callback_map &= ~CALLBACK_MAP_BIT(i);
+        }
     }
 
     if(!tl->no_redraw)
