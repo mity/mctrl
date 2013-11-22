@@ -2121,28 +2121,27 @@ treelist_mouse_move(treelist_t* tl, int x, int y)
 
     /* Hot items only draw differently if we have themes, so... */
     if(tl->theme != NULL && mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0)) {
-
         hot_item = treelist_is_common_hit(tl, &info) ? item : NULL;
         hotbutton_item = (info.flags & MC_TLHT_ONITEMBUTTON) ? item : NULL;
 
         /* Make sure the right item is hot */
         if(hot_item != tl->hot_item) {
-            if(tl->hot_item) {
+            if(tl->hot_item != NULL  &&  !tl->no_redraw) {
                 treelist_invalidate_item(tl, tl->hot_item, -1, 0);
                 tl->hot_item = NULL;
             }
-            if(hot_item)
+            if(hot_item != NULL  &&  !tl->no_redraw)
                 treelist_invalidate_item(tl, hot_item, -1, 0);
             tl->hot_item = hot_item;
         }
 
         /* Make sure the right item's button is hot */
         if(hotbutton_item != tl->hotbutton_item) {
-            if(tl->hotbutton_item) {
+            if(tl->hotbutton_item != NULL  &&  !tl->no_redraw) {
                 treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
                 tl->hotbutton_item = NULL;
             }
-            if(hotbutton_item)
+            if(hotbutton_item != NULL  &&  !tl->no_redraw)
                 treelist_invalidate_item(tl, hotbutton_item, 0, 0);
             tl->hotbutton_item = hotbutton_item;
         }
