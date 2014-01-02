@@ -242,9 +242,9 @@ void MCTRL_API mcTreeList_Terminate(void);
 #define MC_TLS_HEADERDRAGDROP       0x0200
 /** @brief Selected item is automatically expanded and deselected item is
  *  automatically collapsed.
- *  @details The user can disable avoid this by pressing <CTRL> when clicking
- *  on an item. Also note this style is ignored completely if style
- *  @c MC_TLS_MULTISELECT is used. */
+ *  @details The user can disable this by pressing @<CTRL@> while clicking on
+ *  an item. Also note this style is ignored completely if style
+ *  @c MC_TLS_MULTISELECT is set. */
 #define MC_TLS_SINGLEEXPAND         0x0400
 /** @brief Allow multiple selected items.
  *  @details Note that only sibling items (i.e. items with the same parent item)
