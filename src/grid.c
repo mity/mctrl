@@ -135,86 +135,63 @@ grid_header_width(grid_t* grid)
         return grid->header_width;
 }
 
-static int
-grid_col_left(grid_t* grid, WORD col)
-{
-    int left;
-    WORD i;
-
-    if(col == MC_TABLE_HEADER)
-        return 0;
-
-    left = grid_header_width(grid);
-
-    if(grid->col_widths == NULL) {
-        if(col > 0)
-            left += (col-1) * grid->def_col_width;
-    } else {
-        for(i = 0; i < col; i++)
-            left += grid_col_width(grid, col);
-    }
-    return left;
-}
-
-static int
-grid_row_top(grid_t* grid, WORD row)
-{
-    int top;
-    WORD i;
-
-    if(row == MC_TABLE_HEADER)
-        return 0;
-
-    top = grid_header_height(grid);
-
-    if(grid->row_heights == NULL) {
-        if(row > 0)
-            top += (row-1) * grid->def_row_height;
-    } else {
-        for(i = 0; i < row; i++)
-            top += grid_row_height(grid, row);
-    }
-    return top;
-}
-
 static void
 grid_region_rect(grid_t* grid, WORD col0, WORD row0,
                  WORD col1, WORD row1, RECT* rect)
 {
+    int header_w, header_h;
     WORD i;
 
+    /* Note: Caller may never mix header and ordinary cells in one call,
+     * because the latter is scrolled area, while the headers are not. Hence
+     * it does not make any sense to mix theme together. */
     MC_ASSERT(col1 > col0  ||  col0 == MC_TABLE_HEADER);
-    MC_ASSERT(col1 != MC_TABLE_HEADER);
     MC_ASSERT(row1 > row0  ||  row0 == MC_TABLE_HEADER);
-    MC_ASSERT(row1 != MC_TABLE_HEADER);
 
-    rect->left = grid_col_left(grid, col0);
-    rect->top = grid_row_top(grid, row0);
+    header_w = grid_header_width(grid);
+    header_h = grid_header_height(grid);
 
-    if(grid->col_widths == NULL) {
-        rect->right = grid_header_width(grid) + col1 * grid->def_col_width;
+    if(col0 == MC_TABLE_HEADER) {
+        rect->left = 0;
+        rect->right = header_w;
     } else {
-        rect->right = rect->left + grid_col_width(grid, col0);
-        for(i = (col0 != MC_TABLE_HEADER ? col0 + 1 : 0); i < col1; i++)
-            rect->right += grid_col_width(grid, i);
+        rect->left = header_w - grid->scroll_x;
+        if(grid->col_widths == NULL) {
+            if(col0 > 0)
+                rect->left += (col0-1) * grid->def_col_width;
+            rect->right = header_w - grid->scroll_x + col1 * grid->def_col_width;
+        } else {
+            for(i = 0; i < col0; i++)
+                rect->left += grid_col_width(grid, i);
+            rect->right = rect->left;
+            for(i = col0; i < col1; i++)
+                rect->right += grid_col_width(grid, i);
+        }
     }
 
-    if(grid->row_heights == NULL) {
-        rect->bottom = grid_header_height(grid) + row1 * grid->def_row_height;
+    if(row0 == MC_TABLE_HEADER) {
+        rect->top = 0;
+        rect->bottom = header_h;
     } else {
-        rect->bottom = rect->top + grid_row_height(grid, row0);
-        for(i = (row0 != MC_TABLE_HEADER ? row0 + 1 : 0); i < row1; i++)
-            rect->bottom += grid_row_height(grid, i);
+        rect->top = header_h - grid->scroll_y;
+        if(grid->row_heights == NULL) {
+            if(row0 > 0)
+                rect->top += (row0-1) * grid->def_row_height;
+            rect->bottom = header_h - grid->scroll_y + row1 * grid->def_row_height;
+        } else {
+            for(i = 0; i < row0; i++)
+                rect->top += grid_row_height(grid, i);
+            rect->bottom = rect->top;
+            for(i = row0; i < row1; i++)
+                rect->bottom += grid_row_height(grid, i);
+        }
     }
 }
 
-static void
+static inline void
 grid_cell_rect(grid_t* grid, WORD col, WORD row, RECT* rect)
 {
-    rect->left = grid_col_left(grid, col);
-    rect->top = grid_row_top(grid, row);
-    rect->right = rect->left + grid_col_width(grid, col);
-    rect->bottom = rect->top + grid_row_height(grid, row);
+    grid_region_rect(grid, col, row, col+1, row+1, rect);
 }
 
 static void
