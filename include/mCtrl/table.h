@@ -55,6 +55,17 @@ extern "C" {
  * used, then on output either @c MC_TABLECELL::pszText or
  * @c MC_TABLECELL::hValue is @c NULL, depending on what the cell holds.
  * (Both can be @c NULL if the cell does not neither string nor value.)
+ *
+ *
+ * @section table_header Column and Row Headers
+ *
+ * The table also holds a cell for each column and row. The grid uses data
+ * of these cells as headers for columns and rows (with its default styles;
+ * the control provides some styles changing this behavior).
+ *
+ * The cells are manipulated the same way as ordinary cells. Just to address
+ * the header cells, the macro @c MC_TABLE_HEADER has to be used instead
+ * of column index (for row header) or row index (for column header).
  */
 
 
