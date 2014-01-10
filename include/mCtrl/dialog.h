@@ -32,8 +32,8 @@ extern "C" {
  * @brief Dialog functions
  *
  * This module offers functions for creation of modal and modeless dialogs
- * in ery similar manner as standard functions @c DialogBox and @c CreateDialog
- * do.
+ * in very similar manner as standard functions @c DialogBox() and
+ * @c CreateDialog() do.
  *
  * Therefore mCtrl functions are very similar to their @c USER32.DLL
  * counterparts, including their function name and parameters. Actually
@@ -42,7 +42,7 @@ extern "C" {
  * the original functions.
  *
  * When set to non-zero, the functions provide new functionality. Currently
- * only the flag @c MC_DF_DEFAULTFONT is supported. When set, it forces the
+ * only the flag @ref MC_DF_DEFAULTFONT is supported. When set, it forces the
  * dialog to use default font, as defined by MS user interface guide lines.
  *
  * All the functions support the classic dialog templates (@c DLGTEMPLATE)

@@ -81,13 +81,13 @@ extern "C" {
  *
  * It is also possible to set the image in the application run time.
  *
- * Use message @c MC_IVM_LOADRESOURCE to set the image from the resource
+ * Use message @ref MC_IVM_LOADRESOURCE to set the image from the resource
  * of a DLL or EXE module. Note the application is responsible to ensure
  * the module is not unloaded while the image is in use by the control
  * I.e. until the control is associated with different image, or until the
  * control is destroyed.
  *
- * To load the image from a file, use the message @c MC_IVM_LOADFILE.
+ * To load the image from a file, use the message @ref MC_IVM_LOADFILE.
  *
  *
  * @section sect_imgview_scaling Image Scaling
@@ -96,9 +96,9 @@ extern "C" {
  * and as much of the control area is utilized as possible.
  *
  * Application can change this behavior by specifying the style
- * @c MC_IVS_REALSIZECONTROL, which scales the image to the size of the control
- * without preserving the aspect ratio; or by the style @c MC_IVS_REALSIZEIMAGE
- * which suppresses the scaling altogether.
+ * @ref MC_IVS_REALSIZECONTROL, which scales the image to the size of the
+ * control without preserving the aspect ratio; or by the style
+ * @ref MC_IVS_REALSIZEIMAGE which suppresses the scaling altogether.
  */
 
 
@@ -143,12 +143,12 @@ void MCTRL_API mcImgView_Terminate(void);
 #define MC_IVS_TRANSPARENT           0x00000001
 
 /** @brief When set, the image is scaled to dimensions of the control.
- *  @note This style cannot be used together with @c MC_IVS_REALSIZEIMAGE.
+ *  @note This style cannot be used together with @ref MC_IVS_REALSIZEIMAGE.
  */
 #define MC_IVS_REALSIZECONTROL       0x00000100
 /** @brief When set, the image is painted in its original dimensions.
  *  @details If the control is too small, only part of the image is painted.
- *  @note This style cannot be used together with @c MC_IVS_REALSIZECONTROL.
+ *  @note This style cannot be used together with @ref MC_IVS_REALSIZECONTROL.
  */
 #define MC_IVS_REALSIZEIMAGE         0x00000200
 

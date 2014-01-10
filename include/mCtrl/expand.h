@@ -38,7 +38,7 @@ extern "C" {
  * all child windows of the managed window which fall out of the visible area;
  * and when expanding it enables and shows all the child windows revealed by the
  * resize operation. Application can disable this behavior with the style
- * @c MC_EXS_IGNORECHILDREN.
+ * @ref MC_EXS_IGNORECHILDREN.
  *
  *
  * @section Managed Window
@@ -60,11 +60,11 @@ extern "C" {
  * of the managed window are visible (the expanded state) or all child windows
  * positioned below the expand control itself are hidden (the collapsed state).
  *
- * If you use style @c MC_EXS_CACHESIZES, the computed sizes are retained
+ * If you use style @ref MC_EXS_CACHESIZES, the computed sizes are retained
  * for next use, i.e. the sizes are computed only once.
  *
  * You can set expanded and collapsed sizes explicitly with message
- * @c MC_EXM_SETCOLLAPSEDSIZE and @c MC_EXM_SETEXPANDEDSIZE respectively.
+ * @ref MC_EXM_SETCOLLAPSEDSIZE and @ref MC_EXM_SETEXPANDEDSIZE respectively.
  *
  *
  * @section Initial State
@@ -75,8 +75,8 @@ extern "C" {
  * dialog.
  *
  * Therefore it is supposed that application explicitly sends the message
- * @c MC_EXM_EXPAND after the dialog and all its children are created, usually
- * as part of the @c WM_INITDIALOG handling.
+ * @ref MC_EXM_EXPAND after the dialog and all its children are created,
+ * usually as part of the @c WM_INITDIALOG handling.
  *
  *
  * These standard messages are handled by the control:
@@ -172,8 +172,8 @@ void MCTRL_API mcExpand_Terminate(void);
  * enabling/disabling the controls.
  *
  * If you use this style, application should make disable the children manually
- * in the response to control notification @c MC_EXN_EXPANDING or
- * @c MC_EXN_EXPANDED.
+ * in the response to control notification @ref MC_EXN_EXPANDING or
+ * @ref MC_EXN_EXPANDED.
  */
 #define MC_EXS_IGNORECHILDREN       0x0010
 
@@ -204,7 +204,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * automatically from position of all controls in the dialog.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam[in] (@c DWORD) The size. Low-order word specifies width and
+ * @param[in] lParam (@c DWORD) The size. Low-order word specifies width and
  * high-order word specifies height.
  * @return (@c DWORD) The original size.
  */
@@ -227,7 +227,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * automatically from position of all controls in the dialog.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam[in] (@c DWORD) The size. Low-order word specifies width and
+ * @param[in] lParam (@c DWORD) The size. Low-order word specifies width and
  * high-order word specifies height.
  * @return (@c DWORD) The original size.
  */
@@ -246,8 +246,8 @@ void MCTRL_API mcExpand_Terminate(void);
 /**
  * @brief Sets current state of the control to expanded or collapsed.
  *
- * @param wParam[in] (@c BOOL) Set to @c TRUE to expand, @c FALSE to collapse.
- * @param lParam[in] (@c DWORD) Flags. See @ref MC_EXE_xxxx.
+ * @param[in] wParam (@c BOOL) Set to @c TRUE to expand, @c FALSE to collapse.
+ * @param[in] lParam (@c DWORD) Flags. See @ref MC_EXE_xxxx.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_EXM_EXPAND              (MC_EXM_FIRST + 4)
@@ -256,7 +256,7 @@ void MCTRL_API mcExpand_Terminate(void);
  * @brief Toggles current state of the control between expanded and collapsed.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam[in] (@c DWORD) Flags. See @ref MC_EXE_xxxx.
+ * @param[in] lParam (@c DWORD) Flags. See @ref MC_EXE_xxxx.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_EXM_TOGGLE              (MC_EXM_FIRST + 5)
@@ -283,12 +283,12 @@ void MCTRL_API mcExpand_Terminate(void);
  * window.
  *
  * When application receives the message, the control is logically already in
- * the desired style, so it can ask about it using @c MC_EXM_ISEXPANDED.
+ * the desired style, so it can ask about it using @ref MC_EXM_ISEXPANDED.
  *
  * However the size of the parent window may be different from the desired
  * state if the control animates it, as that takes some time.
  * When the parent resizing is also finished, the application will receive
- * notification @c MC_EXN_EXPANDED.
+ * notification @ref MC_EXN_EXPANDED.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@c NMHDR*)

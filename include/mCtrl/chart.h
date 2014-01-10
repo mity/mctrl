@@ -52,18 +52,18 @@ extern "C" {
  * @section chart_dataset Data Sets
  *
  * To inset, delete or reset the data set values, use messages
- * @c MC_CHM_INSERTDATASET, @c MC_CHM_DELETEDATASET or @c MC_CHM_DELETEALLDATASETS
- * and @c MC_CHM_SETDATASET respectively.
+ * @ref MC_CHM_INSERTDATASET, @ref MC_CHM_DELETEDATASET or
+ * @ref MC_CHM_DELETEALLDATASETS and @ref MC_CHM_SETDATASET respectively.
  *
  * Data sets can have the data only virtually. That is application can provide
  * to the control only an information the data set exists and how large it is.
  * Whenever the control paints and needs really the data, it asks for them
- * with @c MC_CHN_GETDISPINFO message. This is useful especially if the data
+ * with @ref MC_CHN_GETDISPINFO message. This is useful especially if the data
  * for the chart are really large as it avoids duplication of the data in
  * program memory.
  *
  * To set various other attributes of the data set, you may use
- * @c MC_CHM_SETDATASETLEGEND to set its legend or @c MC_CHM_SETDATASETCOLOR
+ * @ref MC_CHM_SETDATASETLEGEND to set its legend or @ref MC_CHM_SETDATASETCOLOR
  * to set the color representing the values form the data set.
  *
  *
@@ -78,8 +78,8 @@ extern "C" {
  * corresponds to the index of data set and in most cases is displayed as the
  * horizontal (X) axis, and the secondary one corresponds to values in a data
  * set and in most cases is displayed as the vertical (Y) axis. An important
- * exception to this rule of thumb are bar (@c MC_CHS_BAR) and stacked bar
- * (@c MC_CHS_STACKEDBAR) charts which are similar to the (stacked) column
+ * exception to this rule of thumb are bar (@ref MC_CHS_BAR) and stacked bar
+ * (@ref MC_CHS_STACKEDBAR) charts which are similar to the (stacked) column
  * chart, but with horizontal and vertical axes swapped.
  *
  * The factor exponent is an integer value in the range (@c -9 to @c +9),
@@ -100,7 +100,7 @@ extern "C" {
  * data and if the application does not follow these requirements, the chart
  * can just display gibberish, or change the output in future mCtrl versions.
  *
- * The pie chart (@c MC_CHS_PIE) expects each data set consisting of a single
+ * The pie chart (@ref MC_CHS_PIE) expects each data set consisting of a single
  * non-negative value. It does not display any axis, but factor exponent of
  * the primary one is used for displaying data set values.
  *
@@ -108,18 +108,18 @@ extern "C" {
  * chart types this control provides. Many control attributes settable by
  * control messages actually have no impact to the pie chart.
  *
- * The scatter chart (@c MC_CHS_SCATTER) expects to have all data set sizes of
- * even count of values. Unlike the other chart types, the sizes of the data
+ * The scatter chart (@ref MC_CHS_SCATTER) expects to have all data set sizes
+ * of even count of values. Unlike the other chart types, the sizes of the data
  * sets can differ. The scatter chart interprets each data set as a set of
  * value pairs. Each value with odd index corresponds with the primary (X) axis,
  * and even index with secondary (Y) axis respectively.
  *
- * The line chart (@c MC_CHS_LINE), the area chart (@c MC_CHS_AREA), the column
- * chart (@c MC_CHS_COLUMN) and the bar chart (@c MC_CHS_BAR) only expect that
- * all the data sets are of the same size.
+ * The line chart (@ref MC_CHS_LINE), the area chart (@ref MC_CHS_AREA), the
+ * column chart (@ref MC_CHS_COLUMN) and the bar chart (@ref MC_CHS_BAR) only
+ * expect that all the data sets are of the same size.
  *
- * Stacked variants of the charts above (@c MC_CHS_STACKEDLINE,
- * @c MC_CHS_STACKEDAREA, @c MC_CHS_STCKEDCOLUMN and @c MC_CHS_STACKEDBAR)
+ * Stacked variants of the charts above (@ref MC_CHS_STACKEDLINE, @ref
+ * MC_CHS_STACKEDAREA, @ref MC_CHS_STACKEDCOLUMN and @ref MC_CHS_STACKEDBAR)
  * additionally expect all the data in all data sets are positive. Actually
  * the charts work for negative values, but the result can be confusing for
  * the user.
@@ -257,7 +257,7 @@ void MCTRL_API mcChart_Terminate(void);
  *
  * If inserting or setting a data set and if @c piValues is set to @c NULL, then
  * the control will retrieve the data dynamically from its parent through
- * a notification @c MC_CHN_GETDISPINFO.
+ * a notification @ref MC_CHN_GETDISPINFO.
  *
  * @sa MC_CHM_INSERTDATASET MC_CHM_GETDATASET MC_CHM_SETDATASET
  */
@@ -269,7 +269,7 @@ typedef struct MC_CHDATASET_tag {
 } MC_CHDATASET;
 
 /**
- * @brief Structure for notification @c MC_CHN_GETDISPINFO.
+ * @brief Structure for notification @ref MC_CHN_GETDISPINFO.
  */
 typedef struct MC_NMCHDISPINFO_tag {
     /** Standard notification structure header. */
@@ -315,11 +315,12 @@ typedef struct MC_NMCHDISPINFO_tag {
 /**
  * @brief Insert a data set.
  *
- * If the @c MC_CHDATASET::piValues is set to @c NULL, the control will retrieve
- * the data dynamically from its parent through a notification @c MC_CHN_GETDISPINFO.
+ * If the @ref MC_CHDATASET::piValues is set to @c NULL, the control will
+ * retrieve the data dynamically from its parent through a notification
+ * @ref MC_CHN_GETDISPINFO.
  *
  * @param[in] wParam (@c int) Index of the new data set.
- * @param[in] lParam (@c MC_CHDATASET*) Pointer to a data of the new data set.
+ * @param[in] lParam (@ref MC_CHDATASET*) Pointer to a data of the new data set.
  * @return (@c int) Index of the new data set, or @c -1 on failure.
  */
 #define MC_CHM_INSERTDATASET          (MC_CHM_FIRST + 2)
@@ -336,7 +337,7 @@ typedef struct MC_NMCHDISPINFO_tag {
  * @brief Get a data set.
  *
  * @param[in] wParam (@c int) Index of the data set.
- * @param[in,out] lParam (@c MC_CHDATASET*) Pointer to a data of the new data
+ * @param[in,out] lParam (@ref MC_CHDATASET*) Pointer to a data of the new data
  * set. On input, its member @c dwCount must be set to indicate how many values
  * can be written to the buffer pointed by @c piValues. In output, the @c dwCount
  * is updated to a count of values written into the @c piValues. You may also set
@@ -352,11 +353,12 @@ typedef struct MC_NMCHDISPINFO_tag {
 /**
  * @brief Set a data set.
  *
- * If the @c MC_CHDATASET::piValues is set to @c NULL, the control will retrieve
- * the data dynamically from its parent through a notification @c MC_CHN_GETDISPINFO.
+ * If the @c MC_CHDATASET::piValues is set to @c NULL, the control will
+ * retrieve the data dynamically from its parent through a notification
+ * @ref MC_CHN_GETDISPINFO.
  *
  * @param[in] wParam (@c int) Index of the data set to change.
- * @param[in] lParam (@c MC_CHDATASET*) Pointer to a data of the new data set.
+ * @param[in] lParam (@ref MC_CHDATASET*) Pointer to a data of the new data set.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_SETDATASET             (MC_CHM_FIRST + 5)
@@ -372,7 +374,7 @@ typedef struct MC_NMCHDISPINFO_tag {
 /**
  * @brief Set a color representing the data set in the chart.
  * @param[in] wParam (@c int) Index of the data set.
- * @param[in] lParam (@c COLORREF) The color. It may be @c MC_CLR_DEFAULT.
+ * @param[in] lParam (@c COLORREF) The color. It may be @ref MC_CLR_DEFAULT.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_SETDATASETCOLOR        (MC_CHM_FIRST + 7)

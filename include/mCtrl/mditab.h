@@ -226,7 +226,7 @@ typedef struct MC_MTITEMW_tag {
     /** Number of characters in @c pszText. Used only on output. */
     int cchTextMax;
     /** Index into control image list.
-     *  Set to @c MC_I_IMAGENONE if no image is associated with the item. */
+     *  Set to @ref MC_I_IMAGENONE if no image is associated with the item. */
     int iImage;
     /** User data. */
     LPARAM lParam;
@@ -245,7 +245,7 @@ typedef struct MC_MTITEMA_tag {
     /** Number of characters in @c psxText. Used only on output. */
     int cchTextMax;
     /** Index into control image list.
-     *  Set to @c MC_I_IMAGENONE if no image is associated with the item. */
+     *  Set to @ref MC_I_IMAGENONE if no image is associated with the item. */
     int iImage;
     /** User data. */
     LPARAM lParam;
@@ -480,7 +480,7 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 /**
  * @brief Asks to close item.
  *
- * It causes to send @c MC_MTN_CLOSEITEM notification and depending on its
+ * It causes to send @ref MC_MTN_CLOSEITEM notification and depending on its
  * return value it then can cause deleting the item.
  * @param[in] wParam (@c int) Index of the item to be closed.
  * @param lParam Reserved, set to zero.
@@ -571,11 +571,11 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTN_DELETEITEM         (MC_MTN_FIRST + 1)
 
 /**
- * @brief Fired when control processes @c MC_MTM_DELETEALLITEMS message or
+ * @brief Fired when control processes @ref MC_MTM_DELETEALLITEMS message or
  * when it is being destroyed.
  *
  * Depending on the value returned from the notification, calling
- * @c MC_MTN_DELETEITEM notifications for all the items can be suppressed.
+ * @ref MC_MTN_DELETEITEM notifications for all the items can be suppressed.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@c NMHDR*)
  * @return Application should return @c FALSE to receive subsequent

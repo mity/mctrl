@@ -45,8 +45,8 @@ extern "C" {
  * @section treelist_columns Columns
  *
  * Usually the very first step after creation of the control, application sets
- * its columns. The messages (@c MC_TLM_INSERTCOLUMN, @c MC_TLM_SETCOLUMN etc.)
- * and structure (@c MC_TLCOLUMN) for this task are very similar to the
+ * its columns. The messages (@ref MC_TLM_INSERTCOLUMN, @ref MC_TLM_SETCOLUMN
+ * etc.) and structure (@ref MC_TLCOLUMN) for this task are very similar to the
  * corresponding messages of the standard list view control.
  *
  * Note however that the tree-list control manages the left-most column
@@ -57,8 +57,8 @@ extern "C" {
  * always 0 too).
  *
  * Applications attempts to break this rule (e.g. with resetting the order
- * via @c MC_TLM_SETCOLUMN) will cause the message to fail. The control also
- * supports style @c MC_TLS_HEADERDRAGDROP which allows user to reorder the
+ * via @ref MC_TLM_SETCOLUMN) will cause the message to fail. The control also
+ * supports style @ref MC_TLS_HEADERDRAGDROP which allows user to reorder the
  * columns with mouse, but once again the control prevents change of the order
  * to the left-most column.
  *
@@ -66,12 +66,12 @@ extern "C" {
  * @section treelist_items_and_subitems Items, Child Items and Subitems
  *
  * Similarly as the standard list view control, the tree-list view control
- * distinguishes between items and subitems. The item (@c MC_TLITEM) describes
+ * distinguishes between items and subitems. The item (@ref MC_TLITEM) describes
  * state of the item (or row) as a whole, it also determines its position in
  * the tree hierarchy, and finally contains data to be displayed in the
  * left-most column.
  *
- * The subitems (@c MC_TLSUBITEM) then just hold data for the additional
+ * The subitems (@ref MC_TLSUBITEM) then just hold data for the additional
  * columns of each item (currently only textual label). Note that in this
  * regard the tree-list control differs from list view control where the
  * items as well as the subitems are actually described by single structure
@@ -82,16 +82,17 @@ extern "C" {
  * displayed or hidden depending on the expanded state of their parent.
  *
  * Inserting the items into the control is very similar to the standard
- * tree view control. The message @c MC_TLM_INSERTITEM takes pointer to the
- * structure @c MC_TLINSERTSTRUCT describing the item as well as its desired
+ * tree view control. The message @ref MC_TLM_INSERTITEM takes pointer to the
+ * structure @ref MC_TLINSERTSTRUCT describing the item as well as its desired
  * position in the tree as its parameters. The message returns an item handle
- * (@c MC_HTREELISTITEM) representing the new item, and this may be used to set
- * subitems of the item to insert child items (see below) and for other
+ * (@ref MC_HTREELISTITEM) representing the new item, and this may be used to
+ * set subitems of the item to insert child items (see below) and for other
  * manipulations with the item. Of course there are also special pseudo handles
- * @c MC_TLI_ROOT, @c MC_TLI_FIRST and @c MC_TLI_LAST which fulfill similar
- * role as the tree view counterparts @c TVI_ROOT, @c TVI_FIRST and @c TVI_LAST.
+ * @ref MC_TLI_ROOT, @ref MC_TLI_FIRST and @ref MC_TLI_LAST which fulfill
+ * similar role as the tree view counterparts @c TVI_ROOT, @c TVI_FIRST and
+ * @c TVI_LAST.
  *
- * Note that when any item is deleted (@c MC_TLM_DELETEITEM), then the whole
+ * Note that when any item is deleted (@ref MC_TLM_DELETEITEM), then the whole
  * subtree of its children is deleted as well.
  *
  *
@@ -115,25 +116,25 @@ extern "C" {
  *
  * When user attempts to expand the item, the application has to insert the
  * child items dynamically. To achieve this, the application must handle the
- * notification @c MC_TLN_EXPANDING and check the @c MC_NMTREELIST::action
- * for @c MC_TLE_EXPAND.
+ * notification @ref MC_TLN_EXPANDING and check the @ref MC_NMTREELIST::action
+ * for @ref MC_TLE_EXPAND.
  *
  * In a similar manner the application may delete the child items if
- * @c MC_NMTREELIST::action is set to @c MC_TLE_COLLAPSE. It may do so
- * by sending @c MC_TLM_EXPAND with @c WPARAM set to
+ * @ref MC_NMTREELIST::action is set to @ref MC_TLE_COLLAPSE. It may do so
+ * by sending @ref MC_TLM_EXPAND with @c WPARAM set to
  * <tt>MC_TLE_COLLAPSE | MC_TLE_COLLAPSERESET</tt>.
  *
  *
  * @section treelist_multiselect Multi-selection
  *
  * The control supports selecting multiple items. To enable this feature, use
- * the style @c MC_TLS_MULTISELECT. However note that only sibling items, i.e.
- * items belonging to the same parent (or root items) can form the
+ * the style @ref MC_TLS_MULTISELECT. However note that only sibling items,
+ * i.e. items belonging to the same parent (or root items) can form the
  * multi-selection.
  *
  * Also note that when this style is used, the selection-related notifications
- * @c MC_TLS_SELCHANING and @c MC_TLS_SELCHANGED behave differently. Refer to
- * their respective documentation for more details.
+ * @ref MC_TLN_SELCHANGING and @ref MC_TLN_SELCHANGED behave differently. Refer
+ * to their respective documentation for more details.
  *
  *
  * @section treelist_callbacks Item and Subitem Callbacks
@@ -143,11 +144,11 @@ extern "C" {
  * allows further reduction of memory consumption by the control.
  *
  * To use the callbacks, you can set item or subitem texts to
- * @c MC_LPSTR_TEXTCALLBACK, any item image to @c MC_I_IMAGECALLBACK, and/or
- * item @c cChildren member to @c MC_I_CHILDRENCALLBACK.
+ * @ref MC_LPSTR_TEXTCALLBACK, any item image to @ref MC_I_IMAGECALLBACK,
+ * and/or item @c cChildren member to @ref MC_I_CHILDRENCALLBACK.
  *
  * Whenever the control needs to paint the item/subitem, it then sends a
- * notification @c MC_TLN_GETDISPINFO (for item) or @c MC_TLN_GETSUBDISPINFO
+ * notification @ref MC_TLN_GETDISPINFO (for item) or @ref MC_TLN_GETSUBDISPINFO
  * (for subitem), with @c fMask specifying what members of it the application
  * has to fill.
  *
@@ -165,7 +166,7 @@ extern "C" {
  *
  * These standard notifications are sent by the control:
  * - @c NM_CLICK
- * - @c NM_CUSTOMDRAW (see @c MC_NMTLCUSTOMDRAW)
+ * - @c NM_CUSTOMDRAW (see @ref MC_NMTLCUSTOMDRAW)
  * - @c NM_DBLCLK
  * - @c NM_KILLFOCUS
  * - @c NM_RCLICK
@@ -244,7 +245,7 @@ void MCTRL_API mcTreeList_Terminate(void);
  *  automatically collapsed.
  *  @details The user can disable this by pressing @<CTRL@> while clicking on
  *  an item. Also note this style is ignored completely if style
- *  @c MC_TLS_MULTISELECT is set. */
+ *  @ref MC_TLS_MULTISELECT is set. */
 #define MC_TLS_SINGLEEXPAND         0x0400
 /** @brief Allow multiple selected items.
  *  @details Note that only sibling items (i.e. items with the same parent item)
@@ -343,7 +344,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 /** @brief Set if @c MC_TLITEM::lParam is valid. */
 #define MC_TLIF_PARAM                (1 << 2)
 /** @brief Set if @c MC_TLITEM::lParam is valid.
- *  @note Obsolete. Use @c MC_TLIF_PARAM. */
+ *  @note Obsolete. Use @ref MC_TLIF_PARAM. */
 #define MC_TLIF_LPARAM               (1 << 2)
 /** @brief Set if @c MC_TLITEM::iImage is valid. */
 #define MC_TLIF_IMAGE                (1 << 3)
@@ -435,7 +436,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 /** @brief Collapse the child items if expanded, or expand them if collapsed. */
 #define MC_TLE_TOGGLE                0x3
 /** @brief Delete all children of the collapsed item.
- *  @details Can be only used together with @c MC_TLE_EXPAND. */
+ *  @details Can be only used together with @ref MC_TLE_EXPAND. */
 #define MC_TLE_COLLAPSERESET         0x8000
 
 /*@}*/
@@ -478,14 +479,14 @@ void MCTRL_API mcTreeList_Terminate(void);
  * scrollbar. */
 #define MC_TLGN_PREVIOUSVISIBLE      0x7
 /** @brief Get (next) selected item, or @c NULL if no (other) item is selected.
- *  @details If the style @c MC_TLS_MULTISELECT is used, this can also be used
- *  to retrieve all selected items: To get first selected item, use zero
- *  as @c LPARAM of @c MC_TLM_GETNEXTITEM. To get next selected item, use
- *  @c non-NULL @c LPARAM. After @c MC_TLM_GETNEXTITEM returns @c NULL, you
+ *  @details If the style @ref MC_TLS_MULTISELECT is used, this can also be
+ *  used to retrieve all selected items: To get first selected item, use zero
+ *  as @c LPARAM of @ref MC_TLM_GETNEXTITEM. To get next selected item, use
+ *  @c non-NULL @c LPARAM. After @ref MC_TLM_GETNEXTITEM returns @c NULL, you
  *  have enumerated over all selected items. */
 #define MC_TLGN_CARET                0x9
 /** @brief Get last visible item, or @c NULL if there are no items.
- *  @note This is not symmetric to @c MC_TLGN_FIRSTVISIBLE. It gets the last
+ *  @note This is not symmetric to @ref MC_TLGN_FIRSTVISIBLE. It gets the last
  *  item which can be displayed by scrolling. It does not check current state
  *  of scrollbars. */
 #define MC_TLGN_LASTVISIBLE          0xa
@@ -507,7 +508,7 @@ typedef struct MC_TLCOLUMNW_tag {
      *  See @ref MC_TLCF_xxxx. */
     UINT fMask;
     /** Alignment of the column header and the subitem text in the column.
-     *  Note the alignment of leftmost column is always @c MC_TLFMT_LEFT;
+     *  Note the alignment of leftmost column is always @ref MC_TLFMT_LEFT;
      *  it cannot be changed. See @ref MC_TLFMT_xxxx. */
     int fmt;
     /** Width of the column in pixels. */
@@ -531,7 +532,7 @@ typedef struct MC_TLCOLUMNA_tag {
      *  See @ref MC_TLCF_xxxx. */
     UINT fMask;
     /** Alignment of the column header and the subitem text in the column.
-     *  Note the alignment of leftmost column is always @c MC_TLFMT_LEFT;
+     *  Note the alignment of leftmost column is always @ref MC_TLFMT_LEFT;
      *  it cannot be changed. See @ref MC_TLFMT_xxxx. */
     int fmt;
     /** Width of the column in pixels. */
@@ -565,22 +566,22 @@ typedef struct MC_TLITEMW_tag {
     /** Mask determining what bits of @c state are valid.
      *  Ignored when getting the item data. */
     UINT stateMask;
-    /** The item text. Can be @c MC_LPSTR_TEXTCALLBACK. */
+    /** The item text. Can be @ref MC_LPSTR_TEXTCALLBACK. */
     WCHAR* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
     int cchTextMax;
     /** User data. */
     LPARAM lParam;
-    /** Image. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
+    /** Image. Can be @ref MC_I_IMAGENONE or @ref MC_I_IMAGECALLBACK. */
     int iImage;
-    /** Image when selected. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
+    /** Image when selected. Can be @ref MC_I_IMAGENONE or @ref MC_I_IMAGECALLBACK. */
     int iSelectedImage;
-    /** Image when expanded. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
+    /** Image when expanded. Can be @ref MC_I_IMAGENONE or @ref MC_I_IMAGECALLBACK. */
     int iExpandedImage;
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them.
-     *  Can be @c MC_I_CHILDRENCALLBACK */
+     *  Can be @ref MC_I_CHILDRENCALLBACK */
     int cChildren;
 } MC_TLITEMW;
 
@@ -597,22 +598,22 @@ typedef struct MC_TLITEMA_tag {
     /** Mask determining what bits of @c state are valid.
      *  Ignored when getting the item data. */
     UINT stateMask;
-    /** The item text. Can be @c MC_LPSTR_TEXTCALLBACK. */
+    /** The item text. Can be @ref MC_LPSTR_TEXTCALLBACK. */
     char* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
     int cchTextMax;
     /** User data. */
     LPARAM lParam;
-    /** Image. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
+    /** Image. Can be @ref MC_I_IMAGENONE or @ref MC_I_IMAGECALLBACK. */
     int iImage;
-    /** Image when selected. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
+    /** Image when selected. Can be @ref MC_I_IMAGENONE or @ref MC_I_IMAGECALLBACK. */
     int iSelectedImage;
-    /** Image when expanded. Can be @c MC_I_IMAGENONE or @c MC_I_IMAGECALLBACK. */
+    /** Image when expanded. Can be @ref MC_I_IMAGENONE or @ref MC_I_IMAGECALLBACK. */
     int iExpandedImage;
     /** Flag indicating whether the item has children. When set to 1, control
      *  assumes it has children even though application has not inserted them.
-     *  Can be @c MC_I_CHILDRENCALLBACK */
+     *  Can be @ref MC_I_CHILDRENCALLBACK */
     int cChildren;
 } MC_TLITEMA;
 
@@ -626,7 +627,7 @@ typedef struct MC_TLSUBITEMW_tag {
     UINT fMask;
     /** ID of subitem to set or get. */
     int iSubItem;
-    /** Subitem text. Can be @c MC_LPSTR_TEXTCALLBACK. */
+    /** Subitem text. Can be @ref MC_LPSTR_TEXTCALLBACK. */
     WCHAR* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
@@ -643,7 +644,7 @@ typedef struct MC_TLSUBITEMA_tag {
     UINT fMask;
     /** ID of subitem to set or get. */
     int iSubItem;
-    /** The subitem text. Can be @c MC_LPSTR_TEXTCALLBACK. */
+    /** The subitem text. Can be @ref MC_LPSTR_TEXTCALLBACK. */
     char* pszText;
     /** Size of the buffer pointed with @c pszText.
      *  Ignored when setting the item data. */
@@ -655,10 +656,10 @@ typedef struct MC_TLSUBITEMA_tag {
  * @sa MC_TLM_INSERTITEMW
  */
 typedef struct MC_TLINSERTSTRUCTW_tag {
-    /** Handle of parent item where to insert the item or @c MC_TLI_ROOT. */
+    /** Handle of parent item where to insert the item or @ref MC_TLI_ROOT. */
     MC_HTREELISTITEM hParent;
-    /** Handle of parent item where to insert the item. Can be @c MC_TLI_FIRST
-     *  or @c MC_TLI_LAST. */
+    /** Handle of parent item where to insert the item. Can be @ref MC_TLI_FIRST
+     *  or @ref MC_TLI_LAST. */
     MC_HTREELISTITEM hInsertAfter;
     /** The new item data. */
     MC_TLITEMW item;
@@ -669,10 +670,10 @@ typedef struct MC_TLINSERTSTRUCTW_tag {
  * @sa MC_TLM_INSERTITEMA
  */
 typedef struct MC_TLINSERTSTRUCTA_tag {
-    /** Handle of parent item where to insert the item or @c MC_TLI_ROOT. */
+    /** Handle of parent item where to insert the item or @ref MC_TLI_ROOT. */
     MC_HTREELISTITEM hParent;
-    /** Handle of parent item where to insert the item. Can be @c MC_TLI_FIRST
-     *  or @c MC_TLI_LAST. */
+    /** Handle of parent item where to insert the item. Can be @ref MC_TLI_FIRST
+     *  or @ref MC_TLI_LAST. */
     MC_HTREELISTITEM hInsertAfter;
     /** The new item data. */
     MC_TLITEMA item;
@@ -740,8 +741,8 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
 } MC_NMTLCUSTOMDRAW;
 
 /**
- * @brief Structure used by notifications @c MC_TLN_GETDISPINFO and
- * @c MC_TLN_SETDISPINFO (Unicode variant).
+ * @brief Structure used by notifications @ref MC_TLN_GETDISPINFO and
+ * @ref MC_TLN_SETDISPINFO (Unicode variant).
  */
 typedef struct MC_NMTLDISPINFOW_tag {
     /** Common notification structure header. */
@@ -753,8 +754,8 @@ typedef struct MC_NMTLDISPINFOW_tag {
 } MC_NMTLDISPINFOW;
 
 /**
- * @brief Structure used by notifications @c MC_TLN_GETDISPINFO and
- * @c MC_TLN_SETDISPINFO (ANSI variant).
+ * @brief Structure used by notifications @ref MC_TLN_GETDISPINFO and
+ * @ref MC_TLN_SETDISPINFO (ANSI variant).
  */
 typedef struct MC_NMTLDISPINFOA_tag {
     /** Common notification structure header. */
@@ -766,8 +767,8 @@ typedef struct MC_NMTLDISPINFOA_tag {
 } MC_NMTLDISPINFOA;
 
 /**
- * @brief Structure used by notifications @c MC_TLN_GETSUBDISPINFO and
- * @c MC_TLN_SETSUBDISPINFO (Unicode variant).
+ * @brief Structure used by notifications @ref MC_TLN_GETSUBDISPINFO and
+ * @ref MC_TLN_SETSUBDISPINFO (Unicode variant).
  */
 typedef struct MC_NMTLSUBDISPINFOW_tag {
     /** Common notification structure header. */
@@ -781,8 +782,8 @@ typedef struct MC_NMTLSUBDISPINFOW_tag {
 } MC_NMTLSUBDISPINFOW;
 
 /**
- * @brief Structure used by notifications @c MC_TLN_GETSUBDISPINFO and
- * @c MC_TLN_SETSUBDISPINFO (ANSI variant).
+ * @brief Structure used by notifications @ref MC_TLN_GETSUBDISPINFO and
+ * @ref MC_TLN_SETSUBDISPINFO (ANSI variant).
  */
 typedef struct MC_NMTLSUBDISPINFOA_tag {
     /** Common notification structure header. */
@@ -897,30 +898,32 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Insert new item into the control (Unicode variant).
  *
- * Note application may set @c MC_TLINSERTSTRUCT::hParent to @c MC_TLI_ROOT
+ * Note application may set @c MC_TLINSERTSTRUCT::hParent to @ref MC_TLI_ROOT
  * to insert the new item as the root item, and similarly the member
  * @c MC_TLINSERTSTRUCT::hInsertAfter may be set to @c MC_TLI_FIRST or
- * @c MC_TLI_LAST to insert the item as first or last child item of the parent.
+ * @ref MC_TLI_LAST to insert the item as first or last child item of the
+ * parent.
  *
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@ref MC_TLINSERTSTRUCTW*) Pointer to the structure
  * specifying new item position in the tree and other attributes of the item.
- * @return (@c MC_HTREELISTITEM) Handle of the new item, or @c NULL on failure.
+ * @return (@ref MC_HTREELISTITEM) Handle of the new item, or @c NULL on failure.
  */
 #define MC_TLM_INSERTITEMW           (MC_TLM_FIRST + 11)
 
 /**
  * @brief Insert new item into the control (ANSI variant).
  *
- * Note application may set @c MC_TLINSERTSTRUCT::hParent to @c MC_TLI_ROOT
+ * Note application may set @c MC_TLINSERTSTRUCT::hParent to @ref MC_TLI_ROOT
  * to insert the new item as the root item, and similarly the member
  * @c MC_TLINSERTSTRUCT::hInsertAfter may be set to @c MC_TLI_FIRST or
- * @c MC_TLI_LAST to insert the item as first or last child item of the parent.
+ * @ref MC_TLI_LAST to insert the item as first or last child item of the
+ * parent.
  *
  * @param wParam Reserved, set to zero.
  * @param[in] lParam (@ref MC_TLINSERTSTRUCTA*) Pointer to the structure
  * specifying new item position in the tree and other attributes of the item.
- * @return (@c MC_HTREELISTITEM) Handle of the new item, or @c NULL on failure.
+ * @return (@ref MC_HTREELISTITEM) Handle of the new item, or @c NULL on failure.
  */
 #define MC_TLM_INSERTITEMA           (MC_TLM_FIRST + 12)
 
@@ -978,11 +981,11 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @brief Delete item from the control.
  *
  * Note the message also deletes all child items recursively, i.e. whole subtree
- * is deleted. If you specify @c MC_TLI_ROOT as the item to delete, then all
+ * is deleted. If you specify @ref MC_TLI_ROOT as the item to delete, then all
  * items of the control are deleted.
  *
  * @param wParam Reserved, set to zero.
- * @param[in] lParam (@ref MC_HTREELISTITEM) Handle of the item or @c MC_TLI_ROOT.
+ * @param[in] lParam (@ref MC_HTREELISTITEM) Handle of the item or @ref MC_TLI_ROOT.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_TLM_DELETEITEM            (MC_TLM_FIRST + 17)
@@ -992,8 +995,8 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  *
  * @param[in] wParam (@c int) New height of item in the control. Heights less
  * then zero will be set to 1. If this value is not even and the control does
- * not have the style @c MC_TLS_NONEVENHEIGHT, it shall be rounded down to the
- * nearest even value. If set to @c -1, the control will revert to default
+ * not have the style @ref MC_TLS_NONEVENHEIGHT, it shall be rounded down to
+ * the nearest even value. If set to @c -1, the control will revert to default
  * height.
  * @param lParam Reserved, set to zero.
  * @return (@c int) The previous height of the items, in pixels.
@@ -1062,7 +1065,7 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 
 /**
  * @brief Set item indentation.
- * @brief[in] wParam (@c int) The indentation, in pixels.
+ * @param[in] wParam (@c int) The indentation, in pixels.
  * @param lParam Reserved, set to zero.
  * @return None.
  */
@@ -1082,7 +1085,7 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @param wParam Reserved, set to zero.
  * @param[in,out] lParam (@ref MC_TLHITTESTINFO*) Pointer to a hit test
  * structure. Set @ref MC_TLHITTESTINFO::pt on input.
- * @return (@c MC_HTREELISTITEM) Handle of the hit item, or @c NULL.
+ * @return (@ref MC_HTREELISTITEM) Handle of the hit item, or @c NULL.
  */
 #define MC_TLM_HITTEST               (MC_TLM_FIRST + 26)
 
@@ -1099,7 +1102,7 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @param[in] wParam (@c int) Flag determining the item to retrieve.
  * See @ref MC_TLGN_xxxx.
  * @param[in] lParam (@ref MC_HTREELISTITEM) Handle of an item.
- * @return (@c MC_HTREELISTITEM) Handle of the item in the specified
+ * @return (@ref MC_HTREELISTITEM) Handle of the item in the specified
  * relationship, or @c NULL.
  */
 #define MC_TLM_GETNEXTITEM           (MC_TLM_FIRST + 28)
@@ -1165,11 +1168,11 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Fired when deleting an item.
  *
- * The members @c hItemOld and @c lParamOld of @c MC_NMTREELIST specify which
+ * The members @c hItemOld and @c lParamOld of @ref MC_NMTREELIST specify which
  * item is being deleted.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @ref MC_NMTREELIST
  * structure.
  * @return Application should return zero if it processes the notification.
  */
@@ -1178,18 +1181,18 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Fired when a selection item is about to change.
  *
- * When style @c MC_TLS_MULTISELECT is not used, @c MC_NMTREELIST describes
+ * When style @ref MC_TLS_MULTISELECT is not used, @ref MC_NMTREELIST describes
  * how the selection changes: The members @c hItemOld and @c lParamOld
  * describe the current selection, and the members @c hItemNew and @c lParamNew
  * specify the to-be-selection.
  *
- * However when style @c MC_TLS_MULTISELECT is used, the notification behaves
+ * However when style @ref MC_TLS_MULTISELECT is used, the notification behaves
  * differently: The notification is only sent for items which are going to be
  * selected (once per such item), and the members @c hItemOld and @c lParamOld
  * are always set to @c NULL.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @ref MC_NMTREELIST
  * structure.
  * @return Application may prevent @c TRUE to prevent the selection change,
  * or @c FALSE otherwise to allow it.
@@ -1199,18 +1202,18 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Fired when selection has changed.
  *
- * When style @c MC_TLS_MULTISELECT is not used, @c MC_NMTREELIST describes
+ * When style @ref MC_TLS_MULTISELECT is not used, @ref MC_NMTREELIST describes
  * how the selection has changed: The members @c hItemOld and @c lParamOld
  * describe the old selection, and the members @c hItemNew and @c lParamNew
  * specify the new selection.
  *
- * However when style @c MC_TLS_MULTISELECT is used, the notification behaves
- * differently: It sends notification just once for the control and all
- * @c MC_NMTREELIST members are set to @c NULL. Application can iterate through
- * currently selected items by using the message @c MC_TLM_GETNEXTITEM.
+ * However when style @ref MC_TLS_MULTISELECT is used, the notification behaves
+ * differently: It sends notification just once for the control and all @ref
+ * MC_NMTREELIST members are set to @c NULL. Application can iterate through
+ * currently selected items by using the message @ref MC_TLM_GETNEXTITEM.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @ref MC_NMTREELIST
  * structure.
  * @return Application should return zero if it processes the notification.
  */
@@ -1219,13 +1222,13 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Fired when a parent item is about to expand or collapse.
  *
- * The members @c hItemNew and @c lParamNew of @c MC_NMTREELIST specify
- * the item which is changing its state. The member @c action is set to
- * @c MC_TLE_EXPAND or MC_TLE_COLLAPSE to specify that the item is going
+ * The members @c hItemNew and @c lParamNew of @ref MC_NMTREELIST specify the
+ * item which is changing its state. The member @c action is set to @ref
+ * MC_TLE_EXPAND or @ref MC_TLE_COLLAPSE to specify that the item is going
  * to expand or collapse respectively.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @ref MC_NMTREELIST
  * structure.
  * @return Application may prevent @c TRUE to prevent the item state change,
  * or @c FALSE otherwise to allow it.
@@ -1235,13 +1238,13 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 /**
  * @brief Fired when a parent item has expanded or collapsed.
  *
- * The members @c hItemNew and @c lParamNew of @c MC_NMTREELIST specify
+ * The members @c hItemNew and @c lParamNew of @ref MC_NMTREELIST specify
  * the item which has changed its state, The member @c action is set to
- * @c MC_TLE_EXPAND or MC_TLE_COLLAPSE to specify that the item has expanded
- * or collapsed respectively.
+ * @ref MC_TLE_EXPAND or @ref MC_TLE_COLLAPSE to specify that the item has
+ * expanded or collapsed respectively.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @c MC_NMTREELIST
+ * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @ref MC_NMTREELIST
  * structure.
  * @return Application should return zero if it processes the notification.
  */
@@ -1257,11 +1260,11 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * (Unicode variant).
  *
  * This may happen when some members of an item were set to a callback magical
- * value such as @c MC_LPSTRTEXTCALLBACK, @c MC_I_IMAGECALLBACK and
- * @c MC_I_CHILDRENCALLBACK.
+ * value such as @ref MC_LPSTR_TEXTCALLBACK, @ref MC_I_IMAGECALLBACK and
+ * @ref MC_I_CHILDRENCALLBACK.
  *
- * @param wParam
- * @param lParam[in,out] (@ref MC_NMTLDISPINFO*) Pointer to a @c MC_NMTLDISPINFO
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMTLDISPINFO*) Pointer to a @ref MC_NMTLDISPINFO
  * structure.
  * @return None.
  */
@@ -1272,11 +1275,11 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * (ANSI variant).
  *
  * This may happen when some members of an item were set to a callback magical
- * value such as @c MC_LPSTRTEXTCALLBACK, @c MC_I_IMAGECALLBACK and
- * @c MC_I_CHILDRENCALLBACK.
+ * value such as @ref MC_LPSTR_TEXTCALLBACK, @ref MC_I_IMAGECALLBACK and
+ * @ref MC_I_CHILDRENCALLBACK.
  *
- * @param wParam
- * @param lParam[in,out] (@ref MC_NMTLDISPINFO*) Pointer to a @c MC_NMTLDISPINFO
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMTLDISPINFO*) Pointer to a @ref MC_NMTLDISPINFO
  * structure.
  * @return None.
  */

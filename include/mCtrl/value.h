@@ -70,7 +70,7 @@ extern "C" {
  * will reset the value, or even destroy it.
  *
  * If the application needs to store the information represented by the value,
- * it is supposed to make a duplicate of the value with @c mcValue_Duplicate(),
+ * it is supposed to make a duplicate of the value with @ref mcValue_Duplicate(),
  * or call (appropriate) getter value and store the information itself.
  *
  *
@@ -91,8 +91,8 @@ extern "C" {
  *  -- "Ordinary strings" @ref MC_VALUETYPEID_STRINGW and @ref MC_VALUETYPEID_STRINGA
  *  -- "Immutable strings" @ref MC_VALUETYPEID_IMMSTRINGW and @ref MC_VALUETYPEID_IMMSTRINGA
  *
- * There are also two Unicode/ANSI resolution macros @c MC_VALUETYPEID_STRING
- * and @c MC_VALUETYPEID_IMMSTRING, one for the ordinary strings, the letter
+ * There are also two Unicode/ANSI resolution macros @ref MC_VALUETYPEID_STRING
+ * and @ref MC_VALUETYPEID_IMMSTRING, one for the ordinary strings, the letter
  * for the immutable ones.
  *
  * The ordinary strings keep copies of the string buffers used during value
@@ -398,7 +398,7 @@ MC_HVALUE MCTRL_API mcValue_CreateColor(COLORREF color);
 /**
  * @brief Color getter function.
  * @param[in] hValue The value.
- * @return The color, or @c MC_CLR_NONE on failure.
+ * @return The color, or @ref MC_CLR_NONE on failure.
  */
 COLORREF MCTRL_API mcValue_GetColor(const MC_HVALUE hValue);
 

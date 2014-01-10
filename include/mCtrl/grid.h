@@ -39,23 +39,23 @@ extern "C" {
  *
  * @section grid_model Data Model
  *
- * By default, the control uses @c MC_HTABLE data model to manage the data
+ * By default, the control uses @ref MC_HTABLE data model to manage the data
  * displayed by the control. Then, actually, all messages manipulating with
  * data hold by the control just call corresponding function manipulating with
- * the underlying @c MC_HTABLE.
+ * the underlying @ref MC_HTABLE.
  *
  * By default, the control creates an empty table during its creation, of size
  * 0 x 0. So, usually, one of 1st messages sent to the control by any application
- * is @c MC_GM_RESIZE.
+ * is @ref MC_GM_RESIZE.
  *
- * Alternatively, you can use the style @c MC_GS_NOTABLECREATE. In that case
+ * Alternatively, you can use the style @ref MC_GS_NOTABLECREATE. In that case
  * the control does not create any table during its creation, and you must
  * associate an existing table with the control with the message
- * @c MC_GM_SETTABLE. Until you do so, all messages attempting
+ * @ref MC_GM_SETTABLE. Until you do so, all messages attempting
  * to modify the underlying table will just fail.
  *
- * @c MC_GM_SETTABLE together with @c MC_GM_GETTABLE allows attaching one table
- * to multiple controls.
+ * @ref MC_GM_SETTABLE together with @ref MC_GM_GETTABLE allows attaching one
+ * table to multiple controls.
  *
  * Messages which do not manipulate with the table determine how the table
  * is presented and these are tied to the control. I.e. if any table is
@@ -303,33 +303,45 @@ typedef struct MC_GGEOMETRY_tag {
  *
  * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
  * row.
- * @param[in] lParam (@ref MC_TABLECELLW*) Pointer to structure describing
+ * @param[in] lParam (@ref MC_TABLECELLA*) Pointer to structure describing
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_GM_SETCELLA            (MC_GM_FIRST + 7)
 
 /**
- * @brief Gets a table cell.
+ * @brief Gets a table cell (Unicode variant).
  *
  * Before calling this function, the member @c MC_TABLECELL::fMask must specify
  * what attributes of the cell to retrieve.
  *
  * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
  * row.
- * @param[out] lParam (@ref MC_TABLECELL*) Pointer to structure describing
+ * @param[out] lParam (@ref MC_TABLECELLW*) Pointer to structure describing
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
 #define MC_GM_GETCELLW            (MC_GM_FIRST + 8)
 
+/**
+ * @brief Gets a table cell (ANSI variant).
+ *
+ * Before calling this function, the member @c MC_TABLECELL::fMask must specify
+ * what attributes of the cell to retrieve.
+ *
+ * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
+ * row.
+ * @param[out] lParam (@ref MC_TABLECELLA*) Pointer to structure describing
+ * the cell.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ */
 #define MC_GM_GETCELLA            (MC_GM_FIRST + 9)
 
 /**
  * @brief Sets geometry of the grid.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam[in] (@ref MC_GGEOMETRY*) Pointer to structure describing
+ * @param[in] lParam (@ref MC_GGEOMETRY*) Pointer to structure describing
  * the geometry. Only fields specified by the member @c fMask are set.
  * If @c lParam is @c NULL, the geometry is reset to a default values.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
@@ -340,7 +352,7 @@ typedef struct MC_GGEOMETRY_tag {
  * @brief Sets geometry of the grid.
  *
  * @param wParam Reserved, set to zero.
- * @param lParam[in,out] (@ref MC_GGEOMETRY*) Pointer to structure describing
+ * @param[in,out] lParam (@ref MC_GGEOMETRY*) Pointer to structure describing
  * the geometry. Only fields specified by the member @c fMask are retrieved.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */

@@ -82,7 +82,7 @@ extern "C" {
  * image.png HTML path/to/image.png
  * @endcode
  * which is used to build a @c MYLIBRARY.DLL used by your application then
- * your application can simply send the message @c MC_HM_GOTOURL with URL
+ * your application can simply send the message @ref MC_HM_GOTOURL with URL
  * @c "res://mylibrary.dll/some_page.html".
  *
  * Of course, HTML documents stored in the resources then can also use

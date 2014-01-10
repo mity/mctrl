@@ -99,9 +99,9 @@ extern "C" {
  * @section sec_mb_create Installing a Menu
  *
  * To install a menu in the menubar, you may set parameter @c lpParam of
- * @c CreateWindow or @c CreateWindowEx to the handle of the menu (@c HMENU).
- * Or, after the menubar is created, you may install a menu with the
- * message @c MC_MBM_SETMENU.
+ * @c CreateWindow() or @c CreateWindowEx() to the handle of the menu (@c HMENU).
+ * Or, after the menubar is created, you may install a menu with the message
+ * @ref MC_MBM_SETMENU.
  *
  * Either way the application is responsible to keep the menu handle valid
  * as long as the menubar exists (or until other menu is installed in the
@@ -110,7 +110,7 @@ extern "C" {
  * Note however that changes to the menu are not automatically reflected in the
  * menubar. If application programatically changes top-level items of the menu
  * (for example add new pop-ups, disable some of them etc.), it then has to
- * send @c MC_MBM_REFRESH to reflect the changes.
+ * send @ref MC_MBM_REFRESH to reflect the changes.
  *
  *
  * @section sec_mb_notifications Notifications
@@ -121,7 +121,7 @@ extern "C" {
  * uses the notification @c WM_COMMAND as with a normal menu. It can also
  * take use of @c WM_MENUSELECT and @c WM_INITMENU.
  *
- * toolbar notifications are sent through @c WM_NOTIFY. For example,
+ * Toolbar notifications are sent through @c WM_NOTIFY. For example,
  * @c TBN_DROPDOWN or @c TBN_HOTITEMCHANGE are sent as any other notifications
  * normal toolbar fires.
  *

@@ -40,8 +40,8 @@ extern "C" {
  * @section table_cell Cell
  *
  * To set or get an information about a cell, application uses the structure
- * @c MC_TABLECELL. The main data associated with each cell is a text (string)
- * or value (@c MC_HVALUE). Note the cell can only hold one or the other, but
+ * @ref MC_TABLECELL. The main data associated with each cell is a text (string)
+ * or value (@ref MC_HVALUE). Note the cell can only hold one or the other, but
  * not both.
  *
  * When the cell is holding a string and an application sets the cell to
@@ -64,7 +64,7 @@ extern "C" {
  * the control provides some styles changing this behavior).
  *
  * The cells are manipulated the same way as ordinary cells. Just to address
- * the header cells, the macro @c MC_TABLE_HEADER has to be used instead
+ * the header cells, the macro @ref MC_TABLE_HEADER has to be used instead
  * of column index (for row header) or row index (for column header).
  */
 
