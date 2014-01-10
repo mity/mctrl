@@ -145,8 +145,14 @@ grid_col_left(grid_t* grid, WORD col)
         return 0;
 
     left = grid_header_width(grid);
-    for(i = 0; i < col; i++)
-        left += grid_col_width(grid, col);
+
+    if(grid->col_widths == NULL) {
+        if(col > 0)
+            left += (col-1) * grid->def_col_width;
+    } else {
+        for(i = 0; i < col; i++)
+            left += grid_col_width(grid, col);
+    }
     return left;
 }
 
@@ -160,8 +166,14 @@ grid_row_top(grid_t* grid, WORD row)
         return 0;
 
     top = grid_header_height(grid);
-    for(i = 0; i < row; i++)
-        top += grid_row_height(grid, row);
+
+    if(grid->row_heights == NULL) {
+        if(row > 0)
+            top += (row-1) * grid->def_row_height;
+    } else {
+        for(i = 0; i < row; i++)
+            top += grid_row_height(grid, row);
+    }
     return top;
 }
 
@@ -178,12 +190,22 @@ grid_region_rect(grid_t* grid, WORD col0, WORD row0,
 
     rect->left = grid_col_left(grid, col0);
     rect->top = grid_row_top(grid, row0);
-    rect->right = rect->left + grid_col_width(grid, col0);
-    for(i = (col0 != MC_TABLE_HEADER ? col0 + 1 : 0); i < col1; i++)
-        rect->right += grid_col_width(grid, i);
-    rect->bottom = rect->top + grid_row_height(grid, row0);
-    for(i = (row0 != MC_TABLE_HEADER ? row0 + 1 : 0); i < row1; i++)
-        rect->bottom += grid_row_height(grid, i);
+
+    if(grid->col_widths == NULL) {
+        rect->right = grid_header_width(grid) + col1 * grid->def_col_width;
+    } else {
+        rect->right = rect->left + grid_col_width(grid, col0);
+        for(i = (col0 != MC_TABLE_HEADER ? col0 + 1 : 0); i < col1; i++)
+            rect->right += grid_col_width(grid, i);
+    }
+
+    if(grid->row_heights == NULL) {
+        rect->bottom = grid_header_height(grid) + row1 * grid->def_row_height;
+    } else {
+        rect->bottom = rect->top + grid_row_height(grid, row0);
+        for(i = (row0 != MC_TABLE_HEADER ? row0 + 1 : 0); i < row1; i++)
+            rect->bottom += grid_row_height(grid, i);
+    }
 }
 
 static void
