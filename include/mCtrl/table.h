@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2013 Martin Mitas
+ * Copyright (c) 2010-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,15 +32,29 @@ extern "C" {
  * @file
  * @brief Table (data model for grid control)
  *
- * The table is actually a container which manages set of values (@ref MC_HVALUE)
- * in two-dimensional matrix. It serves as a back-end for the grid control
+ * The table is actually a container which manages set of values arranged in
+ * a two-dimensional matrix. It serves as a back-end for the grid control
  * (@ref MC_WC_GRID).
  *
- * If application sets some of such flags (e.g. @c MC_TF_NOCELLFOREGROUND) and
- * later it attempts to set he corresponding attribute of the cell (e.g.
- * foreground color), the behavior is undefined (setting of some attributes
- * is silently ignored, or the operation as a whole can fail but application
- * should not rely on exact behavior).
+ *
+ * @section table_cell Cell
+ *
+ * To set or get an information about a cell, application uses the structure
+ * @c MC_TABLECELL. The main data associated with each cell is a text (string)
+ * or value (@c MC_HVALUE). Note the cell can only hold one or the other, but
+ * not both.
+ *
+ * When the cell is holding a string and an application sets the cell to
+ * a value, the string is freed. When the cell is holding a value and app sets
+ * the cell to a string, then the value is destroyed. The cell holds whatever
+ * is set last to it. Any attempt to set both at the same time (i.e. using
+ * mask <tt>MC_TCMF_TEXT | MC_TCMF_VALUE</tt> with a setter function) causes
+ * a failure of the setter function.
+ *
+ * When getting a cell and the mask <tt>MC_TCMF_TEXT | MC_TCMF_VALUE</tt> is
+ * used, then on output either @c MC_TABLECELL::pszText or
+ * @c MC_TABLECELL::hValue is @c NULL, depending on what the cell holds.
+ * (Both can be @c NULL if the cell does not neither string nor value.)
  */
 
 
@@ -51,19 +65,33 @@ typedef void* MC_HTABLE;
 
 
 /**
+ * @brief ID of column/row headers.
+ *
+ * To set or get a contents of column or row header, specify this constant
+ * as row/column index.
+ *
+ * For example, to set value label of a column identified with @c wCol:
+ * @code
+ * mcTable_SetCell(hTable, wCol, MC_TABLE_HEADER, pCell);
+ * @endcode
+ */
+#define MC_TABLE_HEADER              0xffff
+
+
+/**
  * @anchor MC_TCMF_xxxx
  * @name MC_TABLECELL::fMask Bits
  */
 /*@{*/
 
-/** @brief Set if @ref MC_TABLECELL::hValue are valid. */
-#define MC_TCMF_VALUE                0x00000001
-/** @brief Set if @ref MC_TABLECELL::crForeground is valid. */
-#define MC_TCMF_FOREGROUND           0x00000002
-/** @brief Set if @ref MC_TABLECELL::crBackground is valid. */
-#define MC_TCMF_BACKGROUND           0x00000004
-/** @brief Set if @ref MC_TABLECELL::dwFlags is valid. */
-#define MC_TCMF_FLAGS                0x00000008
+/** @brief Set if @ref MC_TABLECELLW::pszText or @ref MC_TABLECELLA::pszText is valid.
+ *  @see @ref table_cell */
+#define MC_TCMF_TEXT                 0x00000001
+/** @brief Set if @ref MC_TABLECELLW::hValue or @ref MC_TABLECELLA::hValue is valid.
+ *  @see @ref table_cell */
+#define MC_TCMF_VALUE                0x00000002
+/** @brief Set if @ref MC_TABLECELLW::dwFlags or @ref MC_TABLECELLA::dwFlags is valid. */
+#define MC_TCMF_FLAGS                0x00000004
 
 /*@}*/
 
@@ -95,25 +123,47 @@ typedef void* MC_HTABLE;
 
 
 /**
- * @brief Structure describing a table cell.
+ * @brief Structure describing a table cell (Unicode variant).
  *
  * Note that only members corresponding to the set bits of the @c fMask
  * are considered valid. (@c fMask itself is always valid of course.)
  *
  * @sa mcTable_SetCell mcTable_GetCell
  */
-typedef struct MC_TABLECELL_tag {
-    /** Bit-mask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
+typedef struct MC_TABLECELLW_tag {
+    /** Bitmask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
     DWORD fMask;
-    /** Cell value. */
+    /** Cell text. @see @ref table_cell */
+    WCHAR* pszText;
+    /** Number of characters in @c pszText. Used only on output. */
+    int cchTextMax;
+    /** Cell value. @see @ref table_cell */
     MC_HVALUE hValue;
-    /** Foreground color. It's up to the value type if it respects it. */
-    COLORREF crForeground;
-    /** Background color. */
-    COLORREF crBackground;
     /** Cell flags. See @ref MC_TCF_xxxx. */
     DWORD dwFlags;
-} MC_TABLECELL;
+} MC_TABLECELLW;
+
+
+/**
+ * @brief Structure describing a table cell (ANSI variant).
+ *
+ * Note that only members corresponding to the set bits of the @c fMask
+ * are considered valid. (@c fMask itself is always valid of course.)
+ *
+ * @sa mcTable_SetCell mcTable_GetCell
+ */
+typedef struct MC_TABLECELLA_tag {
+    /** Bitmask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
+    DWORD fMask;
+    /** Cell text. @see @ref table_cell */
+    char* pszText;
+    /** Number of characters in @c pszText. Used only on output. */
+    int cchTextMax;
+    /** Cell value. @see @ref table_cell */
+    MC_HVALUE hValue;
+    /** Cell flags. See @ref MC_TCF_xxxx. */
+    DWORD dwFlags;
+} MC_TABLECELLA;
 
 
 /**
@@ -185,70 +235,20 @@ BOOL MCTRL_API mcTable_Resize(MC_HTABLE hTable, WORD wColumnCount, WORD wRowCoun
 /**
  * @brief Clear the table.
  *
- * All values are destroyed. In case of homogeneous table, all cells are reset
- * to @c NULL values of the particular value type, in case of homogeneous
- * table the table becomes empty.
+ * Clears all cells of the table satisfying the condition as specified by
+ * @c dwWhat.
  *
  * @param[in] hTable The table.
+ * @param[in] dwWhat Specification of the cells to be cleared. When set to zero,
+ * all table contents (including header cells) is cleared. When non-zero, the
+ * value is interpreted as a bit-mask of cells to clear:
+ * Set bit @c 0x1 to clear all ordinary cells, @c 0x2 to clear column
+ * headers and bit @c 0x4 to clear row cells.
  */
-void MCTRL_API mcTable_Clear(MC_HTABLE hTable);
+void MCTRL_API mcTable_Clear(MC_HTABLE hTable, DWORD dwWhat);
 
 /**
- * @brief Set value.
- *
- * Note that (in case of success) the table takes responsibility for the value.
- * I.e. when the table is later deallocated, or if the particular cell is later
- * reset, the value is destroyed.
- *
- * To reset the cell, set value to @c NULL. The reset leads to destroying of
- * a value actually stored in the cell as a side-effect.
- *
- * @param[in] hTable The table.
- * @param[in] wCol Column index.
- * @param[in] wRow Row index.
- * @param[in] value The value.
- * @return @c TRUE on success, @c FALSE otherwise.
- */
-BOOL MCTRL_API mcTable_SetValue(MC_HTABLE hTable, WORD wCol, WORD wRow,
-                               MC_HVALUE value);
-
-/**
- * @brief Get value.
- *
- * Note that you don't get a responsibility for the value. If you want to
- * store it elsewhere and/or modify it, you should do so on your copy.
- * You may use @ref mcValue_Duplicate() for that purpose.
- *
- * @param[in] hTable The table.
- * @param[in] wCol Column index.
- * @param[in] wRow Row index.
- * @return Value of the cell, or @c NULL on failure.
- */
-const MC_HVALUE MCTRL_API mcTable_GetValue(MC_HTABLE hTable, WORD wCol, WORD wRow);
-
-/**
- * @brief Swap contents of a cell.
- *
- * This function swaps value of the cell for the one provided. The table
- * becomes responsible for the new cell, while the application gets
- * responsibility for the returned value in the exchange.
- *
- * @param[in] hTable The table.
- * @param[in] wCol Column index.
- * @param[in] wRow Row index.
- * @param[in] value The new value of the cell.
- * @return The previous value of the cell, or @c NULL on failure.
- */
-MC_HVALUE MCTRL_API mcTable_SwapValue(MC_HTABLE hTable, WORD wCol, WORD wRow,
-                                      MC_HVALUE value);
-
-/**
- * @brief Set contents of a cell.
- *
- * If @c pCell->fMask includes the bit @c MC_TCMF_VALUE, then
- * (in case of success) the table takes responsibility for the value.
- * I.e. when the table is later deallocated, or if the particular cell is later
- * reset, the value is then destroyed.
+ * @brief Set contents of a cell (Unicode variant).
  *
  * @param[in] hTable The table.
  * @param[in] wCol Column index.
@@ -256,11 +256,23 @@ MC_HVALUE MCTRL_API mcTable_SwapValue(MC_HTABLE hTable, WORD wCol, WORD wRow,
  * @param[in] pCell Specifies attributes of the cell to set.
  * @return @c TRUE on success, @c FALSE otherwise.
  */
-BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
-                               MC_TABLECELL* pCell);
+BOOL MCTRL_API mcTable_SetCellW(MC_HTABLE hTable, WORD wCol, WORD wRow,
+                                MC_TABLECELLW* pCell);
 
 /**
- * @brief Get contents of a cell.
+ * @brief Set contents of a cell (ANSI variant).
+ *
+ * @param[in] hTable The table.
+ * @param[in] wCol Column index.
+ * @param[in] wRow Row index.
+ * @param[in] pCell Specifies attributes of the cell to set.
+ * @return @c TRUE on success, @c FALSE otherwise.
+ */
+BOOL MCTRL_API mcTable_SetCellA(MC_HTABLE hTable, WORD wCol, WORD wRow,
+                                MC_TABLECELLA* pCell);
+
+/**
+ * @brief Get contents of a cell (Unicode variant).
  *
  * Before calling this function, the member @c pCell->fMask must specify what
  * attributes of the cell to retrieve.
@@ -271,11 +283,40 @@ BOOL MCTRL_API mcTable_SetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
  * @param[out] pCell Specifies retrieved attributes of the cell.
  * @return @c TRUE on success, @c FALSE otherwise.
  */
-BOOL MCTRL_API mcTable_GetCell(MC_HTABLE hTable, WORD wCol, WORD wRow,
-                               MC_TABLECELL* pCell);
+BOOL MCTRL_API mcTable_GetCellW(MC_HTABLE hTable, WORD wCol, WORD wRow,
+                                MC_TABLECELLW* pCell);
+
+/**
+ * @brief Get contents of a cell (ANSI variant).
+ *
+ * Before calling this function, the member @c pCell->fMask must specify what
+ * attributes of the cell to retrieve.
+ *
+ * @param[in] hTable The table.
+ * @param[in] wCol Column index.
+ * @param[in] wRow Row index.
+ * @param[out] pCell Specifies retrieved attributes of the cell.
+ * @return @c TRUE on success, @c FALSE otherwise.
+ */
+BOOL MCTRL_API mcTable_GetCellA(MC_HTABLE hTable, WORD wCol, WORD wRow,
+                                MC_TABLECELLA* pCell);
 
 /*@}*/
 
+
+/**
+ * @name Unicode Resolution
+ */
+/*@{*/
+
+/** Unicode-resolution alias. @sa MC_TABLECELLW MC_TABLECELLA */
+#define MC_TABLECELL             MCTRL_NAME_AW(MC_TABLECELL)
+/** Unicode-resolution alias. @sa mcTable_SetCellW mcTable_SetCellA */
+#define mcTable_SetCell          MCTRL_NAME_AW(mcTable_SetCell)
+/** Unicode-resolution alias. @sa mcTable_GetCellW mcTable_GetCellA */
+#define mcTable_GetCell          MCTRL_NAME_AW(mcTable_GetCell)
+
+/*@}*/
 
 #ifdef __cplusplus
 }  /* extern "C" */

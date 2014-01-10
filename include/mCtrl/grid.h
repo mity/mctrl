@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2013 Martin Mitas
+ * Copyright (c) 2010-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,18 +33,25 @@ extern "C" {
  * @file
  * @brief Grid control (@c MC_WC_GRID).
  *
- * The grid control provides user interface for presentation of table data
- * model (see @c MC_HTABLE).
+ * The grid control provides user interface for presentation of a lot of data
+ * in, as the name of the control suggests, a grid.
  *
- * Actually all messages manipulating with contents of the table exist just
- * for convenience: they just call corresponding function manipulating with
- * the underlying @c MC_HTABLE. Thus the table can be resized, its contents can
- * be changed and so on without use of the @c MC_HTABLE API.
  *
- * By default, the control creates an empty heterogeneous table during
- * its creation. You can avoid that by the style @c MC_GS_NOTABLECREATE.
- * In that case however you have to attach some table to the control manually
- * with the message @c MC_GM_SETTABLE. Until you do so, all messages attempting
+ * @section grid_model Data Model
+ *
+ * By default, the control uses @c MC_HTABLE data model to manage the data
+ * displayed by the control. Then, actually, all messages manipulating with
+ * data hold by the control just call corresponding function manipulating with
+ * the underlying @c MC_HTABLE.
+ *
+ * By default, the control creates an empty table during its creation, of size
+ * 0 x 0. So, usually, one of 1st messages sent to the control by any application
+ * is @c MC_GM_RESIZE.
+ *
+ * Alternatively, you can use the style @c MC_GS_NOTABLECREATE. In that case
+ * the control does not create any table during its creation, and you must
+ * associate an existing table with the control with the message
+ * @c MC_GM_SETTABLE. Until you do so, all messages attempting
  * to modify the underlying table will just fail.
  *
  * @c MC_GM_SETTABLE together with @c MC_GM_GETTABLE allows attaching one table
@@ -55,10 +62,17 @@ extern "C" {
  * attached to multiple control, each of the controls can present the table
  * in other way (e.g. have another dimensions for each cell etc.).
  *
+ *
+ * @section std_msgs Standard Messages
+ *
  * These standard messages are handled by @c MC_WC_GRID control:
  * - @c WM_GETFONT
  * - @c WM_SETFONT
  * - @c WM_SETREDRAW
+ * - @c CCM_GETUNICODEFORMAT
+ * - @c CCM_SETNOTIFYWINDOW
+ * - @c CCM_SETUNICODEFORMAT
+ * - @c CCM_SETWINDOWTHEME
  */
 
 
@@ -105,23 +119,43 @@ void MCTRL_API mcGrid_Terminate(void);
 /** @brief Do not paint grid lines. */
 #define MC_GS_NOGRIDLINES            0x0002
 
-/** @brief Columns have no header. This is default. */
-#define MC_GS_COLUMNHEADERNONE       0x0000
+/** @brief Use double buffering. */
+#define MC_GS_DOUBLEBUFFER           0x0004
+
+/* TODO:
+#define MC_GS_OWNERDATA              0x0008
+#define MC_GS_RESIZABLECOLUMNS       0x0010
+#define MC_GS_RESIZABLEROWS          0x0020
+#define MC_GS_RESIZABLEHEADERS       0x0040
+*/
+
+/** @brief The contents of column headers is used. This is default. */
+#define MC_GS_COLUMNHEADERNORMAL     0x0000
 /** @brief Columns have numerical headers (i.e. "1", "2", "3" etc.) */
 #define MC_GS_COLUMNHEADERNUMBERED   0x1000
 /** @brief Columns have alphabetical headers (i.e. "A", "B", "C" etc.) */
 #define MC_GS_COLUMNHEADERALPHABETIC 0x2000
-/** @brief First table row is interpreted as column headers. */
-#define MC_GS_COLUMNHEADERCUSTOM     0x3000
+/** @brief Columns have no header. */
+#define MC_GS_COLUMNHEADERNONE       0x3000
+/** @brief Bit mask specifying the column header mode. */
+#define MC_GS_COLUMNHEADERMASK      (MC_GS_COLUMNHEADERNORMAL |               \
+                                     MC_GS_COLUMNHEADERNUMBERED |             \
+                                     MC_GS_COLUMNHEADERALPHABETIC |           \
+                                     MC_GS_COLUMNHEADERNONE)
 
-/** @brief Rows have no header. This is default. */
-#define MC_GS_ROWHEADERNONE          0x0000
+/** @brief The contents of row headers is used. This is default. */
+#define MC_GS_ROWHEADERNORMAL        0x0000
 /** @brief Rows have numerical headers (i.e. "1", "2", "3" etc.) */
 #define MC_GS_ROWHEADERNUMBERED      0x4000
 /** @brief Rows have alphabetical headers (i.e. "A", "B", "C" etc.) */
 #define MC_GS_ROWHEADERALPHABETIC    0x8000
-/** @brief First table column is interpreted as row headers. */
-#define MC_GS_ROWHEADERCUSTOM        0xC000
+/** @brief Rows have no header. This is default. */
+#define MC_GS_ROWHEADERNONE          0xC000
+/** @brief Bit mask specifying the row header mode. */
+#define MC_GS_ROWHEADERMASK         (MC_GS_ROWHEADERNORMAL |                  \
+                                     MC_GS_ROWHEADERNUMBERED |                \
+                                     MC_GS_ROWHEADERALPHABETIC |              \
+                                     MC_GS_ROWHEADERNONE)
 
 /*@}*/
 
@@ -136,10 +170,10 @@ void MCTRL_API mcGrid_Terminate(void);
 #define MC_GGF_COLUMNHEADERHEIGHT     (1 << 0)
 /** @brief Set if @ref MC_GGEOMETRY::wRowHeaderWidth is valid. */
 #define MC_GGF_ROWHEADERWIDTH         (1 << 1)
-/** @brief Set if @ref MC_GGEOMETRY::wColumnWidth is valid. */
-#define MC_GGF_COLUMNWIDTH            (1 << 2)
-/** @brief Set if @ref MC_GGEOMETRY::wRowHeight is valid. */
-#define MC_GGF_ROWHEIGHT              (1 << 3)
+/** @brief Set if @ref MC_GGEOMETRY::wDefColumnWidth is valid. */
+#define MC_GGF_DEFCOLUMNWIDTH         (1 << 2)
+/** @brief Set if @ref MC_GGEOMETRY::wDefRowHeight is valid. */
+#define MC_GGF_DEFROWHEIGHT           (1 << 3)
 /** @brief Set if @ref MC_GGEOMETRY::wPaddingHorz is valid. */
 #define MC_GGF_PADDINGHORZ            (1 << 4)
 /** @brief Set if @ref MC_GGEOMETRY::wPaddingVert is valid. */
@@ -164,10 +198,10 @@ typedef struct MC_GGEOMETRY_tag {
     WORD wColumnHeaderHeight;
     /** Width of row header cells. */
     WORD wRowHeaderWidth;
-    /** Width of regular contents cells. */
-    WORD wColumnWidth;
-    /** Height of regular contents cells. */
-    WORD wRowHeight;
+    /** Default width of regular contents cells. */
+    WORD wDefColumnWidth;
+    /** Default height of regular contents cells. */
+    WORD wDefRowHeight;
     /** Horizontal padding in cells. */
     WORD wPaddingHorz;
     /** Vertical padding in cells. */
@@ -243,22 +277,37 @@ typedef struct MC_GGEOMETRY_tag {
 /**
  * @brief Clears the table.
  *
- * @param wParam Reserved, set to zero.
+ * @param[in] wParam Specification of the cells to be cleared. When set to zero,
+ * all table contents (including header cells) is cleared. When non-zero, the
+ * value is interpreted as a bit-mask of cells to clear:
+ * Set bit @c 0x1 to clear all ordinary cells, @c 0x2 to clear column
+ * headers and bit @c 0x4 to clear row cells.
  * @param lParam Reserved, set to zero.
  * @return Not defined, do not rely on return value.
  */
 #define MC_GM_CLEAR               (MC_GM_FIRST + 5)
 
 /**
- * @brief Sets a table cell.
+ * @brief Sets a table cell (Unicode variant).
  *
  * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
  * row.
- * @param[in] lParam (@ref MC_TABLECELL*) Pointer to structure describing
+ * @param[in] lParam (@ref MC_TABLECELLW*) Pointer to structure describing
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETCELL             (MC_GM_FIRST + 6)
+#define MC_GM_SETCELLW            (MC_GM_FIRST + 6)
+
+/**
+ * @brief Sets a table cell (ANSI variant).
+ *
+ * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
+ * row.
+ * @param[in] lParam (@ref MC_TABLECELLW*) Pointer to structure describing
+ * the cell.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ */
+#define MC_GM_SETCELLA            (MC_GM_FIRST + 7)
 
 /**
  * @brief Gets a table cell.
@@ -272,7 +321,9 @@ typedef struct MC_GGEOMETRY_tag {
  * the cell.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_GETCELL             (MC_GM_FIRST + 7)
+#define MC_GM_GETCELLW            (MC_GM_FIRST + 8)
+
+#define MC_GM_GETCELLA            (MC_GM_FIRST + 9)
 
 /**
  * @brief Sets geometry of the grid.
@@ -283,7 +334,7 @@ typedef struct MC_GGEOMETRY_tag {
  * If @c lParam is @c NULL, the geometry is reset to a default values.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_SETGEOMETRY         (MC_GM_FIRST + 8)
+#define MC_GM_SETGEOMETRY         (MC_GM_FIRST + 10)
 
 /**
  * @brief Sets geometry of the grid.
@@ -293,30 +344,7 @@ typedef struct MC_GGEOMETRY_tag {
  * the geometry. Only fields specified by the member @c fMask are retrieved.
  * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
  */
-#define MC_GM_GETGEOMETRY         (MC_GM_FIRST + 9)
-
-/**
- * @brief Sets a table value.
- *
- * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
- * row.
- * @param[in] lParam (@ref MC_HVALUE) Pointer to the value.
- * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
- */
-#define MC_GM_SETVALUE           (MC_GM_FIRST + 10)
-
-/**
- * @brief Gets a table value.
- *
- * Caller has to fill @c MC_GCELL::wCol and @c MC_GCELL::wRow before sending
- * this message.
- *
- * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
- * row.
- * @param lParam Reserved, set to zero.
- * @return (@c MC_HVALUE) The value, @c NULL on failure.
- */
-#define MC_GM_GETVALUE            (MC_GM_FIRST + 11)
+#define MC_GM_GETGEOMETRY         (MC_GM_FIRST + 11)
 
 /*@}*/
 
@@ -328,6 +356,11 @@ typedef struct MC_GGEOMETRY_tag {
 
 /** Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
 #define MC_WC_GRID          MCTRL_NAME_AW(MC_WC_GRID)
+
+/** Unicode-resolution alias. @sa MC_GM_SETCELLW MC_GM_SETCELLA */
+#define MC_GM_SETCELL       MCTRL_NAME_AW(MC_GM_SETCELL)
+/** Unicode-resolution alias. @sa MC_GM_GETCELLW MC_GM_GETCELLA */
+#define MC_GM_GETCELL       MCTRL_NAME_AW(MC_GM_GETCELL)
 
 /*@}*/
 

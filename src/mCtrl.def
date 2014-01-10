@@ -101,14 +101,13 @@ EXPORTS
     mcTable_Clear
     mcTable_ColumnCount
     mcTable_Create
-    mcTable_GetCell
-    mcTable_GetValue
+    mcTable_GetCellA
+    mcTable_GetCellW
     mcTable_Release
     mcTable_Resize
     mcTable_RowCount
-    mcTable_SetCell
-    mcTable_SetValue
-    mcTable_SwapValue
+    mcTable_SetCellA
+    mcTable_SetCellW
     mcTheme_Initialize
     mcTheme_Terminate
     mcTreeList_Initialize
