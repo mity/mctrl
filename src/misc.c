@@ -436,7 +436,7 @@ mc_icon_size(HICON icon, SIZE* size)
 }
 
 void
-mc_font_size(HFONT font, SIZE* size)
+mc_font_size(HFONT font, SIZE* size, BOOL include_external_leading)
 {
     /* See http://support.microsoft.com/kb/125681 */
     static const TCHAR canary_str[] = _T("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
@@ -458,6 +458,9 @@ mc_font_size(HFONT font, SIZE* size)
 
     size->cx = (s.cx / (canary_len/2) + 1) / 2;
     size->cy = tm.tmHeight;
+
+    if(include_external_leading)
+        size->cy += tm.tmExternalLeading;
 }
 
 void
@@ -480,7 +483,7 @@ int
 mc_pixels_from_dlus(HFONT font, int dlus, BOOL vert)
 {
     SIZE font_size;
-    mc_font_size(font, &font_size);
+    mc_font_size(font, &font_size, FALSE);
     if(vert)
         return (dlus * font_size.cy + 2) / 8;
     else
@@ -491,7 +494,7 @@ int
 mc_dlus_from_pixels(HFONT font, int pixels, BOOL vert)
 {
     SIZE font_size;
-    mc_font_size(font, &font_size);
+    mc_font_size(font, &font_size, FALSE);
     if(vert)
         return (16 * pixels + font_size.cy) / (2 * font_size.cy);
     else
@@ -635,7 +638,7 @@ mc_tooltip_create(HWND parent, HWND notify, BOOL track)
     info.uFlags = TTF_IDISHWND | TTF_ABSOLUTE;
     if(track)
         info.uFlags |= TTF_TRACK;
-        
+
     info.hwnd = parent;
     MC_SEND(ret, TTM_ADDTOOL, 0, &info);
 
@@ -646,7 +649,7 @@ mc_tooltip_create(HWND parent, HWND notify, BOOL track)
         ttc.hwndToolTips = ret;
         MC_SEND(notify, WM_NOTIFY, ttc.hdr.idFrom, &ttc);
     }
-    
+
     return ret;
 }
 

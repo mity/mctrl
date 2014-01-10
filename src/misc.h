@@ -497,7 +497,7 @@ static inline UINT mc_icon_height(HICON icon)
 
 /* Determine approximate font on-screen dimension in pixels (height and avg.
  * char width). Used to auto-adjust item size in complex controls. */
-void mc_font_size(HFONT font, SIZE* size);
+void mc_font_size(HFONT font, SIZE* size, BOOL include_external_leading);
 
 void mc_string_size(const TCHAR* str, HFONT font, SIZE* size);
 static inline UINT mc_string_width(const TCHAR* str, HFONT font)
@@ -539,7 +539,7 @@ mc_track_mouse(HWND win, DWORD flags)
 /****************
  *** Tooltips ***
  ****************/
- 
+
 /* Creates a tooltip window that is optionally a tracked tooltip */
 HWND mc_tooltip_create(HWND parent, HWND notify, BOOL track);
 

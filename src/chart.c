@@ -2144,7 +2144,7 @@ chart_calc_layout(chart_t* chart, chart_layout_t* layout)
     RECT rect;
 
     GetClientRect(chart->win, &rect);
-    mc_font_size(chart->font, &layout->font_size);
+    mc_font_size(chart->font, &layout->font_size, FALSE);
 
     layout->margin = (layout->font_size.cy+1) / 2;
 
