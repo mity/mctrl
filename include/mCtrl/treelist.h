@@ -749,7 +749,7 @@ typedef struct MC_NMTLDISPINFOW_tag {
     NMHDR hdr;
     /** Handle specifying the item. */
     MC_HTREELISTITEM hItem;
-    /** Structure that identifies the item. */
+    /** Structure providing the data of the item. */
     MC_TLITEMW item;
 } MC_NMTLDISPINFOW;
 
@@ -762,7 +762,7 @@ typedef struct MC_NMTLDISPINFOA_tag {
     NMHDR hdr;
     /** Handle specifying the item. */
     MC_HTREELISTITEM hItem;
-    /** Structure that identifies the item. */
+    /** Structure providing the data of the item. */
     MC_TLITEMA item;
 } MC_NMTLDISPINFOA;
 
@@ -777,7 +777,7 @@ typedef struct MC_NMTLSUBDISPINFOW_tag {
     MC_HTREELISTITEM hItem;
     /** @c LPARAM of the item. */
     LPARAM lItemParam;
-    /** Structure that identifies the subitem. */
+    /** Structure providing the data of the subitem. */
     MC_TLSUBITEMW subitem;
 } MC_NMTLSUBDISPINFOW;
 
@@ -792,7 +792,7 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
     MC_HTREELISTITEM hItem;
     /** @c LPARAM of the item. */
     LPARAM lItemParam;
-    /** Structure that identifies the subitem. */
+    /** Structure providing the data of the subitem. */
     MC_TLSUBITEMA subitem;
 } MC_NMTLSUBDISPINFOA;
 
@@ -1263,6 +1263,16 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * value such as @ref MC_LPSTR_TEXTCALLBACK, @ref MC_I_IMAGECALLBACK and
  * @ref MC_I_CHILDRENCALLBACK.
  *
+ * When sending the notification, the control sets @c MC_NMTLDISPINFO::hItem
+ * to the handle of the item it is interested in, @c MC_NMTLDISPINFO::item::fMask
+ * to specify what members of @c MC_NMTLDISPINFO::item the application is
+ * supposed to fill, and it also sets @c MC_NMTLDISPINFO::item::lParam
+ * (this is for convenience of the application, as often the app stores some
+ * id needed for retrieving the requested data).
+ *
+ * The parent must fill the data in @c MC_NMTLDISPINFO::item, as requested
+ * by the mask @c MC_NMTLDISPINFO::item::fMask.
+ *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in,out] lParam (@ref MC_NMTLDISPINFO*) Pointer to a @ref MC_NMTLDISPINFO
  * structure.
@@ -1278,6 +1288,16 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * value such as @ref MC_LPSTR_TEXTCALLBACK, @ref MC_I_IMAGECALLBACK and
  * @ref MC_I_CHILDRENCALLBACK.
  *
+ * When sending the notification, the control sets @c MC_NMTLDISPINFO::hItem
+ * to the handle of the item it is interested in, @c MC_NMTLDISPINFO::item::fMask
+ * to specify what members of @c MC_NMTLDISPINFO::item the application is
+ * supposed to fill, and it also sets @c MC_NMTLDISPINFO::item::lParam
+ * (this is for convenience of the application, as often the app stores some
+ * id needed for retrieving the requested data).
+ *
+ * The parent must fill the data in @c MC_NMTLDISPINFO::item, as requested
+ * by the mask @c MC_NMTLDISPINFO::item::fMask.
+ *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in,out] lParam (@ref MC_NMTLDISPINFO*) Pointer to a @ref MC_NMTLDISPINFO
  * structure.
@@ -1290,7 +1310,54 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
 #define MC_TLN_SETSUBDISPINFOA       (MC_TLN_FIRST + 10)
 #endif
 
+/**
+ * @brief Fired when control needs to retrieve some subitem data, the parent
+ * holds (Unicode variant).
+ *
+ * This may happen when the subitem text was set to @ref MC_LPSTR_TEXTCALLBACK.
+ *
+ * When sending the notification, the control sets @c MC_NMTLDISPINFO::hItem
+ * to the handle of the item in whose subitem it is interested in,
+ * @c MC_NMTLDISPINFO::subitem.iSubItem to specify what subitem it needs,
+ * @c MC_NMTLDISPINFO::subitem::fMask to specify what members of
+ * @c MC_NMTLSUBDISPINFO::subitem the application is supposed to fill, and it
+ * also sets @c MC_NMTLDISPINFO::lItemParam (this is for convenience of the
+ * application, as often the app stores some id needed for retrieving the
+ * requested data).
+ *
+ * The parent must fill the data in @c MC_NMTLSUBDISPINFO::subitem, as requested
+ * by the mask @c MC_NMTLSUBDISPINFO::subitem::fMask.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMTLSUBDISPINFO*) Pointer to a @ref
+ * MC_NMTLSUBDISPINFO structure.
+ * @return None.
+ */
 #define MC_TLN_GETSUBDISPINFOW       (MC_TLN_FIRST + 11)
+
+/**
+ * @brief Fired when control needs to retrieve some subitem data, the parent
+ * holds (ANSI variant).
+ *
+ * This may happen when the subitem text was set to @ref MC_LPSTR_TEXTCALLBACK.
+ *
+ * When sending the notification, the control sets @c MC_NMTLDISPINFO::hItem
+ * to the handle of the item in whose subitem it is interested in,
+ * @c MC_NMTLDISPINFO::subitem.iSubItem to specify what subitem it needs,
+ * @c MC_NMTLDISPINFO::subitem::fMask to specify what members of
+ * @c MC_NMTLSUBDISPINFO::subitem the application is supposed to fill, and it
+ * also sets @c MC_NMTLDISPINFO::lItemParam (this is for convenience of the
+ * application, as often the app stores some id needed for retrieving the
+ * requested data).
+ *
+ * The parent must fill the data in @c MC_NMTLSUBDISPINFO::subitem, as requested
+ * by the mask @c MC_NMTLSUBDISPINFO::subitem::fMask.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMTLSUBDISPINFO*) Pointer to a @ref
+ * MC_NMTLSUBDISPINFO structure.
+ * @return None.
+ */
 #define MC_TLN_GETSUBDISPINFOA       (MC_TLN_FIRST + 12)
 
 /*@}*/
