@@ -349,17 +349,13 @@ treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t
             di->text = mc_str(info.item.pszText, (tl->unicode_notifications ? MC_STRW : MC_STRA), MC_STRT);
     }
 
-    if(mask & MC_TLIF_IMAGE)
-        di->img = info.item.iImage;
-
-    if(mask & MC_TLIF_SELECTEDIMAGE)
-        di->img_selected = info.item.iSelectedImage;
-
-    if(mask & MC_TLIF_EXPANDEDIMAGE)
-        di->img_expanded = info.item.iExpandedImage;
-
-    if(mask & MC_TLIF_CHILDREN)
-        di->children = (info.item.cChildren ? 1 : 0);
+    /* Small optimization: We do not ask about the corresponding bits in the
+     * mask for these. If not set, the assignment does no hurt and we save few
+     * instructions. */
+    di->img = info.item.iImage;
+    di->img_selected = info.item.iSelectedImage;
+    di->img_expanded = info.item.iExpandedImage;
+    di->children = (info.item.cChildren ? 1 : 0);
 }
 
 static inline void
