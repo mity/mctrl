@@ -418,6 +418,8 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
 {
     table_cell_t* cell;
     table_refresh_detail_t refresh_detail;
+    void* text;
+    MC_HVALUE val;
 
     TABLE_TRACE("table_set_cell_data(%p, %hd, %hd, %p, %s)",
                 table, col, row, cell_data, (unicode ? "unicode" : "ansi"));
@@ -434,17 +436,23 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
         return -1;
     }
 
-    if(MC_ERR((cell_data->fMask & (MC_TCMF_TEXT | MC_TCMF_VALUE)) == (MC_TCMF_TEXT | MC_TCMF_VALUE))) {
-        MC_TRACE("table_set_cell_data: Cannot use both MC_TCMF_TEXT and MC_TCMF_VALUE.");
+    text = (cell_data->fMask & MC_TCMF_TEXT) ? cell_data->pszText : NULL;
+    val = (cell_data->fMask & MC_TCMF_VALUE) ? cell_data->hValue : NULL;
+    if(MC_ERR(text != NULL  &&  val != NULL)) {
+        MC_TRACE("table_set_cell_data: Cannot set both MC_TABLECELL::pszText and MC_TABLECELL::hValue.");
         SetLastError(ERROR_INVALID_PARAMETER);
         return -1;
     }
 
     /* Set the cell */
-    if(cell_data->fMask & MC_TCMF_TEXT) {
+    if(val != NULL) {
+        table_cell_free(cell);
+        cell->value = val;
+        cell->is_value = TRUE;
+    } else {
         TCHAR* str;
-        if(cell_data->pszText != NULL) {
-            str = mc_str(cell_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+        if(text != NULL) {
+            str = mc_str(text, (unicode ? MC_STRW : MC_STRA), MC_STRT);
             if(MC_ERR(str == NULL)) {
                 MC_TRACE("table_set_cell_data: mc_str() failed.");
                 return -1;
@@ -455,12 +463,6 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
         table_cell_free(cell);
         cell->text = str;
         cell->is_value = FALSE;
-    }
-
-    if(cell_data->fMask & MC_TCMF_VALUE) {
-        table_cell_free(cell);
-        cell->value = cell_data->hValue;
-        cell->is_value = TRUE;
     }
 
     if(cell_data->fMask & MC_TCMF_FLAGS)
