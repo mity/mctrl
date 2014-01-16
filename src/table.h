@@ -32,9 +32,8 @@ struct table_cell_tag {
         TCHAR* text;
         value_t* value;
     };
-
-    /* Currently all flags fit in WORD, so make a space for the below. */
-    WORD flags;
+    LPARAM lp;
+    WORD flags;      /* Note MC_TABLECELL::dwFlags is DWORD. */
     WORD is_value : 1;
 };
 

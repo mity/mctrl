@@ -101,8 +101,10 @@ typedef void* MC_HTABLE;
 /** @brief Set if @ref MC_TABLECELLW::hValue or @ref MC_TABLECELLA::hValue is valid.
  *  @see @ref table_cell */
 #define MC_TCMF_VALUE                0x00000002
+/** @brief Set if @ref MC_TABLECELLW::lParam or @ref MC_TABLECELLA::lParam is valid. */
+#define MC_TCMF_PARAM                0x00000004
 /** @brief Set if @ref MC_TABLECELLW::dwFlags or @ref MC_TABLECELLA::dwFlags is valid. */
-#define MC_TCMF_FLAGS                0x00000004
+#define MC_TCMF_FLAGS                0x00000008
 
 /*@}*/
 
@@ -150,6 +152,8 @@ typedef struct MC_TABLECELLW_tag {
     int cchTextMax;
     /** Cell value. @see @ref table_cell */
     MC_HVALUE hValue;
+    /** User data. */
+    LPARAM lParam;
     /** Cell flags. See @ref MC_TCF_xxxx. */
     DWORD dwFlags;
 } MC_TABLECELLW;
@@ -172,6 +176,8 @@ typedef struct MC_TABLECELLA_tag {
     int cchTextMax;
     /** Cell value. @see @ref table_cell */
     MC_HVALUE hValue;
+    /** User data. */
+    LPARAM lParam;
     /** Cell flags. See @ref MC_TCF_xxxx. */
     DWORD dwFlags;
 } MC_TABLECELLA;

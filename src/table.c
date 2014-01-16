@@ -29,7 +29,7 @@
 #endif
 
 
-#define MC_TCMF_ALL    (MC_TCMF_TEXT | MC_TCMF_VALUE | MC_TCMF_FLAGS)
+#define MC_TCMF_ALL    (MC_TCMF_TEXT | MC_TCMF_VALUE | MC_TCMF_PARAM | MC_TCMF_FLAGS)
 
 
 static inline void
@@ -465,6 +465,9 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
         cell->is_value = FALSE;
     }
 
+    if(cell_data->fMask & MC_TCMF_PARAM)
+        cell->lp = cell_data->lParam;
+
     if(cell_data->fMask & MC_TCMF_FLAGS)
         cell->flags = cell_data->dwFlags;
 
@@ -505,6 +508,9 @@ table_get_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
 
     if(cell_data->fMask & MC_TCMF_VALUE)
         cell_data->hValue = (cell->is_value ? cell->value : NULL);
+
+    if(cell_data->fMask & MC_TCMF_PARAM)
+        cell_data->lParam = cell->lp;
 
     if(cell_data->fMask & MC_TCMF_FLAGS)
         cell_data->dwFlags = cell->flags;
