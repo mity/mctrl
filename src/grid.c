@@ -457,6 +457,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     RECT rect;
     int header_w, header_h;
     int old_dc_state;
+    int col0, row0;
+    int x0, y0;
     int col, row;
     int col_count = grid->col_count;
     int row_count = grid->row_count;
@@ -478,6 +480,30 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     SetTextColor(dc, RGB(0,0,0));
     SelectObject(dc, GetStockObject(BLACK_PEN));
 
+    /* Find 1st visible column */
+    rect.left = header_w - grid->scroll_x;
+    for(col = 0; col < col_count; col++) {
+        rect.right = rect.left + grid_col_width(grid, col);
+        if(rect.right > header_w) {
+            col0 = col;
+            x0 = rect.left;
+            break;
+        }
+        rect.left = rect.right;
+    }
+
+    /* Find 1st visible row */
+    rect.top = header_h - grid->scroll_y;
+    for(row = 0; row < row_count; row++) {
+        rect.bottom = rect.top + grid_row_height(grid, row);
+        if(rect.bottom > header_h) {
+            row0 = row;
+            y0 = rect.top;
+            break;
+        }
+        rect.top = rect.bottom;
+    }
+
     /* Paint the "dead" top left header cell */
     if(header_w > 0  &&  header_h > 0  &&
        dirty->left < header_w  &&  dirty->top < header_h)
@@ -489,11 +515,11 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
     /* Paint column headers */
     if(header_h > 0  &&  dirty->top < header_h) {
-        rect.left = header_w - grid->scroll_x;
+        rect.left = x0;
         rect.top = 0;
         rect.bottom = header_h;
 
-        for(col = 0; col < col_count; col++) {
+        for(col = col0; col < col_count; col++) {
             rect.right = rect.left + grid_col_width(grid, col);
             mc_clip_set(dc, MC_MAX(header_w, rect.left), rect.top,
                         MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
@@ -501,16 +527,18 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                               (table ? &table->cols[col] : NULL),
                               col, (grid->style & MC_GS_COLUMNHEADERMASK));
             rect.left = rect.right;
+            if(rect.right >= client.right)
+                break;
         }
     }
 
     /* Paint row headers */
     if(header_w > 0  &&  dirty->left <= header_w) {
         rect.left = 0;
-        rect.top = header_h - grid->scroll_y;
+        rect.top = y0;
         rect.right = header_w;
 
-        for(row = 0; row < row_count; row++) {
+        for(row = row0; row < row_count; row++) {
             rect.bottom = rect.top + grid_row_height(grid, row);
             mc_clip_set(dc, rect.left, MC_MAX(header_h, rect.top),
                         MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
@@ -518,6 +546,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                               (table ? &table->rows[row] : NULL),
                               row, (grid->style & MC_GS_ROWHEADERMASK));
             rect.top = rect.bottom;
+            if(rect.bottom >= client.bottom)
+                break;
         }
     }
 
@@ -530,20 +560,24 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         pen = CreatePen(PS_SOLID, 0, mcGetThemeSysColor(grid->theme_listview, COLOR_3DFACE));
         old_pen = SelectObject(dc, pen);
 
-        x = header_w - grid->scroll_x;
+        x = x0;
         y = header_h + grid->scroll_y_max - grid->scroll_y;
-        for(col = 0; col < col_count; col++) {
+        for(col = col0; col < col_count; col++) {
             x += grid_col_width(grid, col);
             MoveToEx(dc, x-1, header_h, NULL);
             LineTo(dc, x-1, y);
+            if(x >= client.right)
+                break;
         }
 
         x = header_w + grid->scroll_x_max - grid->scroll_x;
-        y = header_h - grid->scroll_y;
+        y = y0;
         for(row = 0; row < row_count; row++) {
             y += grid_row_height(grid, row);
             MoveToEx(dc, header_w, y-1, NULL);
             LineTo(dc, x, y-1);
+            if(y >= client.bottom)
+                break;
         }
 
         SelectObject(dc, old_pen);
@@ -551,15 +585,19 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     }
 
     /* Paint grid cells */
-    rect.top = header_h - grid->scroll_y;
-    for(row = 0; row < row_count; row++) {
+    rect.top = y0;
+    for(row = row0; row < row_count; row++) {
         rect.bottom = rect.top + grid_row_height(grid, row);
-        rect.left = header_w - grid->scroll_x;
-        for(col = 0; col < col_count; col++) {
+        rect.left = x0;
+        for(col = col0; col < col_count; col++) {
             rect.right = rect.left + grid_col_width(grid, col);
             grid_paint_cell(grid, dc, &rect, table_cell(grid->table, col, row));
+            if(rect.right >= client.right)
+                break;
             rect.left = rect.right;
         }
+        if(rect.bottom >= client.bottom)
+            break;
         rect.top = rect.bottom;
     }
 
