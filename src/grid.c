@@ -135,12 +135,51 @@ grid_header_width(grid_t* grid)
         return grid->header_width;
 }
 
+static int
+grid_col_x2(grid_t* grid, WORD col0, int x0, WORD col)
+{
+    WORD i;
+    int x = x0;
+
+    if(grid->col_widths == NULL)
+        return x0 + (col-col0) * grid->def_col_width;
+
+    for(i = col0; i < col; i++)
+        x += grid_col_width(grid, i);
+    return x;
+}
+
+static inline int
+grid_col_x(grid_t* grid, WORD col)
+{
+    return grid_col_x2(grid, 0, grid_header_width(grid) - grid->scroll_x, col);
+}
+
+static int
+grid_row_y2(grid_t* grid, WORD row0, int y0, WORD row)
+{
+    WORD i;
+    int y = y0;
+
+    if(grid->row_heights == NULL)
+        return y0 + (row-row0) * grid->def_row_height;
+
+    for(i = row0; i < row; i++)
+        y += grid_row_height(grid, i);
+    return y;
+}
+
+static inline int
+grid_row_y(grid_t* grid, WORD row)
+{
+    return grid_row_y2(grid, 0, grid_header_height(grid) - grid->scroll_y, row);
+}
+
 static void
 grid_region_rect(grid_t* grid, WORD col0, WORD row0,
                  WORD col1, WORD row1, RECT* rect)
 {
     int header_w, header_h;
-    WORD i;
 
     /* Note: Caller may never mix header and ordinary cells in one call,
      * because the latter is scrolled area, while the headers are not. Hence
@@ -155,36 +194,16 @@ grid_region_rect(grid_t* grid, WORD col0, WORD row0,
         rect->left = 0;
         rect->right = header_w;
     } else {
-        rect->left = header_w - grid->scroll_x;
-        if(grid->col_widths == NULL) {
-            if(col0 > 0)
-                rect->left += (col0-1) * grid->def_col_width;
-            rect->right = header_w - grid->scroll_x + col1 * grid->def_col_width;
-        } else {
-            for(i = 0; i < col0; i++)
-                rect->left += grid_col_width(grid, i);
-            rect->right = rect->left;
-            for(i = col0; i < col1; i++)
-                rect->right += grid_col_width(grid, i);
-        }
+        rect->left = grid_col_x(grid, col0);
+        rect->right = grid_col_x2(grid, col0, rect->left, col1);
     }
 
     if(row0 == MC_TABLE_HEADER) {
         rect->top = 0;
         rect->bottom = header_h;
     } else {
-        rect->top = header_h - grid->scroll_y;
-        if(grid->row_heights == NULL) {
-            if(row0 > 0)
-                rect->top += (row0-1) * grid->def_row_height;
-            rect->bottom = header_h - grid->scroll_y + row1 * grid->def_row_height;
-        } else {
-            for(i = 0; i < row0; i++)
-                rect->top += grid_row_height(grid, i);
-            rect->bottom = rect->top;
-            for(i = row0; i < row1; i++)
-                rect->bottom += grid_row_height(grid, i);
-        }
+        rect->top = grid_row_y(grid, row0);
+        rect->bottom = grid_row_y2(grid, row0, rect->top, row1);
     }
 }
 
@@ -291,25 +310,8 @@ grid_setup_scrollbars(grid_t* grid, BOOL recalc_max)
 
     /* Recalculate max scroll values */
     if(recalc_max) {
-        if(grid->col_widths != NULL) {
-            WORD col;
-
-            grid->scroll_x_max = 0;
-            for(col = 0; col < grid->col_count; col++)
-                grid->scroll_x_max += grid_col_width(grid, col);
-        } else {
-            grid->scroll_x_max = grid->col_count * grid->def_col_width;
-        }
-
-        if(grid->row_heights != NULL) {
-            WORD row;
-
-            grid->scroll_y_max = 0;
-            for(row = 0; row < grid->row_count; row++)
-                grid->scroll_y_max += grid_row_height(grid, row);
-        } else {
-            grid->scroll_y_max = grid->row_count * grid->def_row_height;
-        }
+        grid->scroll_x_max = grid_col_x2(grid, 0, 0, grid->col_count);
+        grid->scroll_y_max = grid_row_y2(grid, 0, 0, grid->row_count);
     }
 
     si.cbSize = sizeof(SCROLLINFO);
