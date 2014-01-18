@@ -63,6 +63,54 @@ extern "C" {
  * in other way (e.g. have another dimensions for each cell etc.).
  *
  *
+ * @section grid_virtual Virtual Grid
+ *
+ * The grid can defer management of the data to the parent window instead of
+ * using the @ref MC_HTABLE. To do this, application has to apply the style
+ * @ref MC_GS_OWNERDATA.
+ *
+ * The control then uninstalls any table currently associated with it (if any),
+ * and whenever painting a cell, it asks its parent for the data it needs.
+ * The control uses the notification @ref MC_GN_GETDISPINFO to retrieve the data.
+ *
+ * The virtual grid is especially useful to present data calculated on the fly
+ * or retrieved from some large database, so that only the required amount
+ * of the data is calculated and retrieved, which can result in saving a lot of
+ * memory and CPU cycles.
+ *
+ * The control actually only remembers dimensions of the virtual table as set
+ * by @ref MC_GM_RESIZE.
+ *
+ * If the retrieval of the data is expensive operation, the application may
+ * want to implement some caching scheme. For this purpose the control sends
+ * the notification @ref MC_GN_ODCACHEHINT, which informs the application about
+ * the region of cells it may ask most frequently. Note however the control is
+ * free to ask for any cell, not just the one included in the range as specified
+ * by the latest @ref MC_GN_ODCACHEHINT.
+ *
+ * Also that (if the control has the styles @ref MC_GS_COLUMNHEADERNORMAL
+ * and/or @ref MC_GS_ROWHEADERNORMAL) also may frequently for the header
+ * cells, although the headers are never included in @ref MC_GN_ODCACHEHINT.
+ * The application should always cache the data for the column and row headers.
+ *
+ * Please remember that when the style @ref MC_GS_OWNERDATA is used, some
+ * control messages and styles behave differently:
+ *
+ * - Message @ref MC_GM_RESIZE does not resize a table associated with the control
+ *   but only informs the control how large the virtual table is (and application
+ *   then has to be ready to provide data for any cell within the dimensions).
+ *
+ * - Messages @ref MC_GM_SETCELL, @ref MC_GM_GETCELL, @ref MC_GM_CLEAR,
+ *   @ref MC_GM_SETTABLE do nothing: They all just fail (they just return
+ *   @c FALSE).
+ *
+ * - Style @ref MC_GS_NOTABLECREATE has no effect (the @ref MC_GS_OWNERDATA
+ *   actually does what @ref MC_GS_NOTABLECREATE and much more).
+ *
+ * To force repainting of one or more items, when the underlying data change,
+ * the application is supposed to use the message @ref MC_GM_REDRAWCELLS.
+ *
+ *
  * @section std_msgs Standard Messages
  *
  * These standard messages are handled by @c MC_WC_GRID control:
@@ -122,8 +170,11 @@ void MCTRL_API mcGrid_Terminate(void);
 /** @brief Use double buffering. */
 #define MC_GS_DOUBLEBUFFER           0x0004
 
-/* TODO:
+/** @brief Enable the virtual grid mode.
+ *  @details See @ref grid_virtual for more info. */
 #define MC_GS_OWNERDATA              0x0008
+
+/* TODO:
 #define MC_GS_RESIZABLECOLUMNS       0x0010
 #define MC_GS_RESIZABLEROWS          0x0020
 #define MC_GS_RESIZABLEHEADERS       0x0040
@@ -183,7 +234,7 @@ void MCTRL_API mcGrid_Terminate(void);
 
 
 /**
- * Structures
+ * @name Structures
  */
 /*@{*/
 
@@ -207,6 +258,36 @@ typedef struct MC_GGEOMETRY_tag {
     /** Vertical padding in cells. */
     WORD wPaddingVert;
 } MC_GGEOMETRY;
+
+/**
+ * @brief Structure used by notifications @ref MC_GN_GETDISPINFO and
+ * @ref MC_GN_SETDISPINFO (Unicode variant).
+ */
+typedef struct MC_NMGDISPINFOW_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Column index. */
+    WORD wColumn;
+    /** Row index. */
+    WORD wRow;
+    /** Structure describing the contents of the cell. */
+    MC_TABLECELLW cell;
+} MC_NMGDISPINFOW;
+
+/**
+ * @brief Structure used by notifications @ref MC_GN_GETDISPINFO and
+ * @ref MC_GN_SETDISPINFO (ANSI variant).
+ */
+typedef struct MC_NMGDISPINFOA_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Column index. */
+    WORD wColumn;
+    /** Row index. */
+    WORD wRow;
+    /** Structure describing the contents of the cell. */
+    MC_TABLECELLA cell;
+} MC_NMGDISPINFOA;
 
 /*@}*/
 
@@ -362,17 +443,85 @@ typedef struct MC_GGEOMETRY_tag {
 
 
 /**
+ * @name Control Notifications
+ */
+/*@{*/
+
+#if 0  /* TODO */
+#define MC_GN_SETDISPINFOW        (MC_GN_FIRST + 1)
+#define MC_GN_SETDISPINFOA        (MC_GN_FIRST + 2)
+#endif
+
+/**
+ * @brief Fired when control needs to retrieve some cell data, the parent holds
+ * (Unicode variant).
+ *
+ * This may happen when @c MC_TABLECELL::pszText was set to the magical value
+ * @ref MC_LPSTR_TEXTCALLBACK, or when the control has the style @ref
+ * MC_GS_OWNERDATA.
+ *
+ * When sending the notification, the control sets @c MC_NMGDISPINFO::wColumn
+ * and @c MC_NMGDISPINFO::wRow to identify the cell. The control also sets
+ * @c MC_NMTLDISPINFO::item::lParam (however if the style @ref MC_GS_OWNERDATA
+ * is in effect, it is always set to zero).
+ *
+ * The control specifies what members in @c MC_NMGDISPINFO::cell the application
+ * should fill with the  @c MC_NMGDISPINFO::cell::fMask. Note that the mask
+ * can ask for both, the cell text as well the value. However application is
+ * then expected to provide one or the other (and set the other one to @c NULL).
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return None.
+ */
+#define MC_GN_GETDISPINFOW        (MC_GN_FIRST + 3)
+
+/**
+ * @brief Fired when control needs to retrieve some cell data, the parent holds
+ * (ANSI variant).
+ *
+ * This may happen when @c MC_TABLECELL::pszText was set to the magical value
+ * @ref MC_LPSTR_TEXTCALLBACK, or when the control has the style @ref
+ * MC_GS_OWNERDATA.
+ *
+ * When sending the notification, the control sets @c MC_NMGDISPINFO::wColumn
+ * and @c MC_NMGDISPINFO::wRow to identify the cell. The control also sets
+ * @c MC_NMTLDISPINFO::item::lParam (however if the style @ref MC_GS_OWNERDATA
+ * is in effect, it is always set to zero).
+ *
+ * The control specifies what members in @c MC_NMGDISPINFO::cell the application
+ * should fill with the  @c MC_NMGDISPINFO::cell::fMask. Note that the mask
+ * can ask for both, the cell text as well the value. However application is
+ * then expected to provide one or the other (and set the other one to @c NULL).
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return None.
+ */
+#define MC_GN_GETDISPINFOA        (MC_GN_FIRST + 4)
+
+/*@}*/
+
+
+/**
  * @name Unicode Resolution
  */
 /*@{*/
 
 /** Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
 #define MC_WC_GRID          MCTRL_NAME_AW(MC_WC_GRID)
-
+/** Unicode-resolution alias. @sa MC_NMGDISPINFOW MC_NMGDISPINFOA */
+#define MC_NMGDISPINFO      MCTRL_NAME_AW(MC_NMGDISPINFO)
 /** Unicode-resolution alias. @sa MC_GM_SETCELLW MC_GM_SETCELLA */
 #define MC_GM_SETCELL       MCTRL_NAME_AW(MC_GM_SETCELL)
 /** Unicode-resolution alias. @sa MC_GM_GETCELLW MC_GM_GETCELLA */
 #define MC_GM_GETCELL       MCTRL_NAME_AW(MC_GM_GETCELL)
+/** Unicode-resolution alias. @sa MC_GN_SETDISPINFOW MC_GN_SETDISPINFOA */
+#define MC_GN_SETDISPINFO   MCTRL_NAME_AW(MC_GN_SETDISPINFO)
+/** Unicode-resolution alias. @sa MC_GN_GETDISPINFOW MC_GN_GETDISPINFOA */
+#define MC_GN_GETDISPINFO   MCTRL_NAME_AW(MC_GN_GETDISPINFO)
 
 /*@}*/
 

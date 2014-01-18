@@ -359,14 +359,95 @@ grid_alphabetic_number(TCHAR buffer[16], WORD num)
     return ptr;
 }
 
+typedef struct grid_dispinfo_tag grid_dispinfo_t;
+struct grid_dispinfo_tag {
+    MC_HVALUE value;
+    TCHAR* text;
+    DWORD flags;
+};
+
 static void
-grid_paint_cell(grid_t* grid, HDC dc, RECT* rect, table_cell_t* cell)
+grid_get_dispinfo(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
+                  grid_dispinfo_t* di, DWORD mask)
+{
+    MC_NMGDISPINFO info;
+
+    MC_ASSERT((mask & ~(MC_TCMF_TEXT | MC_TCMF_VALUE | MC_TCMF_FLAGS)) == 0);
+
+    /* Use what can be taken from the cell. */
+    if(cell != NULL) {
+        if(cell->text != MC_LPSTR_TEXTCALLBACK) {
+            di->text = (cell->is_value ? NULL : cell->text);
+            mask &= ~MC_TCMF_TEXT;
+        }
+
+        di->value = (cell->is_value ? cell->value : NULL);
+        di->flags = cell->flags;
+        mask &= ~(MC_TCMF_VALUE | MC_TCMF_FLAGS);
+
+        if(mask == 0)
+            return;
+    }
+
+    /* For the rest data, fire MC_GN_GETDISPINFO notification. */
+    info.hdr.hwndFrom = grid->win;
+    info.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    info.hdr.code = (grid->unicode_notifications ? MC_GN_GETDISPINFOW : MC_GN_GETDISPINFOA);
+    info.wColumn = col;
+    info.wRow = row;
+    info.cell.fMask = mask;
+    /* Set info.cell members to meaningful values. lParam may be needed by the
+     * app to find the requested data. Other members should be set to some
+     * defaults to deal with broken apps which do not set the asked members. */
+    if(cell != NULL) {
+        info.cell.pszText = NULL;
+        info.cell.hValue = NULL;
+        info.cell.lParam = cell->lp;
+        info.cell.dwFlags = cell->flags;
+    } else {
+        info.cell.pszText = NULL;
+        info.cell.hValue = NULL;
+        info.cell.lParam = 0;
+        info.cell.dwFlags = 0;
+    }
+    MC_SEND(grid->notify_win, WM_NOTIFY, 0, &info);
+
+    /* If needed, convert the text from parent to the expected format. */
+    if(mask & MC_TCMF_TEXT) {
+        if(grid->unicode_notifications == MC_IS_UNICODE)
+            di->text = info.cell.pszText;
+        else
+            di->text = mc_str(info.cell.pszText, (grid->unicode_notifications ? MC_STRW : MC_STRA), MC_STRT);
+    } else {
+        /* Needed even when not asked for because of grid_free_dispinfo() */
+        di->text = NULL;
+    }
+
+    /* Small optimization: We do not ask about the corresponding bits in the
+     * mask for these. If not set, the assignment does no hurt and we save few
+     * instructions. */
+    di->value = info.cell.hValue;
+    di->flags = info.cell.dwFlags;
+}
+
+static inline void
+grid_free_dispinfo(grid_t* grid, table_cell_t* cell, grid_dispinfo_t* di)
+{
+    if(grid->unicode_notifications != MC_IS_UNICODE  &&
+       (cell == NULL || di->text != cell->text)  &&  di->text != NULL)
+        free(di->text);
+}
+
+static void
+grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
+                HDC dc, RECT* rect)
 {
     RECT content;
     UINT dt_flags = DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS;
+    grid_dispinfo_t di;
 
-    if(cell->text == NULL)
-        return;
+    grid_get_dispinfo(grid, col, row, cell, &di,
+                      MC_TCMF_TEXT | MC_TCMF_VALUE | MC_TCMF_FLAGS);
 
     /* Apply padding */
     content.left = rect->left + grid->padding_h;
@@ -374,39 +455,41 @@ grid_paint_cell(grid_t* grid, HDC dc, RECT* rect, table_cell_t* cell)
     content.right = rect->right - grid->padding_h;
     content.bottom = rect->bottom - grid->padding_v;
 
-    /* If the cell has a value, let it paint itself. */
-    if(cell->is_value) {
+    /* Paint cell value or text. */
+    if(di.value != NULL) {
         /* MC_TCF_ALIGNxxx flags are designed to match VALUE_PF_ALIGNxxx
          * corresponding ones. */
-        value_paint(cell->value, dc, &content, (cell->flags & VALUE_PF_ALIGNMASK));
+        value_paint(di.value, dc, &content, (di.flags & VALUE_PF_ALIGNMASK));
         return;
+    } else if(di.text != NULL) {
+        switch(di.flags & VALUE_PF_ALIGNMASKHORZ) {
+            case VALUE_PF_ALIGNDEFAULT:   /* fall through */
+            case VALUE_PF_ALIGNLEFT:      dt_flags |= DT_LEFT; break;
+            case VALUE_PF_ALIGNCENTER:    dt_flags |= DT_CENTER; break;
+            case VALUE_PF_ALIGNRIGHT:     dt_flags |= DT_RIGHT; break;
+        }
+        switch(di.flags & VALUE_PF_ALIGNMASKVERT) {
+            case VALUE_PF_ALIGNTOP:       dt_flags |= DT_TOP; break;
+            case VALUE_PF_ALIGNVDEFAULT:  /* fall through */
+            case VALUE_PF_ALIGNVCENTER:   dt_flags |= DT_VCENTER; break;
+            case VALUE_PF_ALIGNBOTTOM:    dt_flags |= DT_BOTTOM; break;
+        }
+        DrawText(dc, di.text, -1, &content, dt_flags);
     }
 
-    /* Paint cell's text */
-    switch(cell->flags & VALUE_PF_ALIGNMASKHORZ) {
-        case VALUE_PF_ALIGNDEFAULT:   /* fall through */
-        case VALUE_PF_ALIGNLEFT:      dt_flags |= DT_LEFT; break;
-        case VALUE_PF_ALIGNCENTER:    dt_flags |= DT_CENTER; break;
-        case VALUE_PF_ALIGNRIGHT:     dt_flags |= DT_RIGHT; break;
-    }
-    switch(cell->flags & VALUE_PF_ALIGNMASKVERT) {
-        case VALUE_PF_ALIGNTOP:       dt_flags |= DT_TOP; break;
-        case VALUE_PF_ALIGNVDEFAULT:  /* fall through */
-        case VALUE_PF_ALIGNVCENTER:   dt_flags |= DT_VCENTER; break;
-        case VALUE_PF_ALIGNBOTTOM:    dt_flags |= DT_BOTTOM; break;
-    }
-    DrawText(dc, cell->text, -1, &content, dt_flags);
+    grid_free_dispinfo(grid, cell, &di);
 }
 
 static void
-grid_paint_header_cell(grid_t* grid, HDC dc, RECT* rect, table_cell_t* cell,
-                       int index, DWORD style)
+grid_paint_header_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
+                       HDC dc, RECT* rect, int index, DWORD style)
 {
     table_cell_t tmp;
+    table_cell_t* tmp_cell = &tmp;
     TCHAR buffer[16];
     DWORD fabricate;
 
-    /* Paint header background */
+    /* Paint header background. */
     if(grid->theme_header != NULL) {
         mcDrawThemeBackground(grid->theme_header, dc,
                               HP_HEADERITEM, HIS_NORMAL, rect, NULL);
@@ -414,14 +497,18 @@ grid_paint_header_cell(grid_t* grid, HDC dc, RECT* rect, table_cell_t* cell,
         DrawEdge(dc, rect, BDR_RAISEDINNER, BF_MIDDLE | BF_RECT);
     }
 
-    if(index < 0)   /* the 'dead' cell cannot have any contents */
+    /* The 'dead' cell cannot have any contents. */
+    if(index < 0)
         return;
 
-    /* Retrieve (or fabricate) cell to be painted */
+    /* Retrieve (or fabricate) cell to be painted. */
     fabricate = (style & (MC_GS_COLUMNHEADERMASK | MC_GS_ROWHEADERMASK));
     if(!fabricate) {
         /* Make copy so we can reset alignment flags below w/o side effects. */
-        memcpy(&tmp, cell, sizeof(table_cell_t));
+        if(cell != NULL)
+            memcpy(&tmp, cell, sizeof(table_cell_t));
+        else
+            tmp_cell = NULL;
     } else {
         if(fabricate == MC_GS_COLUMNHEADERNUMBERED  ||
            fabricate == MC_GS_ROWHEADERNUMBERED)
@@ -433,26 +520,25 @@ grid_paint_header_cell(grid_t* grid, HDC dc, RECT* rect, table_cell_t* cell,
                       fabricate == MC_GS_ROWHEADERALPHABETIC);
             tmp.text = grid_alphabetic_number(buffer, index);
         }
-        tmp.flags = cell->flags;
+        tmp.flags = (cell != NULL ? cell->flags : 0);
         tmp.is_value = FALSE;
     }
 
     /* If the header does not say explicitly otherwise, force centered
-     * alignment for the header cells */
+     * alignment for the header cells. */
     if((tmp.flags & VALUE_PF_ALIGNMASKHORZ) == VALUE_PF_ALIGNDEFAULT)
         tmp.flags |= VALUE_PF_ALIGNCENTER;
     if((tmp.flags & VALUE_PF_ALIGNMASKVERT) == VALUE_PF_ALIGNVDEFAULT)
         tmp.flags |= VALUE_PF_ALIGNVCENTER;
 
-    /* Paint header contents */
-    grid_paint_cell(grid, dc, rect, &tmp);
+    /* Paint header contents. */
+    grid_paint_cell(grid, col, row, tmp_cell, dc, rect);
 }
 
 static void
 grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 {
     grid_t* grid = (grid_t*) control;
-    table_t* table = grid->table;
     RECT client;
     RECT rect;
     int header_w, header_h;
@@ -462,11 +548,13 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     int col, row;
     int col_count = grid->col_count;
     int row_count = grid->row_count;
+    table_t* table = grid->table;
+    table_cell_t* cell;
 
     GRID_TRACE("grid_paint(%p, %d, %d, %d, %d)", grid,
                dirty->left, dirty->top, dirty->right, dirty->bottom);
 
-    if(table == NULL)
+    if(table == NULL  &&  !(grid->style & MC_GS_OWNERDATA))
         return;
 
     old_dc_state = SaveDC(dc);
@@ -510,7 +598,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     {
         mc_rect_set(&rect, 0, 0, grid->header_width, grid->header_height);
         mc_clip_set(dc, 0, 0, MC_MIN(header_w, client.right), MC_MIN(header_h, client.bottom));
-        grid_paint_header_cell(grid, dc, &rect, NULL, -1, 0);
+        grid_paint_header_cell(grid, MC_TABLE_HEADER, MC_TABLE_HEADER, NULL, dc, &rect, -1, 0);
     }
 
     /* Paint column headers */
@@ -523,9 +611,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             rect.right = rect.left + grid_col_width(grid, col);
             mc_clip_set(dc, MC_MAX(header_w, rect.left), rect.top,
                         MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
-            grid_paint_header_cell(grid, dc, &rect,
-                              (table ? &table->cols[col] : NULL),
-                              col, (grid->style & MC_GS_COLUMNHEADERMASK));
+            grid_paint_header_cell(grid, col, MC_TABLE_HEADER, (table ? &table->cols[col] : NULL),
+                                   dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK));
             rect.left = rect.right;
             if(rect.right >= client.right)
                 break;
@@ -542,9 +629,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             rect.bottom = rect.top + grid_row_height(grid, row);
             mc_clip_set(dc, rect.left, MC_MAX(header_h, rect.top),
                         MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
-            grid_paint_header_cell(grid, dc, &rect,
-                              (table ? &table->rows[row] : NULL),
-                              row, (grid->style & MC_GS_ROWHEADERMASK));
+            grid_paint_header_cell(grid, MC_TABLE_HEADER, row, (table ? &table->rows[row] : NULL),
+                                   dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK));
             rect.top = rect.bottom;
             if(rect.bottom >= client.bottom)
                 break;
@@ -590,8 +676,12 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.bottom = rect.top + grid_row_height(grid, row);
         rect.left = x0;
         for(col = col0; col < col_count; col++) {
+            if(table != NULL)
+                cell = table_cell(table, col, row);
+            else
+                cell = NULL;
             rect.right = rect.left + grid_col_width(grid, col);
-            grid_paint_cell(grid, dc, &rect, table_cell(grid->table, col, row));
+            grid_paint_cell(grid, col, row, cell, dc, &rect);
             if(rect.right >= client.right)
                 break;
             rect.left = rect.right;
@@ -781,9 +871,16 @@ grid_set_table(grid_t* grid, table_t* table)
     if(table != NULL && table == grid->table)
         return 0;
 
+    if(MC_ERR(table != NULL  &&  (grid->style & MC_GS_OWNERDATA))) {
+        MC_TRACE("grid_set_table: Cannot install table while having style "
+                 "MC_GS_OWNERDATA");
+        SetLastError(ERROR_INVALID_STATE);
+        return -1;
+    }
+
     if(table != NULL) {
         table_ref(table);
-    } else if(!(grid->style & MC_GS_NOTABLECREATE)) {
+    } else if(!(grid->style & (MC_GS_NOTABLECREATE | MC_GS_OWNERDATA))) {
         table = table_create(0, 0);
         if(MC_ERR(table == NULL)) {
             MC_TRACE("grid_set_table: table_create() failed.");
@@ -922,6 +1019,18 @@ grid_close_theme(grid_t* grid)
         mcCloseThemeData(grid->theme_listview);
         grid->theme_listview = NULL;
     }
+}
+
+static void
+grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
+{
+    grid->style = ss->styleNew;
+
+    if((ss->styleNew & MC_GS_OWNERDATA) != (ss->styleOld & MC_GS_OWNERDATA))
+        grid_set_table(grid, NULL);
+
+    if(!grid->no_redraw)
+        RedrawWindow(grid->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
 }
 
 static grid_t*
@@ -1078,12 +1187,8 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_STYLECHANGED:
-            if(wp == GWL_STYLE) {
-                STYLESTRUCT* ss = (STYLESTRUCT*) lp;
-                grid->style = ss->styleNew;
-                if(!grid->no_redraw)
-                    RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
-            }
+            if(wp == GWL_STYLE)
+                grid_style_changed(grid, (STYLESTRUCT*) lp);
             break;
 
         case WM_THEMECHANGED:
