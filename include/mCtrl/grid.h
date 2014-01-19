@@ -490,7 +490,7 @@ typedef struct MC_NMGDISPINFOA_tag {
  * then expected to provide one or the other (and set the other one to @c NULL).
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in,out] lParam (@ref MC_NMGDISPINFO) Pointer to @ref MC_NMGDISPINFO
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
  * structure.
  * @return None.
  */
@@ -515,7 +515,7 @@ typedef struct MC_NMGDISPINFOA_tag {
  * then expected to provide one or the other (and set the other one to @c NULL).
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in,out] lParam (@ref MC_NMGDISPINFO) Pointer to @ref MC_NMGDISPINFO
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
  * structure.
  * @return None.
  */
