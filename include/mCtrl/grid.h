@@ -439,6 +439,25 @@ typedef struct MC_NMGDISPINFOA_tag {
  */
 #define MC_GM_GETGEOMETRY         (MC_GM_FIRST + 11)
 
+/**
+ * @brief Requests to redraw region of cells.
+ *
+ * Note the message just invalidates the region of cells, and the control is
+ * not actually repainted until it receives a @c WM_PAINT message.
+ *
+ * @param[in] wParam Specification of top left cell in the region to be
+ * (re)painted. Low word specifies its column, high word specifies its row.
+ * @param[in] lParam Specification of bottom right cell in the region to
+ * be (re)painted. Low word specifies its column, high word specifies its row.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ *
+ * For example, to repaint a single cell, use can use code similar to this:
+ * @code
+ * SendMessage(hwndGrid, MC_GM_REDRAWCELLS, MAKEWPARAM(wCol, wRow), MAKELPARAM(wCol, wRow));
+ * @endcode
+ */
+#define MC_GM_REDRAWCELLS         (MC_GM_FIRST + 12)
+
 /*@}*/
 
 

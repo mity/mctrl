@@ -868,6 +868,82 @@ grid_get_geometry(grid_t* grid, MC_GGEOMETRY* geom)
 }
 
 static int
+grid_redraw_cells(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
+{
+    int header_w;
+    int header_h;
+    RECT rect;
+
+    /* Note we usually use intervals [x0,x1] where x0 is included and x1
+     * excluded. However here the region includes [col1, row1] to make the
+     * public API consistent with LVM_REDRAWITEMS. */
+
+    if((col0 != MC_TABLE_HEADER  &&  col0 > col1)  ||
+       (row0 != MC_TABLE_HEADER  &&  row0 > row1)) {
+        MC_TRACE("grid_redraw_cells: col0 > col1  ||  row0 > row1");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(grid->no_redraw)
+        return 0;
+
+    header_w = grid_header_width(grid);
+    header_h = grid_header_height(grid);
+
+    /* Invalidate row headers */
+    if(col0 == MC_TABLE_HEADER) {
+        rect.left = 0;
+        rect.right = header_w;
+        if(row0 != MC_TABLE_HEADER) {
+            rect.top = grid_row_y(grid, row0);
+            rect.bottom = grid_row_y2(grid, row0, rect.top, row1+1);
+        } else {
+            rect.top = header_h;
+            if(row1 != MC_TABLE_HEADER)
+                rect.bottom = grid_row_y(grid, row0);
+            else
+                rect.bottom = rect.top;
+        }
+
+        InvalidateRect(grid->win, &rect, TRUE);
+    }
+
+    /* Invalidate column headers */
+    if(row0 == MC_TABLE_HEADER) {
+        rect.top = 0;
+        rect.bottom = header_h;
+        if(col0 != MC_TABLE_HEADER) {
+            rect.left = grid_col_x(grid, col0);
+            rect.right = grid_col_x2(grid, col0, rect.left, col1+1);
+        } else {
+            rect.left = header_w;
+            if(col1 != MC_TABLE_HEADER)
+                rect.right = grid_col_x(grid, col0);
+            else
+                rect.right = rect.left;
+        }
+    }
+
+    /* Invalidate ordinary cells */
+    if(col1 == MC_TABLE_HEADER || row1 == MC_TABLE_HEADER) {
+        /* Caller specified only some header cells. */
+        return 0;
+    }
+    if(col0 == MC_TABLE_HEADER)
+        col0 = 0;
+    if(row0 == MC_TABLE_HEADER)
+        row0 = 0;
+    rect.left = grid_col_x(grid, col0);
+    rect.top = grid_row_y(grid, row0);
+    rect.right = grid_col_x2(grid, col0, rect.left, col1+1);
+    rect.bottom = grid_row_y2(grid, row0, rect.top, row1+1);
+    InvalidateRect(grid->win, &rect, TRUE);
+
+    return 0;
+}
+
+static int
 grid_set_table(grid_t* grid, table_t* table)
 {
     if(table != NULL && table == grid->table)
@@ -1152,6 +1228,10 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_GM_GETGEOMETRY:
             return (grid_get_geometry(grid, (MC_GGEOMETRY*)lp) == 0 ? TRUE : FALSE);
+
+        case MC_GM_REDRAWCELLS:
+            return (grid_redraw_cells(grid, LOWORD(wp), HIWORD(wp),
+                                      LOWORD(lp), LOWORD(lp)) == 0 ? TRUE : FALSE);
 
         case WM_SETREDRAW:
             grid->no_redraw = !wp;
