@@ -1125,7 +1125,7 @@ err_id:
     return res;
 }
 
-static void
+static BOOL
 html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
 {
     DWORD pos;
@@ -1133,6 +1133,7 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
     IWebBrowser2* browser_iface;
     IOleInPlaceActiveObject* active_iface;
     HRESULT hr;
+    BOOL ret = FALSE;
 
     pos = GetMessagePos();
 
@@ -1153,6 +1154,7 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
                  "QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
         goto err_browser;
     }
+
     hr = browser_iface->lpVtbl->QueryInterface(browser_iface,
                         &IID_IOleInPlaceActiveObject, (void**)&active_iface);
     if(MC_ERR(hr != S_OK  ||  active_iface == NULL)) {
@@ -1160,14 +1162,22 @@ html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
                  "QueryInterface(IID_IOleInPlaceActiveObject) failed [0x%lx]", hr);
         goto err_active;
     }
-    active_iface->lpVtbl->TranslateAccelerator(active_iface, &message);
+
+    hr = active_iface->lpVtbl->TranslateAccelerator(active_iface, &message);
+    switch(hr) {
+        case S_OK:    ret = TRUE; break;
+        case S_FALSE: /*noop */ break;
+        default:
+            MC_TRACE("html_key_msg: ->TranslateAccelerator() failed [0x%lx]", hr);
+            break;
+    }
 
     /* Cleanup */
     active_iface->lpVtbl->Release(active_iface);
 err_active:
     browser_iface->lpVtbl->Release(browser_iface);
 err_browser:
-    ; /* noop */
+    return ret;
 }
 
 static html_t*
@@ -1321,8 +1331,10 @@ html_ie_subclass_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     html = (html_t*) GetProp(win, ie_prop);
 
-    if(WM_KEYFIRST <= msg && msg <= WM_KEYLAST)
-        html_key_msg(html, msg, wp, lp);
+    if(WM_KEYFIRST <= msg && msg <= WM_KEYLAST) {
+        if(html_key_msg(html, msg, wp, lp))
+            return 0;
+    }
 
     if(msg == WM_GETDLGCODE)
         return DLGC_WANTALLKEYS;
