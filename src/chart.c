@@ -22,6 +22,11 @@
 #include "color.h"
 #include "theme.h"
 
+#include <math.h>
+
+
+#define PI 3.1415926535897932384626433832795
+
 
 /* Uncomment this to have more verbose traces from this module. */
 /*#define CHART_DEBUG     1*/
@@ -475,7 +480,7 @@ pie_normalize_angle(gdix_Real angle)
 static inline gdix_Real
 pie_vector_angle(gdix_Real x0, gdix_Real y0, gdix_Real x1, gdix_Real y1)
 {
-    return atan2f(y1-y0, x1-x0) * (180.0/M_PI);
+    return atan2f(y1-y0, x1-x0) * (180.0/PI);
 }
 
 static inline BOOL
@@ -575,7 +580,7 @@ pie_paint(chart_t* chart, chart_paint_t* ctx)
                      2.0 * geom.r + 24, 2.0 * geom.r + 24, angle, sweep);
 
         /* Paint label (if it fits in) */
-        label_angle = (angle + sweep/2.0) * M_PI / 180.0;
+        label_angle = (angle + sweep/2.0) * (PI/180.0);
         label_rect.x = geom.x + 0.75 * geom.r * cosf(label_angle);
         label_rect.y = geom.y + 0.75 * geom.r * sinf(label_angle) - ctx->layout.font_size.cy / 2.0;
         label_rect.w = 0;

@@ -19,16 +19,9 @@
 #ifndef MC_MISC_H
 #define MC_MISC_H
 
-#ifndef _USE_MATH_DEFINES
-    /* This is needed for <math.h> from MSVC to define constant macros like
-     * M_PI for example. */
-    #define _USE_MATH_DEFINES
-#endif
-
 #include <stdio.h>
 #include <stddef.h>
 #include <tchar.h>
-#include <math.h>
 #include <windows.h>
 #include <commctrl.h>
 #include <shlwapi.h>
