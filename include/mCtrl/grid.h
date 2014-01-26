@@ -260,6 +260,22 @@ typedef struct MC_GGEOMETRY_tag {
 } MC_GGEOMETRY;
 
 /**
+ * @brief Structure used by notification @ref MC_GN_ODCACHEHINT.
+ */
+typedef struct MC_NMGCACHEHINT_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** First column of the region to be cached. */
+    WORD wColumnFrom;
+    /** First row of the region to be cached. */
+    WORD wRowFrom;
+    /** Last column of the region to be cached. */
+    WORD wColumnTo;
+    /** Last row of the region to be cached. */
+    WORD wRowTo;
+} MC_NMGCACHEHINT;
+
+/**
  * @brief Structure used by notifications @ref MC_GN_GETDISPINFO and
  * @ref MC_GN_SETDISPINFO (Unicode variant).
  */
@@ -465,6 +481,43 @@ typedef struct MC_NMGDISPINFOA_tag {
  * @name Control Notifications
  */
 /*@{*/
+
+/**
+ * @brief Notification providing a hint for data caching strategy for grids
+ * with virtual table.
+ *
+ * The notification is sent only when the control has the style @ref
+ * MC_GS_OWNERDATA. The notification informs the application about region of
+ * cells it is likely to ask for (via @ref MC_GN_GETDISPINFO).
+ *
+ * If the retrieval of assorted data by the application is slow (e.g. because
+ * it requires remote access to a database system), the application should
+ * cache locally the data for cells in the rectangular cell region as specified
+ * by the @c MC_NMGCACHEHINT.
+ *
+ * The structure never specify header cells, however if the control has style
+ * @ref MC_GS_COLUMNHEADERNORMAL and/or @ref MC_GS_ROWHEADERNORMAL, it should
+ * also cache data needed for column/row headers corresponding for the cells
+ * in the region.
+ *
+ * For example, if the grid uses the styles @ref MC_GS_COLUMNHEADERNORMAL and
+ * @ref MC_GS_ROWHEADERNORMAL, the following data are recommended to be cached
+ * within the application:
+ *
+ * - All ordinary cells in the rectangle with left top cell
+ *   [@c columnFrom, @c rowFrom] and right bottom cell [@c columnTo, @c rowTo].
+ * - All column header cells in the range @c columnFrom ... @c columnFrom.
+ * - All row header cells in the range @c rowFrom ... @c rowTo.
+ *
+ * In general, the specified cell region roughly corresponds to cells currently
+ * visible in the control's window client area.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMGCACHEHINT*) Pointer to @ref MC_NMGCACHEHINT
+ * structure.
+ * @return None.
+ */
+#define MC_GN_ODCACHEHINT         (MC_GN_FIRST + 0)
 
 #if 0  /* TODO */
 #define MC_GN_SETDISPINFOW        (MC_GN_FIRST + 1)

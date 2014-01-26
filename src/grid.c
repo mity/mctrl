@@ -68,6 +68,8 @@ struct grid_tag {
     WORD col_count;
     WORD row_count;
 
+    WORD cache_hint[4];
+
     /* Cell geometry */
     WORD padding_h;
     WORD padding_v;
@@ -594,6 +596,46 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.top = rect.bottom;
     }
 
+    /* If needed, send MC_GN_ODCACHEHINT */
+    if(grid->style & MC_GS_OWNERDATA) {
+        WORD col1, row1;
+
+        rect.right = x0;
+        for(col1 = col0; col1+1 < grid->col_count; col1++) {
+            rect.right += grid_col_width(grid, col1);
+            if(rect.right >= client.right)
+                break;
+        }
+
+        rect.bottom = y0;
+        for(row1 = row0; row1+1 < grid->row_count; row1++) {
+            rect.bottom += grid_row_height(grid, row1);
+            if(rect.bottom >= client.bottom)
+                break;
+        }
+
+        if(col0 != grid->cache_hint[0] || row0 != grid->cache_hint[1] ||
+           col1 != grid->cache_hint[2] || row1 != grid->cache_hint[3]) {
+            MC_NMGCACHEHINT hint;
+
+            hint.hdr.hwndFrom = grid->win;
+            hint.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+            hint.hdr.code = MC_GN_ODCACHEHINT;
+            hint.wColumnFrom = col0;
+            hint.wRowFrom = row0;
+            hint.wColumnTo = col1;
+            hint.wRowTo = row1;
+            GRID_TRACE("grid_paint: Sending MC_GN_ODCACHEHINT (%hu, %hu, %hu, %hu)",
+                       col0, row0, col1, row1);
+            MC_SEND(grid->notify_win, WM_NOTIFY, hint.hdr.idFrom, &hint);
+
+            grid->cache_hint[0] = col0;
+            grid->cache_hint[1] = row0;
+            grid->cache_hint[2] = col1;
+            grid->cache_hint[3] = row1;
+        }
+    }
+
     /* Paint the "dead" top left header cell */
     if(header_w > 0  &&  header_h > 0  &&
        dirty->left < header_w  &&  dirty->top < header_h)
@@ -988,6 +1030,11 @@ grid_set_table(grid_t* grid, table_t* table)
         grid->col_count = 0;
         grid->row_count = 0;
     }
+
+    grid->cache_hint[0] = 0;
+    grid->cache_hint[1] = 0;
+    grid->cache_hint[2] = 0;
+    grid->cache_hint[3] = 0;
 
     if(!grid->no_redraw) {
         InvalidateRect(grid->win, NULL, TRUE);
