@@ -138,6 +138,70 @@ grid_header_width(grid_t* grid)
 }
 
 static int
+grid_alloc_col_widths(grid_t* grid, WORD old_col_count, WORD new_col_count,
+                      BOOL cannot_fail)
+{
+    WORD* col_widths;
+
+    col_widths = realloc(grid->col_widths, new_col_count * sizeof(WORD));
+    if(MC_ERR(col_widths == NULL)) {
+        MC_TRACE("grid_alloc_col_widths: realloc() failed.");
+        mc_send_notify(grid->notify_win, grid->win, NM_OUTOFMEMORY);
+
+        if(cannot_fail  &&  grid->col_widths != NULL) {
+            /* We need to be sync'ed with the underlying table, and if we
+             * cannot have enough slots, we just fallback to the default
+             * widths. */
+            free(grid->col_widths);
+            grid->col_widths = NULL;
+        }
+
+        return -1;
+    }
+
+    /* Set new columns to the default widths. */
+    if(new_col_count > old_col_count) {
+        memset(&col_widths[old_col_count], 0xff,
+               (new_col_count - old_col_count) * sizeof(WORD));
+    }
+
+    grid->col_widths = col_widths;
+    return 0;
+}
+
+static int
+grid_alloc_row_heights(grid_t* grid, WORD old_row_count, WORD new_row_count,
+                       BOOL cannot_fail)
+{
+    WORD* row_heights;
+
+    row_heights = realloc(grid->row_heights, new_row_count * sizeof(WORD));
+    if(MC_ERR(row_heights == NULL)) {
+        MC_TRACE("grid_alloc_row_heights: realloc() failed.");
+        mc_send_notify(grid->notify_win, grid->win, NM_OUTOFMEMORY);
+
+        if(cannot_fail  &&  grid->row_heights != NULL) {
+            /* We need to be sync'ed with the underlying table, and if we
+             * cannot have enough slots, we just fallback to the default
+             * heights. */
+            free(grid->row_heights);
+            grid->row_heights = NULL;
+        }
+
+        return -1;
+    }
+
+    /* Set new rows to the default heights. */
+    if(new_row_count > old_row_count) {
+        memset(&row_heights[old_row_count], 0xff,
+               (new_row_count - old_row_count) * sizeof(WORD));
+    }
+
+    grid->row_heights = row_heights;
+    return 0;
+}
+
+static int
 grid_col_x2(grid_t* grid, WORD col0, int x0, WORD col)
 {
     WORD i;
@@ -764,6 +828,8 @@ grid_refresh(void* view, void* detail)
             break;
 
         case TABLE_COLCOUNT_CHANGED:
+            if(grid->col_widths != NULL)
+                grid_alloc_col_widths(grid, grid->col_count, rd->param[1], TRUE);
             grid->col_count = rd->param[1];
             grid_setup_scrollbars(grid, TRUE);
             if(!grid->no_redraw) {
@@ -774,6 +840,8 @@ grid_refresh(void* view, void* detail)
             break;
 
         case TABLE_ROWCOUNT_CHANGED:
+            if(grid->row_heights != NULL)
+                grid_alloc_row_heights(grid, grid->row_count, rd->param[1], TRUE);
             grid->row_count = rd->param[1];
             grid_setup_scrollbars(grid, TRUE);
             if(!grid->no_redraw) {
@@ -986,6 +1054,76 @@ grid_redraw_cells(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
 }
 
 static int
+grid_set_col_width(grid_t* grid, WORD col, WORD width)
+{
+    if(MC_ERR(col >= grid->col_count)) {
+        MC_TRACE("grid_set_col_width: column %hu our of range.", col);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(grid->col_widths == NULL) {
+        if(width == GRID_DEFAULT_SIZE)
+            return 0;
+
+        if(MC_ERR(grid_alloc_col_widths(grid, 0, grid->col_count, FALSE) != 0)) {
+            MC_TRACE("grid_set_col_width: grid_alloc_col_widths() failed.");
+            return -1;
+        }
+    }
+
+    grid->col_widths[col] = width;
+    return 0;
+}
+
+static LONG
+grid_get_col_width(grid_t* grid, WORD col)
+{
+    if(MC_ERR(col >= grid->col_count)) {
+        MC_TRACE("grid_get_col_width: column %hu our of range.", col);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    return MAKELPARAM(grid_col_width(grid, col), 0);
+}
+
+static int
+grid_set_row_height(grid_t* grid, WORD row, WORD height)
+{
+    if(MC_ERR(row >= grid->row_count)) {
+        MC_TRACE("grid_set_row_height: row %hu our of range.", row);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(grid->row_heights == NULL) {
+        if(height == GRID_DEFAULT_SIZE)
+            return 0;
+
+        if(MC_ERR(grid_alloc_row_heights(grid, 0, grid->row_count, FALSE) != 0)) {
+            MC_TRACE("grid_set_row_height: grid_alloc_row_heights() failed.");
+            return -1;
+        }
+    }
+
+    grid->row_heights[row] = height;
+    return 0;
+}
+
+static LONG
+grid_get_row_height(grid_t* grid, WORD row)
+{
+    if(MC_ERR(row >= grid->row_count)) {
+        MC_TRACE("grid_get_row_height: row %hu our of range.", row);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    return MAKELPARAM(grid_row_height(grid, row), 0);
+}
+
+static int
 grid_set_table(grid_t* grid, table_t* table)
 {
     if(table != NULL && table == grid->table)
@@ -1036,6 +1174,16 @@ grid_set_table(grid_t* grid, table_t* table)
     grid->cache_hint[2] = 0;
     grid->cache_hint[3] = 0;
 
+    if(grid->col_widths != NULL) {
+        free(grid->col_widths);
+        grid->col_widths = NULL;
+    }
+
+    if(grid->row_heights != NULL) {
+        free(grid->row_heights);
+        grid->row_heights = NULL;
+    }
+
     if(!grid->no_redraw) {
         InvalidateRect(grid->win, NULL, TRUE);
         grid_setup_scrollbars(grid, TRUE);
@@ -1054,6 +1202,11 @@ grid_resize_table(grid_t* grid, WORD col_count, WORD row_count)
             return -1;
         }
     } else {
+        if(grid->col_widths != NULL)
+            grid_alloc_col_widths(grid, grid->col_count, col_count, TRUE);
+        if(grid->row_heights)
+            grid_alloc_row_heights(grid, grid->row_count, row_count, TRUE);
+
         grid->col_count = col_count;
         grid->row_count = row_count;
 
@@ -1204,6 +1357,11 @@ static inline void
 grid_ncdestroy(grid_t* grid)
 {
     mcBufferedPaintUnInit();
+
+    if(grid->col_widths)
+        free(grid->col_widths);
+    if(grid->row_heights)
+        free(grid->row_heights);
     free(grid);
 }
 
@@ -1279,6 +1437,18 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_GM_REDRAWCELLS:
             return (grid_redraw_cells(grid, LOWORD(wp), HIWORD(wp),
                                       LOWORD(lp), LOWORD(lp)) == 0 ? TRUE : FALSE);
+
+        case MC_GM_SETCOLUMNWIDTH:
+            return (grid_set_col_width(grid, wp, LOWORD(lp)) == 0 ? TRUE : FALSE);
+
+        case MC_GM_GETCOLUMNWIDTH:
+            return grid_get_col_width(grid, wp);
+
+        case MC_GM_SETROWHEIGHT:
+            return (grid_set_row_height(grid, wp, LOWORD(lp)) == 0 ? TRUE : FALSE);
+
+        case MC_GM_GETROWHEIGHT:
+            return grid_get_row_height(grid, wp);
 
         case WM_SETREDRAW:
             grid->no_redraw = !wp;

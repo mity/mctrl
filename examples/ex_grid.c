@@ -28,6 +28,7 @@ LoadGrid(void)
     MC_TABLECELL tc;
     TCHAR buffer[32];
     int row;
+    int height;
 
     /* Set size of the table to 8 columns and 16 rows. */
     SendMessage(hwndGrid, MC_GM_RESIZE, MAKEWPARAM(8, 16), 0);
@@ -100,6 +101,13 @@ LoadGrid(void)
     tc.hValue = mcValue_CreateImmString(_T("bottom right"));
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNBOTTOM;
     mcTable_SetCell(hTable, 6, 12, &tc);
+
+    /* Set heights of few rows to a different value. */
+    height = LOWORD(SendMessage(hwndGrid, MC_GM_GETROWHEIGHT, 10, 0));
+    height *= 2;
+    SendMessage(hwndGrid, MC_GM_SETROWHEIGHT, 10, MAKEWPARAM(height, 0));
+    SendMessage(hwndGrid, MC_GM_SETROWHEIGHT, 11, MAKEWPARAM(height, 0));
+    SendMessage(hwndGrid, MC_GM_SETROWHEIGHT, 12, MAKEWPARAM(height, 0));
 }
 
 

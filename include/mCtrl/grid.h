@@ -474,6 +474,60 @@ typedef struct MC_NMGDISPINFOA_tag {
  */
 #define MC_GM_REDRAWCELLS         (MC_GM_FIRST + 12)
 
+/**
+ * @brief Set width of specified column.
+ *
+ * To reset width of the column to the default value (as specified with
+ * @ref MC_GGEOMETRY::wDefColumnWidth), set the column width to @c 0xFFFF.
+ *
+ * Note this message can set only width of an ordinary grid column.
+ * To change the width of row headers, use @ref MC_GM_SETGEOMETRY.
+ *
+ * @param[in] wParam (@c WORD) Index of the column.
+ * @param[in] lParam (@c DWORD) Set low word to the desired width in pixels,
+ * high word to zero.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ */
+#define MC_GM_SETCOLUMNWIDTH      (MC_GM_FIRST + 13)
+
+/**
+ * @brief Get width of specified column.
+ *
+ * @param[in] wParam (@c WORD) Index of the column.
+ * @param[in] lParam Reserved, set to zero.
+ * @return (@c LRESULT) If the message fails, the return value is @c -1.
+ * On success, low word is the width in pixels, high word is reserved for
+ * future and it is currently always set to zero.
+ */
+#define MC_GM_GETCOLUMNWIDTH      (MC_GM_FIRST + 14)
+
+/**
+ * @brief Set height of specified row.
+ *
+ * To reset height of the row to the default value (as specified with
+ * @ref MC_GGEOMETRY::wDefRowHeight), set the row height to @c 0xFFFF.
+ *
+ * Note this message can set only height of an ordinary grid row.
+ * To change the height of column headers, use @ref MC_GM_SETGEOMETRY.
+ *
+ * @param[in] wParam (@c WORD) Index of the row.
+ * @param[in] lParam (@c DWORD) Set low word to the desired height in pixels,
+ * high word to zero.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE on failure.
+ */
+#define MC_GM_SETROWHEIGHT        (MC_GM_FIRST + 15)
+
+/**
+ * @brief Get height of specified row.
+ *
+ * @param[in] wParam (@c WORD) Index of the row.
+ * @param[in] lParam Reserved, set to zero.
+ * @return (@c LRESULT) If the message fails, the return value is @c -1.
+ * On success, low word is the height in pixels, high word is reserved for
+ * future and it is currently always set to zero.
+ */
+#define MC_GM_GETROWHEIGHT        (MC_GM_FIRST + 16)
+
 /*@}*/
 
 
