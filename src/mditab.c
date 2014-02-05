@@ -17,6 +17,7 @@
  */
 
 #include "mditab.h"
+#include "generic.h"
 #include "dsa.h"
 #include "theme.h"
 
@@ -1727,26 +1728,12 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            BeginPaint(win, &ps);
-            if(!mditab->no_redraw) {
-                if(mditab->style & MC_MTS_DOUBLEBUFFER)
-                    mc_doublebuffer(mditab, &ps, mditab_paint);
-                else
-                    mditab_paint(mditab, ps.hdc, &ps.rcPaint, ps.fErase);
-            }
-            EndPaint(win, &ps);
-            return 0;
-        }
+            return generic_paint(win, mditab->no_redraw,
+                                 (mditab->style & MC_MTS_DOUBLEBUFFER),
+                                 mditab_paint, mditab);
 
         case WM_PRINTCLIENT:
-        {
-            RECT rect;
-            GetClientRect(win, &rect);
-            mditab_paint(mditab, (HDC) wp, &rect, TRUE);
-            return 0;
-        }
+            return generic_printclient(win, (HDC) wp, mditab_paint, mditab);
 
         case WM_ERASEBKGND:
             /* Keep it on WM_PAINT */

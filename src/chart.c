@@ -17,6 +17,7 @@
  */
 
 #include "chart.h"
+#include "generic.h"
 #include "dsa.h"
 #include "gdix.h"
 #include "color.h"
@@ -3039,26 +3040,12 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            BeginPaint(win, &ps);
-            if(!chart->no_redraw) {
-                if(chart->style & MC_CHS_DOUBLEBUFFER)
-                    mc_doublebuffer(chart, &ps, chart_paint);
-                else
-                    chart_paint(chart, ps.hdc, &ps.rcPaint, ps.fErase);
-            }
-            EndPaint(win, &ps);
-            return 0;
-        }
+            return generic_paint(win, chart->no_redraw,
+                                 (chart->style & MC_CHS_DOUBLEBUFFER),
+                                 chart_paint, chart);
 
         case WM_PRINTCLIENT:
-        {
-            RECT rect;
-            GetClientRect(win, &rect);
-            chart_paint(chart, (HDC) wp, &rect, TRUE);
-            return 0;
-        }
+            return generic_printclient(win, (HDC) wp, chart_paint, chart);
 
         case WM_ERASEBKGND:
             /* Keep it on WM_PAINT */

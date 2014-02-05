@@ -1314,26 +1314,12 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            BeginPaint(win, &ps);
-            if(!grid->no_redraw) {
-                if(grid->style & MC_GS_DOUBLEBUFFER)
-                    mc_doublebuffer(grid, &ps, grid_paint);
-                else
-                    grid_paint(grid, ps.hdc, &ps.rcPaint, ps.fErase);
-            }
-            EndPaint(win, &ps);
-            return 0;
-        }
+            return generic_paint(win, grid->no_redraw,
+                                 (grid->style & MC_GS_DOUBLEBUFFER),
+                                 grid_paint, grid);
 
         case WM_PRINTCLIENT:
-        {
-            RECT rect;
-            GetClientRect(win, &rect);
-            grid_paint(grid, (HDC) wp, &rect, TRUE);
-            return 0;
-        }
+            return generic_printclient(win, (HDC) wp, grid_paint, grid);
 
         case WM_NCPAINT:
             return generic_ncpaint(win, grid->theme_listview, (HRGN) wp);

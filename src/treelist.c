@@ -3529,26 +3529,12 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            BeginPaint(win, &ps);
-            if(!tl->no_redraw) {
-                if(tl->style & MC_TLS_DOUBLEBUFFER)
-                    mc_doublebuffer(tl, &ps, treelist_paint);
-                else
-                    treelist_paint(tl, ps.hdc, &ps.rcPaint, ps.fErase);
-            }
-            EndPaint(win, &ps);
-            return 0;
-        }
+            return generic_paint(win, tl->no_redraw,
+                                 (tl->style & MC_TLS_DOUBLEBUFFER),
+                                 treelist_paint, tl);
 
         case WM_PRINTCLIENT:
-        {
-            RECT rect;
-            GetClientRect(win, &rect);
-            treelist_paint(tl, (HDC) wp, &rect, TRUE);
-            return 0;
-        }
+            return generic_printclient(win, (HDC) wp, treelist_paint, tl);
 
         case WM_NCPAINT:
             return generic_ncpaint(win, tl->theme, (HRGN) wp);
