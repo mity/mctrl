@@ -17,6 +17,7 @@
  */
 
 #include "treelist.h"
+#include "generic.h"
 #include "theme.h"
 
 
@@ -1460,65 +1461,6 @@ treelist_get_item_y(treelist_t* tl, treelist_item_t* item, BOOL visible_only)
         y += tl->item_height;
         it = item_next_displayed(it, &ignored);
     }
-}
-
-static LRESULT
-treelist_ncpaint(treelist_t* tl, HRGN orig_clip)
-{
-    HDC dc;
-    int edge_h, edge_v;
-    RECT rect;
-    HRGN clip;
-    HRGN tmp;
-    LRESULT ret;
-
-    if(tl->theme == NULL)
-        return DefWindowProc(tl->win, WM_NCPAINT, (WPARAM)orig_clip, 0);
-
-    edge_h = GetSystemMetrics(SM_CXEDGE);
-    edge_v = GetSystemMetrics(SM_CYEDGE);
-    GetWindowRect(tl->win, &rect);
-
-    /* Prepare the clip region for DefWindowProc() so that it does not repaint
-     * what we do here. */
-    if(orig_clip == (HRGN) 1)
-        clip = CreateRectRgnIndirect(&rect);
-    else
-        clip = orig_clip;
-    tmp = CreateRectRgn(rect.left + edge_h, rect.top + edge_v,
-                        rect.right - edge_h, rect.bottom - edge_v);
-    CombineRgn(clip, clip, tmp, RGN_AND);
-    DeleteObject(tmp);
-
-    mc_rect_offset(&rect, -rect.left, -rect.top);
-    dc = GetWindowDC(tl->win);
-    ExcludeClipRect(dc, edge_h, edge_v, rect.right - 2*edge_h, rect.bottom - 2*edge_v);
-    if(mcIsThemeBackgroundPartiallyTransparent(tl->theme, 0, 0))
-        mcDrawThemeParentBackground(tl->win, dc, &rect);
-    mcDrawThemeBackground(tl->theme, dc, 0, 0, &rect, NULL);
-    ReleaseDC(tl->win, dc);
-
-    /* Use DefWindowProc() to paint scrollbars */
-    ret = DefWindowProc(tl->win, WM_NCPAINT, (WPARAM)clip, 0);
-    if(clip != orig_clip)
-        DeleteObject(clip);
-    return ret;
-}
-
-static void
-treelist_erasebkgnd(treelist_t* tl, HDC dc)
-{
-    RECT header_rect;
-    RECT rect;
-    HBRUSH brush;
-
-    GetWindowRect(tl->header_win, &header_rect);
-    GetClientRect(tl->win, &rect);
-    rect.top = mc_height(&header_rect);
-
-    brush = mcGetThemeSysColorBrush(tl->theme, COLOR_WINDOW);
-    FillRect(dc, &rect, brush);
-    DeleteObject(brush);
 }
 
 static void
@@ -3609,11 +3551,10 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_NCPAINT:
-            return treelist_ncpaint(tl, (HRGN) wp);
+            return generic_ncpaint(win, tl->theme, (HRGN) wp);
 
         case WM_ERASEBKGND:
-            treelist_erasebkgnd(tl, (HDC) wp);
-            return TRUE;
+            return generic_erasebkgnd(win, tl->theme, (HDC) wp);
 
         case MC_TLM_INSERTCOLUMNW:
         case MC_TLM_INSERTCOLUMNA:

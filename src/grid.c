@@ -17,8 +17,9 @@
  */
 
 #include "grid.h"
-#include "theme.h"
+#include "generic.h"
 #include "table.h"
+#include "theme.h"
 
 
 /* Uncomment this to have more verbose traces about MC_GRID control. */
@@ -853,65 +854,6 @@ grid_refresh(void* view, void* detail)
     }
 }
 
-static LRESULT
-grid_ncpaint(grid_t* grid, HRGN orig_clip)
-{
-    HWND win = grid->win;
-    HTHEME theme = grid->theme_listview;
-    HDC dc;
-    int edge_h, edge_v;
-    RECT rect;
-    HRGN clip;
-    HRGN tmp;
-    LRESULT ret;
-
-    if(theme == NULL)
-        return DefWindowProc(win, WM_NCPAINT, (WPARAM)orig_clip, 0);
-
-    edge_h = GetSystemMetrics(SM_CXEDGE);
-    edge_v = GetSystemMetrics(SM_CYEDGE);
-    GetWindowRect(win, &rect);
-
-    /* Prepare the clip region for DefWindowProc() so that it does not repaint
-     * what we do here. */
-    if(orig_clip == (HRGN) 1)
-        clip = CreateRectRgnIndirect(&rect);
-    else
-        clip = orig_clip;
-    tmp = CreateRectRgn(rect.left + edge_h, rect.top + edge_v,
-                        rect.right - edge_h, rect.bottom - edge_v);
-    CombineRgn(clip, clip, tmp, RGN_AND);
-    DeleteObject(tmp);
-
-    mc_rect_offset(&rect, -rect.left, -rect.top);
-    dc = GetWindowDC(win);
-    ExcludeClipRect(dc, edge_h, edge_v, rect.right - 2*edge_h, rect.bottom - 2*edge_v);
-    if(mcIsThemeBackgroundPartiallyTransparent(theme, 0, 0))
-        mcDrawThemeParentBackground(win, dc, &rect);
-    mcDrawThemeBackground(theme, dc, 0, 0, &rect, NULL);
-    ReleaseDC(win, dc);
-
-    /* Use DefWindowProc() to paint scrollbars */
-    ret = DefWindowProc(win, WM_NCPAINT, (WPARAM)clip, 0);
-    if(clip != orig_clip)
-        DeleteObject(clip);
-    return ret;
-}
-
-static void
-grid_erasebkgnd(grid_t* grid, HDC dc)
-{
-    HWND win = grid->win;
-    HTHEME theme = grid->theme_listview;
-    RECT rect;
-    HBRUSH brush;
-
-    GetClientRect(win, &rect);
-    brush = mcGetThemeSysColorBrush(theme, COLOR_WINDOW);
-    FillRect(dc, &rect, brush);
-    DeleteObject(brush);
-}
-
 static int
 grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom, BOOL invalidate)
 {
@@ -1394,11 +1336,10 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_NCPAINT:
-            return grid_ncpaint(grid, (HRGN) wp);
+            return generic_ncpaint(win, grid->theme_listview, (HRGN) wp);
 
         case WM_ERASEBKGND:
-            grid_erasebkgnd(grid, (HDC) wp);
-            return TRUE;
+            return generic_erasebkgnd(win, grid->theme_listview, (HDC) wp);
 
         case MC_GM_GETTABLE:
             return (LRESULT) grid->table;

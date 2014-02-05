@@ -31,10 +31,14 @@ obj/expand.o: src/expand.c src/expand.h include/mCtrl/expand.h \
 obj/gdix.o: src/gdix.c src/gdix.h src/misc.h src/compat.h src/debug.h \
  src/resource.h src/version.h include/mCtrl/_defs.h \
  include/mCtrl/_common.h
+obj/generic.o: src/generic.c src/generic.h src/misc.h src/compat.h \
+ src/debug.h src/resource.h src/version.h include/mCtrl/_defs.h \
+ include/mCtrl/_common.h src/theme.h include/mCtrl/theme.h
 obj/grid.o: src/grid.c src/grid.h include/mCtrl/grid.h include/mCtrl/_defs.h \
  include/mCtrl/_common.h include/mCtrl/value.h include/mCtrl/table.h \
  src/misc.h src/compat.h src/debug.h src/resource.h src/version.h \
- src/theme.h include/mCtrl/theme.h src/table.h src/value.h src/viewlist.h
+ src/generic.h src/theme.h include/mCtrl/theme.h src/table.h src/value.h \
+ src/viewlist.h
 obj/guid.o: src/guid.c src/misc.h src/compat.h src/debug.h src/resource.h \
  src/version.h include/mCtrl/_defs.h include/mCtrl/_common.h
 obj/html.o: src/html.c src/html.h include/mCtrl/html.h include/mCtrl/_defs.h \
@@ -74,7 +78,7 @@ obj/theme.o: src/theme.c src/theme.h src/misc.h src/compat.h src/debug.h \
  include/mCtrl/_common.h include/mCtrl/theme.h
 obj/treelist.o: src/treelist.c src/treelist.h include/mCtrl/treelist.h \
  include/mCtrl/_defs.h include/mCtrl/_common.h src/misc.h src/compat.h \
- src/debug.h src/resource.h src/version.h src/theme.h \
+ src/debug.h src/resource.h src/version.h src/generic.h src/theme.h \
  include/mCtrl/theme.h
 obj/value.o: src/value.c src/value.h include/mCtrl/value.h \
  include/mCtrl/_defs.h include/mCtrl/_common.h src/misc.h src/compat.h \
