@@ -118,17 +118,24 @@
  * @section sec_dll_deps DLL Dependencies
  *
  * The policy for mCtrl is to make hard dependencies only on DLLs available on
- * on all supported Windows versions. Some features may depend on existence of
- * newer or optional DLLs.
+ * on all supported Windows versions. This includes libraries like
+ * @c USER32.DLL, @c COMMCTRL32.DLL or @c GDI32.DLL.
  *
- * In particular, all controls may use visual styles (@c UXTHEME.DLL) when
- * system supports it.
+ * However some mCtrl features may depend on additional DLLs, which are loaded
+ * in runtime. In such cases, mCtrl tries to behave in a reasonable manner even
+ * if those libraries or are not available.
  *
- * Also note that chart control (@ref mCtrl/chart.h) and image view control
- * (@ref mCtrl/imgview.h) require GDI+ (@c GDIPLUS.DLL) for its functioning.
- * This library is available standardly on Windows XP and newer. Plain Windows
- * 2000, without any service pack, are not equipped with it. However Microsoft
- * has released distributable version of @c GDIPLUS.DLL: If your application
- * relies on this control, and you want to support Windows 2000, you should
- * distribute the @c GDIPLUS.DLL with it.
+ * - @c GDIPLUS.DLL is required by the chart control (@ref mCtrl/chart.h) and
+ *   image view control (@ref mCtrl/imgview.h). If the library can not be
+ *   loaded, the initialization functions @c mcChart_Initialize() and
+ *   @c mcImgView_Initialize() fail and the controls cannot be created.
+ *   This library is available standardly on Windows XP and newer. Plain
+ *   Windows 2000, without any service pack, are not equipped with it. However
+ *   Microsoft has released distributable version of @c GDIPLUS.DLL: If your
+ *   application relies on this control, and you want to support Windows 2000,
+ *   you should distribute the @c GDIPLUS.DLL with it.
+ *
+ * - @c UXTHEME.DLL is used on Windows XP and newer to paint the mCtrl controls
+ *   using the current theme. Note mCtrl does so only if the application uses
+ *   @c COMMCTRL32.DLL version 6 or newer.
  */
