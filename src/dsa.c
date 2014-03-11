@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 Martin Mitas
+ * Copyright (c) 2011-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@
 #include "dsa.h"
 
 
-/* Uncomment this to have more verbous traces from this module. */
+/* Uncomment this to have more verbose traces from this module. */
 /*#define DSA_DEBUG     1*/
 
 #ifdef DSA_DEBUG
@@ -29,6 +29,7 @@
 #endif
 
 
+#define DSA_MAX_ITEM_SIZE               256
 #define DSA_DEFAULT_GROW_SIZE(size)     (MC_MAX(8, (size) / 16))
 #define DSA_DEFAULT_SHRINK_SIZE(size)   (2*DSA_DEFAULT_GROW_SIZE(size))
 
@@ -37,6 +38,9 @@ void
 dsa_init(dsa_t* dsa, WORD item_size)
 {
     DSA_TRACE("dsa_init(%p, %d)", dsa, (int)item_size);
+
+    /* Check we do not use DSA for too big structures. */
+    MC_ASSERT(item_size <= DSA_MAX_ITEM_SIZE);
 
     dsa->buffer = NULL;
     dsa->item_size = item_size;
@@ -119,7 +123,7 @@ dsa_insert(dsa_t* dsa, WORD index, void* item)
         return -1;
     }
 
-    mc_inlined_memcpy(ptr, item, dsa->item_size);
+    memcpy(ptr, item, dsa->item_size);
     return index;
 }
 
@@ -184,6 +188,19 @@ dsa_clear(dsa_t* dsa, dsa_dtor_t dtor_func)
     dsa->capacity = 0;
 }
 
+/* Swapping two memory blocks. They must not overlap. */
+static inline void
+dsa_memswap(void* addr0, void* addr1, size_t n)
+{
+    BYTE tmp[DSA_MAX_ITEM_SIZE];
+
+    MC_ASSERT(n <= DSA_MAX_ITEM_SIZE);
+
+    memcpy(tmp, addr0, n);
+    memcpy(addr0, addr1, n);
+    memcpy(addr1, tmp, n);
+}
+
 /* dsa_sort() below is adapted qsort() from glibc-2.13.
  * Copyright (C) 1991,1992,1996,1997,1999,2004 Free Software Foundation, Inc.
  * Written by Douglas C. Schmidt (schmidt@ics.uci.edu). */
@@ -234,13 +251,13 @@ dsa_sort(dsa_t* dsa, dsa_cmp_t cmp_func)
             BYTE* mid = lo + item_size * ((hi - lo) / item_size >> 1);
 
             if(cmp_func(dsa, (void*)mid, (void*)lo) < 0)
-                mc_inlined_memswap(mid, lo, item_size);
+                dsa_memswap(mid, lo, item_size);
             if(cmp_func(dsa, (void*)hi, (void*)mid) < 0)
-                mc_inlined_memswap(mid, hi, item_size);
+                dsa_memswap(mid, hi, item_size);
             else
                 goto jump_over;
             if (cmp_func(dsa, (void*)mid, (void*)lo) < 0)
-                mc_inlined_memswap(mid, lo, item_size);
+                dsa_memswap(mid, lo, item_size);
 jump_over:
             left_ptr  = lo + item_size;
             right_ptr = hi - item_size;
@@ -255,7 +272,7 @@ jump_over:
                     right_ptr -= item_size;
 
                 if(left_ptr < right_ptr) {
-                    mc_inlined_memswap(left_ptr, right_ptr, item_size);
+                    dsa_memswap(left_ptr, right_ptr, item_size);
                     if(mid == left_ptr)
                         mid = right_ptr;
                     else if(mid == right_ptr)
@@ -315,7 +332,7 @@ jump_over:
         }
 
         if(tmp_ptr != base_ptr)
-            mc_inlined_memswap(tmp_ptr, base_ptr, item_size);
+            dsa_memswap(tmp_ptr, base_ptr, item_size);
 
         /* Insertion sort, running from left-hand-side up to right-hand-side.  */
 
@@ -430,7 +447,7 @@ found_index:
         return index;
 
     /* Do the move */
-    mc_inlined_memcpy(tmp, dsa_item(dsa, old_index), dsa->item_size);
+    memcpy(tmp, dsa_item(dsa, old_index), dsa->item_size);
     if(index < old_index) {
         memmove(dsa_item(dsa, index+1), dsa_item(dsa, index),
                 (size_t)(old_index - index) * (size_t)dsa->item_size);
@@ -438,7 +455,7 @@ found_index:
         memmove(dsa_item(dsa, old_index), dsa_item(dsa, old_index+1),
                 (size_t)(index - old_index) * (size_t)dsa->item_size);
     }
-    mc_inlined_memcpy(dsa_item(dsa, index), tmp, dsa->item_size);
+    memcpy(dsa_item(dsa, index), tmp, dsa->item_size);
     return index;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2013 Martin Mitas
+ * Copyright (c) 2008-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -155,70 +155,6 @@ extern DWORD mc_comctl32_version;
 #define MC_BMP_GLYPH_COLLAPSED       5
 
 extern HIMAGELIST mc_bmp_glyphs;
-
-
-/*************************************
- *** Memory Manipulation Utilities ***
- *************************************/
-
-/* memcpy/memmove can be slow because of 'call' instruction for very small
- * blocks of memory. Hence if we know the size is small already in compile
- * time, we may inline it instead.
- *
- * (gcc has a capability of inlining of these built-in.)
- */
-
-#ifndef MC_COMPILER_GCC
-    static inline void
-    mc_inlined_memcpy(void* addr0, const void* addr1, size_t n)
-    {
-        BYTE* iter0 = (BYTE*) addr0;
-        const BYTE* iter1 = (const BYTE*) addr1;
-
-        while(n-- > 0)
-            *iter0++ = *iter1++;
-    }
-#else
-    #define mc_inlined_memcpy memcpy
-#endif
-
-#ifndef MC_COMPILER_GCC
-    static inline void
-    mc_inlined_memmove(void* addr0, const void* addr1, size_t n)
-    {
-        BYTE* iter0 = (BYTE*) addr0;
-        const BYTE* iter1 = (const BYTE*) addr1;
-
-        if(iter0 < iter1) {
-            while(n-- > 0)
-                *iter0++ = *iter1++;
-        } else {
-            iter0 += n;
-            iter1 += n;
-            while(n-- > 0)
-                *(--iter0) = *(--iter1);
-        }
-    }
-#else
-    #define mc_inlined_memmove memmove
-#endif
-
-/* Swapping two memory blocks. They must not overlay. */
-static inline void
-mc_inlined_memswap(void* addr0, void* addr1, size_t n)
-{
-    BYTE* iter0 = (BYTE*) addr0;
-    BYTE* iter1 = (BYTE*) addr1;
-    BYTE tmp;
-
-    while(n-- > 0) {
-        tmp = *iter0;
-        *iter0++ = *iter1;
-        *iter1++ = tmp;
-    }
-}
-
-#define mc_memswap    mc_inlined_memswap
 
 
 /************************
