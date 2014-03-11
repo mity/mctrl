@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Martin Mitas
+ * Copyright (c) 2009-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +23,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+
+/*********************
+ *** Debug Tracing ***
+ *********************/
 
 #if defined DEBUG && DEBUG >= 1
 
@@ -85,8 +89,11 @@ debug_dump(const char* msg, void* addr, size_t n)
 #endif  /* #if defined DEBUG && DEBUG >= 1 */
 
 
-#if defined DEBUG && DEBUG >= 2
+/*****************************
+ *** Memory Heap Debugging ***
+ *****************************/
 
+#if defined DEBUG && DEBUG >= 2
 
 /* Trace out all malloc() and free() calls? */
 #if DEBUG >= 3
@@ -94,7 +101,6 @@ debug_dump(const char* msg, void* addr, size_t n)
 #else
     #define DEBUG_TRACE(...)     do { } while(0)
 #endif
-
 
 /* Undefine the replacing macros from debug.h */
 #undef malloc
@@ -114,12 +120,12 @@ struct mem_info_tag {
 };
 
 
-/* Here we keep all alocated mem_info_t instances, hashed by the memory chunk
- * address. Keep the hashtable size not dividable by four, so that all slots
+/* Here we keep all allocated mem_info_t instances, hashed by the memory chunk
+ * address. Keep the hash table size not dividable by four, so that all slots
  * are used approximately evenly. (The dynamic allocator usually tends to
  * allocate on DWORD or QUADWORD boundaries ;-).
  *
- * The hashtable lives in its own heap, so it's somewhat separated from
+ * The hash table lives in its own heap, so it's somewhat separated from
  * other memory usage. This lowers the probability these core data will be
  * overwritten by some bug. (That would make this tool for memory debugging
  * a bit useless...) */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2013 Martin Mitas
+ * Copyright (c) 2009-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,17 +22,47 @@
 #include "compat.h"
 
 
+/*********************
+ *** Debug Tracing ***
+ *********************/
+
 #if defined DEBUG && DEBUG >= 1
     #include <windows.h>
     #include <stdlib.h>
 
-    /* Logging */
     void debug_trace(const char* fmt, ...);
     void debug_dump(const char* msg, void* addr, size_t n);
 
     #define MC_TRACE(...)        debug_trace(__VA_ARGS__)
     #define MC_DUMP(msg,addr,n)  debug_dump((msg), (addr), (n))
+#endif
 
+/* Fallback to no-op macros */
+#ifndef MC_TRACE
+    #define MC_TRACE(...)                do { } while(0)
+#endif
+#ifndef MC_DUMP
+    #define MC_DUMP(...)                 do { } while(0)
+#endif
+
+/* Helper for tracing message with GetLastError() */
+#define MC_TRACE_ERR(msg)                                                     \
+    MC_TRACE(msg " [%lu]", GetLastError())
+
+/* Helper for tracing GUIDs */
+#define MC_TRACE_GUID(msg, guid)                                              \
+    MC_TRACE(msg " {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",       \
+             (guid)->Data1, (guid)->Data2, (guid)->Data3,                     \
+             (guid)->Data4[0], (guid)->Data4[1], (guid)->Data4[2],            \
+             (guid)->Data4[3], (guid)->Data4[4], (guid)->Data4[5],            \
+             (guid)->Data4[6], (guid)->Data4[7])
+
+
+/******************
+ *** Assertions ***
+ ******************/
+
+#if defined DEBUG && DEBUG >= 1
     /* Assertion */
     #define MC_ASSERT(cond)                                                   \
         do {                                                                  \
@@ -62,15 +92,9 @@
     #endif
 #endif
 
-
-/* Fallback to no-op macros */
-#ifndef MC_TRACE
-    #define MC_TRACE(...)                do { } while(0)
-#endif
-#ifndef MC_DUMP
-    #define MC_DUMP(...)                 do { } while(0)
-#endif
+/* Fallback to no-op macros. */
 #ifndef MC_ASSERT
+    /* Try to utilize the assertions as hints for optimization. */
     #if defined __GNUC__
         #define MC_ASSERT(cond)          \
                     do { if(!(cond)) { __builtin_unreachable(); } } while(0)
@@ -81,25 +105,19 @@
         #define MC_ASSERT(cond)          do { } while(0)
     #endif
 #endif
-#ifndef MC_UNREACHABLE
-    #define MC_UNREACHABLE               MC_ASSERT(FALSE)
-#endif
 #ifndef MC_STATIC_ASSERT
     #define MC_STATIC_ASSERT(cond)       /* empty */
 #endif
 
-/* Helper for tracing message with GetLastError() */
-#define MC_TRACE_ERR(msg)                                                     \
-    MC_TRACE(msg " [%lu]", GetLastError())
+/* Marking code is unreachable so compiler can optimize accordingly. */
+#ifndef MC_UNREACHABLE
+    #define MC_UNREACHABLE               MC_ASSERT(FALSE)
+#endif
 
-/* Helper for tracing GUIDs */
-#define MC_TRACE_GUID(msg, guid)                                              \
-    MC_TRACE(msg " {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",       \
-             (guid)->Data1, (guid)->Data2, (guid)->Data3,                     \
-             (guid)->Data4[0], (guid)->Data4[1], (guid)->Data4[2],            \
-             (guid)->Data4[3], (guid)->Data4[4], (guid)->Data4[5],            \
-             (guid)->Data4[6], (guid)->Data4[7])
 
+/*****************************
+ *** Memory Heap Debugging ***
+ *****************************/
 
 /* Functions debug_malloc() and debug_free() are used for debugging internal
  * mCtrl memory management. When used instead of malloc/free, they track
