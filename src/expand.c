@@ -89,14 +89,14 @@ struct expand_tag {
     DWORD mouse_captured : 1;
     DWORD space_pressed  : 1;
     DWORD state          : 3;
-    DWORD old_state      : 3;  /* for painting state transitions */
-    DWORD anim_frame     : 4;  /* for animating parent resize */
+    DWORD old_state      : 3;  /* For painting state transitions. */
+    DWORD anim_frame     : 4;  /* For animating parent resize. */
     WORD collapsed_w;
     WORD collapsed_h;
     WORD expanded_w;
     WORD expanded_h;
-    WORD anim_start_w;         /* for case collapsed/expand_[w|h] changes */
-    WORD anim_start_h;         /* during the animation */
+    WORD anim_start_w;         /* Needed for case collapsed/expand_[w|h]...  */
+    WORD anim_start_h;         /*      ... changes during the animation. */
 };
 
 
