@@ -384,7 +384,7 @@ expand_set_state(expand_t* expand, DWORD state)
 }
 
 static void
-expand_guess_client_size(expand_t* expand, SIZE* size, BOOL expanded)
+expand_guess_dlg_client_size(expand_t* expand, SIZE* size, BOOL expanded)
 {
     HFONT dlg_font;
     int dlg_padding;
@@ -469,23 +469,23 @@ expand_entire_to_client(expand_t* expand, SIZE* size)
 }
 
 static void
-expand_get_size(expand_t* expand, SIZE* entire_size, SIZE* client_size)
+expand_get_desired_dlg_size(expand_t* expand, SIZE* dlg_frame_size, SIZE* dlg_client_size)
 {
     BOOL is_entire;
     BOOL guessed = FALSE;
 
     /* Get the size the parent should have */
     if(expand->state & STATE_EXPANDED) {
-        client_size->cx = expand->expanded_w;
-        client_size->cy = expand->expanded_h;
+        dlg_client_size->cx = expand->expanded_w;
+        dlg_client_size->cy = expand->expanded_h;
     } else {
-        client_size->cx = expand->collapsed_w;
-        client_size->cy = expand->collapsed_h;
+        dlg_client_size->cx = expand->collapsed_w;
+        dlg_client_size->cy = expand->collapsed_h;
     }
 
     /* If not set explicitly, try to guess */
-    if(client_size->cx == 0  &&  client_size->cy == 0) {
-        expand_guess_client_size(expand, client_size, (expand->state & STATE_EXPANDED));
+    if(dlg_client_size->cx == 0  &&  dlg_client_size->cy == 0) {
+        expand_guess_dlg_client_size(expand, dlg_client_size, (expand->state & STATE_EXPANDED));
         is_entire = FALSE;
         guessed = TRUE;
     } else {
@@ -493,17 +493,17 @@ expand_get_size(expand_t* expand, SIZE* entire_size, SIZE* client_size)
     }
 
     /* We need both, size of entire window and its client */
-    entire_size->cx = client_size->cx;
-    entire_size->cy = client_size->cy;
+    dlg_frame_size->cx = dlg_client_size->cx;
+    dlg_frame_size->cy = dlg_client_size->cy;
     if(is_entire)
-        expand_entire_to_client(expand, client_size);
+        expand_entire_to_client(expand, dlg_client_size);
     else
-        expand_client_to_entire(expand, entire_size);
+        expand_client_to_entire(expand, dlg_frame_size);
 
     /* We may want to remember it for next time */
     if(guessed  &&  (expand->style & MC_EXS_CACHESIZES)) {
         SIZE* p_size = ((expand->style & MC_EXS_RESIZEENTIREWINDOW)
-                                        ? entire_size : client_size);
+                                        ? dlg_frame_size : dlg_client_size);
         if(expand->state & STATE_EXPANDED) {
             expand->expanded_w = p_size->cx;
             expand->expanded_h = p_size->cy;
@@ -515,10 +515,10 @@ expand_get_size(expand_t* expand, SIZE* entire_size, SIZE* client_size)
 }
 
 static inline void
-expand_do_resize(expand_t* expand, SIZE* entire_size)
+expand_do_resize(expand_t* expand, SIZE* dlg_frame_size)
 {
     /* Resize the parent */
-    SetWindowPos(expand->notify_win, NULL, 0, 0, entire_size->cx, entire_size->cy,
+    SetWindowPos(expand->notify_win, NULL, 0, 0, dlg_frame_size->cx, dlg_frame_size->cy,
                  SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 }
 
@@ -552,30 +552,30 @@ expand_handle_children(expand_t* expand, RECT* old_rect, RECT* new_rect)
 static void
 expand_animate_resize_callback(expand_t* expand)
 {
-    SIZE entire_size;
-    SIZE client_size;
+    SIZE dlg_frame_size;
+    SIZE dlg_client_size;
     RECT r;
     BOOL done;
 
     GetWindowRect(expand->win, &r);
-    expand_get_size(expand, &entire_size, &client_size);
+    expand_get_desired_dlg_size(expand, &dlg_frame_size, &dlg_client_size);
 
-    done = (mc_width(&r) == entire_size.cx  &&  mc_height(&r) == entire_size.cy);
+    done = (mc_width(&r) == dlg_frame_size.cx  &&  mc_height(&r) == dlg_frame_size.cy);
     if(!done) {
         if(expand->anim_frame != ANIM_FRAMES-1) {
-            LONG dw = (LONG)expand->anim_frame * (entire_size.cx - (LONG)expand->anim_start_w) / ANIM_FRAMES;
-            LONG dh = (LONG)expand->anim_frame * (entire_size.cy - (LONG)expand->anim_start_h) / ANIM_FRAMES;
+            LONG dw = (LONG)expand->anim_frame * (dlg_frame_size.cx - (LONG)expand->anim_start_w) / ANIM_FRAMES;
+            LONG dh = (LONG)expand->anim_frame * (dlg_frame_size.cy - (LONG)expand->anim_start_h) / ANIM_FRAMES;
 
-            entire_size.cx = expand->anim_start_w + dw;
-            entire_size.cy = expand->anim_start_h + dh;
-            client_size.cx = entire_size.cx;
-            client_size.cy = entire_size.cy;
-            expand_entire_to_client(expand, &client_size);
+            dlg_frame_size.cx = expand->anim_start_w + dw;
+            dlg_frame_size.cy = expand->anim_start_h + dh;
+            dlg_client_size.cx = dlg_frame_size.cx;
+            dlg_client_size.cy = dlg_frame_size.cy;
+            expand_entire_to_client(expand, &dlg_client_size);
         } else {
             done = TRUE;
         }
 
-        expand_do_resize(expand, &entire_size);
+        expand_do_resize(expand, &dlg_frame_size);
     }
 
     if(done) {
@@ -585,7 +585,7 @@ expand_animate_resize_callback(expand_t* expand)
         KillTimer(expand->win, ANIM_TIMER_ID);
 
         mc_rect_set(&old_rect, 0, 0, expand->anim_start_w, expand->anim_start_h);
-        mc_rect_set(&new_rect, 0, 0, client_size.cx, client_size.cy);
+        mc_rect_set(&new_rect, 0, 0, dlg_client_size.cx, dlg_client_size.cy);
         expand_handle_children(expand, &old_rect, &new_rect);
         mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDED);
     } else {
@@ -594,7 +594,7 @@ expand_animate_resize_callback(expand_t* expand)
 }
 
 static void
-expand_animate_resize(expand_t* expand, SIZE* entire_size, SIZE* client_size)
+expand_animate_resize(expand_t* expand, SIZE* dlg_frame_size, SIZE* dlg_client_size)
 {
     RECT rect;
 
@@ -609,13 +609,13 @@ expand_animate_resize(expand_t* expand, SIZE* entire_size, SIZE* client_size)
 static void
 expand_resize(expand_t* expand, DWORD flags)
 {
-    SIZE entire_size;
-    SIZE client_size;
+    SIZE dlg_frame_size;
+    SIZE dlg_client_size;
 
-    expand_get_size(expand, &entire_size, &client_size);
+    expand_get_desired_dlg_size(expand, &dlg_frame_size, &dlg_client_size);
 
     if((expand->style & MC_EXS_ANIMATE)  &&  !(flags & MC_EXE_NOANIMATE)) {
-        expand_animate_resize(expand, &entire_size, &client_size);
+        expand_animate_resize(expand, &dlg_frame_size, &dlg_client_size);
     } else {
         RECT old_rect, new_rect;
 
@@ -625,9 +625,9 @@ expand_resize(expand_t* expand, DWORD flags)
             KillTimer(expand->win, ANIM_TIMER_ID);
         }
 
-        expand_do_resize(expand, &entire_size);
+        expand_do_resize(expand, &dlg_frame_size);
         GetClientRect(expand->win, &old_rect);
-        mc_rect_set(&new_rect, 0, 0, client_size.cx, client_size.cy);
+        mc_rect_set(&new_rect, 0, 0, dlg_client_size.cx, dlg_client_size.cy);
         expand_handle_children(expand, &old_rect, &new_rect);
         mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDED);
     }
