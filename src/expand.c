@@ -555,23 +555,19 @@ expand_animate_resize_callback(expand_t* expand)
     SIZE entire_size;
     SIZE client_size;
     RECT r;
-    int w, h;
-    int dw, dh;
     BOOL done;
 
     GetWindowRect(expand->win, &r);
-    w = mc_width(&r);
-    h = mc_height(&r);
     expand_get_size(expand, &entire_size, &client_size);
 
-    done = (w == entire_size.cx  &&  h == entire_size.cy);
+    done = (mc_width(&r) == entire_size.cx  &&  mc_height(&r) == entire_size.cy);
     if(!done) {
         if(expand->anim_frame != ANIM_FRAMES-1) {
-            dw = expand->anim_frame * (entire_size.cx - expand->anim_start_w) / ANIM_FRAMES;
-            dh = expand->anim_frame * (entire_size.cy - expand->anim_start_h) / ANIM_FRAMES;
+            LONG dw = (LONG)expand->anim_frame * (entire_size.cx - (LONG)expand->anim_start_w) / ANIM_FRAMES;
+            LONG dh = (LONG)expand->anim_frame * (entire_size.cy - (LONG)expand->anim_start_h) / ANIM_FRAMES;
+
             entire_size.cx = expand->anim_start_w + dw;
             entire_size.cy = expand->anim_start_h + dh;
-
             client_size.cx = entire_size.cx;
             client_size.cy = entire_size.cy;
             expand_entire_to_client(expand, &client_size);
