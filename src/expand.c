@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Martin Mitas
+ * Copyright (c) 2012-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,8 +43,32 @@
 static const TCHAR expand_wc[] = MC_WC_EXPAND;    /* Window class name */
 static const WCHAR expand_tc[] = L"BUTTON";       /* Theming identifier */
 
-static HBITMAP expand_glyphs[3];
 
+typedef struct expand_glyph_tag expand_glyph_t;
+struct expand_glyph_tag {
+    HBITMAP bmp;
+    const WORD size;
+    const WORD res_id;
+};
+
+static expand_glyph_t expand_glyphs[3] = {
+    { NULL, 19, IDR_EXPAND_GLYPHS_19 },
+    { NULL, 24, IDR_EXPAND_GLYPHS_24 },
+    { NULL, 29, IDR_EXPAND_GLYPHS_29 }
+};
+
+static expand_glyph_t*
+expand_get_glyph(LONG size)
+{
+    int i;
+
+    for(i = 1; i < MC_ARRAY_SIZE(expand_glyphs); i++) {
+        if(size < expand_glyphs[i].size)
+            return &expand_glyphs[i - 1];
+    }
+
+    return &expand_glyphs[MC_ARRAY_SIZE(expand_glyphs) - 1];
+}
 
 /* expand_t::state bits */
 #define STATE_HOT              0x1
@@ -119,16 +143,9 @@ expand_calc_layout(expand_t* expand, HDC dc, expand_layout_t* layout)
         SelectObject(dc, old_font);
 
     if(expand->theme != NULL) {
-        if(rect.bottom < 24) {
-            layout->glyph_bmp = expand_glyphs[0];
-            glyph_size = 19;
-        } else if(rect.bottom < 29) {
-            layout->glyph_bmp = expand_glyphs[1];
-            glyph_size = 24;
-        } else {
-            layout->glyph_bmp = expand_glyphs[2];
-            glyph_size = 29;
-        }
+        expand_glyph_t* glyph = expand_get_glyph(rect.bottom);
+        layout->glyph_bmp = glyph->bmp;
+        glyph_size = glyph->size;
     } else {
         layout->glyph_bmp = NULL;
         glyph_size = (extents.cy - 2) & ~0x1;
@@ -933,14 +950,14 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 int
 expand_init_module(void)
 {
+    int i;
     WNDCLASS wc = { 0 };
 
-    expand_glyphs[0] = LoadImage(mc_instance, MAKEINTRESOURCE(IDR_EXPAND_GLYPHS_19),
-                                 IMAGE_BITMAP, 0, 0, LR_SHARED | LR_CREATEDIBSECTION);
-    expand_glyphs[1] = LoadImage(mc_instance, MAKEINTRESOURCE(IDR_EXPAND_GLYPHS_24),
-                                 IMAGE_BITMAP, 0, 0, LR_SHARED | LR_CREATEDIBSECTION);
-    expand_glyphs[2] = LoadImage(mc_instance, MAKEINTRESOURCE(IDR_EXPAND_GLYPHS_29),
-                                 IMAGE_BITMAP, 0, 0, LR_SHARED | LR_CREATEDIBSECTION);
+    for(i = 0; i < MC_ARRAY_SIZE(expand_glyphs); i++) {
+        expand_glyphs[i].bmp = LoadImage(mc_instance,
+                    MAKEINTRESOURCE(expand_glyphs[i].res_id), IMAGE_BITMAP,
+                    0, 0, LR_SHARED | LR_CREATEDIBSECTION);
+    }
 
     wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = expand_proc;
@@ -958,5 +975,10 @@ expand_init_module(void)
 void
 expand_fini_module(void)
 {
+    int i;
+
     UnregisterClass(expand_wc, NULL);
+
+    for(i = 0; i < MC_ARRAY_SIZE(expand_glyphs); i++)
+        DeleteObject(expand_glyphs[i].bmp);
 }
