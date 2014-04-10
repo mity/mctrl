@@ -882,7 +882,8 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETREDRAW:
             expand->no_redraw = !wp;
-            RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+            if(!expand->no_redraw)
+                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
             return 0;
 
         case WM_GETDLGCODE:
