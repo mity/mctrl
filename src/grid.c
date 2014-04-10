@@ -1379,6 +1379,8 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETREDRAW:
             grid->no_redraw = !wp;
+            if(!grid->no_redraw)
+                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
             return 0;
 
         case WM_VSCROLL:
