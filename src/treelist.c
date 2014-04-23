@@ -1950,7 +1950,7 @@ treelist_expand_item(treelist_t* tl, int action, treelist_item_t* item)
             }
 
         case MC_TLE_COLLAPSE | MC_TLE_COLLAPSERESET:
-            if(item->state & MC_TLIS_EXPANDED)
+            if(expanded)
                 treelist_do_collapse(tl, item, FALSE);
             treelist_delete_children(tl, item);
             return TRUE;
