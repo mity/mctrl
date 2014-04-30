@@ -883,7 +883,7 @@ HRESULT MCTRL_API mcGetThemeSysString(HTHEME hTheme, int iStringId,
  * @return Return value of @c GetThemeTextExtent(), or @c E_NOTIMPL.
  */
 HRESULT MCTRL_API mcGetThemeTextExtent(HTHEME hTheme, HDC hdc, int iPartId,
-            int iStateId, const TCHAR* pszText, int cchTextMax, DWORD dwFlags,
+            int iStateId, const WCHAR* pszText, int cchTextMax, DWORD dwFlags,
             const RECT* prcBounding, RECT* prcExtent);
 
 /**

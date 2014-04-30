@@ -847,7 +847,7 @@ mcGetThemeSysString(HTHEME hTheme, int iStringId, WCHAR* pszBuff,
 
 HRESULT MCTRL_API
 mcGetThemeTextExtent(HTHEME hTheme, HDC hdc, int iPartId, int iStateId,
-            const TCHAR* pszText, int cchTextMax, DWORD dwFlags,
+            const WCHAR* pszText, int cchTextMax, DWORD dwFlags,
             const RECT* prcBounding, RECT* prcExtent)
 {
     if(theme_GetThemeTextExtent != NULL) {
