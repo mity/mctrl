@@ -44,9 +44,9 @@ struct table_tag {
     mc_ref_t refs;
     WORD col_count;
     WORD row_count;
-    table_cell_t* cols;
-    table_cell_t* rows;
-    table_cell_t* cells;
+    table_cell_t* restrict cols;
+    table_cell_t* restrict rows;
+    table_cell_t* restrict cells;
 
     view_list_t vlist;
 };

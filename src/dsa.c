@@ -190,7 +190,7 @@ dsa_clear(dsa_t* dsa, dsa_dtor_t dtor_func)
 
 /* Swapping two memory blocks. They must not overlap. */
 static inline void
-dsa_memswap(void* addr0, void* addr1, size_t n)
+dsa_memswap(void* restrict addr0, void* restrict addr1, size_t n)
 {
     BYTE tmp[DSA_MAX_ITEM_SIZE];
 

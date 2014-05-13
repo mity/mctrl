@@ -182,14 +182,14 @@ TCHAR* mc_str_load(UINT id);
 
 /* Copying/converting strings into provided buffer */
 
-void mc_str_inbuf_A2A(const char* from_str, char* to_str, int to_str_bufsize);
-void mc_str_inbuf_W2W(const WCHAR* from_str, WCHAR* to_str, int to_str_bufsize);
-void mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize);
-void mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize);
+void mc_str_inbuf_A2A(const char* restrict from_str, char* restrict to_str, int to_str_bufsize);
+void mc_str_inbuf_W2W(const WCHAR* restrict from_str, WCHAR* restrict to_str, int to_str_bufsize);
+void mc_str_inbuf_A2W(const char* restrict from_str, WCHAR* restrict to_str, int to_str_bufsize);
+void mc_str_inbuf_W2A(const WCHAR* restrict from_str, char* restrict to_str, int to_str_bufsize);
 
 static inline void
-mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
-             void* to_str, mc_str_type_t to_type, int to_str_bufsize)
+mc_str_inbuf(const void* restrict from_str, mc_str_type_t from_type,
+             void* restrict to_str, mc_str_type_t to_type, int to_str_bufsize)
 {
     if(from_type == to_type) {
         if(from_type == MC_STRA)
@@ -207,14 +207,14 @@ mc_str_inbuf(const void* from_str, mc_str_type_t from_type,
 
 /* Copying/converting strings into malloc'ed buffer */
 
-char* mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len);
-WCHAR* mc_str_n_W2W(const WCHAR* from_str, int from_len, int* ptr_to_len);
-WCHAR* mc_str_n_A2W(const char* from_str, int from_len, int* ptr_to_len);
-char* mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len);
+char* mc_str_n_A2A(const char* restrict from_str, int from_len, int* restrict ptr_to_len);
+WCHAR* mc_str_n_W2W(const WCHAR* restrict from_str, int from_len, int* restrict ptr_to_len);
+WCHAR* mc_str_n_A2W(const char* restrict from_str, int from_len, int* restrict ptr_to_len);
+char* mc_str_n_W2A(const WCHAR* restrict from_str, int from_len, int* restrict ptr_to_len);
 
 static inline void*
-mc_str_n(const void* from_str, mc_str_type_t from_type, int from_len,
-         mc_str_type_t to_type, int* ptr_to_len)
+mc_str_n(const void* restrict from_str, mc_str_type_t from_type, int from_len,
+         mc_str_type_t to_type, int* restrict ptr_to_len)
 {
     if(from_type == to_type) {
         if(from_type == MC_STRA)

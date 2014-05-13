@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2014 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,7 @@
 #define MC_COMPAT_H
 
 
-/* This file is here to hide differences and incompabilties among various
+/* This file is here to hide differences and incompatibles among various
  * build environments and toolchains. */
 
 
@@ -78,6 +78,22 @@
     #define UINT64_MAX (0xffffffffffffffff)
 #else
     #include <stdint.h>
+#endif
+
+
+/***************************
+ *** restrict specifier  ***
+ ***************************/
+
+/* "restrict" has been introduced in C99, but MSVC and gcc provide __restrict
+ * as compiler extension. We use it throughout our code for better
+ * optimizations. */
+#if !defined(__STDC_VERSION__)  ||  __STDC_VERSION__ < 199901L
+    #if defined MC_COMPILER_MSVC  ||  defined MC_COMPILER_GCC
+        #define restrict __restrict
+    #else
+        #define restrict
+    #endif
 #endif
 
 

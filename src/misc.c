@@ -88,7 +88,7 @@ not_found:
 }
 
 void
-mc_str_inbuf_A2A(const char* from_str, char* to_str, int to_str_bufsize)
+mc_str_inbuf_A2A(const char* restrict from_str, char* restrict to_str, int to_str_bufsize)
 {
     if(to_str_bufsize <= 0)
         return;
@@ -98,7 +98,7 @@ mc_str_inbuf_A2A(const char* from_str, char* to_str, int to_str_bufsize)
 }
 
 void
-mc_str_inbuf_W2W(const WCHAR* from_str, WCHAR* to_str, int to_str_bufsize)
+mc_str_inbuf_W2W(const WCHAR* restrict from_str, WCHAR* restrict to_str, int to_str_bufsize)
 {
     if(to_str_bufsize <= 0)
         return;
@@ -108,7 +108,7 @@ mc_str_inbuf_W2W(const WCHAR* from_str, WCHAR* to_str, int to_str_bufsize)
 }
 
 void
-mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize)
+mc_str_inbuf_A2W(const char* restrict from_str, WCHAR* restrict to_str, int to_str_bufsize)
 {
     int n;
 
@@ -124,7 +124,7 @@ mc_str_inbuf_A2W(const char* from_str, WCHAR* to_str, int to_str_bufsize)
 }
 
 void
-mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize)
+mc_str_inbuf_W2A(const WCHAR* restrict from_str, char* restrict to_str, int to_str_bufsize)
 {
     int n;
 
@@ -140,7 +140,7 @@ mc_str_inbuf_W2A(const WCHAR* from_str, char* to_str, int to_str_bufsize)
 }
 
 char*
-mc_str_n_A2A(const char* from_str, int from_len, int* ptr_to_len)
+mc_str_n_A2A(const char* restrict from_str, int from_len, int* restrict ptr_to_len)
 {
     char* to_str = NULL;
     int to_len = 0;
