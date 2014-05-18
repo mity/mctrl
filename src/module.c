@@ -86,6 +86,7 @@ module_fini_modules(module_t** modules, int n)
 
     EnterCriticalSection(&mod_lock);
     for(i = n-1; i >= 0; i--) {
+        MC_ASSERT(modules[i]->refs > 0);
         modules[i]->refs--;
         if(modules[i]->refs == 0)
             modules[i]->fn_fini();
