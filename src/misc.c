@@ -326,69 +326,6 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta, int lines_per_page)
 }
 
 
-/********************************
- *** Double-buffered Painting ***
- ********************************/
-
-void
-mc_doublebuffer(void* control, PAINTSTRUCT* ps,
-                void (*func_paint)(void*, HDC, RECT*, BOOL))
-{
-    int w, h;
-    HDC mem_dc;
-    HBITMAP bmp;
-    HBITMAP old_bmp;
-    POINT old_origin;
-
-    w = mc_width(&ps->rcPaint);
-    h = mc_height(&ps->rcPaint);
-
-    /* Use UXTHEME's buffered paint whenever available. */
-    if(theme_BeginBufferedPaint != NULL) {
-#ifndef BPPF_NOCLIP
-    #define BPPF_NOCLIP  0x0002
-#endif
-        BP_PAINTPARAMS params = { sizeof(BP_PAINTPARAMS), BPPF_NOCLIP, NULL, NULL };
-        HPAINTBUFFER buffer;
-
-        buffer = theme_BeginBufferedPaint(ps->hdc, &ps->rcPaint,
-                                BPBF_TOPDOWNDIB, &params, &mem_dc);
-        if(MC_ERR(buffer == NULL))
-            goto err_BeginBufferedPaint;
-        func_paint(control, mem_dc, &ps->rcPaint, TRUE);
-        theme_EndBufferedPaint(buffer, TRUE);
-        return;
-    }
-
-err_BeginBufferedPaint:
-    /* The old good plain WIN32API double-buffering */
-    mem_dc = CreateCompatibleDC(ps->hdc);
-    if(MC_ERR(mem_dc == NULL))
-        goto err_CreateCompatibleDC;
-    bmp = CreateCompatibleBitmap(ps->hdc, w, h);
-    if(MC_ERR(bmp == NULL))
-        goto err_CreateCompatibleBitmap;
-
-    old_bmp = SelectObject(mem_dc, bmp);
-    OffsetViewportOrgEx(mem_dc, -(ps->rcPaint.left), -(ps->rcPaint.top), &old_origin);
-    func_paint(control, mem_dc, &ps->rcPaint, TRUE);
-    SetViewportOrgEx(mem_dc, old_origin.x, old_origin.y, NULL);
-
-    BitBlt(ps->hdc, ps->rcPaint.left, ps->rcPaint.top, w, h, mem_dc, 0, 0, SRCCOPY);
-
-    SelectObject(mem_dc, old_bmp);
-    DeleteObject(bmp);
-    DeleteDC(mem_dc);
-    return;
-
-    /* Error path: Paint directly without any double-buffering. */
-err_CreateCompatibleBitmap:
-    DeleteDC(mem_dc);
-err_CreateCompatibleDC:
-    func_paint(control, ps->hdc, &ps->rcPaint, ps->fErase);
-}
-
-
 /**************************
  *** Assorted Utilities ***
  **************************/

@@ -3476,7 +3476,7 @@ treelist_nccreate(HWND win, CREATESTRUCT* cs)
 
     treelist_notify_format(tl);
 
-    mcBufferedPaintInit();
+    doublebuffer_init();
     return tl;
 }
 
@@ -3517,7 +3517,7 @@ treelist_destroy(treelist_t* tl)
 static void
 treelist_ncdestroy(treelist_t* tl)
 {
-    mcBufferedPaintUnInit();
+    doublebuffer_fini();
     free(tl);
 }
 

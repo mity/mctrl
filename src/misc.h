@@ -398,18 +398,6 @@ mc_wheel_reset(void)
 }
 
 
-/********************************
- *** Double-buffered Painting ***
- ********************************/
-
-/* Note: To use optimized way (with bitmap caches), the thread should be
- * initialized with mcBufferedPaintInit(). */
-
-void mc_doublebuffer(void* control, PAINTSTRUCT* ps,
-             void (*func_paint)(void* /*control_data*/, HDC /*dc*/,
-                                RECT* /*dirty_rect*/, BOOL /*erase*/));
-
-
 /**************************
  *** Assorted Utilities ***
  **************************/

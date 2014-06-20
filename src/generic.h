@@ -20,6 +20,7 @@
 #define MC_GENERIC_H
 
 #include "misc.h"
+#include "doublebuffer.h"
 #include "theme.h"
 
 
@@ -35,7 +36,7 @@ generic_paint(HWND win, BOOL no_redraw, BOOL doublebuffer,
     BeginPaint(win, &ps);
     if(!no_redraw) {
         if(doublebuffer)
-            mc_doublebuffer(ctrl, &ps, func_paint);
+            doublebuffer_simple(ctrl, &ps, func_paint);
         else
             func_paint(ctrl, ps.hdc, &ps.rcPaint, ps.fErase);
     }

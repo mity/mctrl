@@ -1272,7 +1272,7 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
     grid_set_geometry(grid, NULL, FALSE);
     grid_notify_format(grid);
 
-    mcBufferedPaintInit();
+    doublebuffer_init();
     return grid;
 }
 
@@ -1298,7 +1298,7 @@ grid_destroy(grid_t* grid)
 static inline void
 grid_ncdestroy(grid_t* grid)
 {
-    mcBufferedPaintUnInit();
+    doublebuffer_fini();
 
     if(grid->col_widths)
         free(grid->col_widths);

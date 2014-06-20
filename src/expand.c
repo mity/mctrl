@@ -17,6 +17,7 @@
  */
 
 #include "expand.h"
+#include "doublebuffer.h"
 #include "theme.h"
 
 
@@ -334,7 +335,7 @@ expand_paint(expand_t* expand)
 
     /* Normal paint. We do not need double buffering without background erase. */
     if((expand->style & MC_EXS_DOUBLEBUFFER)  &&  ps.fErase)
-        mc_doublebuffer(expand, &ps, expand_do_paint);
+        doublebuffer_simple(expand, &ps, expand_do_paint);
     else
         expand_do_paint(expand, ps.hdc, &ps.rcPaint, ps.fErase);
 
@@ -666,7 +667,7 @@ expand_nccreate(HWND win, CREATESTRUCT* cs)
     expand->notify_win = cs->hwndParent;
     expand->style = cs->style;
 
-    mcBufferedPaintInit();
+    doublebuffer_fini();
 
     return expand;
 }
@@ -697,7 +698,7 @@ expand_destroy(expand_t* expand)
 static void
 expand_ncdestroy(expand_t* expand)
 {
-    mcBufferedPaintUnInit();
+    doublebuffer_init();
     free(expand);
 }
 
