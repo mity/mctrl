@@ -1057,7 +1057,7 @@ theme_init_module(void)
         goto no_theming;
     }
 
-    uxtheme_dll = LoadLibrary(_T("UXTHEME.DLL"));
+    uxtheme_dll = mc_load_sys_dll(_T("UXTHEME.DLL"));
     if(MC_ERR(uxtheme_dll == NULL)) {
         MC_TRACE_ERR("theme_init_module: LoadLibrary(UXTHEME.DLL) failed");
         goto no_theming;

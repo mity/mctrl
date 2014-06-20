@@ -272,6 +272,51 @@ out:
 }
 
 
+/***************************
+ *** Loading System DLLs ***
+ ***************************/
+
+
+static HMODULE (WINAPI* mc_LoadLibraryEx)(const TCHAR*, HANDLE, DWORD) = NULL;
+
+static void
+setup_load_sys_dll(void)
+{
+    HMODULE dll_kernel32;
+
+    /* Win 2000 does not have LoadLibraryEx(); Win XP does have LoadLibraryEx()
+     * but it does not support LOAD_LIBRARY_SEARCH_SYSTEM32. */
+    if(mc_win_version <= MC_WIN_XP)
+        return;
+
+    dll_kernel32 = GetModuleHandle(_T("KERNEL32.DLL"));
+    MC_ASSERT(dll_kernel32 != NULL);
+
+    /* Win Vista/7 prior the security update KB2533623 does not support
+     * the flag LOAD_LIBRARY_SEARCH_SYSTEM32 either. The update KB2533623
+     * also added AddDllDirectory() so we use that as the indicator whether
+     * we can use the flag. */
+    if(mc_win_version < MC_WIN_8) {
+        if(GetProcAddress(dll_kernel32, "AddDllDirectory") == NULL)
+            return;
+    }
+
+    /* Both LoadLibraryEx() and the flag LOAD_LIBRARY_SEARCH_SYSTEM32
+     * should be available. */
+    mc_LoadLibraryEx = (HMODULE (WINAPI*)(const TCHAR*, HANDLE, DWORD))
+                GetProcAddress(dll_kernel32, MC_STRINGIZE(MCTRL_NAME_AW(LoadLibraryEx)));
+}
+
+HMODULE
+mc_load_sys_dll(const TCHAR* dll_name)
+{
+    if(mc_LoadLibraryEx != NULL)
+        return mc_LoadLibraryEx(dll_name, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    else
+        return LoadLibrary(dll_name);
+}
+
+
 /*****************************
  *** Mouse Wheel Utilities ***
  *****************************/
@@ -541,6 +586,7 @@ mc_init_module(void)
 
     /* Retrieve version of Windows and COMCTL32.DLL */
     setup_win_version();
+    setup_load_sys_dll();
     setup_comctl32_version();
 
     /* Success */

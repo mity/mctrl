@@ -142,7 +142,7 @@ gdix_init_module(void)
     gdix_Status status;
     gdix_StartupInput input = { 0 };
 
-    gdix_dll = LoadLibrary(_T("GDIPLUS.DLL"));
+    gdix_dll = mc_load_sys_dll(_T("GDIPLUS.DLL"));
     if(MC_ERR(gdix_dll == NULL)) {
         MC_TRACE_ERR("gdix_init_module: LoadLibrary(GDIPLUS.DLL) failed");
         goto err_LoadLibrary;

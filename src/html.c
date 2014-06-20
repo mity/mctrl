@@ -1535,12 +1535,12 @@ html_init_module(void)
     WNDCLASS wc = { 0 };
 
     /* Load OLEAUT32.DLL and OLE32.DLL */
-    oleaut32_dll = LoadLibrary(_T("OLEAUT32.DLL"));
+    oleaut32_dll = mc_load_sys_dll(_T("OLEAUT32.DLL"));
     if(MC_ERR(oleaut32_dll == NULL)) {
         MC_TRACE_ERR("html_init_module: LoadLibrary(OLEAUT32.DLL) failed.");
         goto err_oleaut32;
     }
-    ole32_dll = LoadLibrary(_T("OLE32.DLL"));
+    ole32_dll = mc_load_sys_dll(_T("OLE32.DLL"));
     if(MC_ERR(oleaut32_dll == NULL)) {
         MC_TRACE_ERR("html_init_module: LoadLibrary(OLE32.DLL) failed.");
         goto err_ole32;
