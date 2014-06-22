@@ -1052,10 +1052,6 @@ theme_init_module(void)
         MC_TRACE("theme_init_module: UXTHEME.DLL not used (old Windows)");
         goto no_theming;
     }
-    if(mc_comctl32_version < MC_DLL_VER(6, 0)) {
-        MC_TRACE("theme_init_module: UXTHEME.DLL not used (COMCTL32.DLL < 6.0)");
-        goto no_theming;
-    }
 
     uxtheme_dll = mc_load_sys_dll(_T("UXTHEME.DLL"));
     if(MC_ERR(uxtheme_dll == NULL)) {
@@ -1073,38 +1069,29 @@ theme_init_module(void)
             }                                                                 \
         } while(0)
 
-    GPA(HANIMATIONBUFFER, BeginBufferedAnimation, (HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*));
-    GPA(HPAINTBUFFER, BeginBufferedPaint, (HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,HDC*));
-    GPA(BOOL,     BeginPanningFeedback, (HWND));
-    GPA(HRESULT,  BufferedPaintClear, (HPAINTBUFFER,const RECT*));
-    GPA(HRESULT,  BufferedPaintInit, (void));
-    GPA(BOOL,     BufferedPaintRenderAnimation, (HWND,HDC));
-    GPA(HRESULT,  BufferedPaintSetAlpha, (HPAINTBUFFER,const RECT*,BYTE));
-    GPA(HRESULT,  BufferedPaintStopAllAnimations, (HWND));
-    GPA(HRESULT,  BufferedPaintUnInit, (void));
+    if(mc_comctl32_version >= MC_DLL_VER(6, 0)) {
+        GPA(HTHEME,   OpenThemeData, (HWND,const WCHAR*));
+        /* OpenThemeDataEx() on WinXP is only exported as the ordinal #61. */
+        if(mc_win_version > MC_WIN_XP)
+            GPA(HTHEME,   OpenThemeDataEx, (HWND,const WCHAR*,DWORD));
+        else
+            theme_OpenThemeDataEx = (HTHEME (WINAPI*)(HWND,const WCHAR*,DWORD))
+                        GetProcAddress(uxtheme_dll, MAKEINTRESOURCEA(61));
+    } else {
+        MC_TRACE("theme_init_module: Disabling themes (COMCTL32.DLL version < 6.0)");
+    }
     GPA(HRESULT,  CloseThemeData, (HTHEME));
     GPA(HRESULT,  DrawThemeBackground, (HTHEME,HDC,int,int,const RECT*,const RECT*));
-    GPA(HRESULT,  DrawThemeBackgroundEx, (HTHEME,HDC,int,int,const RECT*,const DTBGOPTS*));
     GPA(HRESULT,  DrawThemeEdge, (HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*));
     GPA(HRESULT,  DrawThemeIcon, (HTHEME,HDC,int,int,const RECT*,HIMAGELIST,int));
     GPA(HRESULT,  DrawThemeParentBackground, (HWND,HDC,RECT*));
-    GPA(HRESULT,  DrawThemeParentBackgroundEx, (HWND,HDC,DWORD,RECT*));
     GPA(HRESULT,  DrawThemeText, (HTHEME,HDC,int,int,const WCHAR*,int,DWORD,DWORD,const RECT*));
-    GPA(HRESULT,  DrawThemeTextEx, (HTHEME,HDC,int,int,const WCHAR*,int,DWORD,RECT*,const DTTOPTS*));
     GPA(HRESULT,  EnableThemeDialogTexture, (HWND,DWORD));
-    GPA(HRESULT,  EndBufferedAnimation, (HANIMATIONBUFFER,BOOL));
-    GPA(HRESULT,  EndBufferedPaint, (HPAINTBUFFER,BOOL));
-    GPA(BOOL,     EndPanningFeedback, (HWND,BOOL));
-    GPA(HRESULT,  GetBufferedPaintBits, (HPAINTBUFFER,RGBQUAD**,int*));
-    GPA(HDC,      GetBufferedPaintDC, (HPAINTBUFFER));
-    GPA(HDC,      GetBufferedPaintTargetDC, (HPAINTBUFFER));
-    GPA(HRESULT,  GetBufferedPaintTargetRect, (HPAINTBUFFER,RECT*));
     GPA(HRESULT,  GetCurrentThemeName, (WCHAR*,int,WCHAR*,int,WCHAR*,int));
     GPA(DWORD,    GetThemeAppProperties, (void));
     GPA(HRESULT,  GetThemeBackgroundContentRect, (HTHEME,HDC,int,int,const RECT*,RECT*));
     GPA(HRESULT,  GetThemeBackgroundExtent, (HTHEME,HDC,int,int,const RECT*,RECT*));
     GPA(HRESULT,  GetThemeBackgroundRegion, (HTHEME,HDC,int,int,const RECT*,HRGN*));
-    GPA(HRESULT,  GetThemeBitmap, (HTHEME,int,int,int,ULONG,HBITMAP*));
     GPA(HRESULT,  GetThemeBool, (HTHEME,int,int,int,BOOL*));
     GPA(HRESULT,  GetThemeColor, (HTHEME,int,int,int,COLORREF*));
     GPA(HRESULT,  GetThemeDocumentationProperty, (const WCHAR*,const WCHAR*,WCHAR*,int));
@@ -1119,7 +1106,6 @@ theme_init_module(void)
     GPA(HRESULT,  GetThemePosition, (HTHEME,int,int,int,POINT*));
     GPA(HRESULT,  GetThemePropertyOrigin, (HTHEME,int,int,int,enum PROPERTYORIGIN*));
     GPA(HRESULT,  GetThemeRect, (HTHEME,int,int,int,RECT*));
-    GPA(HRESULT,  GetThemeStream, (HTHEME,int,int,int,void**,DWORD*,HINSTANCE));
     GPA(HRESULT,  GetThemeString, (HTHEME,int,int,int,WCHAR*,int));
     GPA(BOOL,     GetThemeSysBool, (HTHEME,int));
     GPA(COLORREF, GetThemeSysColor, (HTHEME,int));
@@ -1130,27 +1116,45 @@ theme_init_module(void)
     GPA(HRESULT,  GetThemeSysString, (HTHEME,int,WCHAR*,int));
     GPA(HRESULT,  GetThemeTextExtent, (HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*));
     GPA(HRESULT,  GetThemeTextMetrics, (HTHEME,HDC,int,int,TEXTMETRIC*));
-    GPA(HRESULT,  GetThemeTransitionDuration, (HTHEME,int,int,int,int,DWORD*));
     GPA(HTHEME,   GetWindowTheme, (HWND));
     GPA(HRESULT,  HitTestThemeBackground, (HTHEME,HDC,int,int,DWORD,const RECT*,HRGN,POINT,WORD*));
     GPA(BOOL,     IsAppThemed, (void));
-    GPA(BOOL,     IsCompositionActive, (void));
     GPA(BOOL,     IsThemeActive, (void));
     GPA(BOOL,     IsThemeBackgroundPartiallyTransparent, (HTHEME,int,int));
     GPA(BOOL,     IsThemeDialogTextureEnabled, (HWND));
     GPA(BOOL,     IsThemePartDefined, (HTHEME,int,int));
-    GPA(HTHEME,   OpenThemeData, (HWND,const WCHAR*));
-    if(mc_win_version == MC_WIN_XP) {
-        /* OpenThemeDataEx() on WinXP is only exported as the ordinal #61. */
-        theme_OpenThemeDataEx = (HTHEME (WINAPI*)(HWND,const WCHAR*,DWORD))
-                    GetProcAddress(uxtheme_dll, MAKEINTRESOURCEA(61));
-    } else {
-        GPA(HTHEME,   OpenThemeDataEx, (HWND,const WCHAR*,DWORD));
-    }
     GPA(void,     SetThemeAppProperties, (DWORD));
     GPA(HRESULT,  SetWindowTheme, (HWND,const WCHAR*,const WCHAR*));
-    GPA(HRESULT,  SetWindowThemeAttribute, (HWND,enum WINDOWTHEMEATTRIBUTETYPE,void*,DWORD));
-    GPA(BOOL,     UpdatePanningFeedback, (HWND,LONG,LONG,BOOL));
+
+    if(mc_win_version > MC_WIN_XP) {
+        GPA(BOOL,     IsCompositionActive, (void));
+        GPA(HRESULT,  DrawThemeBackgroundEx, (HTHEME,HDC,int,int,const RECT*,const DTBGOPTS*));
+        GPA(HRESULT,  DrawThemeParentBackgroundEx, (HWND,HDC,DWORD,RECT*));
+        GPA(HRESULT,  DrawThemeTextEx, (HTHEME,HDC,int,int,const WCHAR*,int,DWORD,RECT*,const DTTOPTS*));
+        GPA(HRESULT,  GetThemeBitmap, (HTHEME,int,int,int,ULONG,HBITMAP*));
+        GPA(HRESULT,  GetThemeStream, (HTHEME,int,int,int,void**,DWORD*,HINSTANCE));
+        GPA(HRESULT,  GetThemeTransitionDuration, (HTHEME,int,int,int,int,DWORD*));
+        GPA(HRESULT,  SetWindowThemeAttribute, (HWND,enum WINDOWTHEMEATTRIBUTETYPE,void*,DWORD));
+
+        /* Buffered paint & animations */
+        GPA(HANIMATIONBUFFER, BeginBufferedAnimation, (HWND,HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,BP_ANIMATIONPARAMS*,HDC*,HDC*));
+        GPA(HPAINTBUFFER, BeginBufferedPaint, (HDC,const RECT*,BP_BUFFERFORMAT,BP_PAINTPARAMS*,HDC*));
+        GPA(BOOL,     BeginPanningFeedback, (HWND));
+        GPA(HRESULT,  BufferedPaintClear, (HPAINTBUFFER,const RECT*));
+        GPA(HRESULT,  BufferedPaintInit, (void));
+        GPA(BOOL,     BufferedPaintRenderAnimation, (HWND,HDC));
+        GPA(HRESULT,  BufferedPaintSetAlpha, (HPAINTBUFFER,const RECT*,BYTE));
+        GPA(HRESULT,  BufferedPaintStopAllAnimations, (HWND));
+        GPA(HRESULT,  BufferedPaintUnInit, (void));
+        GPA(HRESULT,  EndBufferedAnimation, (HANIMATIONBUFFER,BOOL));
+        GPA(HRESULT,  EndBufferedPaint, (HPAINTBUFFER,BOOL));
+        GPA(BOOL,     EndPanningFeedback, (HWND,BOOL));
+        GPA(HRESULT,  GetBufferedPaintBits, (HPAINTBUFFER,RGBQUAD**,int*));
+        GPA(HDC,      GetBufferedPaintDC, (HPAINTBUFFER));
+        GPA(HDC,      GetBufferedPaintTargetDC, (HPAINTBUFFER));
+        GPA(HRESULT,  GetBufferedPaintTargetRect, (HPAINTBUFFER,RECT*));
+        GPA(BOOL,     UpdatePanningFeedback, (HWND,LONG,LONG,BOOL));
+    }
 
     /* Workaround: It seems that IsAppThemed() and IsCompositionActive()
      * always return FALSE initially until 1st window is created. As we do not
