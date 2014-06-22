@@ -50,6 +50,7 @@ doublebuffer_open(doublebuffer_t* dblbuf, HDC dc, const RECT* rect)
     }
 
     /* The old good plain Win32API double-buffering */
+    dblbuf->dc = dc;
     dblbuf->mem_dc = CreateCompatibleDC(dc);
     if(MC_ERR(dblbuf->mem_dc == NULL)) {
         MC_TRACE_ERR("doublebuffer_begin: CreateCompatibleDC() failed.");
