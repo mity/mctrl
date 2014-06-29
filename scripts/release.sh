@@ -74,10 +74,10 @@ echo "$MKZIP" >&3
 echo -n "Detected build back-end... " >&3
 if which ninja; then
     CMAKE_GENERATOR="Ninja"
-    BUILD=ninja
+    BUILD="ninja -v"
 elif which make; then
     CMAKE_GENERATOR="MSYS Makefiles"
-    BUILD=make
+    BUILD="make VERBOSE=1"
 else
     echo "Not found." >&3
     exit 1
@@ -103,7 +103,7 @@ mkdir -p "$TMP/mCtrl-$VERSION/build64"
        -D CMAKE_RC_FLAGS="--target=pe-x86-64" \
        -D DLLTOOL_FLAGS="-m;i386:x86-64;-f;--64" \
        -G "$CMAKE_GENERATOR" .. && \
- "$BUILD" > $PRJ/build-x86_64.log 2>&1)
+ $BUILD > $PRJ/build-x86_64.log 2>&1)
 if [ $? -eq 0 ]; then
     HAVE_X86_64=yes
     echo "Done." >&3
@@ -127,7 +127,7 @@ mkdir -p "$TMP/mCtrl-$VERSION/build32"
        -D CMAKE_RC_FLAGS="--target=pe-i386" \
        -D DLLTOOL_FLAGS="-m;i386;-f;--32" \
        -G "$CMAKE_GENERATOR" .. && \
- "$BUILD" > $PRJ/build-x86.log 2>&1)
+ $BUILD > $PRJ/build-x86.log 2>&1)
 if [ $? -eq 0 ]; then
     HAVE_X86=yes
     echo "Done." >&3
