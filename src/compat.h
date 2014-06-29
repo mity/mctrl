@@ -176,6 +176,10 @@
 /* MSVCRT.DLL on Windows 2000 lacks these symbols, so in 32-bit version we
  * always use own implementation. */
 #ifndef _WIN64
+    /* Include system header prior to the (re)definition, otherwise
+     * we may cause some side-effects inside of it. */
+    #include <wchar.h>
+
     #define COMPAT_NEED_WCSTOI64   1
     int64_t compat_wcstoi64(const wchar_t *nptr, wchar_t **endptr, int base);
     #define _wcstoi64 compat_wcstoi64
