@@ -168,7 +168,7 @@ out:
 }
 
 WCHAR*
-mc_str_n_W2W(const WCHAR* from_str, int from_len, int* ptr_to_len)
+mc_str_n_W2W(const WCHAR* restrict from_str, int from_len, int* restrict ptr_to_len)
 {
     WCHAR* to_str = NULL;
     int to_len = 0;
@@ -196,7 +196,7 @@ out:
 }
 
 WCHAR*
-mc_str_n_A2W(const char* from_str, int from_len, int* ptr_to_len)
+mc_str_n_A2W(const char* restrict from_str, int from_len, int* restrict ptr_to_len)
 {
     WCHAR* to_str = NULL;
     int to_len = 0;
@@ -233,7 +233,7 @@ out:
 }
 
 char*
-mc_str_n_W2A(const WCHAR* from_str, int from_len, int* ptr_to_len)
+mc_str_n_W2A(const WCHAR* restrict from_str, int from_len, int* restrict ptr_to_len)
 {
     char* to_str = NULL;
     int to_len = 0;
