@@ -38,10 +38,10 @@ fi
 ##################
 
 echo -n "Detecting mCtrl version... " >&3
-VERSION_MAJOR=`grep VERSION_MAJOR src/version.h | head -1 | sed "s/\#def.*MAJOR\ *//"`
-VERSION_MINOR=`grep VERSION_MINOR src/version.h | head -1 | sed "s/\#def.*MINOR\ *//"`
-VERSION_RELEASE=`grep VERSION_RELEASE src/version.h | head -1 | sed "s/\#def.*RELEASE\ *//"`
-VERSION=$VERSION_MAJOR.$VERSION_MINOR.$VERSION_RELEASE
+VERSION_MAJOR=`grep MCTRL_MAJOR_VERSION CMakeLists.txt | head -1 | sed 's/[^0-9]//g'`
+VERSION_MINOR=`grep MCTRL_MINOR_VERSION CMakeLists.txt | head -1 | sed 's/[^0-9]//g'`
+VERSION_PATCH=`grep MCTRL_PATCH_VERSION CMakeLists.txt | head -1 | sed 's/[^0-9]//g'`
+VERSION=$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH
 if [ x$VERSION = x ]; then
     echo "Failed." >&3
     exit 1
@@ -67,6 +67,24 @@ fi
 echo "$MKZIP" >&3
 
 
+###########################
+# Detect a build back-end #
+###########################
+
+echo -n "Detected build back-end... " >&3
+if which ninja; then
+    CMAKE_GENERATOR="Ninja"
+    BUILD=ninja
+elif which make; then
+    CMAKE_GENERATOR="MSYS Makefiles"
+    BUILD=make
+else
+    echo "Not found." >&3
+    exit 1
+fi
+echo "$BUILD" >&3
+
+
 #########################
 # Build 64-bit binaries #
 #########################
@@ -75,7 +93,17 @@ rm -rf $TMP/mCtrl-$VERSION
 git clone . $TMP/mCtrl-$VERSION
 
 echo -n "Building 64-bit binaries... " >&3
-(cd $TMP/mCtrl-$VERSION && scripts/build.sh --release --64 all examples > $CWD/build-x86_64.log 2>&1)
+mkdir -p "$TMP/mCtrl-$VERSION/build64"
+
+(cd "$TMP/mCtrl-$VERSION/build64" && \
+ cmake -D CMAKE_BUILD_TYPE=Release \
+       -D CMAKE_C_FLAGS="-m64" \
+       -D CMAKE_EXE_LINKER_FLAGS="-m64" \
+       -D CMAKE_SHARED_LINKER_FLAGS="-m64" \
+       -D CMAKE_RC_FLAGS="--target=pe-x86-64" \
+       -D DLLTOOL_FLAGS="-m;i386:x86-64;-f;--64" \
+       -G "$CMAKE_GENERATOR" .. && \
+ "$BUILD" > $PRJ/build-x86_64.log 2>&1)
 if [ $? -eq 0 ]; then
     HAVE_X86_64=yes
     echo "Done." >&3
@@ -83,37 +111,28 @@ else
     echo "Failed. See build-x86_64.log." >&3
 fi
 
-if [ x$HAVE_X86_64 != x ]; then
-    echo -n "Create 64-bit MSVC import lib... " >&3
-    cp $TMP/mCtrl-$VERSION/lib/libmctrl.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
-    echo "Done." >&3
-
-    mv $TMP/mCtrl-$VERSION/bin $TMP/mCtrl-$VERSION/bin64
-    mv $TMP/mCtrl-$VERSION/lib $TMP/mCtrl-$VERSION/lib64
-    mkdir $TMP/mCtrl-$VERSION/bin
-    mkdir $TMP/mCtrl-$VERSION/lib
-fi
-
-(cd $TMP/mCtrl-$VERSION && make distclean)
-
 
 #########################
 # Build 32-bit binaries #
 #########################
 
 echo -n "Building 32-bit binaries... " >&3
-(cd $TMP/mCtrl-$VERSION && scripts/build.sh --release --32 all examples > $CWD/build-x86.log 2>&1)
+mkdir -p "$TMP/mCtrl-$VERSION/build32"
+
+(cd "$TMP/mCtrl-$VERSION/build32" && \
+ cmake -D CMAKE_BUILD_TYPE=Release \
+       -D CMAKE_C_FLAGS="-m32 -march=i586 -mtune=core2" \
+       -D CMAKE_EXE_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
+       -D CMAKE_SHARED_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
+       -D CMAKE_RC_FLAGS="--target=pe-i386" \
+       -D DLLTOOL_FLAGS="-m;i386;-f;--32" \
+       -G "$CMAKE_GENERATOR" .. && \
+ "$BUILD" > $PRJ/build-x86.log 2>&1)
 if [ $? -eq 0 ]; then
     HAVE_X86=yes
     echo "Done." >&3
 else
     echo "Failed. See build-x86.log." >&3
-fi
-
-if [ x$HAVE_X86 != x ]; then
-    echo -n "Create 32-bit MSVC import lib... " >&3
-    cp $TMP/mCtrl-$VERSION/lib/libmctrl.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
-    echo "Done." >&3
 fi
 
 
@@ -123,7 +142,7 @@ fi
 
 echo -n "Generate documentation... " >&3
 if `which doxygen`; then
-    (cd $TMP/mCtrl-$VERSION && ( cat Doxyfile ; echo "PROJECT_NUMBER=$VERSION" ) | doxygen - > $CWD/build-doc.log 2>&1)
+    (cd $TMP/mCtrl-$VERSION && ( cat Doxyfile ; echo "PROJECT_NUMBER=$VERSION" ) | doxygen - > $PRJ/build-doc.log 2>&1)
     if [ $? -ne 0 ]; then
         echo "Failed: See build-doc.log."
         exit 1
@@ -136,19 +155,6 @@ fi
 
 
 ###############################
-# Make mCtrl-$VERSION-src.zip #
-###############################
-
-echo -n "Packing source package... " >&3
-git archive --prefix=mCtrl-$VERSION/ --output=mCtrl-$VERSION-src.zip HEAD
-if [ $? -ne 0 ]; then
-    echo "Failed." >&3
-    exit 1
-fi
-echo "Done." >&3
-
-
-###############################
 # Make mCtrl-$VERSION-bin.zip #
 ###############################
 
@@ -157,12 +163,20 @@ rm -rf $TMP/mCtrl-$VERSION-src
 mv $TMP/mCtrl-$VERSION $TMP/mCtrl-$VERSION-src
 mkdir $TMP/mCtrl-$VERSION
 if [ x$HAVE_X86 != x ]; then
-    cp -r $TMP/mCtrl-$VERSION-src/bin $TMP/mCtrl-$VERSION/
-    cp -r $TMP/mCtrl-$VERSION-src/lib $TMP/mCtrl-$VERSION/
+    mkdir -p $TMP/mCtrl-$VERSION/bin
+    cp $TMP/mCtrl-$VERSION-src/build32/bin/mCtrl.dll $TMP/mCtrl-$VERSION/bin/
+    cp $TMP/mCtrl-$VERSION-src/build32/bin/ex_*.exe $TMP/mCtrl-$VERSION/bin/
+    mkdir -p $TMP/mCtrl-$VERSION/lib
+    cp $TMP/mCtrl-$VERSION-src/build32/bin/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/libmCtrl.dll.a
+    cp $TMP/mCtrl-$VERSION-src/build32/bin/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
 fi
 if [ x$HAVE_X86_64 != x ]; then
-    cp -r $TMP/mCtrl-$VERSION-src/bin64 $TMP/mCtrl-$VERSION/
-    cp -r $TMP/mCtrl-$VERSION-src/lib64 $TMP/mCtrl-$VERSION/
+    mkdir -p $TMP/mCtrl-$VERSION/bin64
+    cp $TMP/mCtrl-$VERSION-src/build64/bin/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/
+    cp $TMP/mCtrl-$VERSION-src/build64/bin/ex_*.exe $TMP/mCtrl-$VERSION/bin64/
+    mkdir -p $TMP/mCtrl-$VERSION/lib64
+    cp $TMP/mCtrl-$VERSION-src/build64/bin/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/libmCtrl.dll.a
+    cp $TMP/mCtrl-$VERSION-src/build64/bin/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/mCtrl.lib
 fi
 if [ x$HAVE_DOC != x ]; then
     cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
@@ -183,12 +197,15 @@ rm -rf $TMP/mCtrl-$VERSION
 echo "Done." >&3
 
 
-############
-# Clean-up #
-############
+###############################
+# Make mCtrl-$VERSION-src.zip #
+###############################
 
-echo -n "Cleaning... "
-rm -rf $TMP/mCtrl-$VERSION
-rm -rf $TMP/mCtrl-$VERSION-tmp
-echo "Done."
+echo -n "Packing source package... " >&3
+git archive --prefix=mCtrl-$VERSION/ --output=mCtrl-$VERSION-src.zip HEAD
+if [ $? -ne 0 ]; then
+    echo "Failed." >&3
+    exit 1
+fi
+echo "Done." >&3
 

@@ -78,7 +78,7 @@ use the 'mCtrl' in your preprocessor #include directives, e.g.:
 Import libraries are located under the 'lib' (32-bit libs) and 'lib64' (64-bit)
 subdirectory:
 
-    * libmCtrl.a for gcc-based toolchains (e.g. mingw, mingw-w64)
+    * libmCtrl.dll.a for gcc-based tool chains (e.g. mingw, mingw-w64)
     * mCtrl.lib for MSVC
 
 And finally deploy your application with the MCTRL.DLL which is located
@@ -97,24 +97,23 @@ Building mCtrl from Sources
 Disclaimer: If you want to just use MCTRL.DLL you should probably stick with
 the pre-built package.
 
-Primary development platform for mCtrl project is mingw-w64 (I use the builds
-made by mingw-builds projects) and MSYS. Assuming you have setup the environment,
-and have the mCtrl sources then the build should be as easy as running 'make'
-from the root directory:
+CMake version 3.0.0 (or newer) is used to manage mCtrl builds. If you got
+sources from git repository, you need to use CMake to generate native makefile
+or project files and use them to build mCtrl.
 
+Generating e.g. MSVC-2013 solution and project files, you can follow these
+steps (either in CMD.EXE or in bash):
+    > mkdir build
+    > mkdir build/msvc-2013
+    > cd build/msvc-2013
+    > cmake -G "Visual Studio 12 2013" ../..
+
+Or to generate GNU Makefile in mingw-w64 + msys environment and build with it,
+you may follow these commands:
+
+    $ mkdir -p build/msys  &&  cd build/msys
+    $ cmake -G "MSYS Makefiles" ../..
     $ make
-
-Or, especially in case your mingw-w64 is built as a cross-compiler, you may
-find useful a script wrapping the Makefile. The following command shows its
-options:
-
-    $ scripts/build.sh --help
-
-MS Visual Studio solution (usable with the free Express edition) can also be
-found under the contrib subdirectory. However note this may be slightly out
-of date and (especially if you get development sources) you may need to update
-it to reflect latest changes to the Makefile, especially ensure the solution
-includes all mCtrl sources.
 
 
 Reporting Bugs
