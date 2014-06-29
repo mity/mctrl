@@ -61,4 +61,8 @@ add_definitions(
     -DMCTRL_BUILD
 )
 
+if(${CMAKE_BUILD_TYPE} MATCHES Debug)
+    add_definitions(-DDEBUG=1)
+endif()
+
 target_link_libraries(mCtrl gdi32 comctl32)
