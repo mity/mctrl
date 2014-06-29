@@ -210,6 +210,7 @@ dispatch_GetIDsOfNames(IDispatch* self, REFIID riid, LPOLESTR* names,
 
 /* Forward declarations */
 static LRESULT html_notify_text(html_t* html, UINT code, const WCHAR* url);
+static LRESULT html_notify_http_error(html_t* html, int http_status, const WCHAR* url);
 static int html_goto_url(html_t* html, const void* url, BOOL unicode);
 
 
@@ -235,17 +236,36 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
             break;
         }
 
-#if 0
-        /* Unfortunately, IE does not send DISPID_DOCUMENTCOMPLETE
-         * when refreshing the page (e.g. from context menu). So we workaround
-         * via DISPID_PROGRESSCHANGE below. */
-        case DISPID_DOCUMENTCOMPLETE:
+        case DISPID_NAVIGATECOMPLETE2:
+            HTML_TRACE("dispatch_Invoke: DISPID_NAVIGATECOMPLETE2");
+            /* noop */
+            break;
+
+        case DISPID_NAVIGATEERROR:
         {
-            BSTR url = V_BSTR(V_VARIANTREF(&params->rgvarg[0]));
-            html_notify_text(html, MC_HN_DOCUMENTCOMPLETE, url);
+            BSTR url = V_BSTR(V_VARIANTREF(&params->rgvarg[3]));
+            LONG status = V_I4(V_VARIANTREF(&params->rgvarg[1]));
+            VARIANT_BOOL* cancel = V_BOOLREF(&params->rgvarg[0]);
+            LRESULT lres = 0;
+
+            HTML_TRACE("dispatch_Invoke: DISPID_NAVIGATEERROR(%ld, %S)", status, url);
+
+            /* Status can be HTTP error code or HRESULT.
+             * We propagate just the former. */
+            if(0 < status && status < 1000)
+                lres = html_notify_http_error(html, status, url);
+
+            *cancel = (lres != 0 ? VARIANT_TRUE : VARIANT_FALSE);
             break;
         }
-#endif
+
+        /* Unfortunately, IE does not send DISPID_DOCUMENTCOMPLETE when
+         * refreshing the page (e.g. from context menu). So we workaround
+         * via DISPID_PROGRESSCHANGE below. */
+        case DISPID_DOCUMENTCOMPLETE:
+            HTML_TRACE("dispatch_Invoke: DISPID_DOCUMENTCOMPLETE");
+            /* noop */
+            break;
 
         case DISPID_PROGRESSCHANGE:
         {
@@ -346,6 +366,40 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
             }
             break;
         }
+
+        case DISPID_DOWNLOADBEGIN:
+            HTML_TRACE("dispatch_Invoke: DISPID_DOWNLOADBEGIN");
+            /* noop */
+            break;
+
+        case DISPID_DOWNLOADCOMPLETE:
+            HTML_TRACE("dispatch_Invoke: DISPID_DOWNLOADCOMPLETE");
+            /* noop */
+            break;
+
+        case DISPID_FILEDOWNLOAD:
+            HTML_TRACE("dispatch_Invoke: DISPID_FILEDOWNLOAD");
+            /* noop */
+            break;
+
+        case DISPID_SETSECURELOCKICON:
+            HTML_TRACE("dispatch_Invoke: DISPID_SETSECURELOCKICON");
+            /* noop */
+            break;
+
+        case DISPID_PROPERTYCHANGE:
+            HTML_TRACE("dispatch_Invoke: DISPID_PROPERTYCHANGE(%S)",
+                       V_BSTR(&params->rgvarg[0]));
+            /* noop */
+            break;
+
+        case DISPID_WINDOWSETLEFT:
+        case DISPID_WINDOWSETTOP:
+        case DISPID_WINDOWSETWIDTH:
+        case DISPID_WINDOWSETHEIGHT:
+        case DISPID_WINDOWSETRESIZABLE:
+            /* noop */
+            break;
 
         default:
             HTML_TRACE("dispatch_Invoke: unsupported disp_id %d", disp_id);
@@ -935,6 +989,35 @@ html_bstr(const void* from_str, int from_type)
         free(str_w);
 
     return str_b;
+}
+
+static LRESULT
+html_notify_http_error(html_t* html, int http_status, const WCHAR* url)
+{
+    MC_NMHTTPERRORW notify;
+    LRESULT res;
+    BOOL need_free = FALSE;
+
+    HTML_TRACE("html_notify_http_error: status=%d url='%S'",
+               http_status, url ? url : L"[null]");
+
+    notify.hdr.hwndFrom = html->win;
+    notify.hdr.idFrom = GetDlgCtrlID(html->win);
+    notify.hdr.code = MC_HN_HTTPERROR;
+    if(html->unicode_notifications) {
+        notify.pszUrl = url;
+    } else {
+        notify.pszUrl = (WCHAR*) mc_str(url, MC_STRW, MC_STRA);
+        need_free = TRUE;
+    }
+    notify.iStatus = http_status;
+
+    res = MC_SEND(html->notify_win, WM_NOTIFY, notify.hdr.idFrom, &notify);
+
+    if(need_free)
+        free((WCHAR*)notify.pszUrl);
+
+    return res;
 }
 
 static LRESULT

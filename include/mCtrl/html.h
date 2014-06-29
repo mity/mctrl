@@ -341,6 +341,32 @@ typedef struct MC_NMHTMLHISTORY_tag {
     BOOL bCanForward;
 } MC_NMHTMLHISTORY;
 
+/**
+ * @brief Structure used for notification about HTTP error (Unicode variant).
+ * @sa MC_HN_HTTPERROR
+ */
+typedef struct MC_NMHTTPERRORW_tag {
+    /** Standard notification structure header. */
+    NMHDR hdr;
+    /** String representation of the URL. */
+    LPCWSTR pszUrl;
+    /** HTTP status code. */
+    int iStatus;
+} MC_NMHTTPERRORW;
+
+/**
+ * @brief Structure used for notification about HTTP error (ANSI variant).
+ * @sa MC_HN_HTTPERROR
+ */
+typedef struct MC_NMHTTPERRORA_tag {
+    /** Standard notification structure header. */
+    NMHDR hdr;
+    /** String representation of the URL. */
+    LPCSTR pszUrl;
+    /** HTTP status code. */
+    int iStatus;
+} MC_NMHTTPERRORA;
+
 /*@}*/
 
 
@@ -421,7 +447,7 @@ typedef struct MC_NMHTMLHISTORY_tag {
 /**
  * @brief Fired when the browser would open a new window.
  *
- * This happens for exaple if user clicks on a link while holding @c SHIFT.
+ * This happens for example if user clicks on a link while holding @c SHIFT.
  *
  * @c MC_NMHTMLURL::pszUrl is URL to be opened in the new window. Note however
  * that prior to Windows XP SP2, the URL is not filled.
@@ -433,6 +459,17 @@ typedef struct MC_NMHTMLHISTORY_tag {
  * or zero to deny it.
  */
 #define MC_HN_NEWWINDOW          (MC_HN_FIRST + 6)
+
+/**
+ * @brief Fired to indicate that HTTP error has occurred.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMHTTPERROR*) Pointer to a structure specifying
+ * details about the error.
+ * @return Application should return zero to allow browser to show standard
+ * error page corresponding to the error, or zero to disable that.
+ */
+#define MC_HN_HTTPERROR          (MC_HN_FIRST + 7)
 
 /*@}*/
 
@@ -452,6 +489,8 @@ typedef struct MC_NMHTMLHISTORY_tag {
 #define MC_NMHTMLURL           MCTRL_NAME_AW(MC_NMHTMLURL)
 /** Unicode-resolution alias. @sa MC_NMHTMLTEXTW MC_NMHTMLTEXTA */
 #define MC_NMHTMLTEXT          MCTRL_NAME_AW(MC_NMHTMLTEXT)
+/** Unicode-resolution alias. @sa MC_NMHTTPERRORW MC_NMHTTPERRORA */
+#define MC_NMHTTPERROR         MCTRL_NAME_AW(MC_NMHTTPERROR)
 
 /*@}*/
 
