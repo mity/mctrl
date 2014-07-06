@@ -242,7 +242,7 @@ mc_str_n_W2A(const WCHAR* restrict from_str, int from_len, int* restrict ptr_to_
         goto out;
 
     if(from_len < 0)
-        from_len = (int)(wcslen((WCHAR*)from_str) * sizeof(WCHAR));
+        from_len = (int)(wcslen((WCHAR*)from_str));
 
     to_len = WideCharToMultiByte(CP_ACP, 0, from_str, from_len,
                                  NULL, 0, NULL, NULL);
@@ -251,7 +251,7 @@ mc_str_n_W2A(const WCHAR* restrict from_str, int from_len, int* restrict ptr_to_
         return NULL;
     }
 
-    to_str = (char*) malloc(to_len + 1);
+    to_str = (char*) malloc((to_len+1) * sizeof(WCHAR));
     if(MC_ERR(to_str == NULL)) {
         MC_TRACE("mc_str_n_W2A: malloc() failed.");
         return NULL;
