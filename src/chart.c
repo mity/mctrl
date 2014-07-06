@@ -1379,7 +1379,9 @@ line_hit_test(chart_t* chart, BOOL stacked, chart_paint_t* ctx, int x, int y,
     i1 = (int) (ri + MC_MAX(max_dx, max_dy));
 
     for(set_ix = 0; set_ix < n; set_ix++) {
-        for(i = i0; i <= i1; i++) {
+        int ii0 = MC_MAX(i0, 0);
+        int ii1 = MC_MIN(i1, DSA_ITEM(&chart->data, set_ix, chart_data_t)->count);
+        for(i = ii0; i <= ii1; i++) {
             if(stacked)
                 y = cache_stack(&cache, set_ix, i);
             else
