@@ -75,7 +75,21 @@ mc_str_load(UINT id)
             goto not_found;
         str++;
 
+#if 0
+        /* Verify string resources are '\0'-terminated. This is not default
+         * behavior or RC.EXE as well as windres.exe. For windres.exe we
+         * need to have resources in the form "foo bar\0". For RC.EXE, we need
+         * to use option '/n' to terminate the strings as RC.EXE even strips
+         * final '\0' from the string even when explicitly specified. */
         MC_ASSERT(str[len - 1] == L'\0');
+#else
+        /* CMake + RC.EXE workaround: CMake 3.0.0 does not propagate
+         * ${CMAKE_RC_FLAGS} for generators "Visual Studio [10|11|12|14]".
+         * Patch to fix CMake was posted to its development team. Until a fixed
+         * CMake is released we shall workaround by placing an extra character
+         * after the terminator ("a string resource\0x"). */
+        MC_ASSERT(str[len - 2] == L'\0');
+#endif
         return str;
 
 not_found:
