@@ -611,7 +611,6 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     RECT client;
     RECT rect;
     int header_w, header_h;
-    int old_dc_state;
     int col0, row0;
     int x0, y0;
     int col, row;
@@ -619,6 +618,10 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     int row_count = grid->row_count;
     table_t* table = grid->table;
     table_cell_t* cell;
+    int old_mode;
+    COLORREF old_text_color;
+    HPEN old_pen;
+    HFONT old_font;
 
     GRID_TRACE("grid_paint(%p, %d, %d, %d, %d)", grid,
                dirty->left, dirty->top, dirty->right, dirty->bottom);
@@ -626,16 +629,14 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     if(table == NULL  &&  !(grid->style & MC_GS_OWNERDATA))
         return;
 
-    old_dc_state = SaveDC(dc);
     GetClientRect(grid->win, &client);
     header_w = grid_header_width(grid);
     header_h = grid_header_height(grid);
 
-    if(grid->font != NULL)
-        SelectObject(dc, grid->font);
-    SetBkMode(dc, TRANSPARENT);
-    SetTextColor(dc, RGB(0,0,0));
-    SelectObject(dc, GetStockObject(BLACK_PEN));
+    old_mode = SetBkMode(dc, TRANSPARENT);
+    old_text_color = SetTextColor(dc, RGB(0,0,0));
+    old_pen = SelectObject(dc, GetStockObject(BLACK_PEN));
+    old_font = (grid->font != NULL ? SelectObject(dc, grid->font) : NULL);
 
     /* Find 1st visible column */
     rect.left = header_w - grid->scroll_x;
@@ -800,7 +801,10 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.top = rect.bottom;
     }
 
-    RestoreDC(dc, old_dc_state);
+    SetBkMode(dc, old_mode);
+    SetTextColor(dc, old_text_color);
+    SelectObject(dc, old_pen);
+    SelectObject(dc, old_font);
 }
 
 static void
