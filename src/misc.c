@@ -704,8 +704,10 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
 
             mc_instance = instance;
             debug_init();
-            DisableThreadLibraryCalls(instance);
             module_init();
+#ifndef DEBUG
+            DisableThreadLibraryCalls(instance);
+#endif
             break;
 
         case DLL_PROCESS_DETACH:
@@ -715,6 +717,16 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
             MC_TRACE("DllMain(DLL_PROCESS_DETACH)");
             break;
         }
+
+#ifdef DEBUG
+        case DLL_THREAD_ATTACH:
+            MC_TRACE("DllMain(DLL_THREAD_ATTACH)");
+            break;
+
+        case DLL_THREAD_DETACH:
+            MC_TRACE("DllMain(DLL_THREAD_DETACH)");
+            break;
+#endif
     }
 
     return TRUE;
