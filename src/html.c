@@ -206,10 +206,14 @@ static HRESULT STDMETHODCALLTYPE
 dispatch_GetIDsOfNames(IDispatch* self, REFIID riid, LPOLESTR* names,
                        UINT names_count, LCID lcid, DISPID* disp_id)
 {
+    int i;
+
     HTML_TRACE("dispatch_GetIDsOfNames('%S'): Stub [E_NOTIMPL]",
                names_count > 0 ? names[0] : L"");
-    *disp_id = DISPID_UNKNOWN;
-    return E_NOTIMPL;
+
+    for(i = 0; i < names_count; i++)
+        disp_id[i] = DISPID_UNKNOWN;
+    return DISP_E_UNKNOWNNAME;
 }
 
 /* Forward declarations */
