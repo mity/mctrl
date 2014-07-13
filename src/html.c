@@ -158,18 +158,22 @@ html_QueryInterface(html_t* html, REFIID riid, void** obj)
  * when it drops back to zero. It simplifies the cleaning code quite a lot. */
 
 static ULONG STDMETHODCALLTYPE
-dummy_AddRef_or_Release(void* self)
+dummy_AddRef(void* self)
 {
-    /* Always return value suggesting the caller that there is still some
-     * remaining reference to the html_t object. */
+    return 2;
+}
+
+static ULONG STDMETHODCALLTYPE
+dummy_Release(void* self)
+{
     return 1;
 }
 
 #define DUMMY_ADDREF(type)                                                    \
-        ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_AddRef_or_Release)
+        ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_AddRef)
 
 #define DUMMY_RELEASE(type)                                                   \
-        ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_AddRef_or_Release)
+        ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_Release)
 
 
 /********************************
