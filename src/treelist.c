@@ -865,6 +865,7 @@ treelist_paint_lines(treelist_t* tl, treelist_item_t* item, int level, HDC dc,
     }
 
     SelectObject(dc, old_pen);
+    DeleteObject(pen);
 }
 
 static void
