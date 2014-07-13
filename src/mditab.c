@@ -1058,7 +1058,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     item->lp = ((id->dwMask & MC_MTIF_PARAM) ? id->lParam : 0);
     item->left = (index > 0  ?  mditab_item(mditab, index-1)->right  :  0);
     item->right = item->left;
-    item->desired_width = mditab_calc_desired_width(mditab, index);
+    item->desired_width = 0;  /* computed in mditab_setup_all_desired_widths() below */
 
     /* Update stored item indexes */
     if(index <= mditab->item_selected)
