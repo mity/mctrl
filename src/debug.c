@@ -38,16 +38,21 @@ debug_trace(const char* fmt, ...)
     DWORD last_error;
     va_list args;
     char buffer[512];
-    int offset;
+    int offset = 0;
+    int n;
 
     last_error = GetLastError();
+
+    offset += sprintf(buffer, "[%08x] ", (unsigned) GetCurrentThreadId());
+
     va_start(args, fmt);
-    offset = _vsnprintf(buffer, sizeof(buffer)-2, fmt, args);
+    n = _vsnprintf(buffer + offset, sizeof(buffer)-offset-2, fmt, args);
     va_end(args);
-    if(offset < 0)
-        offset = sizeof(buffer)-2;
-    buffer[offset] = '\n';
-    buffer[offset+1] = '\0';
+    if(n < 0  ||  n > sizeof(buffer)-offset-2)
+        n = sizeof(buffer)-offset-2;
+    offset += n;
+    buffer[offset++] = '\n';
+    buffer[offset++] = '\0';
     OutputDebugStringA(buffer);
     SetLastError(last_error);
 }
