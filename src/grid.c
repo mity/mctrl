@@ -1292,6 +1292,12 @@ grid_create(grid_t* grid)
 static void
 grid_destroy(grid_t* grid)
 {
+    if(grid->table != NULL) {
+        table_uninstall_view(grid->table, grid);
+        table_unref(grid->table);
+        grid->table = NULL;
+    }
+
     grid_close_theme(grid);
 }
 
