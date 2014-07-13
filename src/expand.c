@@ -202,6 +202,7 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
         int glyph_index;
         HDC glyph_dc;
         const BLENDFUNCTION blend_func = { AC_SRC_OVER, 0, 0xff, AC_SRC_ALPHA };
+        HBITMAP old_bmp;
 
         glyph_size = mc_height(&layout.glyph_rect);
         glyph_index = (state & STATE_EXPANDED) ? 3 : 0;
@@ -211,14 +212,16 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
             glyph_index += 1;
 
         glyph_dc = CreateCompatibleDC(dc);
-        SelectObject(glyph_dc, layout.glyph_bmp);
+        old_bmp = SelectObject(glyph_dc, layout.glyph_bmp);
         GdiAlphaBlend(dc, layout.glyph_rect.left, layout.glyph_rect.top, glyph_size, glyph_size,
                       glyph_dc, 0, glyph_size * glyph_index, glyph_size, glyph_size,
                       blend_func);
+        SelectObject(glyph_dc, old_bmp);
         DeleteDC(glyph_dc);
     } else {
         POINT pt[3];
         int h;
+        HBRUSH old_brush;
 
         if(state & STATE_EXPANDED) {
             h = mc_width(&layout.glyph_rect) / 2;
@@ -240,8 +243,9 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
             pt[2].y = pt[0].y + h;
         }
 
-        SelectObject(dc, GetSysColorBrush(COLOR_BTNTEXT));
+        old_brush = SelectObject(dc, GetSysColorBrush(COLOR_BTNTEXT));
         Polygon(dc, pt, MC_ARRAY_SIZE(pt));
+        SelectObject(dc, old_brush);
     }
 
     /* Paint text */
