@@ -913,9 +913,9 @@ ui_handler_GetDropTarget(IDocHostUIHandler* self, IDropTarget* drop_target,
 static HRESULT STDMETHODCALLTYPE
 ui_handler_GetExternal(IDocHostUIHandler* self, IDispatch** p_dispatch)
 {
-    html_t* html = MC_HTML_FROM_UI_HANDLER(self);
-    *p_dispatch = &html->dispatch;
-    return S_OK;
+    HTML_TRACE("ui_handler_GetExternal: Stub [E_NOTIMPL]");
+    *p_dispatch = NULL;
+    return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
