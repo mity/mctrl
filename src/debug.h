@@ -124,6 +124,8 @@
  * each allocation and deallocation, and perform some checks. Finally when
  * MCTRL.DLL is unloaded, it traces out report about detected leaks. */
 #if defined DEBUG && DEBUG >= 2
+    #include <malloc.h>
+
     void* debug_malloc(const char* fname, int line, size_t size);
     void* debug_realloc(const char* fname, int line, void* ptr, size_t size);
     void debug_free(const char* fname, int line, void* mem);
