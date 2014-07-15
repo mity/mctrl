@@ -1,6 +1,7 @@
 
 
 if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows -static-libgcc")
 elseif(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
