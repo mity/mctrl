@@ -979,6 +979,8 @@ grid_redraw_cells(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
             else
                 rect.right = rect.left;
         }
+
+        InvalidateRect(grid->win, &rect, TRUE);
     }
 
     /* Invalidate ordinary cells */
