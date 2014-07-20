@@ -47,8 +47,8 @@ color_seq(UINT index)
         h = 180.0/base + (i/3) * (360.0/base) + (i%3) * 120.0;
     }
 
-    s = 80.0 + 20.0 * cosf(index / 4);
-    l = 50.0 + 30.0 * sinf(index / 3);
+    s = 80.0 + 20.0 * cosf((float)(index / 4));
+    l = 50.0 + 30.0 * sinf((float)(index / 3));
 
     husl_to_rgb(&r, &g, &b, h, s, l);
     return RGB(255.0 * r, 255.0 * g, 255.0 * b);
