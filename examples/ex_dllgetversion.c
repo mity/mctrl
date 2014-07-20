@@ -37,6 +37,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     if(fnDllGetVersion == NULL) {
         MessageBox(NULL, _T("Cannot get DllGetVersion function."),
                    _T("mCtrl Sample: DllGetVersion"), MB_OK | MB_ICONERROR);
+        FreeLibrary(hDll);
         return 1;
     }
 
@@ -45,6 +46,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdS
     if(fnDllGetVersion(&vi) != S_OK) {
         MessageBox(NULL, _T("DllGetVersion failed."), _T("Error"),
                    MB_OK | MB_ICONERROR);
+        FreeLibrary(hDll);
         return 1;
     }
 
