@@ -534,7 +534,7 @@ mcTable_Create(WORD wColumnCount, WORD wRowCount, DWORD dwReserved)
         return NULL;
     }
 
-    return NULL;
+    return table;
 }
 
 void MCTRL_API
