@@ -116,26 +116,26 @@ struct html_tag {
 static HRESULT
 html_QueryInterface(html_t* html, REFIID riid, void** obj)
 {
-    if(InlineIsEqualGUID(riid, &IID_IUnknown)) {
+    if(IsEqualGUID(riid, &IID_IUnknown)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IUnknown)", riid);
         *obj = (void*)&html->dispatch;
-    } else if(InlineIsEqualGUID(riid, &IID_IDispatch) ||
-              InlineIsEqualGUID(riid, &DIID_DWebBrowserEvents) ||
-              InlineIsEqualGUID(riid, &DIID_DWebBrowserEvents2)) {
+    } else if(IsEqualGUID(riid, &IID_IDispatch) ||
+              IsEqualGUID(riid, &DIID_DWebBrowserEvents) ||
+              IsEqualGUID(riid, &DIID_DWebBrowserEvents2)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IDispatch)", riid);
         *obj = (void*)&html->dispatch;
-    } else if(InlineIsEqualGUID(riid, &IID_IOleClientSite)) {
+    } else if(IsEqualGUID(riid, &IID_IOleClientSite)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IOleClientSite)", riid);
         *obj = (void*)&html->client_site;
-    } else if(InlineIsEqualGUID(riid, &IID_IOleWindow) ||
-              InlineIsEqualGUID(riid, &IID_IOleInPlaceSite) ||
-              InlineIsEqualGUID(riid, &IID_IOleInPlaceSiteEx)) {
+    } else if(IsEqualGUID(riid, &IID_IOleWindow) ||
+              IsEqualGUID(riid, &IID_IOleInPlaceSite) ||
+              IsEqualGUID(riid, &IID_IOleInPlaceSiteEx)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IOleInPlaceSiteEx)", riid);
         *obj = (void*)&html->inplace_site_ex;
-    } else if(InlineIsEqualGUID(riid, &IID_IOleInPlaceFrame)) {
+    } else if(IsEqualGUID(riid, &IID_IOleInPlaceFrame)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IOleInPlaceFrame)", riid);
         *obj = (void*)&html->inplace_frame;
-    } else if(InlineIsEqualGUID(riid, &IID_IDocHostUIHandler)) {
+    } else if(IsEqualGUID(riid, &IID_IDocHostUIHandler)) {
         HTML_TRACE_GUID("html_QueryInterface(IID_IDocHostUIHandler)", riid);
         *obj = (void*)&html->ui_handler;
     } else {

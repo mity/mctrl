@@ -62,10 +62,10 @@ struct imgview_stream_tag {
 static HRESULT STDMETHODCALLTYPE
 imgview_stream_QueryInterface(IStream* self, REFIID riid, void** obj)
 {
-    if(InlineIsEqualGUID(riid, &IID_IUnknown)  ||
-       InlineIsEqualGUID(riid, &IID_IDispatch)  ||
-       InlineIsEqualGUID(riid, &IID_ISequentialStream)  ||
-       InlineIsEqualGUID(riid, &IID_IStream))
+    if(IsEqualGUID(riid, &IID_IUnknown)  ||
+       IsEqualGUID(riid, &IID_IDispatch)  ||
+       IsEqualGUID(riid, &IID_ISequentialStream)  ||
+       IsEqualGUID(riid, &IID_IStream))
     {
         imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
         mc_ref(&s->refs);

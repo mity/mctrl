@@ -63,5 +63,6 @@ add_definitions(
 )
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_DEBUG} -D__INLINE_ISEQUAL_GUID")
 
 target_link_libraries(mCtrl gdi32 comctl32)
