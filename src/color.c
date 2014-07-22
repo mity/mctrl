@@ -30,7 +30,7 @@ color_seq(UINT index)
 
     /* We generate hue by a method of pie cutting. Initially we cut 3 times
      * (red, green and blue), and then in N-th round we cut 3*(2^N) times,
-     * just between each two neighbour cuts from the set of all cuts already
+     * just between each two neighbor cuts from the set of all cuts already
      * made in previous rounds.
      *
      * We also mix up the cuts of each round by cycling between 3 segments
