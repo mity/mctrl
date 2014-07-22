@@ -640,6 +640,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
     /* Find 1st visible column */
     rect.left = header_w - grid->scroll_x;
+    col0 = col_count;
+    x0 = 0;
     for(col = 0; col < col_count; col++) {
         rect.right = rect.left + grid_col_width(grid, col);
         if(rect.right > header_w) {
@@ -651,6 +653,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     }
 
     /* Find 1st visible row */
+    row0 = row_count;
+    y0 = 0;
     rect.top = header_h - grid->scroll_y;
     for(row = 0; row < row_count; row++) {
         rect.bottom = rect.top + grid_row_height(grid, row);
