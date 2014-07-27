@@ -11,16 +11,18 @@ if(CMAKE_COMPILER_IS_GNUCC)
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -municode")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -g")
+
+    # By default, CMake uses -O3 for Release builds. Lets stick with safer -O2.
+    string(REGEX REPLACE "(^| )-O[0-9a-z]+" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2")
 
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -Wl,--enable-stdcall-fixup -Wl,--kill-at")
-
-    # With gcc >= 4.9, use LTO for release builds:
+    # With gcc >= 4.9, use LTO for Release builds:
     if(GCC_VERSION VERSION_GREATER 4.9 OR GCC_VERSION VERSION_EQUAL 4.9)
-        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -flto")
-        set(CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELEASE} -flto")
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -flto -fno-fat-lto-objects")
+        set(CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELEASE} -flto -O2")
     endif()
+
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -Wl,--enable-stdcall-fixup -Wl,--kill-at")
 
     # With gcc/binutils toolchain (e.g. mingw-w64), gcc '-Wl,--kill-at results'
     # results in unusable import lib because gcc/ld then un-decorates not just
