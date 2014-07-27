@@ -24,6 +24,10 @@ if(CMAKE_COMPILER_IS_GNUCC)
 
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -Wl,--enable-stdcall-fixup -Wl,--kill-at")
 
+    # By default, mingw-w64 uses its own swprintf() implementation (for the sake
+    # of standard compliance). This enforces swprintf() from MSVCRTL.DLL.
+    add_definitions(-D_CRT_NON_CONFORMING_SWPRINTFS)
+
     # With gcc/binutils toolchain (e.g. mingw-w64), gcc '-Wl,--kill-at results'
     # results in unusable import lib because gcc/ld then un-decorates not just
     # DLL exports but unfortunately also import lib symbols. Hence lets build
@@ -56,14 +60,16 @@ elseif(MSVC)
 endif()
 
 
-add_definitions(
-    -DUNICODE -D_UNICODE
-    -D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT
-    -D_CRT_NON_CONFORMING_SWPRINTFS
-    -DWIN32_LEAN_AND_MEAN
-    -DMCTRL_BUILD
-)
-
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
+
+add_definitions(-DMCTRL_BUILD)
+add_definitions(-DUNICODE -D_UNICODE)
+add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT)
+
+# Tell <windows.h> to not include everything. We include what we need anyway
+# and this saves compiler a lot of work in parsing stage, so compilation is
+# faster.
+add_definitions(-DWIN32_LEAN_AND_MEAN)
+
 
 target_link_libraries(mCtrl gdi32 comctl32)
