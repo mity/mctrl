@@ -36,7 +36,7 @@ expssym_test(void)
 
 
 /************************
- *** Exported Symbols ***
+ *** String Resources ***
  ************************/
 
 static BOOL
