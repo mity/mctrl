@@ -25,10 +25,7 @@ foreach(SOURCE ${TEST_SOURCES})
 
     add_executable(${TARGET} ${SOURCE} ${HEADER})
 
-    # all examples link with comctl32.dll
-    target_link_libraries(${TARGET} comctl32)
-
-    # all examples but test_build.exe link with mCtrl.dll
+    # all tests but test_build.exe link with mCtrl.dll
     if(NOT ${TARGET} MATCHES test_build)
         target_link_libraries(${TARGET} mCtrl)
     endif()
