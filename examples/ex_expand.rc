@@ -8,8 +8,13 @@
 #include "ex_expand.h"
 
 
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
+
+
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 
 /* Dialog box */
 IDD_DIALOG DIALOG 100, 100, 300, 88

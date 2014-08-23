@@ -8,6 +8,8 @@
 #include "ex_imgview.h"
 
 
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
@@ -18,6 +20,8 @@
 52 RCDATA res/lenna.jpg
 53 RCDATA res/lenna.gif
 
+
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 
 /* Dialog box */
 IDD_DIALOG DIALOG 100, 100, 324, 255

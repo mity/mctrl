@@ -6,6 +6,9 @@
 #include <windows.h>
 #include "ex_treelist2.h"
 
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 /* Manifest enabling XP theme on Win XP */
 1 RT_MANIFEST res/manifest.xml
 

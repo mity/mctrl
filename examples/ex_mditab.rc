@@ -6,6 +6,9 @@
 #include <windows.h>
 #include "ex_mditab.h"
 
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 

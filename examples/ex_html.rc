@@ -5,13 +5,20 @@
 
 #include <windows.h>
 
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
+
+
+/* Misc. resources */
+toolbar BITMAP res/history.bmp   /* Image list for toolbar */
+
+
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 
 /* HTML resources */
 doc.html HTML res/doc.html       /* Initial HTML page */
 style.css HTML res/style.css     /* CSS linked from doc.html */
 image.png HTML res/image.png     /* An image linked from doc.html */
-
-/* Misc. resources */
-toolbar BITMAP res/history.bmp   /* Image list for toolbar */

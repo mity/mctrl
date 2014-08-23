@@ -6,9 +6,14 @@
 #include <windows.h>
 #include "ex_menubar.h"
 
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
+
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 
 /* Menu */
 ID_MENU MENU
