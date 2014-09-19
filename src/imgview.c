@@ -101,28 +101,38 @@ imgview_stream_Release(IStream* self)
 }
 
 static HRESULT STDMETHODCALLTYPE
-imgview_stream_Read(IStream* self, void* buf, ULONG n, ULONG* read)
+imgview_stream_Read(IStream* self, void* buf, ULONG n, ULONG* n_read)
 {
     imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
 
     IMGVIEW_TRACE("imgview_stream_Read(%lu)", n);
 
+    if(MC_ERR(s->pos < 0  ||  s->pos >= s->size)) {
+        n = 0;
+        if(n_read != NULL)
+            *n_read = 0;
+        return STG_E_INVALIDFUNCTION;
+    }
+
     if(n > s->size - s->pos)
         n = s->size - s->pos;
     memcpy(buf, s->buffer + s->pos, n);
-    if(read)
-        *read = n;
     s->pos += n;
+
+    if(n_read != NULL)
+        *n_read = n;
 
     return (s->pos < s->size ? S_OK : S_FALSE);
 }
 
 static HRESULT STDMETHODCALLTYPE
-imgview_stream_Write(IStream* self, const void* buf, ULONG n, ULONG* written)
+imgview_stream_Write(IStream* self, const void* buf, ULONG n, ULONG* n_written)
 {
     /* We are read-only stream. */
     IMGVIEW_TRACE("imgview_stream_Write: Stub.");
-    return STG_E_WRITEFAULT;
+    if(n_written != NULL)
+        *n_written = 0;
+    return STG_E_CANTSAVE;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -131,6 +141,7 @@ imgview_stream_Seek(IStream* self, LARGE_INTEGER delta, DWORD origin,
 {
     imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
     LARGE_INTEGER pos;
+    HRESULT hres = S_OK;
 
     IMGVIEW_TRACE("imgview_stream_Seek(%lu, %lu)", delta, origin);
 
@@ -138,16 +149,16 @@ imgview_stream_Seek(IStream* self, LARGE_INTEGER delta, DWORD origin,
         case STREAM_SEEK_SET:  pos.QuadPart = delta.QuadPart; break;
         case STREAM_SEEK_CUR:  pos.QuadPart = s->pos + delta.QuadPart; break;
         case STREAM_SEEK_END:  pos.QuadPart = s->size + delta.QuadPart; break;
-        default:               return STG_E_INVALIDFUNCTION;
+        default:               hres = STG_E_SEEKERROR;
     }
 
     if(pos.QuadPart < 0)
-        return STG_E_INVALIDFUNCTION;
+        hres = STG_E_INVALIDFUNCTION;
 
     s->pos = pos.QuadPart;
     if(new_pos != NULL)
         new_pos->QuadPart = pos.QuadPart;
-    return S_OK;
+    return hres;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -159,20 +170,21 @@ imgview_stream_SetSize(IStream* self, ULARGE_INTEGER new_size)
 
 static HRESULT STDMETHODCALLTYPE
 imgview_stream_CopyTo(IStream* self, IStream* other, ULARGE_INTEGER n,
-                      ULARGE_INTEGER* read, ULARGE_INTEGER* written)
+                      ULARGE_INTEGER* n_read, ULARGE_INTEGER* n_written)
 {
     imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
     HRESULT hr;
-    ULONG tmp;
+    ULONG written;
 
     if(s->pos + n.QuadPart >= s->size)
-        n.QuadPart = (s->pos < s->size  ?  s->size = s->pos  :  0);
+        n.QuadPart = (s->pos < s->size ? s->size - s->pos : 0);
 
-    hr = other->lpVtbl->Write(other, s->buffer + s->pos, n.QuadPart, &tmp);
-    n.QuadPart = (hr == S_OK  ?  tmp  :  0);
-    s->pos += n.QuadPart;
-    if(read)
-        read->QuadPart = n.QuadPart;
+    hr = other->lpVtbl->Write(other, s->buffer + s->pos, n.QuadPart, &written);
+    s->pos += written;
+    if(n_read != NULL)
+        n_read->QuadPart = written;
+    if(n_written != NULL)
+        n_written->QuadPart = written;
     return hr;
 }
 
@@ -180,14 +192,14 @@ static HRESULT STDMETHODCALLTYPE
 imgview_stream_Commit(IStream* self, DWORD flags)
 {
     IMGVIEW_TRACE("imgview_stream_Commit: Stub.");
-    return STG_E_INVALIDFUNCTION;
+    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE
 imgview_stream_Revert(IStream* self)
 {
     IMGVIEW_TRACE("imgview_stream_Revert: Stub.");
-    return STG_E_INVALIDFUNCTION;
+    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -203,7 +215,7 @@ imgview_stream_UnlockRegion(IStream* self, ULARGE_INTEGER offset,
                             ULARGE_INTEGER n, DWORD type)
 {
     IMGVIEW_TRACE("imgview_stream_UnlockRegion: Stub.");
-    return STG_E_INVALIDFUNCTION;
+    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -215,7 +227,7 @@ imgview_stream_Stat(IStream* self, STATSTG* stat, DWORD flag)
 
     memset(stat, 0, sizeof(STATSTG));
 
-    stat->type = STGTY_LOCKBYTES;
+    stat->type = STGTY_STREAM;
     stat->cbSize.QuadPart = s->size;
     return S_OK;
 }
