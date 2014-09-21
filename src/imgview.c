@@ -35,14 +35,19 @@
  *** Trivial IStream Interface Implementation ***
  ************************************************/
 
-/* This is needed for loading images from resources. Unfortunately
- * GdipCreateBitmapFromResource() does not work for other image formats then
- * bitmaps (BMP). Hence we need to use GdipLoadImageFromStream().
+/* This is needed for loading images from resources. GDI+ offers the function
+ * GdipCreateBitmapFromResource() but it does not work for other image formats
+ * but bitmap (BMP).
+ *
+ * Hence we utilize GdipLoadImageFromStream() instead.
  *
  * See also http://www.codeproject.com/Articles/3537/Loading-JPG-PNG-resources-using-GDI
+ *
  * The article suggests to use memory-based IStream implementation from
  * OLE32.DLL but we do not load that DLL and also it would involve unnecessary
- * copying of the resource data. */
+ * copying of the resource data. Therefore we implement our own very simple
+ * read-only IStream.
+ */
 
 typedef struct imgview_stream_tag imgview_stream_t;
 struct imgview_stream_tag {
@@ -312,11 +317,17 @@ imgview_load_image_from_resource(HINSTANCE instance, const TCHAR* name)
     gdix_Image* img;
     gdix_Status status;
 
-    /* See http://blogs.msdn.com/b/oldnewthing/archive/2011/03/07/10137456.aspx
-     * We rely on the fact UnlockResource() and FreeResource() do nothing.
-     * It is a bit ugly, but it simplifies things a lot, as our IStream
-     * implementation would have to "own" the resource and free it in
-     * destructor, complicating the IStream::Clone() even further.
+    /* We rely on the fact that UnlockResource() and FreeResource() do nothing:
+     *  -- MSDN docs for LockResource() says no unlocking is needed.
+     *  -- MSDN docs for FreeResource() says it just returns FALSE on 32/64-bit
+     *     Windows.
+     *
+     * See also http://blogs.msdn.com/b/oldnewthing/archive/2011/03/07/10137456.aspx
+     *
+     * It may look a bit ugly, but it simplifies things a lot. Otherwise our
+     * IStream implementation would have to "own" the resource and free it in
+     * its destructor. That would complicate especially the IStream::Clone() as
+     * the image resource would have to be shared by multiple IStreams objects.
      */
 
     for(i = 0; i < MC_ARRAY_SIZE(allowed_res_types); i++) {
