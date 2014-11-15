@@ -194,8 +194,8 @@
  *** Intrinsic ***
  *****************/
 
-/* <intrin.h> is only provided by some toolchains and many functions are
- * available only for some architectures, so we may need to provide fallback
+/* <intrin.h> is only provided by some tool-chains and many functions are
+ * available only for some architectures, so we need to provide fallback
  * implementations for those few functions we use. */
 
 #if defined MC_TOOLCHAIN_MSVC  ||  defined MC_TOOLCHAIN_MINGW64
@@ -204,11 +204,12 @@
 #endif
 
 
+/* Same as memset() but for DWORD elements. */
 static inline void
 mc_stosd(uint32_t* dst, uint32_t val, size_t n)
 {
-#ifdef MC_HAVE_INTRIN_H
-    __stosd((unsigned long*) dst, (unsigned long)val, n);
+#if defined MC_HAVE_INTRIN_H
+    __stosd((unsigned long*)dst, (unsigned long)val, n);
 #else
     size_t i;
     for(i = 0; i < n; i++)
@@ -216,15 +217,23 @@ mc_stosd(uint32_t* dst, uint32_t val, size_t n)
 #endif
 }
 
+/* CLZ (count leading zeros).
+ * Note the result is undefined for val == 0.
+ */
 static inline unsigned
 mc_clz(uint32_t val)
 {
-#ifdef MC_COMPILER_GCC
-    return __builtin_clz(val);
+#if defined MC_COMPILER_GCC
+    return  __builtin_clz(val);
+#elif defined MC_HAVE_INTRIN_H
+    unsigned long n;
+    _BitScanReverse(&n, val);
+    return (31 - n);
 #else
     unsigned n = 0;
-    while(val >= 0x80) { val = val >> 8; n += 8; }
-    while(val >= 1)    { val = val >> 1; n += 1; }
+    while(val > 1023)  { val = val >> 11; n += 11; }
+    while(val > 7)     { val = val >> 4; n += 4; }
+    while(val > 0)     { val = val >> 1; n += 1; }
     return (32 - n);
 #endif
 }

@@ -20,7 +20,7 @@
 
 
 /* Uncomment this to have more verbose traces about this module. */
-/*#define DLG_DEBUG     1*/
+#define DLG_DEBUG     1
 
 #ifdef DLG_DEBUG
     #define DLG_TRACE         MC_TRACE
