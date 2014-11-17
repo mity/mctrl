@@ -59,7 +59,7 @@ strres_is_zero_terminated(const WCHAR* str, UINT len)
 }
 
 static BOOL CALLBACK
-strres_enum_lang(HMODULE dll, const TCHAR* type, TCHAR* name, WORD lang_id, LPARAM lp)
+strres_enum_lang(HMODULE dll, const TCHAR* type, const TCHAR* name, WORD lang_id, LPARAM lp)
 {
     HRSRC res;
     HGLOBAL glob;
@@ -70,7 +70,7 @@ strres_enum_lang(HMODULE dll, const TCHAR* type, TCHAR* name, WORD lang_id, LPAR
     if(!TEST_CHECK(IS_INTRESOURCE(name)))
         goto out;
 
-    res = FindResourceEx(dll, RT_STRING, (ULONG_PTR)name, lang_id);
+    res = FindResourceEx(dll, RT_STRING, name, lang_id);
     if(!TEST_CHECK(res != NULL))
         goto out;
 
