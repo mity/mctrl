@@ -72,4 +72,4 @@ add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT)
 add_definitions(-DWIN32_LEAN_AND_MEAN)
 
 
-target_link_libraries(mCtrl gdi32 comctl32)
+target_link_libraries(mCtrl gdi32 comctl32 uuid)
