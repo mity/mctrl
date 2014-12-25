@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 project(mCtrl C)
 
 set(MCTRL_MAJOR_VERSION 0)

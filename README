@@ -97,23 +97,36 @@ Building mCtrl from Sources
 Disclaimer: If you want to just use MCTRL.DLL you should probably stick with
 the pre-built package.
 
-CMake version 3.0.0 (or newer) is used to manage mCtrl builds. If you got
-sources from git repository, you need to use CMake to generate native makefile
-or project files and use them to build mCtrl.
+To build mCtrl yourself from the source package or cloned git repository, you
+must first use CMake 3.1 (or newer) to generate project files, Makefile or
+whatever for the development tool-chain of your choice. mCtrl is known to
+successfully build within following environments:
 
-Generating e.g. MSVC-2013 solution and project files, you can follow these
-steps (either in CMD.EXE or in bash):
-    > mkdir build
-    > mkdir build/msvc-2013
-    > cd build/msvc-2013
-    > cmake -G "Visual Studio 12 2013" ../..
+  (1) MSYS + mingw-w64 + Make:
+        $ cmake -G "MSYS Makefiles" path/to/mctrl
 
-Or to generate GNU Makefile in mingw-w64 + msys environment and build with it,
-you may follow these commands:
+  (2) MSYS + mingw-w64 + Ninja:
+        $ cmake -G "Ninja" path/to/mctrl
 
-    $ mkdir -p build/msys  &&  cd build/msys
-    $ cmake -G "MSYS Makefiles" ../..
-    $ make
+  (3) Microsoft Visual Studio 2013:
+        $ cmake -G "Visual Studio 12 2013" path/to/mctrl
+        $ cmake -G "Visual Studio 12 2013 Win64" path/to/mctrl  # 64-bit build
+
+Other generators may or may not work. If they do not, then one or more
+CMakeLists.txt within mCtrl directory tree may need some tuning. Hopefully
+it should be quite simple for anyone with some CMake knowledge.
+
+Use
+    $ cmake --help
+or refer to CMake documentation to learn more about CMake, its options and
+capabilities.
+
+Then proceed to actually build mCtrl by opening the project files in your IDE
+or by running the make or other tool corresponding to the used CMake options.
+
+Finally, consider running a mCtrl test-suite to verify correctness of your
+build. The test suite should as well as some examples demonstrating mCtrl are
+built as part of the mCtrl build process.
 
 
 Reporting Bugs
@@ -123,3 +136,14 @@ If you encounter any bug, please be so kind and report it. Unheard bugs cannot
 get fixed. You can submit bug reports here:
 
     * http://github.com/mity/mctrl/issues
+
+Please provide the following information with the bug report:
+
+    * mCtrl version you are using.
+    * Whether you use 32-bit or 64-bit build of mCtrl.
+    * OS version where you reproduce the issue.
+    * As explicit description of the issue as possible, i.e. what behavior
+      you expect and what behavior you see.
+      (Reports of the kind "it does not work." do not help).
+    * If relevant, consider attaching a screenshot or some code reproducing
+      the issue.

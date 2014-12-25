@@ -21,6 +21,6 @@ LANGUAGE LANG_FRENCH, SUBLANG_DEFAULT
 
 STRINGTABLE
 BEGIN
-    IDS_EXPAND_MOREDETAILS    "Afficher les détails\0x"
-    IDS_EXPAND_FEWERDETAILS   "Masquer les détails\0x"
+    IDS_EXPAND_MOREDETAILS    "Afficher les détails\0"
+    IDS_EXPAND_FEWERDETAILS   "Masquer les détails\0"
 END

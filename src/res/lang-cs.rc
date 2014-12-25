@@ -23,6 +23,6 @@ LANGUAGE LANG_CZECH, SUBLANG_DEFAULT
 
 STRINGTABLE
 BEGIN
-    IDS_EXPAND_MOREDETAILS    "Další podrobnosti\0x"
-    IDS_EXPAND_FEWERDETAILS   "Ménì podrobností\0x"
+    IDS_EXPAND_MOREDETAILS    "Další podrobnosti\0"
+    IDS_EXPAND_FEWERDETAILS   "Ménì podrobností\0"
 END

@@ -42,20 +42,7 @@ expssym_test(void)
 static BOOL
 strres_is_zero_terminated(const WCHAR* str, UINT len)
 {
-    if(len > 0  &&  str[len-1] == L'\0')
-        return TRUE;
-
-#if 1
-    /* For now, we use "foo bar\0x" to have the string resources
-     * zero-terminated due to CMake limitations:
-     *      https://github.com/Kitware/CMake/pull/113
-     * (We may get rid of it after the CMake with the fix is released.)
-     */
-    if(len > 1  &&  str[len-2] == L'\0')
-        return TRUE;
-#endif
-
-    return FALSE;
+    return (len > 0  &&  str[len-1] == L'\0');
 }
 
 static BOOL CALLBACK
