@@ -13,7 +13,7 @@
  ************************/
 
 static void
-expssym_test(void)
+export_test(void)
 {
     HMODULE dll;
 
@@ -124,7 +124,7 @@ strres_test(void)
  *****************/
 
 TEST_LIST = {
-    { "exported-symbols", expssym_test },
+    { "exported-symbols", export_test },
     { "string-resources", strres_test },
     { 0 }
 };
