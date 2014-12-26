@@ -108,6 +108,9 @@
     /* Disable warning C4244 ("conversion from 'LONG' to 'WORD', possible loss of data.") */
     #pragma warning( disable : 4244 )
 
+    /* Disable warning C4244 ("conversion from 'size_t' to 'UINT', possible loss of data.") */
+    #pragma warning( disable : 4267 )
+
     /* Disable warning C4996 ("This function or variable may be unsafe.") */
     #pragma warning( disable : 4996 )
 
