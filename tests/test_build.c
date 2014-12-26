@@ -104,7 +104,7 @@ strres_test(void)
      * i.e. the string resources are zero-terminated if (and only if) zero
      * is explicitly specified (e.g. "foo bar\0")
      *
-     * mCtrl.dll needs zero-terminated sring resources to work properly.
+     * mCtrl.dll needs zero-terminated string resources to work properly.
      */
 
     HMODULE dll;
