@@ -381,6 +381,8 @@ table_destroy(table_t* table)
 
         free(table->cells);
     }
+
+    view_list_fini(&table->vlist);
     free(table);
 }
 

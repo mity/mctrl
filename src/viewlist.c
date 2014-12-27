@@ -24,41 +24,28 @@ view_list_install_view(view_list_t* vlist, void* view, view_refresh_t refresh)
 {
     view_node_t* node;
 
-    /* View can be installed only once in the list */
-#ifdef DEBUG
-    for(node = vlist->head; node != NULL; node = node->next)
-        MC_ASSERT(node->view != view);
-#endif
-
-    node = (view_node_t*) malloc(sizeof(view_node_t));
+    node = dsa_insert_raw(&vlist->dsa, dsa_size(&vlist->dsa));
     if(MC_ERR(node == NULL)) {
-        MC_TRACE("view_install: malloc() failed.");
+        MC_TRACE("view_install: dsa_insert_raw() failed.");
         return -1;
     }
 
     node->view = view;
     node->refresh = refresh;
-    node->next = vlist->head;
-    vlist->head = node;
     return 0;
 }
 
 void
 view_list_uninstall_view(view_list_t* vlist, void* view)
 {
-    view_node_t* node = vlist->head;
-    view_node_t* prev = NULL;
+    int i, n;
 
-    while(node->view != view) {
-        MC_ASSERT(node != NULL);
-        prev = node;
-        node = node->next;
+    n = dsa_size(&vlist->dsa);
+    for(i = 0; i < n; i++) {
+        view_node_t* node = DSA_ITEM(&vlist->dsa, i, view_node_t);
+        if(view == node->view) {
+            dsa_remove(&vlist->dsa, i, NULL);
+            return;
+        }
     }
-
-    if(prev)
-        prev->next = node->next;
-    else
-        vlist->head = node->next;
-    free(node);
 }
-

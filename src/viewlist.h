@@ -20,6 +20,7 @@
 #define MC_VIEWLIST_H
 
 #include "misc.h"
+#include "dsa.h"
 
 
 /* The models (as in model-view-controller paradigma) must be aware of their
@@ -38,22 +39,25 @@ typedef struct view_node_tag view_node_t;
 struct view_node_tag {
     void* view;
     view_refresh_t refresh;
-    view_node_t* next;
 };
 
 typedef struct view_list_tag view_list_t;
 struct view_list_tag {
-    view_node_t* head;
+    dsa_t dsa;
 };
-
-#define VIEW_LIST_IS_EMPTY(vlist)    ((vlist)->head == NULL)
-#define VIEW_LIST_INITIALIZER        { 0 }
 
 
 static inline void
 view_list_init(view_list_t* vlist)
 {
-    vlist->head = NULL;
+    dsa_init_ex(&vlist->dsa, sizeof(view_node_t), TRUE);
+}
+
+static inline void
+view_list_fini(view_list_t* vlist)
+{
+    MC_ASSERT(dsa_size(&vlist->dsa) == 0);
+    dsa_fini(&vlist->dsa, NULL);
 }
 
 int view_list_install_view(view_list_t* vlist, void* view, view_refresh_t refresh);
@@ -62,9 +66,12 @@ void view_list_uninstall_view(view_list_t* vlist, void* view);
 static inline void
 view_list_refresh(view_list_t* vlist, void* detail)
 {
-    view_node_t* node;
-    for(node = vlist->head; node != NULL; node = node->next)
+    int i, n;
+    n = dsa_size(&vlist->dsa);
+    for(i = 0; i < n; i++) {
+        view_node_t* node = DSA_ITEM(&vlist->dsa, i, view_node_t);
         node->refresh(node->view, detail);
+    }
 }
 
 
