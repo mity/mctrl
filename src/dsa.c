@@ -29,13 +29,15 @@
 #endif
 
 
+#define DSA_IS_COMPACT(dsa)             (dsa->capacity == 0xffff)
+
 #define DSA_MAX_ITEM_SIZE               256
 #define DSA_DEFAULT_GROW_SIZE(size)     (MC_MAX(8, (size) / 16))
 #define DSA_DEFAULT_SHRINK_SIZE(size)   (2*DSA_DEFAULT_GROW_SIZE(size))
 
 
 void
-dsa_init(dsa_t* dsa, WORD item_size)
+dsa_init_ex(dsa_t* dsa, WORD item_size, BOOL compact)
 {
     DSA_TRACE("dsa_init(%p, %d)", dsa, (int)item_size);
 
@@ -45,7 +47,7 @@ dsa_init(dsa_t* dsa, WORD item_size)
     dsa->buffer = NULL;
     dsa->item_size = item_size;
     dsa->size = 0;
-    dsa->capacity = 0;
+    dsa->capacity = (compact ? 0xffff : 0);
 }
 
 void
@@ -72,7 +74,7 @@ dsa_reserve(dsa_t* dsa, WORD size)
 
     DSA_TRACE("dsa_reserve(%p, %d)", dsa, (int)size);
 
-    if(capacity <= dsa->capacity)
+    if(!DSA_IS_COMPACT(dsa)  &&  capacity <= dsa->capacity)
         return 0;
 
     buffer = (BYTE*) realloc(dsa->buffer,
@@ -83,7 +85,8 @@ dsa_reserve(dsa_t* dsa, WORD size)
     }
 
     dsa->buffer = buffer;
-    dsa->capacity = capacity;
+    if(!DSA_IS_COMPACT(dsa))
+        dsa->capacity = capacity;
     return 0;
 }
 
@@ -93,8 +96,9 @@ dsa_insert_raw(dsa_t* dsa, WORD index)
     DSA_TRACE("dsa_insert_raw(%p, %d)", dsa, (int)index);
     MC_ASSERT(index <= dsa->size);
 
-    if(dsa->capacity - dsa->size == 0) {
-        if(MC_ERR(dsa_reserve(dsa, DSA_DEFAULT_GROW_SIZE(dsa->size)) != 0)) {
+    if(DSA_IS_COMPACT(dsa)  ||  dsa->capacity - dsa->size == 0) {
+        WORD reserve = (DSA_IS_COMPACT(dsa) ? DSA_DEFAULT_GROW_SIZE(dsa->size) : 1);
+        if(MC_ERR(dsa_reserve(dsa, reserve) != 0)) {
             MC_TRACE("dsa_insert_raw: dsa_reserve() failed.");
             return NULL;
         }
@@ -138,15 +142,10 @@ dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
     if(dtor_func != NULL)
         dtor_func(dsa, dsa_item(dsa, index));
 
-    if(dsa->size == 1) {
-        free(dsa->buffer);
-        dsa->buffer = NULL;
-        dsa->size = 0;
-        dsa->capacity = 0;
-        return;
-    }
-
-    if(dsa->capacity < dsa->size + DSA_DEFAULT_SHRINK_SIZE(dsa->size)) {
+    /* Fast (no-realloc) path. */
+    if(!DSA_IS_COMPACT(dsa)  &&
+       dsa->capacity < dsa->size + DSA_DEFAULT_SHRINK_SIZE(dsa->size))
+    {
 no_realloc:
         memmove(dsa_item(dsa, index), dsa_item(dsa, index+1),
                 (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
@@ -154,15 +153,26 @@ no_realloc:
         return;
     }
 
-    buffer = (BYTE*) malloc((size_t)(dsa->size - 1) * (size_t)dsa->item_size);
-    if(MC_ERR(buffer == NULL))
-        goto no_realloc;
-
-    memcpy(buffer, dsa->buffer, (size_t)index * (size_t)dsa->item_size);
-    memcpy(buffer + index * dsa->item_size, dsa_item(dsa, index+1),
-           (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
-
-    free(dsa->buffer);
+    if(index == dsa->size - 1) {
+        /* Getting rid of the tail element. */
+        if(dsa->size > 1) {
+            buffer = (BYTE*) realloc(dsa->buffer, (size_t)(dsa->size - 1) * (size_t)dsa->item_size);
+            if(MC_ERR(buffer == NULL))
+                goto no_realloc;
+        } else {
+            free(dsa->buffer);
+            buffer = NULL;
+        }
+    } else {
+        /* General path. */
+        buffer = (BYTE*) malloc((size_t)(dsa->size - 1) * (size_t)dsa->item_size);
+        if(MC_ERR(buffer == NULL))
+            goto no_realloc;
+        memcpy(buffer, dsa->buffer, (size_t)index * (size_t)dsa->item_size);
+        memcpy(buffer + index * dsa->item_size, dsa_item(dsa, index+1),
+               (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
+        free(dsa->buffer);
+    }
     dsa->buffer = buffer;
     dsa->size--;
     dsa->capacity = dsa->size;

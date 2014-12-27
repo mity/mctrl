@@ -33,7 +33,7 @@ struct dsa_tag {
 /* destructor */
 typedef void (*dsa_dtor_t)(dsa_t*, void*);
 
-/* comparision callback */
+/* comparison callback */
 typedef int (*dsa_cmp_t)(dsa_t*, const void*, const void*);
 
 
@@ -55,8 +55,8 @@ dsa_item(dsa_t* dsa, WORD index)
     return (void*)&((BYTE*)dsa->buffer)[index * dsa->item_size];
 }
 
-/* This is harder to use, but it should lead to better optimization
- * (asssuming item_size is compile-time known constant). */
+/* This is harder to use, but it should lead to better optimization.
+ * (Assuming item_size is a constant known at compile time.) */
 static inline void*
 dsa_item_(dsa_t* dsa, WORD index, WORD item_size)
 {
@@ -67,7 +67,9 @@ dsa_item_(dsa_t* dsa, WORD index, WORD item_size)
         ((type*) dsa_item_((dsa), (index), sizeof(type)))
 
 
-void dsa_init(dsa_t* dsa, WORD item_size);
+void dsa_init_ex(dsa_t* dsa, WORD item_size, BOOL compact);
+static inline void dsa_init(dsa_t* dsa, WORD item_size)
+    { dsa_init_ex(dsa, item_size, FALSE); }
 void dsa_fini(dsa_t* dsa, dsa_dtor_t dtor_func);
 
 int dsa_reserve(dsa_t* dsa, WORD size);
