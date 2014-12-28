@@ -143,6 +143,22 @@
 	#include <math.h>
     static inline float roundf(float x)
         { return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f); }
+
+    /* With recent SDK versions, <shlwapi.h> started to #undefine COM C wrapper
+     * macros IStream_Read and IStream_Write and instead it provides its own
+     * functions of the same name (but with incompatible interface).
+     * We cannot use the functions (they are only available since Vista) so
+     * lets resuscitate the macros.
+     */
+    #ifdef COBJMACROS
+        #include <shlwapi.h>
+        #ifndef IStream_Read
+            #define IStream_Read(self,a,b,c)   ((self)->lpVtbl->Read(self,a,b,c))
+        #endif
+        #ifndef IStream_Write
+            #define IStream_Write(self,a,b,c)  ((self)->lpVtbl->Write(self,a,b,c))
+        #endif
+    #endif
 #endif
 
 

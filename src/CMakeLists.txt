@@ -71,5 +71,8 @@ add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT)
 # faster.
 add_definitions(-DWIN32_LEAN_AND_MEAN)
 
+# Enable preprocessor COM interface wrapper macros for C.
+add_definitions(-DCOBJMACROS)
+
 
 target_link_libraries(mCtrl gdi32 comctl32 uuid)

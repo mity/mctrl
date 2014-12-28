@@ -184,7 +184,7 @@ imgview_stream_CopyTo(IStream* self, IStream* other, ULARGE_INTEGER n,
     if(s->pos + n.QuadPart >= s->size)
         n.QuadPart = (s->pos < s->size ? s->size - s->pos : 0);
 
-    hr = other->lpVtbl->Write(other, s->buffer + s->pos, n.QuadPart, &written);
+    hr = IStream_Write(other, s->buffer + s->pos, n.QuadPart, &written);
     s->pos += written;
     if(n_read != NULL)
         n_read->QuadPart = written;
@@ -365,7 +365,7 @@ imgview_load_image_from_resource(HINSTANCE instance, const TCHAR* name)
         img = NULL;
     }
 
-    stream->stream.lpVtbl->Release(&stream->stream);
+    IStream_Release(&stream->stream);
     return img;
 }
 
