@@ -17,6 +17,9 @@ add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT)
 # is faster.
 add_definitions(-DWIN32_LEAN_AND_MEAN)
 
+# Enable definition of some constants (e.g. M_PI) in <math.h>.
+add_definitions(-D_USE_MATH_DEFINES)
+
 # Enable COM interface preprocessor wrapper macros for C.
 add_definitions(-DCOBJMACROS)
 

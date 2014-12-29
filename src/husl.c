@@ -51,9 +51,6 @@
 #include <float.h>
 
 
-#define PI 3.1415926535897932384626433832795
-
-
 static const float m[3][3] = { {  3.2406f, -1.5372f, -0.4986f },
                                { -0.9689f,  1.8758f,  0.0415f },
                                {  0.0557f, -0.2040f,  1.0570f } };
@@ -79,7 +76,7 @@ husl_max_chroma(float L, float H)
     const float* row;
     float ref_[2] = { 0.0f, 1.0f };
 
-    hrad = (float) ((H / 360.0f) * 2 * PI);
+    hrad = (float) (H * (M_PI / 180.0));
     sinH = (float) (sin(hrad));
     cosH = (float) (cos(hrad));
     sub1 = (float) (pow(L + 16, 3) / 1560896.0);
@@ -255,7 +252,7 @@ husl_luv2lch(float* tuple)
 
     C = (float) (pow(pow(U, 2) + pow(V, 2), (1 / 2.0f)));
     Hrad = (float) (atan2(V, U));
-    H = (float) (Hrad * 360.0f / 2.0f / PI);
+    H = (float) (Hrad * (180.0 / M_PI));
     if(H < 0)
         H = 360 + H;
 
@@ -275,7 +272,7 @@ husl_lch2luv(float* tuple)
     C = tuple[1];
     H = tuple[2];
 
-    Hrad = (float) (H / 360.0 * 2.0 * PI);
+    Hrad = (float) (H / (180.0 / M_PI));
     U = (float) (cos(Hrad) * C);
     V = (float) (sin(Hrad) * C);
 
