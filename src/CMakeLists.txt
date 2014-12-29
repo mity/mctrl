@@ -6,13 +6,29 @@ file(GLOB MCTRL_SOURCES "*.c" "*.h" "*.rc" "mCtrl.def")
 
 add_library(mCtrl SHARED ${MCTRL_SOURCES})
 
+target_link_libraries(mCtrl gdi32 comctl32 uuid)
+
+add_definitions(-DMCTRL_BUILD)
+add_definitions(-DUNICODE -D_UNICODE)
+add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT)
+
+# Tell <windows.h> to not include everything. We include what we need anyway
+# and this saves compiler a lot of work in the parsing stage, so compilation
+# is faster.
+add_definitions(-DWIN32_LEAN_AND_MEAN)
+
+# Enable COM interface preprocessor wrapper macros for C.
+add_definitions(-DCOBJMACROS)
+
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 
 if(CMAKE_COMPILER_IS_GNUCC)
+    # Detect gcc version:
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -municode")
 
-    # By default, CMake uses -O3 for Release builds. Lets stick with safer -O2.
+    # By default, CMake uses -O3 for Release builds. Lets stick with safer -O2:
     string(REGEX REPLACE "(^| )-O[0-9a-z]+" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2")
 
@@ -22,17 +38,18 @@ if(CMAKE_COMPILER_IS_GNUCC)
         set(CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELEASE} -flto -O2")
     endif()
 
+    # Ensure we do not depend on libgcc.dll and that our exported symbols
+    # don't have undesired symbol decorations:
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -Wl,--enable-stdcall-fixup -Wl,--kill-at")
 
-    # By default, mingw-w64 uses its own swprintf() implementation (for the sake
-    # of standard compliance). This enforces swprintf() from MSVCRTL.DLL.
+    # By default, mingw-w64 uses its own swprintf() implementation (for the
+    # sake of standard compliance). This enforces swprintf() from MSVCRT.DLL:
     add_definitions(-D_CRT_NON_CONFORMING_SWPRINTFS)
 
-    # With gcc/binutils toolchain (e.g. mingw-w64), gcc '-Wl,--kill-at results'
+    # With gcc/binutils toolchain (e.g. mingw-w64), gcc option -Wl,--kill-at
     # results in unusable import lib because gcc/ld then un-decorates not just
-    # DLL exports but unfortunately also import lib symbols. Hence lets build
-    # this as module and create import lib manually below (with 'gendef' and
-    # 'dlltool').
+    # DLL exports but unfortunately also import lib symbols. Hence lets create
+    # the import lib manually below with gendef and dlltool.
     #
     # We assume 'gendef' and 'dlltool' are located in the same dir where
     # gcc is living.
@@ -52,27 +69,20 @@ if(CMAKE_COMPILER_IS_GNUCC)
         endif()
     endif()
 elseif(MSVC)
+    # Disable warnings about the so-called unsecured functions:
+    add_definitions(/D_CRT_SECURE_NO_WARNINGS)
+
+    # Make sure strings in string table resource are zero-terminated.
+    # (RC.EXE by default removes the zero terminators even if they are
+    # explicitly specified in the resource script):
     set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} /n")
+
+    # We provide our own manifest, so tell the linker to not generate it:
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MANIFEST:NO")
+
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MANIFEST:NO")
-    add_definitions(/D_CRT_SECURE_NO_WARNINGS)
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_RELEASE} /MT")
 endif()
 
-
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
-
-add_definitions(-DMCTRL_BUILD)
-add_definitions(-DUNICODE -D_UNICODE)
-add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT)
-
-# Tell <windows.h> to not include everything. We include what we need anyway
-# and this saves compiler a lot of work in parsing stage, so compilation is
-# faster.
-add_definitions(-DWIN32_LEAN_AND_MEAN)
-
-# Enable preprocessor COM interface wrapper macros for C.
-add_definitions(-DCOBJMACROS)
-
-
-target_link_libraries(mCtrl gdi32 comctl32 uuid)
