@@ -27,21 +27,22 @@
 
 
 /* Note that message processing in the module is a bit tricky and complex,
- * especially for keyboard messages. There are three different context we
- *  handle messages in this module. All the three have to play in concert:
+ * especially for keyboard messages. There are three different contexts 
+ * where we handle messages in this module. All the three have to play in 
+ * concert:
  *
- * (1) mcIsMenubarMessage() handles messages, supposedly in the context of the
- *     main application message loop. It is responsible for activating the
- *     menubar on <F10> or <ALT>, and for distributing accelerator keys.
+ * (1) mcIsMenubarMessage() handles messages, supposedly in the context of
+ *     the main application message loop. It is responsible for activating 
+ *     the menubar on <F10> or <ALT>, and for distributing accelerator keys.
  *     Note it processes <F10> or <ALT> only when no menubar is currently
  *     active (if it is active, it lets the message to propagate into (2)).
  *
- * (2) menubar_proc() handles messages directed directly to the menubar
- *     control (which is superclassed toolbar) when no child popup menu is
- *     dropped down. It handles for example <LEFT> and <RIGHT> arrows to
- *     change hot item in the menubar, <DOWN> or <RETURN> to open a popup
- *     menu. It also looks for <F10>, <ALT> or <ESC> to cancel menu navigation
- *     and deactivating the menu.
+ * (2) menubar_proc() handles messages sent directly to the menubar control
+ *     (which is superclassed toolbar) while no child popup menu is dropped
+ *     down. It handles for example <LEFT> and <RIGHT> arrows to change hot
+ *     item in the menubar, <DOWN> or <RETURN> to open a popup menu. It also
+ *     looks for <F10>, <ALT> or <ESC> to cancel menu navigation and
+ *     deactivating the menu.
  *
  * (3) When a pop-up menu is opened, we install a message filter hook
  *     menubar_ht_proc() as the pop-up would otherwise grab all messages itself
