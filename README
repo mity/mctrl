@@ -58,7 +58,7 @@ and examples, and also documentation for application developers. The source
 package is direct export of source tree from version control system repository.
 
 The current code (possibly untested and unstable) can also be cloned from git
-repository hoested on github:
+repository hosted on github:
 
     * http://github.com/mity/mctrl
 
@@ -97,9 +97,9 @@ Building mCtrl from Sources
 Disclaimer: If you want to just use MCTRL.DLL you should probably stick with
 the pre-built package.
 
-To build mCtrl yourself from the source package or cloned git repository, you
-must first use CMake 3.1 (or newer) to generate project files, Makefile or
-whatever for the development tool-chain of your choice. mCtrl is known to
+To build mCtrl yourself from the source package or cloned git repository, first
+of all you need to use CMake 3.1 (or newer) to generate project files, Makefile
+or whatever for the development tool-chain of your choice. mCtrl is known to
 successfully build within following environments:
 
   (1) MSYS + mingw-w64 + Make:
@@ -112,21 +112,20 @@ successfully build within following environments:
         $ cmake -G "Visual Studio 12 2013" path/to/mctrl
         $ cmake -G "Visual Studio 12 2013 Win64" path/to/mctrl  # 64-bit build
 
-Other generators may or may not work. If they do not, then one or more
-CMakeLists.txt within mCtrl directory tree may need some tuning. Hopefully
-it should be quite simple for anyone with some CMake knowledge.
+Other CMake generators may or may not work. If they do not, then one or more
+CMakeLists.txt files within mCtrl directory tree may need some tuning.
 
 Use
     $ cmake --help
-or refer to CMake documentation to learn more about CMake, its options and
+and refer to CMake documentation to learn more about CMake, its options and
 capabilities.
 
 Then proceed to actually build mCtrl by opening the project files in your IDE
-or by running the make or other tool corresponding to the used CMake options.
+or by running the make or other tool corresponding to the used CMake generator.
 
 Finally, consider running a mCtrl test-suite to verify correctness of your
-build. The test suite should as well as some examples demonstrating mCtrl are
-built as part of the mCtrl build process.
+build. The test suite, as well as some examples demonstrating mCtrl, are built
+as part of the mCtrl build process.
 
 
 Reporting Bugs
