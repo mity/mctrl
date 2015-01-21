@@ -68,6 +68,8 @@
 /* Get count of records in an array */
 #define MC_ARRAY_SIZE(array)   (sizeof((array)) / sizeof((array)[0]))
 
+/* Pi */
+#define MC_PIf     3.14159265358979323846f
 
 /* Offset of struct member */
 #if defined offsetof

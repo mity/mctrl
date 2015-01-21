@@ -37,21 +37,21 @@ color_seq(UINT index)
      * of the color cycle (0-120, 120-240 and 240-360 degrees).
      */
     if(index < 3) {
-        h = 120.0 * index;
+        h = 120.0f * index;
     } else {
         int i, n, base;
 
         n = 31 - mc_clz((int32_t)(index / 3));
         base = 3 * (1<<n);
         i = index - base;
-        h = 180.0/base + (i/3) * (360.0/base) + (i%3) * 120.0;
+        h = 180.0f / base + (float)(i/3) * (360.0f/base) + (float)(i%3) * 120.0f;
     }
 
-    s = 80.0 + 20.0 * cosf((float)(unsigned int)(index / 4));
-    l = 50.0 + 30.0 * sinf((float)(unsigned int)(index / 3));
+    s = 80.0f + 20.0f * cosf((float)(index / 4));
+    l = 50.0f + 30.0f * sinf((float)(index / 3));
 
     husl_to_rgb(&r, &g, &b, h, s, l);
-    return RGB(255.0 * r, 255.0 * g, 255.0 * b);
+    return RGB(255.0f * r, 255.0f * g, 255.0f * b);
 }
 
 COLORREF
@@ -60,13 +60,13 @@ color_hint(COLORREF color)
     float r, g, b;
     float h, s, l;
 
-    r = GetRValue(color) / 255.0;
-    g = GetGValue(color) / 255.0;
-    b = GetBValue(color) / 255.0;
+    r = GetRValue(color) / 255.0f;
+    g = GetGValue(color) / 255.0f;
+    b = GetBValue(color) / 255.0f;
 
     husl_from_rgb(&h, &s, &l, r, g, b);
-    l = (l + 100.0) / 2.0;
-    s = s / 2.0;
+    l = (l + 100.0f) / 2.0f;
+    s = s / 2.0f;
     husl_to_rgb(&r, &g, &b, h, s, l);
-    return RGB(255.0 * r, 255.0 * g, 255.0 * b);
+    return RGB(255.0f * r, 255.0f * g, 255.0f * b);
 }

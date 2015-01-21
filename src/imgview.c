@@ -439,8 +439,8 @@ imgview_paint(imgview_t* iv, HDC dc, RECT* dirty, BOOL erase)
         dst.w = client.right;
         dst.h = client.bottom;
     } else if(iv->style & MC_IVS_REALSIZEIMAGE) {
-        dst.x = (client.right - src.w) / 2.0;
-        dst.y = (client.bottom - src.h) / 2.0;
+        dst.x = (client.right - src.w) / 2.0f;
+        dst.y = (client.bottom - src.h) / 2.0f;
         dst.w = src.w;
         dst.h = src.h;
     } else {
@@ -449,13 +449,13 @@ imgview_paint(imgview_t* iv, HDC dc, RECT* dirty, BOOL erase)
         if(ratio_w >= ratio_h) {
             dst.w = src.w * ratio_h;
             dst.h = client.bottom;
-            dst.x = (client.right - dst.w) / 2.0;
+            dst.x = (client.right - dst.w) / 2.0f;
             dst.y = 0;
         } else {
             dst.w = client.right;
             dst.h = src.h * ratio_w;
             dst.x = 0;
-            dst.y = (client.bottom - dst.h) / 2.0;
+            dst.y = (client.bottom - dst.h) / 2.0f;
         }
     }
 

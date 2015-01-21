@@ -17,9 +17,6 @@ add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0600 -DWINVER=_WIN32_WINNT)
 # is faster.
 add_definitions(-DWIN32_LEAN_AND_MEAN)
 
-# Enable definition of some constants (e.g. M_PI) in <math.h>.
-add_definitions(-D_USE_MATH_DEFINES)
-
 # Enable COM interface preprocessor wrapper macros for C.
 add_definitions(-DCOBJMACROS)
 
@@ -29,7 +26,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
     # Detect gcc version:
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -municode -ffast-math")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wdouble-promotion -municode -ffast-math")
 
     # By default, CMake uses -O3 for Release builds. Lets stick with safer -O2:
     string(REGEX REPLACE "(^| )-O[0-9a-z]+" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")

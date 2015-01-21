@@ -1,15 +1,16 @@
 /*
+ * Copyright (c) 2012,2015 Martin Mitas
+ *  -- Minor tweaks & optimizations
+ *  -- Incorporation into mCtrl
+ *
+ * Copyright (c) 2012 Lajos Ambrus
+ *  -- Original C/C++ port
+ *  -- See http://github.com/boronine/husl/tree/master/ports/c
+ *
  * Copyright (c) 2012 Alexei Boronine
  *  -- Idea, design & algorithm
  *  -- Original CoffeeScript & JavaScript implementation
  *  -- See http://boronine.com/husl/
- *
- * Copyright (c) 2012 Lajos Ambrus
- *  -- C/C++ port
- *  -- See http://github.com/boronine/husl/tree/master/ports/c
- *
- * Copyright (c) 2012 Martin Mitas
- *  -- Minor tweaks & incorporation into mCtrl
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the "Software"),
@@ -32,16 +33,34 @@
 
 
 /* Changes from original Lajos's husl.c:
- *  -- Made all functions except those specified in husl.h 'static'.
- *  -- Renamed all the functions to have a prefix 'husl_'.
- *  -- Made all global constants 'static const'.
- *  -- Replaced a global variable values[] with local one where needed,
- *     hence fixed thread safety.
- *  -- Fixed all compiler warnings (as of option -Wall of gcc 4.7)
- *  -- Minor changes for better readability and code style unification.
- *  -- Removed C++ comments.
- *  -- Removed some unused functions.
- *  -- Renamed all variables beginning with '_' to end with it instead.
+ *
+ *  -- Fixes:
+ *       -- Renamed all variables beginning with '_' to end with it instead as
+ *          the former is reserved for compiler and standard library.
+ *       -- Replaced unneeded global variable values[] with a local variable
+ *          on stack hence fixed thread safety and improved data locality.
+ *       -- Fixed all compiler warnings (as of option '-Wall' of gcc 4.7).
+ *
+ *  -- Optimizations:
+ *       -- Replaced 'powf(X, 1.0f/2.0f)' and 'powf(X, 1.0f/3.0f)' with
+ *          'sqrt(X)' and 'cbrt(X)' respectively.
+ *       -- Where appropriate, replaced integer literals with float literals
+ *          (added the '.0f' suffix).
+ *       -- Replaced double float literals with float literals (added the 'f'
+ *          suffix), hence got rid of many unneeded casts between double and
+ *          float types.
+ *       -- Replaced double float functions like 'pow()', 'sin()', 'cos()' etc.
+ *          with their float counterparts powf(), sinf(), cosf() etc., hence
+ *          got rid of even more bogus casts.
+ *
+ *  -- Code clean-up:
+ *       -- Made all global constants 'static const'.
+ *       -- Got rid of some unused functions.
+ *       -- Made all internal functions 'static'.
+ *       -- Renamed all the functions to have a prefix 'husl_', hence mitigated
+ *          risk of symbol collisions.
+ *       -- Removed C++ style comments.
+ *       -- Other minor changes for better readability and code style.
  */
 
 
@@ -49,6 +68,9 @@
 
 #include <math.h>
 #include <float.h>
+
+
+#define M_PIf   ((float) M_PI)
 
 
 static const float m[3][3] = { {  3.2406f, -1.5372f, -0.4986f },
@@ -76,23 +98,23 @@ husl_max_chroma(float L, float H)
     const float* row;
     float ref_[2] = { 0.0f, 1.0f };
 
-    hrad = (float) (H * (M_PI / 180.0));
-    sinH = (float) (sin(hrad));
-    cosH = (float) (cos(hrad));
-    sub1 = (float) (pow(L + 16, 3) / 1560896.0);
-    sub2 = sub1 > 0.008856 ? sub1 : (float) (L / 903.3);
+    hrad = H * (M_PIf / 180.0f);
+    sinH = sinf(hrad);
+    cosH = cosf(hrad);
+    sub1 = powf(L + 16.0f, 3.0f) / 1560896.0f;
+    sub2 = sub1 > 0.008856f ? sub1 : (L / 903.3f);
     result = FLT_MAX;
     for(i_ = 0, len_ = 3; i_ < len_; ++i_) {
         row = m[i_];
         m1 = row[0], m2 = row[1], m3 = row[2];
-        top = (float) ((0.99915 * m1 + 1.05122 * m2 + 1.14460 * m3) * sub2);
-        rbottom = (float) (0.86330 * m3 - 0.17266 * m2);
-        lbottom = (float) (0.12949 * m3 - 0.38848 * m1);
+        top = (0.99915f * m1 + 1.05122f * m2 + 1.14460f * m3) * sub2;
+        rbottom = 0.86330f * m3 - 0.17266f * m2;
+        lbottom = 0.12949f * m3 - 0.38848f * m1;
         bottom = (rbottom * sinH + lbottom * cosH) * sub2;
 
         for(j_ = 0, len1_ = 2; j_ < len1_; ++j_) {
             t = ref_[j_];
-            C = (float) (L * (top - 1.05122 * t) / (bottom + 0.17266 * sinH * t));
+            C = L * (top - 1.05122f * t) / (bottom + 0.17266f * sinH * t);
             if(C > 0 && C < result)
                 result = C;
         }
@@ -116,38 +138,38 @@ static float
 husl_f(float t)
 {
     if(t > lab_e)
-        return (float) (pow(t, 1.0f / 3.0f));
+        return cbrtf(t);
     else
-        return (float) (7.787 * t + 16 / 116.0);
+        return 7.787f * t + 16.0f / 116.0f;
 }
 
 static float
 husl_f_inv(float t)
 {
-    if(pow(t, 3) > lab_e)
-        return (float) (pow(t, 3));
+    if(powf(t, 3.0f) > lab_e)
+        return powf(t, 3.0f);
     else
-        return (116 * t - 16) / lab_k;
+        return (116.0f * t - 16.0f) / lab_k;
 }
 
 static float
 husl_from_linear(float c)
 {
-    if(c <= 0.0031308)
+    if(c <= 0.0031308f)
         return 12.92f * c;
     else
-        return (float) (1.055 * pow(c, 1 / 2.4f) - 0.055);
+        return 1.055f * powf(c, 1.0f / 2.4f) - 0.055f;
 }
 
 static float
 husl_to_linear(float c)
 {
-    float a = 0.055f;
+    const float a = 0.055f;
 
-    if(c > 0.04045)
-        return (float) (pow((c + a) / (1 + a), 2.4f));
+    if(c > 0.04045f)
+        return powf((c + a) / (1.0f + a), 2.4f);
     else
-        return (float) (c / 12.92);
+        return c / 12.92f;
 }
 
 static float*
@@ -200,11 +222,11 @@ husl_xyz2luv(float* tuple)
     Y = tuple[1];
     Z = tuple[2];
 
-    varU = (4 * X) / (X + (15.0f * Y) + (3 * Z));
-    varV = (9 * Y) / (X + (15.0f * Y) + (3 * Z));
-    L = 116 * husl_f(Y / refY) - 16;
-    U = 13 * L * (varU - refU);
-    V = 13 * L * (varV - refV);
+    varU = (4.0f * X) / (X + (15.0f * Y) + (3 * Z));
+    varV = (9.0f * Y) / (X + (15.0f * Y) + (3 * Z));
+    L = 116.0f * husl_f(Y / refY) - 16.0f;
+    U = 13.0f * L * (varU - refU);
+    V = 13.0f * L * (varV - refV);
 
     tuple[0] = L;
     tuple[1] = U;
@@ -227,12 +249,12 @@ husl_luv2xyz(float* tuple)
         return tuple;
     }
 
-    varY = husl_f_inv((L + 16) / 116.0f);
+    varY = husl_f_inv((L + 16.0f) / 116.0f);
     varU = U / (13.0f * L) + refU;
     varV = V / (13.0f * L) + refV;
     Y = varY * refY;
-    X = 0 - (9 * Y * varU) / ((varU - 4.0f) * varV - varU * varV);
-    Z = (9 * Y - (15 * varV * Y) - (varV * X)) / (3.0f * varV);
+    X = 0.0f - (9.0f * Y * varU) / ((varU - 4.0f) * varV - varU * varV);
+    Z = (9.0f * Y - (15.0f * varV * Y) - (varV * X)) / (3.0f * varV);
 
     tuple[0] = X;
     tuple[1] = Y;
@@ -250,11 +272,11 @@ husl_luv2lch(float* tuple)
     U = tuple[1];
     V = tuple[2];
 
-    C = (float) (pow(pow(U, 2) + pow(V, 2), (1 / 2.0f)));
-    Hrad = (float) (atan2(V, U));
-    H = (float) (Hrad * (180.0 / M_PI));
-    if(H < 0)
-        H = 360 + H;
+    C = sqrtf(powf(U, 2.0f) + powf(V, 2.0f));
+    Hrad = atan2f(V, U);
+    H = Hrad * (180.0f / M_PIf);
+    if(H < 0.0f)
+        H = 360.0f + H;
 
     tuple[0] = L;
     tuple[1] = C;
@@ -272,9 +294,9 @@ husl_lch2luv(float* tuple)
     C = tuple[1];
     H = tuple[2];
 
-    Hrad = (float) (H / (180.0 / M_PI));
-    U = (float) (cos(Hrad) * C);
-    V = (float) (sin(Hrad) * C);
+    Hrad = H / (180.0f / M_PIf);
+    U = cosf(Hrad) * C;
+    V = sinf(Hrad) * C;
 
     tuple[0] = L;
     tuple[1] = U;
@@ -312,7 +334,7 @@ husl_lch2husl(float* tuple)
     H = tuple[2];
 
     max = husl_max_chroma(L, H);
-    S = C / max * 100;
+    S = C / max * 100.0f;
 
     tuple[0] = H;
     tuple[1] = S;
