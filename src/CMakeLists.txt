@@ -29,7 +29,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
     # Detect gcc version:
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -municode")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -municode -ffast-math")
 
     # By default, CMake uses -O3 for Release builds. Lets stick with safer -O2:
     string(REGEX REPLACE "(^| )-O[0-9a-z]+" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
@@ -74,6 +74,8 @@ if(CMAKE_COMPILER_IS_GNUCC)
 elseif(MSVC)
     # Disable warnings about the so-called unsecured functions:
     add_definitions(/D_CRT_SECURE_NO_WARNINGS)
+
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /fp:fast")
 
     # Make sure strings in string table resource are zero-terminated.
     # (RC.EXE by default removes the zero terminators even if they are
