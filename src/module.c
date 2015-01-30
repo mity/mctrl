@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2013 Martin Mitas
+ * Copyright (c) 2009-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -155,6 +155,7 @@ DEFINE_MODULE(mditab);
 DEFINE_MODULE(menubar);
 DEFINE_MODULE(theme);
 DEFINE_MODULE(treelist);
+DEFINE_MODULE(xdraw);
 
 
 /* Public interfaces of exposed modules */

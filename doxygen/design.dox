@@ -125,17 +125,15 @@
  * in runtime. In such cases, mCtrl tries to behave in a reasonable manner even
  * if those libraries or are not available.
  *
- * - @c GDIPLUS.DLL is required by the chart control (@ref mCtrl/chart.h) and
- *   image view control (@ref mCtrl/imgview.h). If the library can not be
- *   loaded, the initialization functions @c mcChart_Initialize() and
- *   @c mcImgView_Initialize() fail and the controls cannot be created.
- *   This library is available standardly on Windows XP and newer. Plain
- *   Windows 2000, without any service pack, are not equipped with it. However
- *   Microsoft has released distributable version of @c GDIPLUS.DLL: If your
- *   application relies on this control, and you want to support Windows 2000,
- *   you should distribute the @c GDIPLUS.DLL with it.
- *
  * - @c UXTHEME.DLL is used on Windows XP and newer to paint the mCtrl controls
  *   using the current theme. Note mCtrl does so only if the application uses
  *   @c COMMCTRL32.DLL version 6 or newer.
+ *
+ * - In cases, that GDI is insufficient and higher-quality graphics is needed,
+ *   mCtrl loads Direct2D (@c D2D1.DLL) & DirectWrite (@c DWRITE.DLL), or
+ *   if Direct2D/DirectWrite is not available, it loads GDI+ (@c GDIPLUS.DLL).
+ *   Note that Direct2D is only available since MS Vista (with some service
+ *   pack or other updates) and newer Windows versions. GDI+ is available since
+ *   Windows XP. Windows 2000 does not provide system version of GDI+ but
+ *   redistributable version of GDI+ v. 1.0 can be obtained from Microsoft.
  */
