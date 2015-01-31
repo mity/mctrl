@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Martin Mitas
+ * Copyright (c) 2013-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,6 +18,7 @@
 
 #include "imgview.h"
 #include "gdix.h"
+#include "memstream.h"
 #include "theme.h"
 
 
@@ -31,272 +32,6 @@
 #endif
 
 
-/************************************************
- *** Trivial IStream Interface Implementation ***
- ************************************************/
-
-/* This is needed for loading images from resources. GDI+ offers the function
- * GdipCreateBitmapFromResource() but it does not work for other image formats
- * but bitmap (BMP).
- *
- * Hence we utilize GdipLoadImageFromStream() instead.
- *
- * See also http://www.codeproject.com/Articles/3537/Loading-JPG-PNG-resources-using-GDI
- *
- * The article suggests to use memory-based IStream implementation from
- * OLE32.DLL but we do not load that DLL and also it would involve unnecessary
- * copying of the resource data. Therefore we implement our own very simple
- * read-only IStream.
- */
-
-typedef struct imgview_stream_tag imgview_stream_t;
-struct imgview_stream_tag {
-    const BYTE* buffer;
-    ULONG pos;
-    ULONG size;
-    mc_ref_t refs;
-
-    IStream stream;  /* COM interface */
-};
-
-
-#define MC_STREAM_FROM_IFACE(stream_iface)                                    \
-    MC_CONTAINEROF(stream_iface, imgview_stream_t, stream)
-
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_QueryInterface(IStream* self, REFIID riid, void** obj)
-{
-    if(IsEqualGUID(riid, &IID_IUnknown)  ||
-       IsEqualGUID(riid, &IID_IDispatch)  ||
-       IsEqualGUID(riid, &IID_ISequentialStream)  ||
-       IsEqualGUID(riid, &IID_IStream))
-    {
-        imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-        mc_ref(&s->refs);
-        *obj = s;
-        return S_OK;
-    } else {
-        *obj = NULL;
-        return E_NOINTERFACE;
-    }
-}
-
-static ULONG STDMETHODCALLTYPE
-imgview_stream_AddRef(IStream* self)
-{
-    imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-    IMGVIEW_TRACE("imgview_stream_AddRef(%d -> %d)", (int) s->refs, (int) s->refs+1);
-    return mc_ref(&s->refs);
-}
-
-static ULONG STDMETHODCALLTYPE
-imgview_stream_Release(IStream* self)
-{
-    imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-    ULONG refs;
-
-    IMGVIEW_TRACE("imgview_stream_Release(%d -> %d)", (int) s->refs, (int) s->refs-1);
-    refs = mc_unref(&s->refs);
-    if(refs == 0) {
-        IMGVIEW_TRACE("imgview_stream_Release: Freeing the stream object.");
-        free(s);
-    }
-    return refs;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_Read(IStream* self, void* buf, ULONG n, ULONG* n_read)
-{
-    imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-
-    IMGVIEW_TRACE("imgview_stream_Read(%lu)", n);
-
-    if(MC_ERR(s->pos < 0  ||  s->pos >= s->size)) {
-        n = 0;
-        if(n_read != NULL)
-            *n_read = 0;
-        return STG_E_INVALIDFUNCTION;
-    }
-
-    if(n > s->size - s->pos)
-        n = s->size - s->pos;
-    memcpy(buf, s->buffer + s->pos, n);
-    s->pos += n;
-
-    if(n_read != NULL)
-        *n_read = n;
-
-    return (s->pos < s->size ? S_OK : S_FALSE);
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_Write(IStream* self, const void* buf, ULONG n, ULONG* n_written)
-{
-    /* We are read-only stream. */
-    IMGVIEW_TRACE("imgview_stream_Write: Stub.");
-    if(n_written != NULL)
-        *n_written = 0;
-    return STG_E_CANTSAVE;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_Seek(IStream* self, LARGE_INTEGER delta, DWORD origin,
-                    ULARGE_INTEGER* new_pos)
-{
-    imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-    LARGE_INTEGER pos;
-    HRESULT hres = S_OK;
-
-    IMGVIEW_TRACE("imgview_stream_Seek(%lu, %lu)", delta, origin);
-
-    switch(origin) {
-        case STREAM_SEEK_SET:  pos.QuadPart = delta.QuadPart; break;
-        case STREAM_SEEK_CUR:  pos.QuadPart = s->pos + delta.QuadPart; break;
-        case STREAM_SEEK_END:  pos.QuadPart = s->size + delta.QuadPart; break;
-        default:               hres = STG_E_SEEKERROR;
-    }
-
-    if(pos.QuadPart < 0)
-        hres = STG_E_INVALIDFUNCTION;
-
-    s->pos = pos.QuadPart;
-    if(new_pos != NULL)
-        new_pos->QuadPart = pos.QuadPart;
-    return hres;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_SetSize(IStream* self, ULARGE_INTEGER new_size)
-{
-    IMGVIEW_TRACE("imgview_stream_SetSize: Stub.");
-    return STG_E_INVALIDFUNCTION;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_CopyTo(IStream* self, IStream* other, ULARGE_INTEGER n,
-                      ULARGE_INTEGER* n_read, ULARGE_INTEGER* n_written)
-{
-    imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-    HRESULT hr;
-    ULONG written;
-
-    if(s->pos + n.QuadPart >= s->size)
-        n.QuadPart = (s->pos < s->size ? s->size - s->pos : 0);
-
-    hr = IStream_Write(other, s->buffer + s->pos, n.QuadPart, &written);
-    s->pos += written;
-    if(n_read != NULL)
-        n_read->QuadPart = written;
-    if(n_written != NULL)
-        n_written->QuadPart = written;
-    return hr;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_Commit(IStream* self, DWORD flags)
-{
-    IMGVIEW_TRACE("imgview_stream_Commit: Stub.");
-    return S_OK;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_Revert(IStream* self)
-{
-    IMGVIEW_TRACE("imgview_stream_Revert: Stub.");
-    return S_OK;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_LockRegion(IStream* self, ULARGE_INTEGER offset,
-                          ULARGE_INTEGER n, DWORD type)
-{
-    IMGVIEW_TRACE("imgview_stream_LockRegion: Stub.");
-    return STG_E_INVALIDFUNCTION;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_UnlockRegion(IStream* self, ULARGE_INTEGER offset,
-                            ULARGE_INTEGER n, DWORD type)
-{
-    IMGVIEW_TRACE("imgview_stream_UnlockRegion: Stub.");
-    return S_OK;
-}
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_Stat(IStream* self, STATSTG* stat, DWORD flag)
-{
-    imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-
-    IMGVIEW_TRACE("imgview_stream_Stat: Stub.");
-
-    memset(stat, 0, sizeof(STATSTG));
-
-    stat->type = STGTY_STREAM;
-    stat->cbSize.QuadPart = s->size;
-    return S_OK;
-}
-
-/* Forward declaration */
-static imgview_stream_t* imgview_stream_create(const BYTE* buffer, ULONG size);
-
-static HRESULT STDMETHODCALLTYPE
-imgview_stream_Clone(IStream* self, IStream** other)
-{
-    imgview_stream_t* s = MC_STREAM_FROM_IFACE(self);
-    imgview_stream_t* copy;
-
-    IMGVIEW_TRACE("imgview_stream_Clone");
-
-    copy = imgview_stream_create(s->buffer, s->size);
-    if(MC_ERR(copy == NULL))
-        return STG_E_INSUFFICIENTMEMORY;
-
-    copy->pos = s->pos;
-    *other = &copy->stream;
-    return S_OK;
-}
-
-
-static IStreamVtbl imgview_stream_vtable = {
-    imgview_stream_QueryInterface,
-    imgview_stream_AddRef,
-    imgview_stream_Release,
-    imgview_stream_Read,
-    imgview_stream_Write,
-    imgview_stream_Seek,
-    imgview_stream_SetSize,
-    imgview_stream_CopyTo,
-    imgview_stream_Commit,
-    imgview_stream_Revert,
-    imgview_stream_LockRegion,
-    imgview_stream_UnlockRegion,
-    imgview_stream_Stat,
-    imgview_stream_Clone
-};
-
-
-static imgview_stream_t*
-imgview_stream_create(const BYTE* buffer, ULONG size)
-{
-    imgview_stream_t* s;
-
-    s = (imgview_stream_t*) malloc(sizeof(imgview_stream_t));
-    if(MC_ERR(s == NULL)) {
-        MC_TRACE("imgview_stream_create: malloc() failed.");
-        return NULL;
-    }
-
-    s->buffer = buffer;
-    s->pos = 0;
-    s->size = size;
-    s->refs = 1;
-    s->stream.lpVtbl = &imgview_stream_vtable;
-
-    return s;
-}
-
-
 /*********************
  *** Image Loading ***
  *********************/
@@ -307,65 +42,30 @@ imgview_load_image_from_resource(HINSTANCE instance, const TCHAR* name)
     static TCHAR* allowed_res_types[] = {
         RT_RCDATA, _T("PNG"), RT_BITMAP, RT_HTML
     };
-
     int i;
-    HRSRC res;
-    DWORD res_size;
-    HGLOBAL res_global;
-    void* res_data;
-    imgview_stream_t* stream;
+    IStream* stream;
     gdix_Image* img;
     gdix_Status status;
 
-    /* We rely on the fact that UnlockResource() and FreeResource() do nothing:
-     *  -- MSDN docs for LockResource() says no unlocking is needed.
-     *  -- MSDN docs for FreeResource() says it just returns FALSE on 32/64-bit
-     *     Windows.
-     *
-     * See also http://blogs.msdn.com/b/oldnewthing/archive/2011/03/07/10137456.aspx
-     *
-     * It may look a bit ugly, but it simplifies things a lot. Otherwise our
-     * IStream implementation would have to "own" the resource and free it in
-     * its destructor. That would complicate especially the IStream::Clone() as
-     * the image resource would have to be shared by multiple IStreams objects.
-     */
-
     for(i = 0; i < MC_ARRAY_SIZE(allowed_res_types); i++) {
-        res = FindResource(instance, name, allowed_res_types[i]);
-        if(res != NULL)
+        stream = memstream_create_from_resource(instance, allowed_res_types[i], name);
+        if(stream != NULL)
             break;
     }
-    if(MC_ERR(res == NULL)) {
-        MC_TRACE_ERR("imgview_load_image_from_resource: FindResource() failed");
-        return NULL;
-    }
-
-    res_size = SizeofResource(instance, res);
-    res_global = LoadResource(instance, res);
-    if(MC_ERR(res_global == NULL)) {
-        MC_TRACE_ERR("imgview_load_image_from_resource: LoadResource() failed");
-        return NULL;
-    }
-    res_data = LockResource(res_global);
-    if(MC_ERR(res_data == NULL)) {
-        MC_TRACE_ERR("imgview_load_image_from_resource: LockResource() failed");
-        return NULL;
-    }
-
-    stream = imgview_stream_create(res_data, res_size);
     if(MC_ERR(stream == NULL)) {
-        MC_TRACE("imgview_load_image_from_resource: imgview_stream_create() failed");
+        MC_TRACE_ERR("imgview_load_image_from_resource: "
+                     "memstream_create_from_resource() failed");
         return NULL;
     }
 
-    status = gdix_LoadImageFromStream(&stream->stream, &img);
+    status = gdix_LoadImageFromStream(stream, &img);
     if(MC_ERR(status != gdix_Ok)) {
         MC_TRACE("imgview_load_image_from_resource: "
                  "GdipLoadImageFromStream() failed [%lu]", status);
         img = NULL;
     }
 
-    IStream_Release(&stream->stream);
+    IStream_Release(stream);
     return img;
 }
 
@@ -390,9 +90,7 @@ imgview_load_image_from_file(const WCHAR* path)
  *** Control implementation ***
  ******************************/
 
-
 static const TCHAR imgview_wc[] = MC_WC_IMGVIEW;    /* Window class name */
-
 
 
 typedef struct imgview_tag imgview_t;
