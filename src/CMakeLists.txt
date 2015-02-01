@@ -6,7 +6,7 @@ file(GLOB MCTRL_SOURCES "*.c" "*.h" "*.rc" "mCtrl.def")
 
 add_library(mCtrl SHARED ${MCTRL_SOURCES})
 
-target_link_libraries(mCtrl gdi32 comctl32 uuid)
+target_link_libraries(mCtrl gdi32 comctl32 ole32 oleaut32 uuid)
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)
