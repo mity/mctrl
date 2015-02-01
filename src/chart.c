@@ -2553,6 +2553,7 @@ chart_printclient(chart_t* chart, HDC dc)
 
     chart_paint_ctx_init(&ctx, c, chart->font);
     chart_paint_with_ctx(chart, &ctx, &rect, TRUE);
+    chart_paint_ctx_fini(&ctx);
 }
 
 static void
