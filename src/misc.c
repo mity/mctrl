@@ -19,6 +19,7 @@
 #include "misc.h"
 #include "module.h"
 #include "theme.h"
+#include "xcom.h"
 
 
 /***************
@@ -698,6 +699,7 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
             mc_instance = instance;
             debug_init();
             module_init();
+            xcom_init();
 #ifndef DEBUG
             DisableThreadLibraryCalls(instance);
 #endif
@@ -705,6 +707,7 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
 
         case DLL_PROCESS_DETACH:
         {
+            xcom_fini();
             module_fini();
             debug_fini();
             MC_TRACE("DllMain(DLL_PROCESS_DETACH)");

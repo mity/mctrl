@@ -29,6 +29,7 @@
 
 #include "html.h"
 #include "theme.h"
+#include "xcom.h"
 
 #include <exdisp.h>    /* IWebBrowser2 */
 #include <exdispid.h>  /* DISPID_xxxx constants */
@@ -69,7 +70,6 @@ struct html_tag {
     HWND notify_win;
     WNDPROC ie_proc;
     DWORD style                 : 28;
-    DWORD ole_initialized       :  1;
     DWORD unicode_notifications :  1;
     DWORD can_back              :  1;
     DWORD can_forward           :  1;
@@ -1297,23 +1297,11 @@ html_create(html_t* html, CREATESTRUCT* cs)
     RECT rect;
     HRESULT hr;
 
-    /* Initialize OLE. It is here and not in html_init() because it has to
-     * be performed in the thread where OLE shall be used (i.e. where
-     * the message loop controlling the window is running). */
-    hr = OleInitialize(NULL);
-    if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_create: OleInitialize() failed [0x%lx]", hr);
-        return -1;
-    }
-
-    html->ole_initialized = 1;
-
     /* Create browser object */
-    hr = CoCreateInstance(&CLSID_WebBrowser, NULL, CLSCTX_INPROC,
-                          &IID_IOleObject, (void**)&html->browser_obj);
-    if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_create: CoCreateInstance(CLSID_WebBrowser) failed "
-                 "[0x%lx]", hr);
+    html->browser_obj = (IOleObject*) xcom_init_create(&CLSID_WebBrowser,
+                                    CLSCTX_INPROC, &IID_IOleObject);
+    if(MC_ERR(html->browser_obj == NULL)) {
+        MC_TRACE("html_create: xcom_init_create(CLSID_WebBrowser) failed.");
         return -1;
     }
 
@@ -1388,15 +1376,13 @@ html_destroy(html_t* html)
         IOleObject_Close(html->browser_obj, OLECLOSE_NOSAVE);
         IOleObject_Release(html->browser_obj);
         html->browser_obj = NULL;
+        xcom_uninit();
     }
 }
 
 static inline void
 html_ncdestroy(html_t* html)
 {
-    if(html->ole_initialized)
-        OleUninitialize();
-
     free(html);
 }
 

@@ -114,6 +114,85 @@
  * modules. (The @ref MC_WC_HTML control is a prominent example of such
  * limitation.)
  *
+ * Furthermore, some care is also needed if your application is multi-threaded
+ * and if it relies on any COM interface in any thread which may call into
+ * @c MCTRL.DLL. See @ref sec_com for mroe information about this.
+ *
+ *
+ * @section sec_com Compatibility with COM
+ *
+ * @note In case you you can not understand what this section is about, and
+ * you are sure your application does not use COM, then all you need to know
+ * is this: Everything is alright. Skip this section and ignore it. mCtrl will
+ * just work.
+ *
+ * Internally, implementation of some mCtrl features and modules is based on
+ * COM (Component Object Model). The COM uses the not so widely understood
+ * concept of thread apartments.
+ *
+ * Each thread which wants to use COM, needs first to initialize the COM
+ * subsystem with function @c CoInitialize() or @c CoInitializeEx() or any
+ * function wrapping it (e.g. @c OleInitialize()). The function (or a parameter
+ * passed to it) then determines the thread's apartment. Once set, the thread
+ * apartment then cannot be changed.
+ *
+ * This design may mean a problem when designing any DLL. The DLL can safely
+ * set COM apartment model for worker threads private to the DLL where the
+ * application has no chance to initialize it on its own. But in the usual
+ * case of an application thread which just calls arbitrary DLL function,
+ * calling @c CoInitialize() inside the DLL brings a risk: If both the DLL as
+ * well as the application want to use COM and they do not agree on common
+ * apartment model, the application will be subject of subtle and hard-to-debug
+ * bugs (the thread may live in other apartment then DLL or application thinks,
+ * the @c CoInitialize() may fail etc.)
+ *
+ * This section therefore describes how @c MCTRL.DLL initializes and mananges
+ * COM and we recommend two ways how to deal with COM in application linking
+ * against @c MCTRL.DLL.
+ *
+ * Actually, the rules are very simple:
+ *
+ * -# @c MCTRL.DLL implementation of any module or feature may or may not use
+ * COM as it sees fit. Even modules which do not yet do so today, may start to
+ * do so in any future version of mCtrl.
+ *
+ * -# @c MCTRL.DLL uses COM in a way which is compatible both with
+ * single-threaded apartments as well as multi-threaded apartments.
+ *
+ * -# The very 1st time, when @c MCTRL.DLL needs to use COM, it detects whether
+ * the calling thread has COM subsystem already initialized or not. The result
+ * of this test then determines whether @c MCTRL.DLL does all COM initialization
+ * on its own or if it leaves it on the application. I.e. if the test says the
+ * COM is (for the current thread) already initialized, it tells @c MCTRL.DLL
+ * to never ever attempt to initialize COM anymore, in any thread, for the
+ * lifetime of the process (or until @c MCTRL.DLL is unloaded) as @c MCTRL.DLL
+ * considers the application to be COM-aware. However if the test detects that
+ * COM in the given thread is not yet initialized, the @c MCTRL.DLL assumes
+ * he application does not use COM at all, and it shall initialize COM as it
+ * sees fit for its own purposes to deal with it.
+ *
+ * -# When @c MCTRL.DLL manages the COM initialization, application must not
+ * rely when it does so, and how it does so (i.e. what apartment @c MCTRL.DLL
+ * uses.) In other words, there should be no other COM usage but in @c MCTRL.DLL.
+ *
+ * Hence, any application which links with @c MCTRL.DLL, should strictly follow
+ * one of two use patterns as of COM initialization:
+ *
+ * -# @c MCTRL.DLL manages COM. Application must never perform COM initialization
+ * of any thread which may call into @c MCTRL.DLL. This is perfectly usable for
+ * applications which (on their own or through any 3rd party DLL) never use
+ * COM.
+ *
+ * -# The application manages COM. This is required for applications which may
+ * use COM directly on their own or through any 3rd party DLL from any thread
+ * which also may call any mCtrl function. In this case, the application is
+ * responsible to initialize COM for each thread prior calling any mCtrl
+ * function in the given thread. The application can initialize COM for
+ * single-threaded or multi-threaded apartment as it sees fit. (However note
+ * that threads performing user-interface, should not use multi-threaded
+ * apartments. But this is, of course, raison d'être of single-thread apartment
+ * and not limitation of mCtrl.)
+ *
  *
  * @section sec_dll_deps DLL Dependencies
  *
