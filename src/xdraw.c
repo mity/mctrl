@@ -18,6 +18,7 @@
 
 
 #include "xdraw.h"
+#include "xcom.h"
 #include "doublebuffer.h"
 
 #include <math.h>
@@ -397,12 +398,20 @@ struct dw_IDWriteTextLayout_tag {
  *************************/
 
 #include <d2d1.h>
+#include <wincodec.h>
 
 #ifdef MC_TOOLCHAIN_MINGW64
     /* In mingw-w64, the IID missing in libuuid.a. */
     static const GUID xdraw_IID_ID2D1Factory = {0x06152247,0x6f50,0x465a,{0x92,0x45,0x11,0x8b,0xfd,0x3b,0x60,0x07}};
     #define IID_ID2D1Factory xdraw_IID_ID2D1Factory
 #endif
+
+
+static const GUID xdraw_IID_IWICImagingFactory = { 0xec5ec8a9, 0xc395, 0x4314, { 0x9c,0x77, 0x54,0xd7,0xa9,0x35,0xff,0x70 }};
+static const GUID xdraw_CLSID_WICImagingFactory = { 0xcacaf262, 0x9370, 0x4615, { 0xa1,0x3b,0x9f,0x55,0x39,0xda,0x4c,0x0a }};
+#define IID_IWICImagingFactory xdraw_IID_IWICImagingFactory
+#define CLSID_WICImagingFactory xdraw_CLSID_WICImagingFactory
+
 
 static HMODULE d2d_dll = NULL;  /* D2D1.DLL */
 static ID2D1Factory* d2d_factory;
@@ -471,7 +480,7 @@ d2d_init(void)
         goto err_dw_CreateFactory;
     }
 
-    /* We ned locale name for creation of IDWriteTextFormat. This functions is
+    /* We need locale name for creation of IDWriteTextFormat. This functions is
      * available since Vista (which covers all systems with Direct2D and
      * DirectWrite). */
     fn_GetUserDefaultLocaleName = (int (WINAPI*)(WCHAR*, int))
@@ -558,6 +567,84 @@ d2d_canvas_alloc(ID2D1RenderTarget* target, BOOL is_hwnd_target)
     d2d_reset_transform(target);
 
     return c;
+}
+
+static IWICBitmapSource*
+d2d_create_wic_source(const WCHAR* path, IStream* stream)
+{
+    IWICImagingFactory* wic_factory;
+    IWICBitmapDecoder* wic_decoder;
+    IWICFormatConverter* wic_converter;
+    IWICBitmapFrameDecode* wic_source;
+    HRESULT hr;
+
+    wic_factory = (IWICImagingFactory*) xcom_init_create(
+            &CLSID_WICImagingFactory, CLSCTX_INPROC, &IID_IWICImagingFactory);
+    if(MC_ERR(wic_factory == NULL)) {
+        MC_TRACE("d2d_create_wic_converter: xcom_init_create() failed.");
+        goto err_xcom_init_create;
+    }
+
+    if(path != NULL) {
+        hr = IWICImagingFactory_CreateDecoderFromFilename(wic_factory, path,
+                NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wic_decoder);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("d2d_create_wic_converter: "
+                     "IWICImagingFactory::CreateDecoderFromFilename() failed. "
+                     "[0x%lx]", hr);
+            goto err_CreateDecoder;
+        }
+    } else {
+        hr = IWICImagingFactory_CreateDecoderFromStream(wic_factory, stream,
+                NULL, WICDecodeMetadataCacheOnLoad, &wic_decoder);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("d2d_create_wic_converter: "
+                     "IWICImagingFactory::CreateDecoderFromStream() failed. "
+                     "[0x%lx]", hr);
+            goto err_CreateDecoder;
+        }
+    }
+
+    hr = IWICBitmapDecoder_GetFrame(wic_decoder, 0, &wic_source);
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE("d2d_create_wic_converter: "
+                 "IWICBitmapDecoder::GetFrame() failed. [0x%lx]", hr);
+        goto err_GetFrame;
+    }
+
+    hr = IWICImagingFactory_CreateFormatConverter(wic_factory, &wic_converter);
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE("d2d_create_wic_converter: "
+                 "IWICImagingFactory::CreateFormatConverter() failed. "
+                 "[0x%lx]", hr);
+        goto err_CreateFormatConverter;
+    }
+
+    hr = IWICFormatConverter_Initialize(wic_converter,
+            (IWICBitmapSource*) wic_source, &GUID_WICPixelFormat32bppPBGRA,
+            WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE("d2d_create_wic_converter: "
+                 "IWICFormatConverter::Initialize() failed. [0x%lx]", hr);
+        goto err_Initialize;
+    }
+
+    IWICBitmapFrameDecode_Release(wic_source);
+    IWICBitmapDecoder_Release(wic_decoder);
+    IWICImagingFactory_Release(wic_factory);
+    return (IWICBitmapSource*) wic_converter;
+
+err_Initialize:
+    IWICFormatConverter_Release(wic_converter);
+err_CreateFormatConverter:
+    IWICBitmapFrameDecode_Release(wic_source);
+err_GetFrame:
+    IWICBitmapDecoder_Release(wic_decoder);
+err_CreateDecoder:
+    IWICImagingFactory_Release(wic_factory);
+    xcom_fini();
+err_xcom_init_create:
+    return NULL;
 }
 
 static ID2D1Geometry*
@@ -676,64 +763,71 @@ struct gdix_RectF_tag {
 };
 
 /* Graphics functions */
-static int(WINAPI* gdix_CreateFromHDC)(HDC, void**);
-static int(WINAPI* gdix_DeleteGraphics)(void*);
-static int(WINAPI* gdix_GraphicsClear)(void*, DWORD);
-static int(WINAPI* gdix_ResetWorldTransform)(void*);
-static int(WINAPI* gdix_RotateWorldTransform)(void*,float,int);
-static int(WINAPI* gdix_SetPixelOffsetMode)(void*, int);
-static int(WINAPI* gdix_SetSmoothingMode)(void*, int);
-static int(WINAPI* gdix_TranslateWorldTransform)(void*,float,float,int);
+static int (WINAPI* gdix_CreateFromHDC)(HDC, void**);
+static int (WINAPI* gdix_DeleteGraphics)(void*);
+static int (WINAPI* gdix_GraphicsClear)(void*, DWORD);
+static int (WINAPI* gdix_ResetWorldTransform)(void*);
+static int (WINAPI* gdix_RotateWorldTransform)(void*,float,int);
+static int (WINAPI* gdix_SetPixelOffsetMode)(void*, int);
+static int (WINAPI* gdix_SetSmoothingMode)(void*, int);
+static int (WINAPI* gdix_TranslateWorldTransform)(void*, float, float, int);
 
 /* Brush functions */
-static int(WINAPI* gdix_CreateSolidFill)(DWORD, void**);
-static int(WINAPI* gdix_DeleteBrush)(void*);
-static int(WINAPI* gdix_SetSolidFillColor)(void*, DWORD);
+static int (WINAPI* gdix_CreateSolidFill)(DWORD, void**);
+static int (WINAPI* gdix_DeleteBrush)(void*);
+static int (WINAPI* gdix_SetSolidFillColor)(void*, DWORD);
 
 /* Pen functions */
-static int(WINAPI* gdix_CreatePen1)(DWORD, float, int, void**);
-static int(WINAPI* gdix_DeletePen)(void*);
-static int(WINAPI* gdix_SetPenBrushFill)(void*, void*);
-static int(WINAPI* gdix_SetPenWidth)(void*, float);
+static int (WINAPI* gdix_CreatePen1)(DWORD, float, int, void**);
+static int (WINAPI* gdix_DeletePen)(void*);
+static int (WINAPI* gdix_SetPenBrushFill)(void*, void*);
+static int (WINAPI* gdix_SetPenWidth)(void*, float);
 
 /* Path functions */
-static int(WINAPI* gdix_CreatePath)(int, void**);
-static int(WINAPI* gdix_DeletePath)(void*);
-static int(WINAPI* gdix_ClosePathFigure)(void*);
-static int(WINAPI* gdix_StartPathFigure)(void*);
-static int(WINAPI* gdix_GetPathLastPoint)(void*, void*);
-static int(WINAPI* gdix_AddPathArc)(void*, float, float, float, float, float, float);
-static int(WINAPI* gdix_AddPathLine)(void*, float, float, float, float);
+static int (WINAPI* gdix_CreatePath)(int, void**);
+static int (WINAPI* gdix_DeletePath)(void*);
+static int (WINAPI* gdix_ClosePathFigure)(void*);
+static int (WINAPI* gdix_StartPathFigure)(void*);
+static int (WINAPI* gdix_GetPathLastPoint)(void*, void*);
+static int (WINAPI* gdix_AddPathArc)(void*, float, float, float, float, float, float);
+static int (WINAPI* gdix_AddPathLine)(void*, float, float, float, float);
 
 /* Font functions */
-static int(WINAPI* gdix_CreateFontFromLogfontW)(HDC,const LOGFONTW*,void**);
-static int(WINAPI* gdix_DeleteFont)(void*);
-static int(WINAPI* gdix_DeleteFontFamily)(void*);
-static int(WINAPI* gdix_GetCellAscent)(const void*, int, UINT16*);
-static int(WINAPI* gdix_GetCellDescent)(const void*, int, UINT16*);
-static int(WINAPI* gdix_GetEmHeight)(const void*, int, UINT16*);
-static int(WINAPI* gdix_GetFamily)(void*, void**);
-static int(WINAPI* gdix_GetFontSize)(void*, float*);
-static int(WINAPI* gdix_GetFontStyle)(void*, int*);
-static int(WINAPI* gdix_GetLineSpacing)(const void*, int, UINT16*);
+static int (WINAPI* gdix_CreateFontFromLogfontW)(HDC, const LOGFONTW*, void**);
+static int (WINAPI* gdix_DeleteFont)(void*);
+static int (WINAPI* gdix_DeleteFontFamily)(void*);
+static int (WINAPI* gdix_GetCellAscent)(const void*, int, UINT16*);
+static int (WINAPI* gdix_GetCellDescent)(const void*, int, UINT16*);
+static int (WINAPI* gdix_GetEmHeight)(const void*, int, UINT16*);
+static int (WINAPI* gdix_GetFamily)(void*, void**);
+static int (WINAPI* gdix_GetFontSize)(void*, float*);
+static int (WINAPI* gdix_GetFontStyle)(void*, int*);
+static int (WINAPI* gdix_GetLineSpacing)(const void*, int, UINT16*);
+
+/* Image functions */
+static int (WINAPI* gdix_LoadImageFromFile)(const WCHAR*, void**);
+static int (WINAPI* gdix_LoadImageFromStream)(IStream*, void**);
+static int (WINAPI* gdix_DisposeImage)(void*);
+static int (WINAPI* gdix_GetImageBounds)(void*, gdix_RectF*, int*);
 
 /* String format functions */
-static int(WINAPI* gdix_CreateStringFormat)(int, LANGID, void**);
-static int(WINAPI* gdix_DeleteStringFormat)(void*);
-static int(WINAPI* gdix_SetStringFormatAlign)(void*, int);
-static int(WINAPI* gdix_SetStringFormatFlags)(void*, int);
+static int (WINAPI* gdix_CreateStringFormat)(int, LANGID, void**);
+static int (WINAPI* gdix_DeleteStringFormat)(void*);
+static int (WINAPI* gdix_SetStringFormatAlign)(void*, int);
+static int (WINAPI* gdix_SetStringFormatFlags)(void*, int);
 
 /* Draw/fill functions */
-static int(WINAPI* gdix_DrawArc)(void*, void*, float, float, float, float, float, float);
-static int(WINAPI* gdix_DrawLine)(void*, void*, float, float, float, float);
-static int(WINAPI* gdix_DrawPie)(void*, void*, float, float, float, float, float, float);
-static int(WINAPI* gdix_DrawRectangle)(void*, void*, float, float, float, float);
-static int(WINAPI* gdix_DrawString)(void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, const void*);
-static int(WINAPI* gdix_FillEllipse)(void*, void*, float, float, float, float);
-static int(WINAPI* gdix_FillPath)(void*, void*, void*);
-static int(WINAPI* gdix_FillPie)(void*, void*, float, float, float, float, float, float);
-static int(WINAPI* gdix_FillRectangle)(void*, void*, float, float, float, float);
-static int(WINAPI* gdix_MeasureString)(void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, gdix_RectF*, int*, int*);
+static int (WINAPI* gdix_DrawArc)(void*, void*, float, float, float, float, float, float);
+static int (WINAPI* gdix_DrawImageRectRect)(void*, void*, float, float, float, float, float, float, float, float, int, const void*, void*, void*);
+static int (WINAPI* gdix_DrawLine)(void*, void*, float, float, float, float);
+static int (WINAPI* gdix_DrawPie)(void*, void*, float, float, float, float, float, float);
+static int (WINAPI* gdix_DrawRectangle)(void*, void*, float, float, float, float);
+static int (WINAPI* gdix_DrawString)(void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, const void*);
+static int (WINAPI* gdix_FillEllipse)(void*, void*, float, float, float, float);
+static int (WINAPI* gdix_FillPath)(void*, void*, void*);
+static int (WINAPI* gdix_FillPie)(void*, void*, float, float, float, float, float, float);
+static int (WINAPI* gdix_FillRectangle)(void*, void*, float, float, float, float);
+static int (WINAPI* gdix_MeasureString)(void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, gdix_RectF*, int*, int*);
 
 
 typedef struct gdix_StartupInput_tag gdix_StartupInput;
@@ -795,10 +889,10 @@ gdix_init(void)
     GPA(DeleteGraphics, (void*));
     GPA(GraphicsClear, (void*, DWORD));
     GPA(ResetWorldTransform, (void*));
-    GPA(RotateWorldTransform, (void*,float,int));
+    GPA(RotateWorldTransform, (void*, float, int));
     GPA(SetPixelOffsetMode, (void*, int));
     GPA(SetSmoothingMode, (void*, int));
-    GPA(TranslateWorldTransform, (void*,float,float,int));
+    GPA(TranslateWorldTransform, (void*, float, float, int));
 
     /* Brush functions */
     GPA(CreateSolidFill, (DWORD, void**));
@@ -832,6 +926,12 @@ gdix_init(void)
     GPA(GetFontStyle, (void*, int*));
     GPA(GetLineSpacing, (const void*, int, UINT16*));
 
+    /* Image functions */
+    GPA(LoadImageFromFile, (const WCHAR*, void**));
+    GPA(LoadImageFromStream, (IStream*, void**));
+    GPA(DisposeImage, (void*));
+    GPA(GetImageBounds, (void*, gdix_RectF*, int*));
+
     /* String format functions */
     GPA(CreateStringFormat, (int, LANGID, void**));
     GPA(DeleteStringFormat, (void*));
@@ -840,6 +940,7 @@ gdix_init(void)
 
     /* Draw/fill functions */
     GPA(DrawArc, (void*, void*, float, float, float, float, float, float));
+    GPA(DrawImageRectRect, (void*, void*, float, float, float, float, float, float, float, float, int, const void*, void*, void*));
     GPA(DrawLine, (void*, void*, float, float, float, float));
     GPA(DrawPie, (void*, void*, float, float, float, float, float, float));
     GPA(DrawRectangle, (void*, void*, float, float, float, float));
@@ -1506,6 +1607,101 @@ err_malloca:
     }
 }
 
+xdraw_image_t*
+xdraw_image_load_from_file(const TCHAR* path)
+{
+#ifndef UNICODE
+    #error Non-unicode support not implemented.
+#endif
+
+    if(d2d_dll != NULL) {
+        IWICBitmapSource* source;
+
+        source = d2d_create_wic_source(path, NULL);
+        if(MC_ERR(source == NULL)) {
+            MC_TRACE("xdraw_image_load_from_file: "
+                     "d2d_create_wic_source() failed.");
+            return NULL;
+        }
+
+        return (xdraw_image_t*) source;
+    } else {
+        void* img;
+        int status;
+
+        status = gdix_LoadImageFromFile(path, &img);
+        if(MC_ERR(status != 0)) {
+            MC_TRACE("xdraw_image_load_from_file: "
+                     "GdipLoadImageFromFile() failed. [%d]", status);
+            return NULL;
+        }
+
+        return (xdraw_image_t*) img;
+    }
+}
+
+xdraw_image_t*
+xdraw_image_load_from_stream(IStream* stream)
+{
+    if(d2d_dll != NULL) {
+        IWICBitmapSource* source;
+
+        source = d2d_create_wic_source(NULL, stream);
+        if(MC_ERR(source == NULL)) {
+            MC_TRACE("xdraw_image_load_from_stream: "
+                     "d2d_create_wic_source() failed.");
+            return NULL;
+        }
+
+        return (xdraw_image_t*) source;
+    } else {
+        void* img;
+        int status;
+
+        status = gdix_LoadImageFromStream(stream, &img);
+        if(MC_ERR(status != 0)) {
+            MC_TRACE("xdraw_image_load_from_file: "
+                     "GdipLoadImageFromFile() failed. [%d]", status);
+            return NULL;
+        }
+
+        return (xdraw_image_t*) img;
+    }
+}
+
+void
+xdraw_image_destroy(xdraw_image_t* image)
+{
+    if(d2d_dll != NULL) {
+        IWICBitmapSource* source = (IWICBitmapSource*) image;
+        IWICBitmapSource_Release(source);
+        xcom_fini();
+    } else {
+        gdix_DisposeImage((void*) image);
+    }
+}
+
+void
+xdraw_image_get_size(xdraw_image_t* image, float* w, float* h)
+{
+    if(d2d_dll != NULL) {
+        IWICBitmapSource* source = (IWICBitmapSource*) image;
+        UINT iw, ih;
+
+        IWICBitmapSource_GetSize(source, &iw, &ih);
+        *w = iw;
+        *h = ih;
+    } else {
+        gdix_RectF bounds;
+        int unit;
+
+        gdix_GetImageBounds((void*) image, &bounds, &unit);
+        MC_ASSERT(unit == 2/*UnitPixel*/);
+        *w = bounds.w;
+        *h = bounds.h;
+    }
+}
+
 xdraw_path_t*
 xdraw_path_create(xdraw_canvas_t* canvas)
 {
@@ -1677,6 +1873,35 @@ xdraw_draw_arc(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
         gdix_SetPenWidth(c->pen, stroke_width);
         gdix_DrawArc(c->graphics, c->pen, circle->x - circle->r,
                      circle->y - circle->r, d, d, base_angle, sweep_angle);
+    }
+}
+
+void
+xdraw_draw_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
+                 const xdraw_rect_t* dst, const xdraw_rect_t* src)
+{
+    if(d2d_dll != NULL) {
+        IWICBitmapSource* source = (IWICBitmapSource*) image;
+        d2d_canvas_t* c = (d2d_canvas_t*) canvas;
+        ID2D1Bitmap* b;
+        HRESULT hr;
+
+        hr = ID2D1RenderTarget_CreateBitmapFromWicBitmap(c->target, source, NULL, &b);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("xdraw_draw_image: "
+                     "ID2D1RenderTarget::CreateBitmapFromWicBitmap() failed. "
+                     "[0x%lx]", hr);
+            return;
+        }
+        ID2D1RenderTarget_DrawBitmap(c->target, b, (D2D1_RECT_F*) dst, 1.0f,
+                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, (D2D1_RECT_F*) src);
+        ID2D1Bitmap_Release(b);
+    } else {
+        gdix_canvas_t* c = (gdix_canvas_t*) canvas;
+        gdix_DrawImageRectRect(c->graphics, (void*) image,
+                dst->x0, dst->y0, dst->x1 - dst->x0, dst->y1 - dst->y0,
+                src->x0, src->y0, src->x1 - src->x0, src->y1 - src->y0,
+                2/*UnitPixel*/, NULL, NULL, NULL);
     }
 }
 

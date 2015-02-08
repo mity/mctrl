@@ -81,6 +81,7 @@ typedef DWORD xdraw_color_t;
 typedef struct xdraw_canvas_tag xdraw_canvas_t;
 typedef struct xdraw_brush_tag xdraw_brush_t;
 typedef struct xdraw_font_tag xdraw_font_t;
+typedef struct xdraw_image_tag xdraw_image_t;
 typedef struct xdraw_path_tag xdraw_path_t;
 typedef struct xdraw_path_sink_tag xdraw_path_sink_t;
 
@@ -206,10 +207,11 @@ void xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metr
  ***  Image Management  ***
  **************************/
 
-// TODO
+xdraw_image_t* xdraw_image_load_from_file(const TCHAR* path);
+xdraw_image_t* xdraw_image_load_from_stream(IStream* stream);
+void xdraw_image_destroy(xdraw_image_t* image);
 
- // See https://msdn.microsoft.com/en-us/library/windows/desktop/dd756685%28v=vs.85%29.aspx (from resource)
- // and https://msdn.microsoft.com/en-us/library/windows/desktop/dd756686%28v=vs.85%29.aspx (from file)
+void xdraw_image_get_size(xdraw_image_t* image, float* w, float* h);
 
 
 /**********************************
@@ -221,6 +223,8 @@ void xdraw_clear(xdraw_canvas_t* canvas, xdraw_color_t color);
 void xdraw_draw_arc(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                     const xdraw_circle_t* circle, float base_angle,
                     float sweep_angle, float stroke_width);
+void xdraw_draw_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
+                      const xdraw_rect_t* dst, const xdraw_rect_t* src);
 void xdraw_draw_line(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                      const xdraw_line_t* line, float stroke_width);
 void xdraw_draw_pie(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
