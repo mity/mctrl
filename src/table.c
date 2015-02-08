@@ -265,13 +265,15 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
     if(table->cols != NULL  &&  cols != NULL)
         memcpy(&cols[0], &table->cols[0], col_pos * sizeof(table_cell_t));
     if(col_delta >= 0) {
-        memset(&cols[col_pos], 0, col_delta * sizeof(table_cell_t));
+        if(cols != NULL)
+            memset(&cols[col_pos], 0, col_delta * sizeof(table_cell_t));
         if(table->cols != NULL) {
             memcpy(&cols[col_pos + col_delta], &table->cols[col_pos],
                    (table->col_count - col_pos) * sizeof(table_cell_t));
         }
     } else {
         WORD col;
+        MC_ASSERT(table->cols != NULL);  /* implies from col_delta < 0 */
         for(col = col_pos; col < col_pos - col_delta; col++)
             table_cell_free(&table->cols[col]);
         if(cols != NULL) {
@@ -284,13 +286,15 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
     if(table->rows != NULL  &&  rows != NULL)
         memcpy(&rows[0], &table->rows[0], row_pos * sizeof(table_cell_t));
     if(row_delta >= 0) {
-        memset(&rows[row_pos], 0, row_delta * sizeof(table_cell_t));
+        if(rows != NULL)
+            memset(&rows[row_pos], 0, row_delta * sizeof(table_cell_t));
         if(table->rows != NULL) {
             memcpy(&rows[row_pos + row_delta], &table->rows[row_pos],
                    (table->row_count - row_pos) * sizeof(table_cell_t));
         }
     } else {
         WORD row;
+        MC_ASSERT(table->rows != NULL);  /* implies from row_delta < 0 */
         for(row = row_pos; row < row_pos - row_delta; row++)
             table_cell_free(&table->rows[row]);
         if(rows != NULL) {
