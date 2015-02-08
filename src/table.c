@@ -97,9 +97,13 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
         }
         cols = cells + (col_count * row_count);
         rows = cols + col_count;
-    } else {
+    }
+    if(col_count == 0) {
         cells = NULL;
         cols = NULL;
+    }
+    if(row_count == 0) {
+        cells = NULL;
         rows = NULL;
     }
 
@@ -208,75 +212,91 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
 #undef REGSET
 
     /* Copy cells to be reused */
-    for(i = 0; i < copy_count; i++) {
-        MC_ASSERT(copy_src[i].col1-copy_src[i].col0 == copy_dst[i].col1-copy_dst[i].col0);
-        MC_ASSERT(copy_src[i].row1-copy_src[i].row0 == copy_dst[i].row1-copy_dst[i].row0);
+    if(table->cells != NULL  &&  cells != NULL) {
+        for(i = 0; i < copy_count; i++) {
+            MC_ASSERT(copy_src[i].col1-copy_src[i].col0 == copy_dst[i].col1-copy_dst[i].col0);
+            MC_ASSERT(copy_src[i].row1-copy_src[i].row0 == copy_dst[i].row1-copy_dst[i].row0);
 
-        if(col_delta == 0) {
-            memcpy(&cells[copy_dst[i].row0 * col_count],
-                   &table->cells[copy_src[i].row0 * col_count],
-                   (copy_src[i].row1-copy_src[i].row0) * (copy_src[i].col1-copy_src[i].col0) * sizeof(table_cell_t));
-        } else {
-            WORD row_src, row_dst;
-            for(row_src = copy_src[i].row0, row_dst = copy_dst[i].row0;
-                        row_src < copy_src[i].row1; row_src++, row_dst++) {
-                memcpy(&cells[row_dst * col_count + copy_dst[i].col0],
-                       &table->cells[row_src * table->col_count + copy_src[i].col0],
-                       (copy_src[i].col1-copy_src[i].col0) * sizeof(table_cell_t));
+            if(col_delta == 0) {
+                memcpy(&cells[copy_dst[i].row0 * col_count],
+                       &table->cells[copy_src[i].row0 * col_count],
+                       (copy_src[i].row1-copy_src[i].row0) * (copy_src[i].col1-copy_src[i].col0) * sizeof(table_cell_t));
+            } else {
+                WORD row_src, row_dst;
+                for(row_src = copy_src[i].row0, row_dst = copy_dst[i].row0;
+                            row_src < copy_src[i].row1; row_src++, row_dst++) {
+                    memcpy(&cells[row_dst * col_count + copy_dst[i].col0],
+                           &table->cells[row_src * table->col_count + copy_src[i].col0],
+                           (copy_src[i].col1-copy_src[i].col0) * sizeof(table_cell_t));
+                }
             }
         }
     }
 
     /* Init new cells in the new buffer */
-    for(i = 0; i < init_count; i++) {
-        if(col_delta == 0) {
-            memset(&cells[col_count * init_dst[i].row0], 0,
-                   col_count * (init_dst[i].row1-init_dst[i].row0) * sizeof(table_cell_t));
-        } else {
-            WORD row;
-            for(row = init_dst[i].row0; row < init_dst[i].row1; row++) {
-                memset(&cells[row * col_count + init_dst[i].col0], 0,
-                       (init_dst[i].col1-init_dst[i].col0) * sizeof(table_cell_t));
+    if(cells != NULL) {
+        for(i = 0; i < init_count; i++) {
+            if(col_delta == 0) {
+                memset(&cells[col_count * init_dst[i].row0], 0,
+                       col_count * (init_dst[i].row1-init_dst[i].row0) * sizeof(table_cell_t));
+            } else {
+                WORD row;
+                for(row = init_dst[i].row0; row < init_dst[i].row1; row++) {
+                    memset(&cells[row * col_count + init_dst[i].col0], 0,
+                           (init_dst[i].col1-init_dst[i].col0) * sizeof(table_cell_t));
+                }
             }
         }
     }
 
     /* Free bogus cells in the old buffer */
-    for(i = 0; i < free_count; i++) {
-        WORD col, row;
-        for(row = free_src[i].row0; row < free_src[i].row1; row++) {
-            for(col = free_src[i].col0; col < free_src[i].col1; col++) {
-                table_cell_free(&table->cells[row * table->col_count + col]);
+    if(table->cells != NULL) {
+        for(i = 0; i < free_count; i++) {
+            WORD col, row;
+            for(row = free_src[i].row0; row < free_src[i].row1; row++) {
+                for(col = free_src[i].col0; col < free_src[i].col1; col++) {
+                    table_cell_free(&table->cells[row * table->col_count + col]);
+                }
             }
         }
     }
 
     /* Handle column headers */
-    memcpy(&cols[0], &table->cols[0], col_pos * sizeof(table_cell_t));
+    if(table->cols != NULL  &&  cols != NULL)
+        memcpy(&cols[0], &table->cols[0], col_pos * sizeof(table_cell_t));
     if(col_delta >= 0) {
         memset(&cols[col_pos], 0, col_delta * sizeof(table_cell_t));
-        memcpy(&cols[col_pos + col_delta], &table->cols[col_pos],
-               (table->col_count - col_pos) * sizeof(table_cell_t));
+        if(table->cols != NULL) {
+            memcpy(&cols[col_pos + col_delta], &table->cols[col_pos],
+                   (table->col_count - col_pos) * sizeof(table_cell_t));
+        }
     } else {
         WORD col;
         for(col = col_pos; col < col_pos - col_delta; col++)
-            table_cell_free(&cols[col]);
-        memcpy(&cols[col_pos], &table->cols[col_pos - col_delta],
-               (col_count - col_pos) * sizeof(table_cell_t));
+            table_cell_free(&table->cols[col]);
+        if(cols != NULL) {
+            memcpy(&cols[col_pos], &table->cols[col_pos - col_delta],
+                   (col_count - col_pos) * sizeof(table_cell_t));
+        }
     }
 
     /* Handle row headers */
-    memcpy(&rows[0], &table->rows[0], row_pos * sizeof(table_cell_t));
+    if(table->rows != NULL  &&  rows != NULL)
+        memcpy(&rows[0], &table->rows[0], row_pos * sizeof(table_cell_t));
     if(row_delta >= 0) {
         memset(&rows[row_pos], 0, row_delta * sizeof(table_cell_t));
-        memcpy(&rows[row_pos + row_delta], &table->rows[row_pos],
-               (table->row_count - row_pos) * sizeof(table_cell_t));
+        if(table->rows != NULL) {
+            memcpy(&rows[row_pos + row_delta], &table->rows[row_pos],
+                   (table->row_count - row_pos) * sizeof(table_cell_t));
+        }
     } else {
         WORD row;
         for(row = row_pos; row < row_pos - row_delta; row++)
-            table_cell_free(&rows[row]);
-        memcpy(&rows[row_pos], &table->rows[row_pos - row_delta],
-               (row_count - row_pos) * sizeof(table_cell_t));
+            table_cell_free(&table->rows[row]);
+        if(rows != NULL) {
+            memcpy(&rows[row_pos], &table->rows[row_pos - row_delta],
+                   (row_count - row_pos) * sizeof(table_cell_t));
+        }
     }
 
     /* Install the new buffer */
