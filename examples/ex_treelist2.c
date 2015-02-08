@@ -246,7 +246,6 @@ InsertChildren(MC_HTREELISTITEM hItem, HKEY hKey)
         DWORD dwDataLen;
         MC_HTREELISTITEM hChildItem;
 
-        dwDataLen = 260;
         dwDataLen = 512;
         status = RegEnumValue(hKey, dwIndex, pszBuffer, &dwBufferLen, NULL,
                               &dwType, data, &dwDataLen);
