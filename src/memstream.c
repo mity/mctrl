@@ -93,7 +93,7 @@ memstream_Read(IStream* self, void* buf, ULONG n, ULONG* n_read)
 
     MEMSTREAM_TRACE("memstream_Read(%lu)", n);
 
-    if(MC_ERR(s->pos < 0  ||  s->pos >= s->size)) {
+    if(MC_ERR(s->pos >= s->size)) {
         n = 0;
         if(n_read != NULL)
             *n_read = 0;
