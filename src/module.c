@@ -175,7 +175,7 @@ DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 static module_t* mod_html_deps[] = { &mod_mc, &mod_theme, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 
-static module_t* mod_imgview_deps[] = { &mod_mc, &mod_gdix, &mod_imgview };
+static module_t* mod_imgview_deps[] = { &mod_mc, &mod_xdraw, &mod_imgview };
 DEFINE_PUBLIC_IFACE(imgview, ImgView, mod_imgview_deps)
 
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_theme, &mod_mditab };

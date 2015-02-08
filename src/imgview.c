@@ -17,9 +17,9 @@
  */
 
 #include "imgview.h"
-#include "gdix.h"
 #include "memstream.h"
 #include "theme.h"
+#include "xdraw.h"
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -32,64 +32,6 @@
 #endif
 
 
-/*********************
- *** Image Loading ***
- *********************/
-
-static gdix_Image*
-imgview_load_image_from_resource(HINSTANCE instance, const TCHAR* name)
-{
-    static TCHAR* allowed_res_types[] = {
-        RT_RCDATA, _T("PNG"), RT_BITMAP, RT_HTML
-    };
-    int i;
-    IStream* stream;
-    gdix_Image* img;
-    gdix_Status status;
-
-    for(i = 0; i < MC_ARRAY_SIZE(allowed_res_types); i++) {
-        stream = memstream_create_from_resource(instance, allowed_res_types[i], name);
-        if(stream != NULL)
-            break;
-    }
-    if(MC_ERR(stream == NULL)) {
-        MC_TRACE_ERR("imgview_load_image_from_resource: "
-                     "memstream_create_from_resource() failed");
-        return NULL;
-    }
-
-    status = gdix_LoadImageFromStream(stream, &img);
-    if(MC_ERR(status != gdix_Ok)) {
-        MC_TRACE("imgview_load_image_from_resource: "
-                 "GdipLoadImageFromStream() failed [%lu]", status);
-        img = NULL;
-    }
-
-    IStream_Release(stream);
-    return img;
-}
-
-static gdix_Image*
-imgview_load_image_from_file(const WCHAR* path)
-{
-    gdix_Image* img;
-    gdix_Status status;
-
-    status = gdix_LoadImageFromFile(path, &img);
-    if(MC_ERR(status != gdix_Ok)) {
-        MC_TRACE("imgview_load_image_from_file: "
-                 "GdipLoadImageFromFile() failed [%lu]", status);
-        img = NULL;
-    }
-
-    return img;
-}
-
-
-/******************************
- *** Control implementation ***
- ******************************/
-
 static const TCHAR imgview_wc[] = MC_WC_IMGVIEW;    /* Window class name */
 
 
@@ -97,77 +39,115 @@ typedef struct imgview_tag imgview_t;
 struct imgview_tag {
     HWND win;
     HWND notify_win;
-    gdix_Image* image;
+    xdraw_canvas_t* canvas;
+    xdraw_image_t* image;
     DWORD style       : 16;
     DWORD no_redraw   : 1;
 };
 
 
-static void
-imgview_paint(imgview_t* iv, HDC dc, RECT* dirty, BOOL erase)
+static BOOL
+imgview_paint_to_canvas(imgview_t* iv, xdraw_canvas_t* canvas,
+                        RECT* dirty, BOOL erase)
 {
-    gdix_Graphics* gfx;
-    gdix_Status status;
-    gdix_RectF src, dst;
-    gdix_Unit unit;
-    RECT client;
+    xdraw_canvas_begin_paint(canvas);
 
     if(erase) {
+#if 0
+        // TODO
         if(iv->style & MC_IVS_TRANSPARENT)
             mcDrawThemeParentBackground(iv->win, dc, dirty);
         else
-            FillRect(dc, dirty, GetSysColorBrush(COLOR_WINDOW));
+#endif
+            xdraw_clear(canvas, XDRAW_COLORREF(GetSysColor(COLOR_WINDOW)));
     }
 
-    if(iv->image == NULL)
-        return;
+    if(iv->image != NULL) {
+        RECT client;
+        xdraw_rect_t src;
+        xdraw_rect_t dst;
 
-    GetClientRect(iv->win, &client);
+        GetClientRect(iv->win, &client);
 
-    status = gdix_CreateFromHDC(dc, &gfx);
-    if(MC_ERR(status != gdix_Ok)) {
-        MC_TRACE("imgview_paint: gdix_CreateFromHDC() failed [%ld]", status);
-        goto err_CreateFromHDC;
-    }
+        src.x0 = 0.0f;
+        src.y0 = 0.0f;
+        xdraw_image_get_size(iv->image, &src.x1, &src.y1);
 
-    gdix_GetImageBounds(iv->image, &src, &unit);
-    if(iv->style & MC_IVS_REALSIZECONTROL) {
-        dst.x = 0;
-        dst.y = 0;
-        dst.w = client.right;
-        dst.h = client.bottom;
-    } else if(iv->style & MC_IVS_REALSIZEIMAGE) {
-        dst.x = (client.right - src.w) / 2.0f;
-        dst.y = (client.bottom - src.h) / 2.0f;
-        dst.w = src.w;
-        dst.h = src.h;
-    } else {
-        gdix_Real ratio_w = client.right / src.w;
-        gdix_Real ratio_h = client.bottom / src.h;
-        if(ratio_w >= ratio_h) {
-            dst.w = src.w * ratio_h;
-            dst.h = client.bottom;
-            dst.x = (client.right - dst.w) / 2.0f;
-            dst.y = 0;
+        if(iv->style & MC_IVS_REALSIZECONTROL) {
+            dst.x0 = 0.0f;
+            dst.y0 = 0.0f;
+            dst.x1 = client.right;
+            dst.y1 = client.bottom;
+        } else if(iv->style & MC_IVS_REALSIZEIMAGE) {
+            dst.x0 = (client.right - src.x1) / 2.0f;
+            dst.y0 = (client.bottom - src.y1) / 2.0f;
+            dst.x1 = dst.x0 + src.x1;
+            dst.y1 = dst.y0 + src.y1;
         } else {
-            dst.w = client.right;
-            dst.h = src.h * ratio_w;
-            dst.x = 0;
-            dst.y = (client.bottom - dst.h) / 2.0f;
+            float ratio_w = client.right / (src.x1 - src.x0);
+            float ratio_h = client.bottom / (src.y1 - src.y0);
+            if(ratio_w >= ratio_h) {
+                float w = (src.x1 - src.x0) * ratio_h;
+                dst.x0 = (client.right - w) / 2.0f;
+                dst.y0 = 0.0f;
+                dst.x1 = dst.x0 + w;
+                dst.y1 = client.bottom;
+            } else {
+                float h = (src.y1 - src.y0) * ratio_w;
+                dst.x0 = 0.0f;
+                dst.y0 = (client.bottom - h) / 2.0f;
+                dst.x1 = client.right;
+                dst.y1 = dst.y0 + h;
+            }
         }
+
+        xdraw_draw_image(canvas, iv->image, &dst, &src);
     }
 
-    status = gdix_DrawImageRectRect(gfx, iv->image, dst.x, dst.y, dst.w, dst.h,
-                src.x, src.y, src.w, src.h, unit, NULL, NULL, NULL);
-    if(MC_ERR(status != gdix_Ok)) {
-        MC_TRACE("imgview_paint: gdix_DrawImage() failed [%ld]", status);
-        goto err_DrawImage;
+    return xdraw_canvas_end_paint(canvas);
+}
+
+static void
+imgview_paint(imgview_t* iv)
+{
+    PAINTSTRUCT ps;
+    xdraw_canvas_t* canvas;
+
+    BeginPaint(iv->win, &ps);
+    if(iv->no_redraw)
+        goto no_paint;
+
+    canvas = iv->canvas;
+    if(canvas == NULL) {
+        canvas = xdraw_canvas_create_with_paintstruct(iv->win, &ps, FALSE);
+        if(MC_ERR(canvas == NULL))
+            goto no_paint;
     }
 
-err_DrawImage:
-    gdix_DeleteGraphics(gfx);
-err_CreateFromHDC:
-    /* noop */;
+    if(imgview_paint_to_canvas(iv, canvas, &ps.rcPaint, ps.fErase)) {
+        /* We are allowed to cache the context for reuse. */
+        iv->canvas = canvas;
+    } else {
+        xdraw_canvas_destroy(canvas);
+        iv->canvas = NULL;
+    }
+
+no_paint:
+    EndPaint(iv->win, &ps);
+}
+
+static void
+imgview_printclient(imgview_t* iv, HDC dc)
+{
+    RECT rect;
+    xdraw_canvas_t* canvas;
+
+    GetClientRect(iv->win, &rect);
+    canvas = xdraw_canvas_create_with_dc(dc, &rect);
+    if(MC_ERR(canvas == NULL))
+        return;
+    imgview_paint_to_canvas(iv, canvas, &rect, TRUE);
+    xdraw_canvas_destroy(canvas);
 }
 
 static void
@@ -179,15 +159,20 @@ imgview_style_changed(imgview_t* iv, STYLESTRUCT* ss)
 }
 
 static int
-imgview_load_resource(imgview_t* iv, HINSTANCE instance, void* res_name, BOOL unicode)
+imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, BOOL unicode)
 {
-    gdix_Image* image;
+    static TCHAR* allowed_res_types[] = {
+        RT_RCDATA, _T("PNG"), RT_BITMAP, RT_HTML
+    };
+    xdraw_image_t* image = NULL;
 
     if(res_name != NULL) {
+        IStream* stream = NULL;
+        int i;
         TCHAR* tmp;
 
         if(unicode == MC_IS_UNICODE) {
-            tmp = res_name;
+            tmp = (TCHAR*) res_name;
         } else {
             tmp = mc_str(res_name, (unicode ? MC_STRW : MC_STRA), MC_STRT);
             if(MC_ERR(tmp == NULL)) {
@@ -196,19 +181,30 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, void* res_name, BOOL un
             }
         }
 
-        image = imgview_load_image_from_resource(instance, res_name);
+        for(i = 0; i < MC_ARRAY_SIZE(allowed_res_types); i++) {
+            stream = memstream_create_from_resource(instance, allowed_res_types[i], tmp);
+            if(stream != NULL)
+                break;
+        }
         if(tmp != res_name)
             free(tmp);
+        if(MC_ERR(stream == NULL)) {
+             MC_TRACE("imgview_load_resource: "
+                      "memstream_create_from_resource() failed.");
+             return -1;
+        }
+
+        image = xdraw_image_load_from_stream(stream);
+        IStream_Release(stream);
         if(MC_ERR(image == NULL)) {
-            MC_TRACE("imgview_load_resource: imgview_load_image_from_resource() failed");
+            MC_TRACE("imgview_load_resource: "
+                     "xdraw_image_load_from_stream() failed.");
             return -1;
         }
-    } else {
-        image = NULL;
     }
 
-    if(iv->image)
-        gdix_DisposeImage(iv->image);
+    if(iv->image != NULL)
+        xdraw_image_destroy(iv->image);
     iv->image = image;
 
     return 0;
@@ -217,34 +213,34 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, void* res_name, BOOL un
 static int
 imgview_load_file(imgview_t* iv, void* path, BOOL unicode)
 {
-    gdix_Image* image;
+    xdraw_image_t* image;
 
     if(path != NULL) {
         WCHAR* tmp;
 
-        if(unicode) {
+        if(unicode == MC_IS_UNICODE) {
             tmp = path;
         } else {
-            tmp = mc_str(path, MC_STRA, MC_STRW);
+            tmp = mc_str(path, MC_STRA, MC_STRT);
             if(MC_ERR(tmp == NULL)) {
                 MC_TRACE("imgview_load_file: mc_str() failed.");
                 return -1;
             }
         }
 
-        image = imgview_load_image_from_file(tmp);
+        image = xdraw_image_load_from_file(tmp);
         if(tmp != path)
             free(tmp);
         if(MC_ERR(image == NULL)) {
-            MC_TRACE("imgview_load_file: imgview_load_image_from_file() failed");
+            MC_TRACE("imgview_load_file: xdraw_image_load_from_file() failed");
             return -1;
         }
     } else {
         image = NULL;
     }
 
-    if(iv->image)
-        gdix_DisposeImage(iv->image);
+    if(iv->image != NULL)
+        xdraw_image_destroy(iv->image);
     iv->image = image;
 
     return 0;
@@ -271,8 +267,7 @@ imgview_nccreate(HWND win, CREATESTRUCT* cs)
         if(cs->lpszName != NULL  &&  cs->lpszName[0] == 0xffff)
             cs->lpszName = MAKEINTRESOURCE(cs->lpszName[1]);
 #endif
-
-        iv->image = imgview_load_image_from_resource(cs->hInstance, cs->lpszName);
+        imgview_load_resource(iv, cs->hInstance, cs->lpszName, MC_IS_UNICODE);
 
         /* Do not propagate cs->lpszName into WM_CREATE and WM_SETTEXT */
         cs->lpszName = NULL;
@@ -284,8 +279,10 @@ imgview_nccreate(HWND win, CREATESTRUCT* cs)
 static void
 imgview_ncdestroy(imgview_t* iv)
 {
-    if(iv->image)
-        gdix_DisposeImage(iv->image);
+    if(iv->image != NULL)
+        xdraw_image_destroy(iv->image);
+    if(iv->canvas != NULL)
+        xdraw_canvas_destroy(iv->canvas);
     free(iv);
 }
 
@@ -296,22 +293,20 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            BeginPaint(win, &ps);
-            if(!iv->no_redraw)
-                imgview_paint(iv, ps.hdc, &ps.rcPaint, ps.fErase);
-            EndPaint(win, &ps);
+            imgview_paint(iv);
             return 0;
-        }
 
         case WM_PRINTCLIENT:
-        {
-            RECT rect;
-            GetClientRect(win, &rect);
-            imgview_paint(iv, (HDC) wp, &rect, TRUE);
+            imgview_printclient(iv, (HDC) wp);
             return 0;
-        }
+
+        case WM_DISPLAYCHANGE:
+            if(iv->canvas != NULL) {
+                xdraw_canvas_destroy(iv->canvas);
+                iv->canvas = NULL;
+            }
+            InvalidateRect(win, NULL, FALSE);
+            break;
 
         case WM_ERASEBKGND:
             /* Keep it on WM_PAINT */
