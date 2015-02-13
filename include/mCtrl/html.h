@@ -265,7 +265,7 @@ void MCTRL_API mcHtml_Terminate(void);
 
 /*PSIPHON*/
 /**
-* @brief Calls script in HTML page, passing optional arguments, returning optional result.
+* @brief Calls script in HTML page, passing optional arguments, returning optional result (Unicode variant).
 * @param[in] wParam (@c MC_HMCALLSCRIPTFN) Pointer to structure containing function name, 
 *   arguments to function, etc. @sa MC_HMCALLSCRIPTFN
 * @param[out] lParam String buffer to receive result of function. Optional; may be NULL.
@@ -273,6 +273,15 @@ void MCTRL_API mcHtml_Terminate(void);
 *   errors (like @c ERROR_INSUFFICIENT_BUFFER).
 */
 #define MC_HM_CALLSCRIPTFNW   (MC_HM_FIRST + 16)
+
+/**
+* @brief Calls script in HTML page, passing optional arguments, returning optional result (ANSI variant).
+* @param[in] wParam (@c MC_HMCALLSCRIPTFN) Pointer to structure containing function name,
+*   arguments to function, etc. @sa MC_HMCALLSCRIPTFN
+* @param[out] lParam String buffer to receive result of function. Optional; may be NULL.
+* @return (@c int) @c 0 if successful, @c -1 for generic error, other values for specific
+*   errors (like @c ERROR_INSUFFICIENT_BUFFER).
+*/
 #define MC_HM_CALLSCRIPTFNA   (MC_HM_FIRST + 17)
 /*/PSIPHON*/
 
