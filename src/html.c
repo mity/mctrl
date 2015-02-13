@@ -1315,7 +1315,7 @@ BOOL unicode)
     }
 
     /* We only handle BSTR results. */
-    if (V_VT(&result) == VT_BSTR && argStruct->iResultBufCharCount > 0) {
+    if (V_VT(&result) == VT_BSTR && argStruct->iResultBufCharCount > 0 && vResultBuf != NULL) {
         if (SysStringLen(V_BSTR(&result)) >= argStruct->iResultBufCharCount) {
             MC_TRACE("html_call_script_fn: result buffer of size %d is too small for result of size %d", argStruct->iResultBufCharCount, SysStringLen(V_BSTR(&result)));
             res = ERROR_INSUFFICIENT_BUFFER;
@@ -1327,7 +1327,7 @@ BOOL unicode)
             unicode ? MC_STRW : MC_STRA,
             argStruct->iResultBufCharCount);
     }
-    else if (argStruct->iResultBufCharCount > 0)
+    else if (argStruct->iResultBufCharCount > 0 && vResultBuf != NULL)
     {
         mc_str_inbuf(
             L"\0", MC_STRW,
