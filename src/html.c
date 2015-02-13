@@ -1204,9 +1204,174 @@ err_id:
     return res;
 }
 
+/*PSIPHON*/
+static int
+html_call_script_fn(html_t* html, const void* vArgStruct, const void* vResultBuf,
+BOOL unicode)
+{
+    MC_HMCALLSCRIPTFN* argStruct;
+    char* resultBufA;
+    wchar_t* resultBufW;
+    BSTR bstr_fnname;
+    BSTR bstr_arguments;
+    VARIANTARG va_arguments;
+    IWebBrowser2* browser_iface;
+    IDispatch* dispatch_iface;
+    IHTMLDocument2* doc_iface;
+    IDispatch* script_dispatch_iface;
+    DISPID fnDispID;
+    DISPPARAMS dispParams = { 0 };
+    VARIANT result;
+    HRESULT hr;
+    int res = -1;
+
+    argStruct = (MC_HMCALLSCRIPTFN*)vArgStruct;
+    if (argStruct == NULL)
+    {
+        MC_TRACE("html_call_script_fn: Empty arg struct.");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        goto err_argstruct;
+    }
+
+    if (unicode) {
+        resultBufW = (wchar_t*)vResultBuf;
+    }
+    else {
+        resultBufA = (char*)vResultBuf;
+    }
+
+    if (MC_ERR(argStruct->pszFnName == NULL || (unicode && ((WCHAR*)argStruct->pszFnName)[0] == L'\0') ||
+        (!unicode && ((char*)argStruct->pszFnName)[0] == '\0'))) {
+        MC_TRACE("html_call_script_fn: Empty function name.");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        goto err_fnname;
+    }
+    bstr_fnname = html_bstr(argStruct->pszFnName, (unicode ? MC_STRW : MC_STRA));
+    if (MC_ERR(bstr_fnname == NULL)) {
+        MC_TRACE("html_call_script_fn: html_bstr(fnname) failed.");
+        mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
+        goto err_fnname;
+    }
+
+    if (argStruct->pszArguments == NULL) {
+        bstr_arguments = NULL;
+        V_VT(&va_arguments) = VT_EMPTY;
+    }
+    else {
+        bstr_arguments = html_bstr(argStruct->pszArguments, (unicode ? MC_STRW : MC_STRA));
+        if (MC_ERR(bstr_arguments == NULL)) {
+            MC_TRACE("html_call_script_fn: html_bstr(arguments) failed");
+            mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
+            goto err_arguments;
+        }
+        V_VT(&va_arguments) = VT_BSTR;
+        V_BSTR(&va_arguments) = bstr_arguments;
+    }
+
+    hr = IOleObject_QueryInterface(html->browser_obj,
+        &IID_IWebBrowser2, (void**)&browser_iface);
+    if (MC_ERR(hr != S_OK || browser_iface == NULL)) {
+        MC_TRACE("html_call_script_fn: "
+            "QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
+        goto err_browser;
+    }
+
+    hr = IWebBrowser2_get_Document(browser_iface, &dispatch_iface);
+    if (MC_ERR(FAILED(hr) || dispatch_iface == NULL)) {
+        MC_TRACE("html_call_script_fn: get_Document() failed [0x%lx]", hr);
+        goto err_dispatch;
+    }
+
+    hr = IDispatch_QueryInterface(dispatch_iface,
+        &IID_IHTMLDocument2, (void**)&doc_iface);
+    if (MC_ERR(hr != S_OK || doc_iface == NULL)) {
+        MC_TRACE("html_call_script_fn: "
+            "QueryInterface(IID_IHTMLDocument2) failed [0x%lx]", hr);
+        goto err_doc;
+    }
+
+    hr = IHTMLDocument2_get_Script(doc_iface, &script_dispatch_iface);
+    if (MC_ERR(FAILED(hr) || dispatch_iface == NULL)) {
+        MC_TRACE("html_call_script_fn: get_Script() failed [0x%lx]", hr);
+        goto err_script_dispatch;
+    }
+
+    hr = IDispatch_GetIDsOfNames(script_dispatch_iface,
+        &IID_NULL, &bstr_fnname, 1, LOCALE_SYSTEM_DEFAULT, &fnDispID);
+    if (MC_ERR(FAILED(hr) || fnDispID < 0)) {
+        MC_TRACE("html_call_script_fn: GetIDsOfNames() failed [0x%lx]", hr);
+        goto err_script_dispatch;
+    }
+
+    dispParams.rgvarg = &va_arguments;
+    dispParams.cArgs = 1;
+    V_VT(&result) = VT_EMPTY;
+    hr = IDispatch_Invoke(script_dispatch_iface,
+        fnDispID, &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, 
+        &dispParams, &result, NULL, NULL);
+    if (MC_ERR(FAILED(hr))) {
+        MC_TRACE("html_call_script_fn: IDispatch_Invoke() failed [0x%lx]", hr);
+        goto err_script_invoke;
+    }
+
+    /* We only handle BSTR results. */
+    if (V_VT(&result) == VT_BSTR && argStruct->iResultBufCharCount > 0) {
+        if (SysStringLen(V_BSTR(&result)) >= argStruct->iResultBufCharCount) {
+            MC_TRACE("html_call_script_fn: result buffer of size %d is too small for result of size %d", argStruct->iResultBufCharCount, SysStringLen(V_BSTR(&result)));
+            res = ERROR_INSUFFICIENT_BUFFER;
+            goto err_result_copy;
+        }
+        mc_str_inbuf(
+            V_BSTR(&result), MC_STRW,
+            unicode ? (void*)resultBufW : (void*)resultBufA,
+            unicode ? MC_STRW : MC_STRA,
+            argStruct->iResultBufCharCount);
+    }
+    else if (argStruct->iResultBufCharCount > 0)
+    {
+        mc_str_inbuf(
+            L"\0", MC_STRW,
+            unicode ? (void*)resultBufW : (void*)resultBufA,
+            unicode ? MC_STRW : MC_STRA,
+            1);
+    }
+
+    res = 0;
+
+err_result_copy:
+    if (V_VT(&result) == VT_BSTR) {
+        SysFreeString(V_BSTR(&result));
+    }
+    else {
+        VariantClear(&result);
+    }
+err_script_invoke:
+    IDispatch_Release(script_dispatch_iface);
+err_script_dispatch:
+    IHTMLDocument3_Release(doc_iface);
+err_doc:
+    IDispatch_Release(dispatch_iface);
+err_dispatch:
+    IWebBrowser2_Release(browser_iface);
+err_browser:
+    SysFreeString(bstr_arguments);
+err_arguments:
+    SysFreeString(bstr_fnname);
+err_fnname:
+err_argstruct:
+    return res;
+}
+/*/PSIPHON*/
+
 static BOOL
 html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
 {
+    /*PSIPHON*/
+    /* Cheap hack to disable hotkeys, like F5 (refresh) and Alt+Left (back).
+       TODO: Do this better. */
+    return FALSE;
+    /*/PSIPHON*/
+
     DWORD pos;
     MSG message;
     IWebBrowser2* browser_iface;
@@ -1479,6 +1644,16 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                                                 (msg == MC_HM_SETTAGCONTENTSW));
             return (res == 0 ? TRUE : FALSE);
         }
+
+        /*PSIPHON*/
+        case MC_HM_CALLSCRIPTFNW:
+        case MC_HM_CALLSCRIPTFNA:
+        {
+            int res = html_call_script_fn(html, (void*)wp, (void*)lp,
+                (msg == MC_HM_CALLSCRIPTFNW));
+            return res;
+        }
+        /*/PSIPHON*/
 
         case MC_HM_GOBACK:
         {

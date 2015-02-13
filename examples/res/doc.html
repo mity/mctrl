@@ -59,5 +59,17 @@ string comparisons.</p>
 <div id="dynamic">Contents of this tag will be replaced by the example code in
 runtime.</div>
 
+<h2>Calls to page script (e.g., JavaScript) from C code</h2>
+
+<div>
+    <a href="app:calljsfn">Click to trigger a call back into the page script.</a>
+</div>
+
+<script>
+function alerter(arg) {
+    alert(arg);
+    return "alerter called";
+}
+</script>
     </body>
 </html>

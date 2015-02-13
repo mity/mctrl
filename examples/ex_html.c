@@ -79,6 +79,21 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
                 MessageBox(hwnd, _T("Hello World!"), _T("Hello World!"), MB_OK);
             else if(_tcscmp(nmhtmlurl->pszUrl, _T("app:set_dynamic")) == 0)
                 GenerateDynamicContents();
+            else if (_tcscmp(nmhtmlurl->pszUrl, _T("app:calljsfn")) == 0) {
+                MC_HMCALLSCRIPTFN argStruct;
+                argStruct.pszFnName = _T("alerter");
+                argStruct.pszArguments = _T("alerter arg string from C code");
+                TCHAR result[256];
+                argStruct.iResultBufCharCount = sizeof(result) / sizeof(TCHAR);
+                LRESULT res = SendMessage(hwndHtml, MC_HM_CALLSCRIPTFN, (WPARAM)&argStruct, (LPARAM)result);
+                if (res != 0) {
+                    MessageBox(hwnd, _T("MC_HM_CALLSCRIPTFN returned error?!?!"), _T("MC_HM_CALLSCRIPTFN result"), MB_OK);
+                }
+                else {
+                    MessageBox(hwnd, result, _T("MC_HM_CALLSCRIPTFN result"), MB_OK);
+                }
+
+            }
             else
                 MessageBox(hwnd, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
         }
