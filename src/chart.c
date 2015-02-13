@@ -2505,8 +2505,8 @@ chart_paint(chart_t* chart)
         ctx = chart->paint_ctx;
     } else {
         /* Initialize new context. */
-        xdraw_canvas_t* c = xdraw_canvas_create_with_paintstruct(chart->win,
-                                    &ps, (chart->style & MC_CHS_DOUBLEBUFFER));
+        xdraw_canvas_t* c = xdraw_canvas_create_with_paintstruct(chart->win, &ps,
+                (chart->style & MC_CHS_DOUBLEBUFFER) ? XDRAW_CANVAS_DOUBLEBUFER : 0);
         if(MC_ERR(c == NULL))
             goto no_paint;
         chart_paint_ctx_init(&tmp_ctx, c, chart->font);
@@ -2547,7 +2547,7 @@ chart_printclient(chart_t* chart, HDC dc)
 
     GetClientRect(chart->win, &rect);
 
-    c = xdraw_canvas_create_with_dc(dc, &rect);
+    c = xdraw_canvas_create_with_dc(dc, &rect, 0);
     if(c == NULL)
         return;
 
@@ -2624,7 +2624,7 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
         xdraw_canvas_t* c;
 
         GetClientRect(chart->win, &rect);
-        c = xdraw_canvas_create_with_dc(GetDCEx(NULL, NULL, DCX_CACHE), &rect);
+        c = xdraw_canvas_create_with_dc(GetDCEx(NULL, NULL, DCX_CACHE), &rect, 0);
         if(MC_ERR(c == NULL)) {
             MC_TRACE("chart_hit_test: xdraw_canvas_create_with_dc() failed.");
             *set_ix = -1;

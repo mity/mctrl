@@ -140,8 +140,11 @@ struct xdraw_circle_tag {
  *       caching the canvas gets message WM_DISPLAYCHANGE.
  */
 
-xdraw_canvas_t* xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, BOOL doublebuffer);
-xdraw_canvas_t* xdraw_canvas_create_with_dc(HDC dc, const RECT* rect);
+#define XDRAW_CANVAS_DOUBLEBUFER     0x0001
+#define XDRAW_CANVAS_GDICOMPAT       0x0002
+
+xdraw_canvas_t* xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, DWORD flags);
+xdraw_canvas_t* xdraw_canvas_create_with_dc(HDC dc, const RECT* rect, DWORD flags);
 void xdraw_canvas_destroy(xdraw_canvas_t* canvas);
 
 /* Only for canvas created with xdraw_canvas_create_with_paintstruct(). */
@@ -152,6 +155,12 @@ int xdraw_canvas_resize(xdraw_canvas_t* canvas, UINT width, UINT height);
  * for subsequent reuse. */
 void xdraw_canvas_begin_paint(xdraw_canvas_t* canvas);
 BOOL xdraw_canvas_end_paint(xdraw_canvas_t* canvas);
+
+/* For interoperability with GDI. Note the canvas has to be created with
+ * the flag XDRAW_CANVAS_GDICOMPAT for this to work. Painting should use only
+ * GDI functions to paint the DC between acquire and release call. */
+HDC xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents);
+void xdraw_canvas_release_dc(xdraw_canvas_t* canvas, HDC dc);
 
 void xdraw_canvas_transform_with_rotation(xdraw_canvas_t* canvas, float angle);
 void xdraw_canvas_transform_with_translation(xdraw_canvas_t* canvas, float dx, float dy);

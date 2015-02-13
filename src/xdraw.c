@@ -401,9 +401,12 @@ struct dw_IDWriteTextLayout_tag {
 #include <wincodec.h>
 
 #ifdef MC_TOOLCHAIN_MINGW64
-    /* In mingw-w64, the IID missing in libuuid.a. */
+    /* In mingw-w64, these IIDs are missing in libuuid.a. */
     static const GUID xdraw_IID_ID2D1Factory = {0x06152247,0x6f50,0x465a,{0x92,0x45,0x11,0x8b,0xfd,0x3b,0x60,0x07}};
     #define IID_ID2D1Factory xdraw_IID_ID2D1Factory
+
+    static const GUID xdraw_IID_ID2D1GdiInteropRenderTarget = {0xe0db51c3,0x6f77,0x4bae,{0xb3,0xd5,0xe4,0x75,0x09,0xb3,0x58,0x38}};
+    #define IID_ID2D1GdiInteropRenderTarget xdraw_IID_ID2D1GdiInteropRenderTarget
 #endif
 
 
@@ -525,6 +528,7 @@ d2d_fini(void)
 typedef struct d2d_canvas_tag d2d_canvas_t;
 struct d2d_canvas_tag {
     ID2D1RenderTarget* target;
+    ID2D1GdiInteropRenderTarget* gdi_interop;
     BOOL is_hwnd_target;
 };
 
@@ -556,6 +560,7 @@ d2d_canvas_alloc(ID2D1RenderTarget* target, BOOL is_hwnd_target)
     }
 
     c->target = target;
+    c->gdi_interop = NULL;
     c->is_hwnd_target = is_hwnd_target;
 
     /* mCtrl works with pixel measures as most of it uses GDI. D2D1 by default
@@ -766,6 +771,8 @@ struct gdix_RectF_tag {
 static int (WINAPI* gdix_CreateFromHDC)(HDC, void**);
 static int (WINAPI* gdix_DeleteGraphics)(void*);
 static int (WINAPI* gdix_GraphicsClear)(void*, DWORD);
+static int (WINAPI* gdix_GetDC)(void*, HDC*);
+static int (WINAPI* gdix_ReleaseDC)(void*, HDC);
 static int (WINAPI* gdix_ResetWorldTransform)(void*);
 static int (WINAPI* gdix_RotateWorldTransform)(void*,float,int);
 static int (WINAPI* gdix_SetPixelOffsetMode)(void*, int);
@@ -888,6 +895,8 @@ gdix_init(void)
     GPA(CreateFromHDC, (HDC, void**));
     GPA(DeleteGraphics, (void*));
     GPA(GraphicsClear, (void*, DWORD));
+    GPA(GetDC, (void*, HDC*));
+    GPA(ReleaseDC, (void*, HDC));
     GPA(ResetWorldTransform, (void*));
     GPA(RotateWorldTransform, (void*, float, int));
     GPA(SetPixelOffsetMode, (void*, int));
@@ -1094,14 +1103,15 @@ struct gdix_path_sink_tag {
  **************************/
 
 xdraw_canvas_t*
-xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, BOOL doublebuffer)
+xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, DWORD flags)
 {
     if(d2d_dll != NULL) {
-        static const D2D1_RENDER_TARGET_PROPERTIES props = {
+        D2D1_RENDER_TARGET_PROPERTIES props = {
             D2D1_RENDER_TARGET_TYPE_DEFAULT,
             { DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_UNKNOWN },
             0.0f, 0.0f,
-            D2D1_RENDER_TARGET_USAGE_NONE,
+            ((flags & XDRAW_CANVAS_GDICOMPAT) ?
+                        D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE : 0),
             D2D1_FEATURE_LEVEL_DEFAULT
         };
         D2D1_HWND_RENDER_TARGET_PROPERTIES props2;
@@ -1136,21 +1146,22 @@ xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, BOOL doublebuffe
 
         return (xdraw_canvas_t*) c;
     } else {
-
+        BOOL use_doublebuffer = (flags & XDRAW_CANVAS_DOUBLEBUFER);
         return (xdraw_canvas_t*) gdix_canvas_alloc(ps->hdc,
-                                     (doublebuffer ? &ps->rcPaint : NULL));
+                                     (use_doublebuffer ? &ps->rcPaint : NULL));
     }
 }
 
 xdraw_canvas_t*
-xdraw_canvas_create_with_dc(HDC dc, const RECT* rect)
+xdraw_canvas_create_with_dc(HDC dc, const RECT* rect, DWORD flags)
 {
     if(d2d_dll != NULL) {
-        static const D2D1_RENDER_TARGET_PROPERTIES props = {
+        D2D1_RENDER_TARGET_PROPERTIES props = {
             D2D1_RENDER_TARGET_TYPE_DEFAULT,
             { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED },
             0.0f, 0.0f,
-            D2D1_RENDER_TARGET_USAGE_NONE,
+            ((flags & XDRAW_CANVAS_GDICOMPAT) ?
+                        D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE : 0),
             D2D1_FEATURE_LEVEL_DEFAULT
         };
         d2d_canvas_t* c;
@@ -1198,6 +1209,7 @@ xdraw_canvas_destroy(xdraw_canvas_t* canvas)
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
 
         ID2D1RenderTarget_Release(c->target);
+        MC_ASSERT(c->gdi_interop == NULL);
         free(c);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
@@ -1269,6 +1281,67 @@ xdraw_canvas_end_paint(xdraw_canvas_t* canvas)
         /* Ask caller to destroy the canvas (i.e. disable caching),
          * as GDI+ is not suitable for that. */
         return FALSE;
+    }
+}
+
+HDC
+xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents)
+{
+    if(d2d_dll != NULL) {
+        d2d_canvas_t* c = (d2d_canvas_t*) canvas;
+        HRESULT hr;
+        HDC dc;
+
+        MC_ASSERT(c->gdi_interop == NULL);
+
+        hr = ID2D1RenderTarget_QueryInterface(c->target,
+                    &IID_ID2D1GdiInteropRenderTarget, (void**) &c->gdi_interop);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("xdraw_canvas_acquire_dc: "
+                     "ID2D1RenderTarget::QueryInterface(IID_ID2D1GdiInteropRenderTarget) "
+                     "failed. [0x%lx]", hr);
+            return NULL;
+        }
+
+        hr = ID2D1GdiInteropRenderTarget_GetDC(c->gdi_interop,
+                (retain_contents ? D2D1_DC_INITIALIZE_MODE_COPY : D2D1_DC_INITIALIZE_MODE_CLEAR),
+                &dc);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("xdraw_canvas_acquire_dc: "
+                     "ID2D1GdiInteropRenderTarget::GetDC() failed. [0x%lx]", hr);
+            ID2D1GdiInteropRenderTarget_Release(c->gdi_interop);
+            c->gdi_interop = NULL;
+            return NULL;
+        }
+
+        return dc;
+    } else {
+        gdix_canvas_t* c = (gdix_canvas_t*) canvas;
+        int status;
+        HDC dc;
+
+        status = gdix_GetDC(c->graphics, &dc);
+        if(MC_ERR(status != 0)) {
+            MC_TRACE("xdraw_canvas_acquire_dc: GdipGetDC() failed. [%d]", status);
+            return NULL;
+        }
+
+        return dc;
+    }
+}
+
+void
+xdraw_canvas_release_dc(xdraw_canvas_t* canvas, HDC dc)
+{
+    if(d2d_dll != NULL) {
+        d2d_canvas_t* c = (d2d_canvas_t*) canvas;
+
+        ID2D1GdiInteropRenderTarget_ReleaseDC(c->gdi_interop, NULL);
+        ID2D1GdiInteropRenderTarget_Release(c->gdi_interop);
+        c->gdi_interop = NULL;
+    } else {
+        gdix_canvas_t* c = (gdix_canvas_t*) canvas;
+        gdix_ReleaseDC(c->graphics, dc);
     }
 }
 
