@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -135,18 +135,11 @@ extern "C" {
  *   Internet Explorer so exact behavior depends on the version of MS IE
  *   installed.
  *
- * - The HTML control implementation is based on OLE and COM technologies.
- *   During creation of the control @c OleInitialize() is called. I.e.
- *   the OLE subsystem is initialized for every thread which creates
- *   the HTML control. @c OleUninitialize() is similarly called when the
- *   control is destroyed.
- *
  * - The value of the URL in notifications might not match the URL that was
  *   originally given to the HTML control, because the URL might be converted
- *   to a qualified form. For example, the IE sometimes adds slash ('/') after
- *   URLs having two slashes after protocol and of there is no slash after.
- *   Furthermore IE can encode some special characters into their hexadecimal
- *   representation (i.e. space ' ' becomes "%20").
+ *   to a qualified form. For example, the IE sometimes may add a slash ('/')
+ *   at the end of some URLs. Furthermore IE can encode some special characters
+ *   into their hexadecimal representation (e.g. space ' ' becomes "%20").
  *
  *
  * @section std_msgs Standard Messages
