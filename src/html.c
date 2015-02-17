@@ -1348,7 +1348,7 @@ err_result_copy:
 err_script_invoke:
     IDispatch_Release(script_dispatch_iface);
 err_script_dispatch:
-    IHTMLDocument3_Release(doc_iface);
+    IHTMLDocument2_Release(doc_iface);
 err_doc:
     IDispatch_Release(dispatch_iface);
 err_dispatch:
