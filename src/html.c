@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -800,8 +800,8 @@ static HRESULT STDMETHODCALLTYPE
 ui_handler_GetHostInfo(IDocHostUIHandler* self, DOCHOSTUIINFO* info)
 {
     if(MC_ERR(info == NULL || info->cbSize < sizeof(DOCHOSTUIINFO))) {
-        HTML_TRACE("ui_handler_GetHostInfo: info->cbSize == %lu "
-                   "[E_UNEXPECTED]", (info != NULL ? info->cbSize : 0));
+        MC_TRACE("ui_handler_GetHostInfo: info->cbSize == %lu [E_UNEXPECTED]",
+                 (info != NULL ? info->cbSize : 0));
         return E_UNEXPECTED;
     }
 
