@@ -799,9 +799,9 @@ ui_handler_ShowContextMenu(IDocHostUIHandler* self, DWORD menu_id, POINT* pos,
 static HRESULT STDMETHODCALLTYPE
 ui_handler_GetHostInfo(IDocHostUIHandler* self, DOCHOSTUIINFO* info)
 {
-    if(info == NULL || info->cbSize < sizeof(DOCHOSTUIINFO)) {
+    if(MC_ERR(info == NULL || info->cbSize < sizeof(DOCHOSTUIINFO))) {
         HTML_TRACE("ui_handler_GetHostInfo: info->cbSize == %lu "
-                   "[E_UNEXPECTED]", info->cbSize);
+                   "[E_UNEXPECTED]", (info != NULL ? info->cbSize : 0));
         return E_UNEXPECTED;
     }
 
