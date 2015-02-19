@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -50,7 +50,7 @@
  *** Miscellaneous Macros ***
  ****************************/
 
-/* Whether we are unicode build */
+/* Whether we are Unicode build */
 #ifdef UNICODE
     #define MC_IS_UNICODE      TRUE
 #else
@@ -68,10 +68,10 @@
 /* Get count of records in an array */
 #define MC_ARRAY_SIZE(array)   (sizeof((array)) / sizeof((array)[0]))
 
-/* Pi */
+/* Pi (float) */
 #define MC_PIf     3.14159265358979323846f
 
-/* Offset of struct member */
+/* Offset of structure member */
 #if defined offsetof
     #define MC_OFFSETOF(type, member)   offsetof(type, member)
 #elif defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40000
@@ -479,5 +479,6 @@ void mc_tooltip_set_track_pos(HWND parent, HWND tooltip, int x, int y);
 
 /* Update the text of a tooltip */
 void mc_tooltip_set_text(HWND parent, HWND tooltip, const TCHAR* str);
+
 
 #endif  /* MC_MISC_H  */
