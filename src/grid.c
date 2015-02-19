@@ -1260,7 +1260,7 @@ grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
         grid_set_table(grid, NULL);
 
     if(!grid->no_redraw)
-        RedrawWindow(grid->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+        InvalidateRect(grid->win, NULL, TRUE);
 }
 
 static grid_t*
@@ -1396,7 +1396,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETREDRAW:
             grid->no_redraw = !wp;
             if(!grid->no_redraw)
-                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+                InvalidateRect(win, NULL, TRUE);
             return 0;
 
         case WM_VSCROLL:
@@ -1439,12 +1439,12 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             grid_close_theme(grid);
             grid_open_theme(grid);
             if(!grid->no_redraw)
-                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+                InvalidateRect(win, NULL, TRUE);
             return 0;
 
         case WM_SYSCOLORCHANGE:
             if(!grid->no_redraw)
-                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+                InvalidateRect(win, NULL, TRUE);
             return 0;
 
         case WM_NOTIFYFORMAT:

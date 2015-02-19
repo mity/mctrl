@@ -161,7 +161,7 @@ imgview_style_changed(imgview_t* iv, STYLESTRUCT* ss)
 {
     iv->style = ss->styleNew;
     if(!iv->no_redraw)
-        RedrawWindow(iv->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+        InvalidateRect(iv->win, NULL, TRUE);
 }
 
 static int
@@ -329,7 +329,7 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETREDRAW:
             iv->no_redraw = !wp;
             if(!iv->no_redraw)
-                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+                InvalidateRect(win, NULL, TRUE);
 
         case WM_GETDLGCODE:
             return DLGC_STATIC;

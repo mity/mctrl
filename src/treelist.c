@@ -3450,7 +3450,7 @@ treelist_theme_changed(treelist_t* tl)
     tl->theme = mcOpenThemeData(tl->win, treelist_tc);
 
     if(!tl->no_redraw)
-        RedrawWindow(tl->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+        InvalidateRect(tl->win, NULL, TRUE);
 }
 
 static treelist_t*
@@ -3742,7 +3742,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(!tl->no_redraw) {
                 if(tl->dirty_scrollbars)
                     treelist_setup_scrollbars(tl);
-                RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_FRAME);
+                InvalidateRect(win, NULL, TRUE);
             }
             return 0;
 
@@ -3760,7 +3760,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 }
 
                 if(!tl->no_redraw)
-                    RedrawWindow(win, NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_FRAME);
+                    InvalidateRect(win, NULL, TRUE);
             }
             break;
 

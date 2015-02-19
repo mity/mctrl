@@ -1508,8 +1508,6 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(wp == GWL_STYLE) {
                 STYLESTRUCT* ss = (STYLESTRUCT*) lp;
                 html->style = ss->styleNew;
-                RedrawWindow(win, NULL, NULL,
-                             RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
             }
             break;
 
