@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -1204,10 +1204,9 @@ err_id:
     return res;
 }
 
-/*PSIPHON*/
 static int
 html_call_script_fn(html_t* html, const void* vArgStruct, const void* vResultBuf,
-BOOL unicode)
+                    BOOL unicode)
 {
     MC_HMCALLSCRIPTFN* argStruct;
     char* resultBufA;
@@ -1307,7 +1306,7 @@ BOOL unicode)
     dispParams.cArgs = 1;
     V_VT(&result) = VT_EMPTY;
     hr = IDispatch_Invoke(script_dispatch_iface,
-        fnDispID, &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, 
+        fnDispID, &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD,
         &dispParams, &result, NULL, NULL);
     if (MC_ERR(FAILED(hr))) {
         MC_TRACE("html_call_script_fn: IDispatch_Invoke() failed [0x%lx]", hr);
@@ -1361,17 +1360,10 @@ err_fnname:
 err_argstruct:
     return res;
 }
-/*/PSIPHON*/
 
 static BOOL
 html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
 {
-    /*PSIPHON*/
-    /* Cheap hack to disable hotkeys, like F5 (refresh) and Alt+Left (back).
-       TODO: Do this better. */
-    return FALSE;
-    /*/PSIPHON*/
-
     DWORD pos;
     MSG message;
     IWebBrowser2* browser_iface;
@@ -1645,15 +1637,13 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (res == 0 ? TRUE : FALSE);
         }
 
-        /*PSIPHON*/
         case MC_HM_CALLSCRIPTFNW:
         case MC_HM_CALLSCRIPTFNA:
         {
             int res = html_call_script_fn(html, (void*)wp, (void*)lp,
-                (msg == MC_HM_CALLSCRIPTFNW));
+                                          (msg == MC_HM_CALLSCRIPTFNW));
             return res;
         }
-        /*/PSIPHON*/
 
         case MC_HM_GOBACK:
         {

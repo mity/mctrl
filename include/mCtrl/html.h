@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -263,27 +263,29 @@ void MCTRL_API mcHtml_Terminate(void);
  */
 #define MC_HM_CANBACK         (MC_HM_FIRST + 15)
 
-/*PSIPHON*/
 /**
-* @brief Calls script in HTML page, passing optional arguments, returning optional result (Unicode variant).
-* @param[in] wParam (@c MC_HMCALLSCRIPTFN) Pointer to structure containing function name, 
-*   arguments to function, etc. @sa MC_HMCALLSCRIPTFN
-* @param[out] lParam String buffer to receive result of function. Optional; may be NULL.
-* @return (@c int) @c 0 if successful, @c -1 for generic error, other values for specific 
-*   errors (like @c ERROR_INSUFFICIENT_BUFFER).
-*/
+ * @brief Calls script function in HTML page (Unicode variant).
+ *
+ * @param[in] wParam (@ref MC_HMCALLSCRIPTFNW*) Pointer to structure containing
+ * name of function and arguments to pass into it.
+ * @param[out] lParam (@c WCHAR*) String buffer for storing return value of
+ * the function. May be @c NULL.
+ * @return (@c int) @c 0 if successful, @c -1 for generic error, other values
+ * for specific errors (like @c ERROR_INSUFFICIENT_BUFFER).
+ */
 #define MC_HM_CALLSCRIPTFNW   (MC_HM_FIRST + 16)
 
 /**
-* @brief Calls script in HTML page, passing optional arguments, returning optional result (ANSI variant).
-* @param[in] wParam (@c MC_HMCALLSCRIPTFN) Pointer to structure containing function name,
-*   arguments to function, etc. @sa MC_HMCALLSCRIPTFN
-* @param[out] lParam String buffer to receive result of function. Optional; may be NULL.
-* @return (@c int) @c 0 if successful, @c -1 for generic error, other values for specific
-*   errors (like @c ERROR_INSUFFICIENT_BUFFER).
-*/
+ * @brief Calls script function in HTML page (ANSI variant).
+ *
+ * @param[in] wParam (@ref MC_HMCALLSCRIPTFNA*) Pointer to structure containing
+ * name of function and arguments to pass into it.
+ * @param[out] lParam (@c char*) String buffer for storing return value of
+ * the function. May be @c NULL.
+ * @return (@c int) @c 0 if successful, @c -1 for generic error, other values
+ * for specific errors (like @c ERROR_INSUFFICIENT_BUFFER).
+ */
 #define MC_HM_CALLSCRIPTFNA   (MC_HM_FIRST + 17)
-/*/PSIPHON*/
 
 /*@}*/
 
@@ -389,39 +391,33 @@ typedef struct MC_NMHTTPERRORA_tag {
     int iStatus;
 } MC_NMHTTPERRORA;
 
-/*PSIPHON*/
 /**
-* @brief Structure used to pass arguments in @c MC_HM_CALLSCRIPTFN request,
-* and to receive the result (Unicode variant).
-* @sa MC_HM_CALLSCRIPTFN
-*/
+ * @brief Structure for message @ref MC_HM_CALLSCRIPTFNW request (Unicode variant).
+ * @sa MC_HM_CALLSCRIPTFNW
+ */
 typedef struct MC_HMCALLSCRIPTFNW_tag {
     /** The name of the function to call. */
     LPCWSTR pszFnName;
-    /** The argument (e.g. JSON encoded) to pass to the function. 
-        Optional. */
+    /** The argument to pass to the function. Optional. */
     LPCWSTR pszArguments;
-    /** The size of the result buffer -- in characters passed as LPARAM. 
-        Can be zero if no result needed. */
+    /** The size of the result buffer in characters passed as @c LPARAM.
+     *  Can be zero if no result needed. */
     UINT iResultBufCharCount;
 } MC_HMCALLSCRIPTFNW;
 
 /**
-* @brief Structure used to pass arguments in @c MC_HM_CALLSCRIPTFN request,
-* and to receive the result (ANSI variant).
-* @sa MC_HM_CALLSCRIPTFN
-*/
+ * @brief Structure for message @ref MC_HM_CALLSCRIPTFNA request (ANSI variant).
+ * @sa MC_HM_CALLSCRIPTFNW
+ */
 typedef struct MC_HMCALLSCRIPTFNA_tag {
     /** The name of the function to call. */
     LPCSTR pszFnName;
-    /** The argument (e.g. JSON encoded) to pass to the function.
-    Optional. */
+    /** The argument to pass to the function. Optional. */
     LPCSTR pszArguments;
-    /** The size of the result buffer -- in characters passed as LPARAM.
-    Can be zero if no result needed. */
+    /** The size of the result buffer in characters passed as @c LPARAM.
+     *  Can be zero if no result needed. */
     UINT iResultBufCharCount;
 } MC_HMCALLSCRIPTFNA;
-/*/PSIPHON*/
 
 /*@}*/
 
@@ -547,13 +543,10 @@ typedef struct MC_HMCALLSCRIPTFNA_tag {
 #define MC_NMHTMLTEXT          MCTRL_NAME_AW(MC_NMHTMLTEXT)
 /** Unicode-resolution alias. @sa MC_NMHTTPERRORW MC_NMHTTPERRORA */
 #define MC_NMHTTPERROR         MCTRL_NAME_AW(MC_NMHTTPERROR)
-
-/*PSIPHON*/
 /** Unicode-resolution alias. @sa MC_HM_CALLSCRIPTFNW MC_HM_CALLSCRIPTFNA */
 #define MC_HM_CALLSCRIPTFN     MCTRL_NAME_AW(MC_HM_CALLSCRIPTFN)
 /** Unicode-resolution alias. @sa MC_HMCALLSCRIPTFNW MC_HMCALLSCRIPTFNA */
 #define MC_HMCALLSCRIPTFN      MCTRL_NAME_AW(MC_HMCALLSCRIPTFN)
-/*/PSIPHON*/
 
 /*@}*/
 
