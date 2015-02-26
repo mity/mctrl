@@ -7,6 +7,8 @@
 
 <h1>HTML Document</h1>
 
+<h2>Linking other embedded resources</h2>
+
 <div class="img">
 <img src="res://ex_html.exe/image.png" title="absolute URL &quot;res://ex_html.exe/image.png&quot;">
 <img src="image.png" title="relative URL &quot;image.png&quot;">
@@ -16,13 +18,16 @@
 The HTML control is able to display such documents. It can be pointed with
 the URL <a href="res://ex_html.exe/doc.html">res://ex_html.exe/doc.html</a>.</p>
 
-<p>The ex_html.exe determines name of the module (*.exe or *.dll) where the
-resource lives and the rest is ID of the HTML resource in it. Note you can use
-both numeric and string resource IDs but string identifiers are recommended.</p>
+<p>The <tt>ex_html.exe</tt>tt> determines name of the module (*.exe or *.dll)
+where the resource lives and the rest is ID of the HTML resource in it. Note
+you can use both numeric and string resource IDs but string identifiers are
+recommended.</p>
 
 <p>The document can use other resources as images or cascading style sheets
 as the two images on the right demonstrate. One of them is referred
 with absolute URL while the second one uses relative URL.</p>
+
+<h2>Linking remote resources</h2>
 
 <p>Of course it can also handle normal HTTP, HTTPS and other protocols:</p>
 <ul>
@@ -32,10 +37,12 @@ with absolute URL while the second one uses relative URL.</p>
 
 <p>Finally you can have links which are handled programatically by the
 application code. When you click on such link, the parent window of HTML
-control gets notification.</p>
+control gets a notification <tt>MC_HN_APPLINK</tt>.</p>
 <ul>
     <li><a href="app:SayHello">app:SayHello</a>
 </ul>
+
+<h2>URL normalization</h2>
 
 <p>However note that IE sometimes changes the URL as used to navigate and
 how it looks in the notification. You can see on the following links
@@ -51,25 +58,38 @@ after the original URL.
 
 <p>It's recommended you avoid such &quot;bad&quot; URL patterns in the
 application URLs. Otherwise your application might need more complex
-URL matching in code handling the MC_HN_APPLINK notifications then simple
-string comparisons.</p>
+URL matching in code handling the <tt>MC_HN_APPLINK</tt> notifications then
+simple string comparisons.</p>
 
 <h2>Dynamic contents</h2>
+
+<p>Application is able to modify contents of the HTML page with the message
+<tt>MC_HM_SETTAGCONTENTS</tt>.</p>
 
 <div id="dynamic">Contents of this tag will be replaced by the example code in
 runtime.</div>
 
-<h2>Calls to page script (e.g., JavaScript) from C code</h2>
+<h2>JavaScript function called from C code</h2>
 
-<div>
-    <a href="app:calljsfn">Click to trigger a call back into the page script.</a>
-</div>
+<p>This HTML document provides a simple example JavaScript function which
+concatenates three strings. By clicking the following link, you ask the
+application to call it via the message <tt>MC_HM_CALLSCRIPTFUNC</tt>.</p>
 
-<script>
-function alerter(arg) {
-    alert(arg);
-    return "alerter called";
+<ul>
+    <li><a href="app:call_js_func">Call JS function</a></li>
+</ul>
+
+<!-- An example of JavaScript function which is called from the application.
+     Triggered by clicking on the link above (through the 'app:' protocol).
+-->
+<script type="text/javascript">
+function concat_three(arg1, arg2, arg3)
+{
+    alert("Hey, this popup was triggered by JS code!\n" +
+          "\nArg1: '" + arg1 + "'\nArg2: '" + arg2 + "'\nArg3: '" + arg3 + "'");
+    return arg1 + arg2 + arg3;
 }
 </script>
+
     </body>
 </html>

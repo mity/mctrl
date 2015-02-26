@@ -1204,161 +1204,209 @@ err_id:
     return res;
 }
 
-static int
-html_call_script_fn(html_t* html, const void* vArgStruct, const void* vResultBuf,
-                    BOOL unicode)
+static HRESULT
+html_do_call_script_func(html_t* html, const OLECHAR* func_name,
+                         UINT argc, VARIANT* argv, VARIANT* ret)
 {
-    MC_HMCALLSCRIPTFN* argStruct;
-    char* resultBufA;
-    wchar_t* resultBufW;
-    BSTR bstr_fnname;
-    BSTR bstr_arguments;
-    VARIANTARG va_arguments;
     IWebBrowser2* browser_iface;
-    IDispatch* dispatch_iface;
+    IDispatch* doc_dispatch_iface;
     IHTMLDocument2* doc_iface;
     IDispatch* script_dispatch_iface;
-    DISPID fnDispID;
-    DISPPARAMS dispParams = { 0 };
-    VARIANT result;
+    DISPID disp_id;
+    DISPPARAMS disp_param = { argv, NULL, argc, 0 };
     HRESULT hr;
-    int res = -1;
 
-    argStruct = (MC_HMCALLSCRIPTFN*)vArgStruct;
-    if (argStruct == NULL)
-    {
-        MC_TRACE("html_call_script_fn: Empty arg struct.");
-        SetLastError(ERROR_INVALID_PARAMETER);
-        goto err_argstruct;
-    }
+    MC_ASSERT(ret == NULL  ||  V_VT(ret) == VT_EMPTY);
 
-    if (unicode) {
-        resultBufW = (wchar_t*)vResultBuf;
-    }
-    else {
-        resultBufA = (char*)vResultBuf;
-    }
-
-    if (MC_ERR(argStruct->pszFnName == NULL || (unicode && ((WCHAR*)argStruct->pszFnName)[0] == L'\0') ||
-        (!unicode && ((char*)argStruct->pszFnName)[0] == '\0'))) {
-        MC_TRACE("html_call_script_fn: Empty function name.");
-        SetLastError(ERROR_INVALID_PARAMETER);
-        goto err_fnname;
-    }
-    bstr_fnname = html_bstr(argStruct->pszFnName, (unicode ? MC_STRW : MC_STRA));
-    if (MC_ERR(bstr_fnname == NULL)) {
-        MC_TRACE("html_call_script_fn: html_bstr(fnname) failed.");
-        mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
-        goto err_fnname;
-    }
-
-    if (argStruct->pszArguments == NULL) {
-        bstr_arguments = NULL;
-        V_VT(&va_arguments) = VT_EMPTY;
-    }
-    else {
-        bstr_arguments = html_bstr(argStruct->pszArguments, (unicode ? MC_STRW : MC_STRA));
-        if (MC_ERR(bstr_arguments == NULL)) {
-            MC_TRACE("html_call_script_fn: html_bstr(arguments) failed");
-            mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
-            goto err_arguments;
-        }
-        V_VT(&va_arguments) = VT_BSTR;
-        V_BSTR(&va_arguments) = bstr_arguments;
-    }
-
-    hr = IOleObject_QueryInterface(html->browser_obj,
-        &IID_IWebBrowser2, (void**)&browser_iface);
-    if (MC_ERR(hr != S_OK || browser_iface == NULL)) {
-        MC_TRACE("html_call_script_fn: "
-            "QueryInterface(IID_IWebBrowser2) failed [0x%lx]", hr);
+    hr = IOleObject_QueryInterface(html->browser_obj, &IID_IWebBrowser2,
+                                   (void**) &browser_iface);
+    if (MC_ERR(hr != S_OK  ||  browser_iface == NULL)) {
+        MC_TRACE("html_do_call_script_func: IOleObject::QueryInterface("
+                 "IID_IWebBrowser2) failed [0x%lx]", hr);
         goto err_browser;
     }
 
-    hr = IWebBrowser2_get_Document(browser_iface, &dispatch_iface);
-    if (MC_ERR(FAILED(hr) || dispatch_iface == NULL)) {
-        MC_TRACE("html_call_script_fn: get_Document() failed [0x%lx]", hr);
+    hr = IWebBrowser2_get_Document(browser_iface, &doc_dispatch_iface);
+    if(MC_ERR(FAILED(hr)  ||  doc_dispatch_iface == NULL)) {
+        MC_TRACE("html_do_call_script_func: IWebBrowser2::get_Document() "
+                 "failed [0x%lx]", hr);
         goto err_dispatch;
     }
 
-    hr = IDispatch_QueryInterface(dispatch_iface,
-        &IID_IHTMLDocument2, (void**)&doc_iface);
-    if (MC_ERR(hr != S_OK || doc_iface == NULL)) {
-        MC_TRACE("html_call_script_fn: "
-            "QueryInterface(IID_IHTMLDocument2) failed [0x%lx]", hr);
+    hr = IDispatch_QueryInterface(doc_dispatch_iface, &IID_IHTMLDocument2,
+                                  (void**) &doc_iface);
+    if(MC_ERR(hr != S_OK  ||  doc_iface == NULL)) {
+        MC_TRACE("html_do_call_script_func: IDispatch::QueryInterface("
+                 "IID_IHTMLDocument2) failed [0x%lx]", hr);
         goto err_doc;
     }
 
     hr = IHTMLDocument2_get_Script(doc_iface, &script_dispatch_iface);
-    if (MC_ERR(FAILED(hr) || dispatch_iface == NULL)) {
-        MC_TRACE("html_call_script_fn: get_Script() failed [0x%lx]", hr);
-        goto err_script_dispatch;
+    if(MC_ERR(hr != S_OK  ||  script_dispatch_iface == NULL)) {
+        MC_TRACE("html_do_call_script_func: IHTMLDocument2::get_Script() failed "
+                 "[0x%lx]", hr);
+        goto err_script;
     }
 
-    hr = IDispatch_GetIDsOfNames(script_dispatch_iface,
-        &IID_NULL, &bstr_fnname, 1, LOCALE_SYSTEM_DEFAULT, &fnDispID);
-    if (MC_ERR(FAILED(hr) || fnDispID < 0)) {
-        MC_TRACE("html_call_script_fn: GetIDsOfNames() failed [0x%lx]", hr);
-        goto err_script_dispatch;
+    hr = IDispatch_GetIDsOfNames(script_dispatch_iface, &IID_NULL,
+                    (OLECHAR**) &func_name, 1, LOCALE_SYSTEM_DEFAULT, &disp_id);
+    if(MC_ERR(FAILED(hr)  ||  disp_id < 0)) {
+        MC_TRACE("html_do_call_script_func: IDispatch::GetIDsOfNames() failed "
+                 "[0x%lx]", hr);
+        goto err_GetIDsOfNames;
     }
 
-    dispParams.rgvarg = &va_arguments;
-    dispParams.cArgs = 1;
-    V_VT(&result) = VT_EMPTY;
-    hr = IDispatch_Invoke(script_dispatch_iface,
-        fnDispID, &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD,
-        &dispParams, &result, NULL, NULL);
-    if (MC_ERR(FAILED(hr))) {
-        MC_TRACE("html_call_script_fn: IDispatch_Invoke() failed [0x%lx]", hr);
-        goto err_script_invoke;
+    hr = IDispatch_Invoke(script_dispatch_iface, disp_id, &IID_NULL,
+                          LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &disp_param,
+                          ret, NULL, NULL);
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE("html_do_call_script_func: IDispatch::Invoke('%S') failed "
+                 "[0x%lx]", func_name, hr);
+        goto err_Invoke;
     }
 
-    /* We only handle BSTR results. */
-    if (V_VT(&result) == VT_BSTR && argStruct->iResultBufCharCount > 0 && vResultBuf != NULL) {
-        if (SysStringLen(V_BSTR(&result)) >= argStruct->iResultBufCharCount) {
-            MC_TRACE("html_call_script_fn: result buffer of size %d is too small for result of size %d", argStruct->iResultBufCharCount, SysStringLen(V_BSTR(&result)));
-            res = ERROR_INSUFFICIENT_BUFFER;
-            goto err_result_copy;
-        }
-        mc_str_inbuf(
-            V_BSTR(&result), MC_STRW,
-            unicode ? (void*)resultBufW : (void*)resultBufA,
-            unicode ? MC_STRW : MC_STRA,
-            argStruct->iResultBufCharCount);
-    }
-    else if (argStruct->iResultBufCharCount > 0 && vResultBuf != NULL)
-    {
-        mc_str_inbuf(
-            L"\0", MC_STRW,
-            unicode ? (void*)resultBufW : (void*)resultBufA,
-            unicode ? MC_STRW : MC_STRA,
-            1);
-    }
-
-    res = 0;
-
-err_result_copy:
-    if (V_VT(&result) == VT_BSTR) {
-        SysFreeString(V_BSTR(&result));
-    }
-    else {
-        VariantClear(&result);
-    }
-err_script_invoke:
+err_Invoke:
+err_GetIDsOfNames:
     IDispatch_Release(script_dispatch_iface);
-err_script_dispatch:
+err_script:
     IHTMLDocument2_Release(doc_iface);
 err_doc:
-    IDispatch_Release(dispatch_iface);
+    IDispatch_Release(doc_dispatch_iface);
 err_dispatch:
     IWebBrowser2_Release(browser_iface);
 err_browser:
-    SysFreeString(bstr_arguments);
-err_arguments:
-    SysFreeString(bstr_fnname);
-err_fnname:
-err_argstruct:
-    return res;
+    return hr;
+}
+
+static HRESULT
+html_call_script_func_ex(html_t* html, MC_HMCALLSCRIPTFUNCEX* csfe)
+{
+    if(MC_ERR(csfe->cbSize != sizeof(MC_HMCALLSCRIPTFUNCEX))) {
+        MC_TRACE("html_call_script_func_ex: Unsupported cbSize %u", csfe->cbSize);
+        return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
+    }
+
+    if(MC_ERR(csfe->lpRet != NULL  &&  V_VT(csfe->lpRet) != VT_EMPTY)) {
+        MC_TRACE("html_call_script_func_ex: "
+                 "MC_HMCALLSCRIPTFUNCEX::lpRet is not VT_EMPTY.");
+        return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
+    }
+
+    return html_do_call_script_func(html, csfe->pszFuncName, csfe->cArgs,
+                                    csfe->lpvArgs, csfe->lpRet);
+}
+
+static int
+html_call_script_func(html_t* html, void* func_name, MC_HMCALLSCRIPTFUNCW* csf,
+                      BOOL unicode)
+{
+    static MC_HMCALLSCRIPTFUNCW dummy_csf = { sizeof(MC_HMCALLSCRIPTFUNCW), 0 };
+    const void* str_args[4] = { csf->pszArg1, csf->pszArg2, csf->pszArg3, csf->pszArg4 };
+    int i_val[4] = { csf->iArg1, csf->iArg2, csf->iArg3, csf->iArg4 };
+    OLECHAR* func;
+    int i, argc;
+    VARIANT argv[4];
+    VARIANT ret;
+    HRESULT hr;
+
+    if(csf == NULL)
+        csf = &dummy_csf;
+
+    if(MC_ERR(func_name == NULL)) {
+        MC_TRACE("html_call_script_func: Function name not specified.");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(MC_ERR(csf->cArgs > 4)) {
+        MC_TRACE("html_call_script_func: MC_HMCALLSCRIPTFUNC::cArgs > 4");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(unicode) {
+        func = func_name;
+    } else {
+        func = mc_str(func_name, MC_STRA, MC_STRW);
+        if(MC_ERR(func == NULL)) {
+            MC_TRACE("html_call_script_func: mc_str() failed.");
+            mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
+            return -1;
+        }
+    }
+
+    /* Setup arguments. Note we have to reverse the order of the arguments. */
+    argc = csf->cArgs;
+    for(i = 0; i < argc; i++) {
+        if(str_args[i] != NULL) {
+            V_VT(&argv[i]) = VT_BSTR;
+            V_BSTR(&argv[i]) = html_bstr(str_args[argc-i-1],
+                                         (unicode ? MC_STRW : MC_STRA));
+            if(MC_ERR(V_BSTR(&argv[i]) == NULL)) {
+                MC_TRACE("html_call_script_func: html_bstr() failed.");
+                mc_send_notify(html->notify_win, html->win, NM_OUTOFMEMORY);
+                while(--i >= 0)
+                    VariantClear(&argv[i]);
+                if(!unicode)
+                    free(func);
+                return -1;
+            }
+        } else {
+            V_VT(&argv[i]) = VT_INT;
+            V_INT(&argv[i]) = i_val[argc-i-1];
+        }
+    }
+
+    V_VT(&ret) = VT_EMPTY;
+
+    hr = html_do_call_script_func(html, func, argc, argv, &ret);
+
+    if(!unicode)
+        free(func);
+    for(i = 0; i < argc; i++)
+        VariantClear(&argv[i]);
+
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE("html_call_script_func: html_do_call_script_func(%s) "
+                 "failed [0x%ld]", func_name, hr);
+        return -1;
+    }
+
+    if(csf->pszRet != NULL) {
+        /* App expects string return value. */
+        if(csf->iRet > 0) {
+            hr = VariantChangeType(&ret, &ret, 0, VT_BSTR);
+            if(SUCCEEDED(hr)  &&  V_VT(&ret) == VT_BSTR) {
+                mc_str_inbuf(V_BSTR(&ret), MC_STRW, csf->pszRet,
+                             (unicode ? MC_STRW : MC_STRA), csf->iRet);
+            } else {
+                MC_TRACE("html_call_script_func: VariantChangeType(VT_BSTR) "
+                         "failed [0x%ld]", hr);
+                if(unicode)
+                    csf->pszRet[0] = L'\0';
+                else
+                    ((char*)csf->pszRet)[0] = '\0';
+            }
+        }
+    } else {
+        /* App expects integer or no return value. */
+        if(V_VT(&ret) == VT_EMPTY) {
+            csf->iRet = 0;
+        } else {
+            hr = VariantChangeType(&ret, &ret, 0, VT_INT);
+            if(SUCCEEDED(hr)  &&  V_VT(&ret) == VT_BSTR) {
+                csf->iRet = V_INT(&ret);
+            } else {
+                MC_TRACE("html_call_script_func: VariantChangeType(VT_INT) "
+                         "failed [0x%ld]", hr);
+                csf->iRet = 0;
+            }
+        }
+    }
+
+    VariantClear(&ret);
+
+    return 0;
 }
 
 static BOOL
@@ -1637,14 +1685,6 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (res == 0 ? TRUE : FALSE);
         }
 
-        case MC_HM_CALLSCRIPTFNW:
-        case MC_HM_CALLSCRIPTFNA:
-        {
-            int res = html_call_script_fn(html, (void*)wp, (void*)lp,
-                                          (msg == MC_HM_CALLSCRIPTFNW));
-            return res;
-        }
-
         case MC_HM_GOBACK:
         {
             int res = html_goto_back(html, wp);
@@ -1653,6 +1693,17 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_HM_CANBACK:
             return ((wp ? html->can_back : html->can_forward) ? TRUE : FALSE);
+
+        case MC_HM_CALLSCRIPTFUNCW:
+        case MC_HM_CALLSCRIPTFUNCA:
+        {
+            int res = html_call_script_func(html, (void*)wp, (void*)lp,
+                                            (msg == MC_HM_CALLSCRIPTFUNCW));
+            return (res == 0 ? TRUE : FALSE);
+        }
+
+        case MC_HM_CALLSCRIPTFUNCEX:
+            return html_call_script_func_ex(html, (MC_HMCALLSCRIPTFUNCEX*) lp);
 
         case WM_SIZE:
         {
