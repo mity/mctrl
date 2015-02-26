@@ -47,11 +47,12 @@ GenerateDynamicContents(void)
     TCHAR buffer[512];
 
     _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR),
-               _T("<p>This paragraph is generated dynamically by the application "
-                  "and injected via message <tt>MC_HM_SETTAGCONTENTS</tt>. To "
-                  "prove that the following number is incremented anytime this "
+               _T("<p>This whole paragraph is generated dynamically by the "
+                  "application to prove that. This, together with the "
+                  "<tt>app:</tt> protocol, allows interaction between the HTML "
+                  "page and the application as demonstrated here. Whenever the "
                   "page is <a href=\"doc.html\">reloaded</a> or "
-                  "<a href=\"app:set_dynamic\">this app link is clicked</a>:</p>"
+                  "<a href=\"app:set_dynamic\">this app link</a> is clicked:</p>"
                   "<div class=\"big\">%u</div>"),
                   uCounter);
 
@@ -59,6 +60,31 @@ GenerateDynamicContents(void)
     uCounter++;
 }
 
+/* Example how to call a JavaScript function in the embedded HTML page. The JS
+ * function is very simple: It just concatenates the three strings we provide,
+ * shows a window with them and returns concatenation of the strings. */
+static void
+CallJavaScriptFunc(void)
+{
+    MC_HMCALLSCRIPTFUNC csfArgs;
+    TCHAR pszRetVal[64];
+    TCHAR pszBuffer[512];
+
+    csfArgs.cbSize = sizeof(MC_HMCALLSCRIPTFUNC);
+    csfArgs.pszRet = pszRetVal;
+    csfArgs.iRet = sizeof(pszRetVal) / sizeof(pszRetVal[0]);
+    csfArgs.cArgs = 3;
+    csfArgs.pszArg1 = _T("Hello");
+    csfArgs.pszArg2 = _T(" ");
+    csfArgs.pszArg3 = _T("from application.");
+    SendMessage(hwndHtml, MC_HM_CALLSCRIPTFUNC,
+                (WPARAM)_T("concat_three"), (LPARAM)&csfArgs);
+    _sntprintf(pszBuffer, sizeof(pszBuffer) / sizeof(pszBuffer[0]),
+               _T("We are back in C code. This message box shows the "
+                  "return value of the called JS function below:\n\n"
+                  "\t'%s'"), pszRetVal);
+    MessageBox(hwndHtml, pszBuffer, _T("The return value"), MB_OK);
+}
 
 static void
 HandleNotify(HWND hwnd, NMHDR* hdr)
@@ -79,6 +105,8 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
                 MessageBox(hwnd, _T("Hello World!"), _T("Hello World!"), MB_OK);
             else if(_tcscmp(nmhtmlurl->pszUrl, _T("app:set_dynamic")) == 0)
                 GenerateDynamicContents();
+            else if (_tcscmp(nmhtmlurl->pszUrl, _T("app:call_js_func")) == 0)
+                CallJavaScriptFunc();
             else
                 MessageBox(hwnd, nmhtmlurl->pszUrl, _T("URL of the app link"), MB_OK);
         }
