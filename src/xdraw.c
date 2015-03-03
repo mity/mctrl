@@ -410,12 +410,6 @@ struct dw_IDWriteTextLayout_tag {
 #endif
 
 
-static const GUID xdraw_IID_IWICImagingFactory = { 0xec5ec8a9, 0xc395, 0x4314, { 0x9c,0x77, 0x54,0xd7,0xa9,0x35,0xff,0x70 }};
-static const GUID xdraw_CLSID_WICImagingFactory = { 0xcacaf262, 0x9370, 0x4615, { 0xa1,0x3b,0x9f,0x55,0x39,0xda,0x4c,0x0a }};
-#define IID_IWICImagingFactory xdraw_IID_IWICImagingFactory
-#define CLSID_WICImagingFactory xdraw_CLSID_WICImagingFactory
-
-
 static HMODULE d2d_dll = NULL;  /* D2D1.DLL */
 static ID2D1Factory* d2d_factory;
 
