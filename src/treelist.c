@@ -991,9 +991,6 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     cd.clrText = GetSysColor(COLOR_WINDOWTEXT);
     cd.clrTextBk = MC_CLR_NONE;
     cd_mode[0] = MC_SEND(tl->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
-#ifndef CDRF_DOERASE  /* mingw-w64 missing this. Patch sent to them. */
-    #define CDRF_DOERASE 0x81
-#endif
     if(cd_mode[0] & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
         goto skip_control_paint;
 
