@@ -2430,7 +2430,7 @@ chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase
     chart_calc_layout(chart, &layout);
 
     /* Paint title */
-    if(!mc_rect_is_empty(&layout.title_rect) && mc_rect_overlaps_rect(dirty, &layout.title_rect)) {
+    if(!mc_rect_is_empty(&layout.title_rect)) {
         WCHAR title[256];
         xdraw_rect_t rc = { layout.title_rect.left, layout.title_rect.top,
                             layout.title_rect.right, layout.title_rect.bottom };
@@ -2442,47 +2442,44 @@ chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase
     }
 
     /* Paint legend */
-    if(mc_rect_overlaps_rect(dirty, &layout.legend_rect))
-        chart_paint_legend(chart, ctx, &layout);
+    chart_paint_legend(chart, ctx, &layout);
 
     /* Paint the chart body */
-    if(mc_rect_overlaps_rect(dirty, &layout.body_rect)) {
-        DWORD type = (chart->style & MC_CHS_TYPEMASK);
-        switch(type) {
-            case MC_CHS_PIE:
-                pie_paint(chart, ctx, &layout);
-                break;
+    DWORD type = (chart->style & MC_CHS_TYPEMASK);
+    switch(type) {
+        case MC_CHS_PIE:
+            pie_paint(chart, ctx, &layout);
+            break;
 
-            case MC_CHS_SCATTER:
-                scatter_paint(chart, ctx, &layout);
-                break;
+        case MC_CHS_SCATTER:
+            scatter_paint(chart, ctx, &layout);
+            break;
 
-            case MC_CHS_LINE:
-            case MC_CHS_STACKEDLINE:
-            case MC_CHS_AREA:
-            case MC_CHS_STACKEDAREA:
-            {
-                BOOL is_stacked = (type == MC_CHS_STACKEDLINE  ||  type == MC_CHS_STACKEDAREA);
-                BOOL is_area = (type == MC_CHS_AREA  ||  type == MC_CHS_STACKEDAREA);
-                line_paint(chart, is_area, is_stacked, ctx, &layout);
-                break;
-            }
+        case MC_CHS_LINE:
+        case MC_CHS_STACKEDLINE:
+        case MC_CHS_AREA:
+        case MC_CHS_STACKEDAREA:
+        {
+            BOOL is_stacked = (type == MC_CHS_STACKEDLINE  ||  type == MC_CHS_STACKEDAREA);
+            BOOL is_area = (type == MC_CHS_AREA  ||  type == MC_CHS_STACKEDAREA);
+            line_paint(chart, is_area, is_stacked, ctx, &layout);
+            break;
+        }
 
-            case MC_CHS_COLUMN:
-            case MC_CHS_STACKEDCOLUMN:
-            {
-                BOOL is_stacked = (type == MC_CHS_STACKEDCOLUMN);
-                column_paint(chart, is_stacked, ctx, &layout);
-                break;
-            }
+        case MC_CHS_COLUMN:
+        case MC_CHS_STACKEDCOLUMN:
+        {
+            BOOL is_stacked = (type == MC_CHS_STACKEDCOLUMN);
+            column_paint(chart, is_stacked, ctx, &layout);
+            break;
+        }
 
-            case MC_CHS_BAR:
-            case MC_CHS_STACKEDBAR:
-            {
-                BOOL is_stacked = (type == MC_CHS_STACKEDBAR);
-                bar_paint(chart, is_stacked, ctx, &layout);
-                break;
-            }
+        case MC_CHS_BAR:
+        case MC_CHS_STACKEDBAR:
+        {
+            BOOL is_stacked = (type == MC_CHS_STACKEDBAR);
+            bar_paint(chart, is_stacked, ctx, &layout);
+            break;
         }
     }
 
