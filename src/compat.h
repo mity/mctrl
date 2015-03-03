@@ -213,19 +213,6 @@
 #endif
 
 
-/* Same as memset() but for DWORD elements. */
-static inline void
-mc_stosd(uint32_t* dst, uint32_t val, size_t n)
-{
-#if defined MC_HAVE_INTRIN_H
-    __stosd((unsigned long*)dst, (unsigned long)val, n);
-#else
-    size_t i;
-    for(i = 0; i < n; i++)
-        dst[i] = val;
-#endif
-}
-
 /* CLZ (count leading zeros).
  * Note the result is undefined for val == 0.
  */
