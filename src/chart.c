@@ -3279,7 +3279,6 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_CHM_GETTOOLTIPS:
             return (LRESULT) chart->tooltip_win;
 
-
         case MC_CHM_GETAXISLEGENDW:
         case MC_CHM_GETAXISLEGENDA:
             /* TODO */
@@ -3288,8 +3287,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_CHM_SETAXISLEGENDW:
         case MC_CHM_SETAXISLEGENDA:
             return chart_set_axis_legend(chart, wp, (void*)lp,
-                                         (msg == MC_CHM_SETDATASETLEGENDW));
-
+                                         (msg == MC_CHM_SETAXISLEGENDW));
 
         case WM_SETTEXT:
         {
