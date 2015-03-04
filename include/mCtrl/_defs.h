@@ -20,7 +20,7 @@
 #define MCTRL_DEFS_H
 
 #include <windows.h>
-#include <wtypes.h>
+#include <oaidl.h>
 
 #ifdef __cplusplus
 extern "C" {
