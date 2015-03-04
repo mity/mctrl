@@ -47,14 +47,13 @@ GenerateDynamicContents(void)
     TCHAR buffer[512];
 
     _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR),
-               _T("<p>This whole paragraph is generated dynamically by the "
-                  "application to prove that. This, together with the "
-                  "<tt>app:</tt> protocol, allows interaction between the HTML "
-                  "page and the application as demonstrated here. Whenever the "
-                  "page is <a href=\"doc.html\">reloaded</a> or "
-                  "<a href=\"app:set_dynamic\">this app link</a> is clicked:</p>"
-                  "<div class=\"big\">%u</div>"),
-                  uCounter);
+               _T("<p>This whole paragraph is generated dynamically by the ")
+               _T("application to prove that. This, together with the ")
+               _T("<tt>app:</tt> protocol, allows interaction between the HTML ")
+               _T("page and the application as demonstrated here. Whenever the ")
+               _T("page is <a href=\"doc.html\">reloaded</a> or ")
+               _T("<a href=\"app:set_dynamic\">this app link</a> is clicked:</p>")
+               _T("<div class=\"big\">%u</div>"), uCounter);
 
     SendMessage(hwndHtml, MC_HM_SETTAGCONTENTS, (WPARAM)_T("dynamic"), (LPARAM)buffer);
     uCounter++;
@@ -80,9 +79,9 @@ CallJavaScriptFunc(void)
     SendMessage(hwndHtml, MC_HM_CALLSCRIPTFUNC,
                 (WPARAM)_T("concat_three"), (LPARAM)&csfArgs);
     _sntprintf(pszBuffer, sizeof(pszBuffer) / sizeof(pszBuffer[0]),
-               _T("We are back in C code. This message box shows the "
-                  "return value of the called JS function below:\n\n"
-                  "\t'%s'"), pszRetVal);
+               _T("We are back in C code. This message box shows the ")
+               _T("return value of the called JS function below:\n\n")
+               _T("\t'%s'"), pszRetVal);
     MessageBox(hwndHtml, pszBuffer, _T("The return value"), MB_OK);
 }
 
@@ -241,7 +240,7 @@ WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
 int APIENTRY
-WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+_tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
     WNDCLASS wc = { 0 };
     HWND hwndMain;

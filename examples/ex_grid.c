@@ -65,8 +65,8 @@ LoadGrid(void)
     tc.hValue = mcValue_CreateIcon(LoadImage(hInst, MAKEINTRESOURCE(IDI_BEAR),
                                    IMAGE_ICON, 0, 0, LR_SHARED));
     SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 7), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateImmString(_T("This is very long string "
-                                        "which does not fit in the cell."));
+    tc.hValue = mcValue_CreateImmString(_T("This is very long string ")
+                                        _T("which does not fit in the cell."));
     SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 8), (LPARAM) &tc);
 
 
@@ -161,7 +161,7 @@ win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
 int APIENTRY
-WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+_tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
     WNDCLASS wc = { 0 };
     HWND hwndMain;
