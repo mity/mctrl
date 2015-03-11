@@ -85,12 +85,29 @@ CallJavaScriptFunc(void)
     MessageBox(hwndHtml, pszBuffer, _T("The return value"), MB_OK);
 }
 
-static void
+static LRESULT
 HandleNotify(HWND hwnd, NMHDR* hdr)
 {
     if(hdr->idFrom == ID_HTML) {
         /* The HTML control has sent us info about some change in its internal
          * state so we may need to update user interface to reflect it. */
+
+        if (hdr->code == MC_HN_BEFORENAVIGATE) {
+            /* User has clicked a link (possibly an "app:" link), or performed
+             * another navigation action.
+             */
+            MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*)hdr;
+            /* Skip "app:" links, and only prompt if this is *not* our initial 
+             * URL. 
+             */
+            if (_tcsncmp(nmhtmlurl->pszUrl, L"app:", 4) != 0 &&
+                _tcscmp(nmhtmlurl->pszUrl, INITIAL_URL) != 0 &&
+                MessageBox(
+                hwnd, _T("Do you want to allow this navigation"),
+                _T("C code prompt"), MB_YESNO) != IDYES) {
+                return -1;
+            }
+        }
 
         if(hdr->code == MC_HN_APPLINK) {
             /* User has activated the application link (app: protocol).
@@ -148,6 +165,8 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
                         MAKELPARAM(nmhtmlhistory->bCanForward, 0));
         }
     }
+
+    return 0;
 }
 
 
@@ -178,8 +197,7 @@ WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {
         case WM_NOTIFY:
-            HandleNotify(hwnd, (NMHDR*) lParam);
-            return 0;
+            return HandleNotify(hwnd, (NMHDR*) lParam);
 
         case WM_SIZE:
             if(wParam == SIZE_RESTORED  ||  wParam == SIZE_MAXIMIZED)
