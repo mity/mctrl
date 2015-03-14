@@ -225,7 +225,10 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 
             HTML_TRACE("dispatch_Invoke: DISPID_BEFORENAVIGATE2(%S)", url);
 
-            if(url != NULL  &&  wcsncmp(url, L"app:", 4) == 0) {
+            if (html_notify_text(html, MC_HN_BEFORENAVIGATE, url) != 0) {
+                *cancel = VARIANT_TRUE;
+            }
+            else if(url != NULL  &&  wcsncmp(url, L"app:", 4) == 0) {
                 html_notify_text(html, MC_HN_APPLINK, url);
                 *cancel = VARIANT_TRUE;
             }
