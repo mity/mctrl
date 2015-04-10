@@ -3289,6 +3289,11 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return chart_set_axis_legend(chart, wp, (void*)lp,
                                          (msg == MC_CHM_SETAXISLEGENDW));
 
+        case WM_SIZE:
+            if(chart->paint_ctx != NULL)
+                xdraw_canvas_resize(chart->paint_ctx->canvas, LOWORD(lp), HIWORD(lp));
+            break;
+
         case WM_SETTEXT:
         {
             LRESULT res;
