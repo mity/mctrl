@@ -1570,9 +1570,10 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
         dw_DWRITE_FONT_METRICS fm;
         float factor;
         HRESULT hr;
+        BOOL ok = FALSE;
 
-        /* Based on http://stackoverflow.com/a/5610139/917880 */
-
+        /* Getting dw_DWRITE_FONT_METRICS.
+         * (Based on http://stackoverflow.com/a/5610139/917880) */
         name_len = IDWriteTextFormat_GetFontFamilyNameLength(tf) + 1;
         name = _malloca(name_len * sizeof(WCHAR));
         if(MC_ERR(name == NULL)) {
@@ -1605,7 +1606,8 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
         }
 
         if(MC_ERR(!exists)) {
-            MC_TRACE("xdraw_font_get_metrics: WTF? Font does not exist?");
+            /* For some reason, this happens for "SYSTEM" font family on Win7. */
+            MC_TRACE("xdraw_font_get_metrics: WTF? Font does not exist? (%S)", name);
             goto err_exists;
         }
 
@@ -1624,12 +1626,7 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
         }
 
         IDWriteFont_GetMetrics(f, &fm);
-
-        metrics->em_height = IDWriteTextFormat_GetFontSize(tf);
-        factor = (metrics->em_height / fm.designUnitsPerEm);
-        metrics->cell_ascent = fm.ascent * factor;
-        metrics->cell_descent = fm.descent * factor;
-        metrics->line_spacing = (fm.ascent + fm.descent + fm.lineGap) * factor;
+        ok = TRUE;
 
         IDWriteFont_Release(f);
 err_GetFirstMatchingFont:
@@ -1642,7 +1639,20 @@ err_GetFontCollection:
 err_GetFontFamilyName:
         _freea(name);
 err_malloca:
-        ;
+
+        metrics->em_height = IDWriteTextFormat_GetFontSize(tf);
+        if(ok) {
+            factor = (metrics->em_height / fm.designUnitsPerEm);
+            metrics->cell_ascent = fm.ascent * factor;
+            metrics->cell_descent = fm.descent * factor;
+            metrics->line_spacing = (fm.ascent + fm.descent + fm.lineGap) * factor;
+        } else {
+            /* Something above failed. Lets invent some sane defaults. */
+            metrics->cell_ascent = 1.1f * metrics->em_height;
+            metrics->cell_descent = 0.1f * metrics->em_height;
+            metrics->line_spacing = metrics->cell_ascent + metrics->cell_descent;
+        }
+        return;
     } else {
         int font_style;
         float font_size;
