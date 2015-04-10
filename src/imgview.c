@@ -318,6 +318,11 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             /* Keep it on WM_PAINT */
             return FALSE;
 
+        case WM_SIZE:
+            if(iv->canvas != NULL)
+                xdraw_canvas_resize(iv->canvas, LOWORD(lp), HIWORD(lp));
+            break;
+
         case MC_IVM_LOADRESOURCEW:
         case MC_IVM_LOADRESOURCEA:
             return (imgview_load_resource(iv, (HINSTANCE) wp, (void*) lp, (msg == MC_IVM_LOADRESOURCEW)) == 0);
