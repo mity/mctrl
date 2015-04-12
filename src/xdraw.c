@@ -37,6 +37,15 @@
 static CRITICAL_SECTION xdraw_lock;
 
 
+static const TCHAR*
+xdraw_default_font_family(void)
+{
+    if(mc_win_version >= MC_WIN_VISTA)
+        return _T("Segoe UI");
+    else
+        return _T("Tahoma");
+}
+
 
 /**************************
  ***  Dummy <dwrite.h>  ***
@@ -165,6 +174,7 @@ struct dw_IDWriteFactory_tag {
 #define IDWriteFactory_QueryInterface(self,a,b)                 (self)->vtbl->QueryInterface(self,a,b)
 #define IDWriteFactory_AddRef(self)                             (self)->vtbl->AddRef(self)
 #define IDWriteFactory_Release(self)                            (self)->vtbl->Release(self)
+#define IDWriteFactory_GetSystemFontCollection(self,a,b)        (self)->vtbl->GetSystemFontCollection(self,a,b)
 #define IDWriteFactory_CreateTextFormat(self,a,b,c,d,e,f,g,h)   (self)->vtbl->CreateTextFormat(self,a,b,c,d,e,f,g,h)
 #define IDWriteFactory_CreateTextLayout(self,a,b,c,d,e,f)       (self)->vtbl->CreateTextLayout(self,a,b,c,d,e,f)
 
@@ -221,6 +231,7 @@ struct dw_IDWriteFontCollection_tag {
 #define IDWriteFontCollection_QueryInterface(self,a,b)          (self)->vtbl->QueryInterface(self,a,b)
 #define IDWriteFontCollection_AddRef(self)                      (self)->vtbl->AddRef(self)
 #define IDWriteFontCollection_Release(self)                     (self)->vtbl->Release(self)
+#define IDWriteFontCollection_GetFontFamilyCount(self)          (self)->vtbl->GetFontFamilyCount(self)
 #define IDWriteFontCollection_GetFontFamily(self,a,b)           (self)->vtbl->GetFontFamily(self,a,b)
 #define IDWriteFontCollection_FindFamilyName(self,a,b,c)        (self)->vtbl->FindFamilyName(self,a,b,c)
 
@@ -1463,15 +1474,19 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
 #endif
 
     if(d2d_dll != NULL) {
-        WCHAR locale_name[LOCALE_NAME_MAX_LENGTH];
+        WCHAR user_locale[LOCALE_NAME_MAX_LENGTH];
+        static WCHAR no_locale[] = L"";
+        static WCHAR enus_locale[] = L"en-us";
+        WCHAR* locales[] = { user_locale, no_locale, enus_locale };
+        int i;
         dw_IDWriteTextFormat* tf;
         dw_DWRITE_FONT_STYLE style;
         HRESULT hr;
 
-        if(fn_GetUserDefaultLocaleName(locale_name, LOCALE_NAME_MAX_LENGTH) == 0) {
+        if(fn_GetUserDefaultLocaleName(user_locale, LOCALE_NAME_MAX_LENGTH) == 0) {
             MC_TRACE("xdraw_font_create_with_LOGFONT: "
                      "GetUserDefaultLocaleName() failed.");
-            locale_name[0] = _T('\0');
+            user_locale[0] = _T('\0');
         }
 
         if(logfont->lfItalic)
@@ -1487,16 +1502,29 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
          *             dw_IDWriteTextLayout::SetStrikethrough()
          */
 
-        hr = IDWriteFactory_CreateTextFormat(dw_factory, logfont->lfFaceName,
-                NULL, logfont->lfWeight, style, dw_DWRITE_FONT_STRETCH_NORMAL,
-                MC_ABS(logfont->lfHeight), locale_name, &tf);
-        if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_font_create_with_LOGFONT: "
-                     "IDWriteFactory::CreateTextFormat(%S) failed. [0x%lx]",
-                     logfont->lfFaceName, hr);
-            return NULL;
+        for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
+            hr = IDWriteFactory_CreateTextFormat(dw_factory, logfont->lfFaceName,
+                    NULL, logfont->lfWeight, style, dw_DWRITE_FONT_STRETCH_NORMAL,
+                    MC_ABS(logfont->lfHeight), locales[i], &tf);
+            if(SUCCEEDED(hr))
+                return (xdraw_font_t*) tf;
         }
-        return (xdraw_font_t*) tf;
+
+        /* In case of a failure, try to fall back to a reasonable the default
+         * font. */
+        for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
+            hr = IDWriteFactory_CreateTextFormat(dw_factory,
+                    xdraw_default_font_family(), NULL, logfont->lfWeight, style,
+                    dw_DWRITE_FONT_STRETCH_NORMAL, MC_ABS(logfont->lfHeight),
+                    locales[i], &tf);
+            if(SUCCEEDED(hr))
+                return (xdraw_font_t*) tf;
+        }
+
+        MC_TRACE("xdraw_font_create_with_LOGFONT: "
+                 "IDWriteFactory::CreateTextFormat(%S, %S) failed. [0x%lx]",
+                 logfont->lfFaceName, user_locale, hr);
+        return NULL;
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
         void* f;
@@ -1509,8 +1537,7 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
             LOGFONT fallback_logfont;
 
             memcpy(&fallback_logfont, logfont, sizeof(LOGFONT));
-            _tcscpy(fallback_logfont.lfFaceName,
-                    (mc_win_version >= MC_WIN_VISTA ? _T("Segoe UI") : _T("Tahoma")));
+            _tcscpy(fallback_logfont.lfFaceName, xdraw_default_font_family());
             status = gdix_CreateFontFromLogfontW(c->dc, &fallback_logfont, &f);
         }
 
