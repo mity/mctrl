@@ -3308,8 +3308,11 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (LRESULT) chart->font;
 
         case WM_SETFONT:
-            chart->font = (HFONT) wp;
-            chart_setup_hot(chart);
+            if(chart->font != (HFONT) wp) {
+                chart->font = (HFONT) wp;
+                chart_free_cached_paint_ctx(chart);
+                chart_setup_hot(chart);
+            }
             if((BOOL) lp  &&  !chart->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
             return 0;
