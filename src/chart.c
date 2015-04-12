@@ -2266,6 +2266,11 @@ chart_paint_legend(chart_t* chart, chart_paint_t* ctx,
     xdraw_rect_t color_rect;
     xdraw_rect_t text_rect;
 
+    if(MC_ERR(ctx->font == NULL)) {
+        MC_TRACE("chart_paint_legend: ctx->font == NULL");
+        return;
+    }
+
     xdraw_font_get_metrics(ctx->font, &fm);
     color_size = fm.em_height - fm.cell_descent;
 
