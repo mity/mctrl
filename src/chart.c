@@ -2345,6 +2345,11 @@ chart_hit_test_legend(chart_t* chart, chart_paint_t* ctx,
     xdraw_rect_t text_rect;
     int set_ix, n;
 
+    if(MC_ERR(ctx->font == NULL)) {
+        MC_TRACE("chart_hit_test_legend: ctx->font == NULL");
+        return -1;
+    }
+
     xdraw_font_get_metrics(ctx->font, &fm);
     color_size = fm.em_height - fm.cell_descent;
 
