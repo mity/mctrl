@@ -1480,7 +1480,9 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
         WCHAR* locales[] = { user_locale, no_locale, enus_locale };
         int i;
         dw_IDWriteTextFormat* tf;
+        float size;
         dw_DWRITE_FONT_STYLE style;
+        dw_DWRITE_FONT_WEIGHT weight;
         HRESULT hr;
 
         if(fn_GetUserDefaultLocaleName(user_locale, LOCALE_NAME_MAX_LENGTH) == 0) {
@@ -1488,6 +1490,9 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
                      "GetUserDefaultLocaleName() failed.");
             user_locale[0] = _T('\0');
         }
+
+        /* DirectWrite does not support "default" font size. */
+        size = (logfont->lfHeight != 0 ? MC_ABS(logfont->lfHeight) : 12);
 
         if(logfont->lfItalic)
             style = dw_DWRITE_FONT_STYLE_ITALIC;
@@ -1502,10 +1507,13 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
          *             dw_IDWriteTextLayout::SetStrikethrough()
          */
 
+        /* DirectWrite does not support FW_DONTCARE */
+        weight = (logfont->lfWeight != FW_DONTCARE ? logfont->lfWeight : FW_REGULAR);
+
         for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
             hr = IDWriteFactory_CreateTextFormat(dw_factory, logfont->lfFaceName,
-                    NULL, logfont->lfWeight, style, dw_DWRITE_FONT_STRETCH_NORMAL,
-                    MC_ABS(logfont->lfHeight), locales[i], &tf);
+                    NULL, weight, style, dw_DWRITE_FONT_STRETCH_NORMAL, size,
+                    locales[i], &tf);
             if(SUCCEEDED(hr))
                 return (xdraw_font_t*) tf;
         }
@@ -1514,9 +1522,8 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
          * font. */
         for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
             hr = IDWriteFactory_CreateTextFormat(dw_factory,
-                    xdraw_default_font_family(), NULL, logfont->lfWeight, style,
-                    dw_DWRITE_FONT_STRETCH_NORMAL, MC_ABS(logfont->lfHeight),
-                    locales[i], &tf);
+                    xdraw_default_font_family(), NULL, weight, style,
+                    dw_DWRITE_FONT_STRETCH_NORMAL, size, locales[i], &tf);
             if(SUCCEEDED(hr))
                 return (xdraw_font_t*) tf;
         }
