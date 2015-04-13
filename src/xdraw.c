@@ -1589,6 +1589,17 @@ xdraw_font_destroy(xdraw_font_t* font)
 void
 xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
 {
+    if(MC_ERR(font == NULL)) {
+        /* Treat NULL as "no font". This simplifies paint code when font
+         * creation fails. */
+        MC_TRACE("xdraw_font_get_metrics: font == NULL");
+        metrics->em_height = 0.0f;
+        metrics->cell_ascent = 0.0f;
+        metrics->cell_descent = 0.0f;
+        metrics->line_spacing = 0.0f;
+        return;
+    }
+
     if(d2d_dll != NULL) {
         dw_IDWriteTextFormat* tf = (dw_IDWriteTextFormat*) font;
         dw_IDWriteFontCollection* fc;
