@@ -2007,6 +2007,9 @@ xdraw_draw_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Bitmap* b;
         HRESULT hr;
+        /* Compensation for translation in xdraw_canvas_transform_reset() */
+        D2D1_RECT_F dst_fix = { dst->x0 - 0.5f, dst->y0 - 0.5f,
+                                dst->x1 - 0.5f, dst->y1 - 0.5f };
 
         hr = ID2D1RenderTarget_CreateBitmapFromWicBitmap(c->target, source, NULL, &b);
         if(MC_ERR(FAILED(hr))) {
@@ -2015,7 +2018,7 @@ xdraw_draw_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
                      "[0x%lx]", hr);
             return;
         }
-        ID2D1RenderTarget_DrawBitmap(c->target, b, (D2D1_RECT_F*) dst, 1.0f,
+        ID2D1RenderTarget_DrawBitmap(c->target, b, &dst_fix, 1.0f,
                     D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, (D2D1_RECT_F*) src);
         ID2D1Bitmap_Release(b);
     } else {
