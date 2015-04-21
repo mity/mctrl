@@ -58,7 +58,7 @@ imgview_paint_to_canvas(imgview_t* iv, xdraw_canvas_t* canvas,
 
             dc = xdraw_canvas_acquire_dc(canvas, FALSE);
             if(dc != NULL) {
-                mcDrawThemeParentBackground(iv->win, dc, dirty);
+                mcDrawThemeParentBackground(iv->win, dc, NULL);
                 xdraw_canvas_release_dc(canvas, dc);
             } else {
                 MC_TRACE("imgview_paint_to_canvas: xdraw_canvas_acquire_dc() failed.");
