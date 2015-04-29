@@ -48,57 +48,35 @@ LoadGrid(void)
     _sntprintf(buffer, 32, _T("Hello world!"));
     SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 1), (LPARAM) &tc);
 
-    /* Set few other cells to various value types (see MC_HVALUE) */
-    tc.fMask = MC_TCMF_VALUE;
-    tc.hValue = mcValue_CreateImmString(_T("imm string"));
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 3), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateString(_T("string"));
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 4), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateColor(RGB(200, 0, 0));
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 5), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateColor(RGB(0, 200, 0));
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(2, 5), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateColor(RGB(0, 0, 200));
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(3, 5), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateInt32(42);
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 6), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateIcon(LoadImage(hInst, MAKEINTRESOURCE(IDI_BEAR),
-                                   IMAGE_ICON, 0, 0, LR_SHARED));
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 7), (LPARAM) &tc);
-    tc.hValue = mcValue_CreateImmString(_T("This is very long string ")
-                                        _T("which does not fit in the cell."));
-    SendMessage(hwndGrid, MC_GM_SETCELL, MAKEWPARAM(1, 8), (LPARAM) &tc);
-
-
     /* We can also get the data model of the grid control and manipulate it
      * directly. */
     hTable = (MC_HTABLE) SendMessage(hwndGrid, MC_GM_GETTABLE, 0, 0);
-    tc.fMask = MC_TCMF_VALUE | MC_TCMF_FLAGS;
-    tc.hValue = mcValue_CreateImmString(_T("top left"));
+    tc.fMask = MC_TCMF_TEXT | MC_TCMF_FLAGS;
+    tc.pszText = _T("top left");
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNTOP;
     mcTable_SetCell(hTable, 4, 10, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("top center"));
+    tc.pszText = _T("top center");
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNTOP;
     mcTable_SetCell(hTable, 5, 10, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("top right"));
+    tc.pszText = _T("top right");
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNTOP;
     mcTable_SetCell(hTable, 6, 10, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("middle left"));
+    tc.pszText = _T("middle left");
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNVCENTER;
     mcTable_SetCell(hTable, 4, 11, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("middle center"));
+    tc.pszText = _T("middle center");
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNVCENTER;
     mcTable_SetCell(hTable, 5, 11, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("middle right"));
+    tc.pszText = _T("middle right");
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNVCENTER;
     mcTable_SetCell(hTable, 6, 11, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("bottom left"));
+    tc.pszText = _T("bottom left");
     tc.dwFlags = MC_TCF_ALIGNLEFT | MC_TCF_ALIGNBOTTOM;
     mcTable_SetCell(hTable, 4, 12, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("bottom center"));
+    tc.pszText = _T("bottom center");
     tc.dwFlags = MC_TCF_ALIGNCENTER | MC_TCF_ALIGNBOTTOM;
     mcTable_SetCell(hTable, 5, 12, &tc);
-    tc.hValue = mcValue_CreateImmString(_T("bottom right"));
+    tc.pszText = _T("bottom right");
     tc.dwFlags = MC_TCF_ALIGNRIGHT | MC_TCF_ALIGNBOTTOM;
     mcTable_SetCell(hTable, 6, 12, &tc);
 

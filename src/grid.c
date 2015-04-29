@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2014 Martin Mitas
+ * Copyright (c) 2010-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -430,7 +430,6 @@ grid_alphabetic_number(TCHAR buffer[16], WORD num)
 
 typedef struct grid_dispinfo_tag grid_dispinfo_t;
 struct grid_dispinfo_tag {
-    MC_HVALUE value;
     TCHAR* text;
     DWORD flags;
 };
@@ -441,18 +440,17 @@ grid_get_dispinfo(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
 {
     MC_NMGDISPINFO info;
 
-    MC_ASSERT((mask & ~(MC_TCMF_TEXT | MC_TCMF_VALUE | MC_TCMF_FLAGS)) == 0);
+    MC_ASSERT((mask & ~(MC_TCMF_TEXT | MC_TCMF_FLAGS)) == 0);
 
     /* Use what can be taken from the cell. */
     if(cell != NULL) {
         if(cell->text != MC_LPSTR_TEXTCALLBACK) {
-            di->text = (cell->is_value ? NULL : cell->text);
+            di->text = cell->text;
             mask &= ~MC_TCMF_TEXT;
         }
 
-        di->value = (cell->is_value ? cell->value : NULL);
         di->flags = cell->flags;
-        mask &= ~(MC_TCMF_VALUE | MC_TCMF_FLAGS);
+        mask &= ~(MC_TCMF_FLAGS);
 
         if(mask == 0)
             return;
@@ -470,12 +468,10 @@ grid_get_dispinfo(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
      * defaults to deal with broken apps which do not set the asked members. */
     if(cell != NULL) {
         info.cell.pszText = NULL;
-        info.cell.hValue = NULL;
         info.cell.lParam = cell->lp;
         info.cell.dwFlags = cell->flags;
     } else {
         info.cell.pszText = NULL;
-        info.cell.hValue = NULL;
         info.cell.lParam = 0;
         info.cell.dwFlags = 0;
     }
@@ -495,7 +491,6 @@ grid_get_dispinfo(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     /* Small optimization: We do not ask about the corresponding bits in the
      * mask for these. If not set, the assignment does no hurt and we save few
      * instructions. */
-    di->value = info.cell.hValue;
     di->flags = info.cell.dwFlags;
 }
 
@@ -515,8 +510,7 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     UINT dt_flags = DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS;
     grid_dispinfo_t di;
 
-    grid_get_dispinfo(grid, col, row, cell, &di,
-                      MC_TCMF_TEXT | MC_TCMF_VALUE | MC_TCMF_FLAGS);
+    grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
 
     /* Apply padding */
     content.left = rect->left + grid->padding_h;
@@ -525,23 +519,18 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     content.bottom = rect->bottom - grid->padding_v;
 
     /* Paint cell value or text. */
-    if(di.value != NULL) {
-        /* MC_TCF_ALIGNxxx flags are designed to match VALUE_PF_ALIGNxxx
-         * corresponding ones. */
-        value_paint(di.value, dc, &content, (di.flags & VALUE_PF_ALIGNMASK));
-        return;
-    } else if(di.text != NULL) {
-        switch(di.flags & VALUE_PF_ALIGNMASKHORZ) {
-            case VALUE_PF_ALIGNDEFAULT:   /* fall through */
-            case VALUE_PF_ALIGNLEFT:      dt_flags |= DT_LEFT; break;
-            case VALUE_PF_ALIGNCENTER:    dt_flags |= DT_CENTER; break;
-            case VALUE_PF_ALIGNRIGHT:     dt_flags |= DT_RIGHT; break;
+    if(di.text != NULL) {
+        switch(di.flags & MC_TCF_ALIGNMASKHORZ) {
+            case MC_TCF_ALIGNDEFAULT:   /* fall through */
+            case MC_TCF_ALIGNLEFT:      dt_flags |= DT_LEFT; break;
+            case MC_TCF_ALIGNCENTER:    dt_flags |= DT_CENTER; break;
+            case MC_TCF_ALIGNRIGHT:     dt_flags |= DT_RIGHT; break;
         }
-        switch(di.flags & VALUE_PF_ALIGNMASKVERT) {
-            case VALUE_PF_ALIGNTOP:       dt_flags |= DT_TOP; break;
-            case VALUE_PF_ALIGNVDEFAULT:  /* fall through */
-            case VALUE_PF_ALIGNVCENTER:   dt_flags |= DT_VCENTER; break;
-            case VALUE_PF_ALIGNBOTTOM:    dt_flags |= DT_BOTTOM; break;
+        switch(di.flags & MC_TCF_ALIGNMASKVERT) {
+            case MC_TCF_ALIGNTOP:       dt_flags |= DT_TOP; break;
+            case MC_TCF_ALIGNVDEFAULT:  /* fall through */
+            case MC_TCF_ALIGNVCENTER:   dt_flags |= DT_VCENTER; break;
+            case MC_TCF_ALIGNBOTTOM:    dt_flags |= DT_BOTTOM; break;
         }
         DrawText(dc, di.text, -1, &content, dt_flags);
     }
@@ -590,15 +579,14 @@ grid_paint_header_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
             tmp.text = grid_alphabetic_number(buffer, index);
         }
         tmp.flags = (cell != NULL ? cell->flags : 0);
-        tmp.is_value = FALSE;
     }
 
     /* If the header does not say explicitly otherwise, force centered
      * alignment for the header cells. */
-    if((tmp.flags & VALUE_PF_ALIGNMASKHORZ) == VALUE_PF_ALIGNDEFAULT)
-        tmp.flags |= VALUE_PF_ALIGNCENTER;
-    if((tmp.flags & VALUE_PF_ALIGNMASKVERT) == VALUE_PF_ALIGNVDEFAULT)
-        tmp.flags |= VALUE_PF_ALIGNVCENTER;
+    if((tmp.flags & MC_TCF_ALIGNMASKHORZ) == MC_TCF_ALIGNDEFAULT)
+        tmp.flags |= MC_TCF_ALIGNCENTER;
+    if((tmp.flags & MC_TCF_ALIGNMASKVERT) == MC_TCF_ALIGNVDEFAULT)
+        tmp.flags |= MC_TCF_ALIGNVCENTER;
 
     /* Paint header contents. */
     grid_paint_cell(grid, col, row, tmp_cell, dc, rect);

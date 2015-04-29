@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2014 Martin Mitas
+ * Copyright (c) 2010-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,7 +21,6 @@
 
 #include <mCtrl/_defs.h>
 #include <mCtrl/_common.h>
-#include <mCtrl/value.h>
 #include <mCtrl/table.h>
 
 #ifdef __cplusplus

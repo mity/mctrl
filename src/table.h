@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2014 Martin Mitas
+ * Copyright (c) 2010-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,19 +22,14 @@
 #include "mCtrl/table.h"
 
 #include "misc.h"
-#include "value.h"
 #include "viewlist.h"
 
 
 typedef struct table_cell_tag table_cell_t;
 struct table_cell_tag {
-    union {
-        TCHAR* text;
-        value_t* value;
-    };
+    TCHAR* text;
     LPARAM lp;
-    WORD flags;      /* Note MC_TABLECELL::dwFlags is DWORD. */
-    WORD is_value : 1;
+    DWORD flags;
 };
 
 

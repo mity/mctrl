@@ -48,7 +48,6 @@
  *
  * @subsection toc_data Control Data Models
  * - @ref mCtrl/table.h - Table (data model for the grid control)
- * - @ref mCtrl/value.h - Value (polymorphic data)
  *
  * @subsection toc_util Utility Headers
  * - @ref mctrl.h - All-in-one header

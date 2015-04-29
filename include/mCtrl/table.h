@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2014 Martin Mitas
+ * Copyright (c) 2010-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,7 +21,6 @@
 
 #include <mCtrl/_defs.h>
 #include <mCtrl/_common.h>
-#include <mCtrl/value.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,39 +32,23 @@ extern "C" {
  * @brief Table (data model for grid control)
  *
  * The table is actually a container which manages set of values arranged in
- * a two-dimensional matrix. It serves as a back-end for the grid control
- * (@ref MC_WC_GRID).
- *
- *
- * @section table_cell Cell
+ * a two-dimensional matrix of cells. It serves as a back-end for the grid
+ * control (@ref MC_WC_GRID).
  *
  * To set or get an information about a cell, application uses the structure
- * @ref MC_TABLECELL. The main data associated with each cell is a text (string)
- * or value (@ref MC_HVALUE). Note the cell can only hold one or the other, but
- * not both.
- *
- * When the cell is holding a string and an application sets the cell to
- * a value, the string is freed. When the cell is holding a value and app sets
- * the cell to a string, then the value is destroyed. The cell holds whatever
- * is set last to it. Any attempt to set both at the same time (i.e. using
- * mask <tt>MC_TCMF_TEXT | MC_TCMF_VALUE</tt> with a setter function) causes
- * a failure of the setter function.
- *
- * When getting a cell and the mask <tt>MC_TCMF_TEXT | MC_TCMF_VALUE</tt> is
- * used, then on output either @c MC_TABLECELL::pszText or
- * @c MC_TABLECELL::hValue is @c NULL, depending on what the cell holds.
- * (Both can be @c NULL if the cell does not neither string nor value.)
+ * @ref MC_TABLECELL.
  *
  *
  * @section table_header Column and Row Headers
  *
- * The table also holds a cell for each column and row. The grid uses data
+ * The table also manages a cell for each column and row. The grid uses data
  * of these cells as headers for columns and rows (with its default styles;
  * the control provides some styles changing this behavior).
  *
- * The cells are manipulated the same way as ordinary cells. Just to address
- * the header cells, the macro @ref MC_TABLE_HEADER has to be used instead
- * of column index (for row header) or row index (for column header).
+ * The cells are manipulated the same way as ordinary cells, but special value
+ * @ref MC_TABLE_HEADER has to be used as a column index or row index. I.e.
+ * to address cell for 2nd column, use column index 1 (because indexes are
+ * zero-based), and row index @ref MC_TABLE_HEADER.
  */
 
 
@@ -95,12 +78,8 @@ typedef void* MC_HTABLE;
  */
 /*@{*/
 
-/** @brief Set if @ref MC_TABLECELLW::pszText or @ref MC_TABLECELLA::pszText is valid.
- *  @see @ref table_cell */
+/** @brief Set if @ref MC_TABLECELLW::pszText or @ref MC_TABLECELLA::pszText is valid. */
 #define MC_TCMF_TEXT                 0x00000001
-/** @brief Set if @ref MC_TABLECELLW::hValue or @ref MC_TABLECELLA::hValue is valid.
- *  @see @ref table_cell */
-#define MC_TCMF_VALUE                0x00000002
 /** @brief Set if @ref MC_TABLECELLW::lParam or @ref MC_TABLECELLA::lParam is valid. */
 #define MC_TCMF_PARAM                0x00000004
 /** @brief Set if @ref MC_TABLECELLW::dwFlags or @ref MC_TABLECELLA::dwFlags is valid. */
@@ -132,6 +111,12 @@ typedef void* MC_HTABLE;
 /** @brief Paint the cell value aligned vertically to bottom. */
 #define MC_TCF_ALIGNBOTTOM          0x00000008
 
+/** @brief Bitmask for all cell flags specifying horizontal alignment. */
+#define MC_TCF_ALIGNMASKHORZ       (MC_TCF_ALIGNDEFAULT | MC_TCF_ALIGNLEFT |   \
+                                    MC_TCF_ALIGNCENTER | MC_TCF_ALIGNRIGHT)
+/** @brief Bitmask for all cell flags specifying vertical alignment. */
+#define MC_TCF_ALIGNMASKVERT       (MC_TCF_ALIGNVDEFAULT | MC_TCF_ALIGNTOP |   \
+                                    MC_TCF_ALIGNVCENTER | MC_TCF_ALIGNBOTTOM)
 /*@}*/
 
 
@@ -146,12 +131,10 @@ typedef void* MC_HTABLE;
 typedef struct MC_TABLECELLW_tag {
     /** Bitmask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
     DWORD fMask;
-    /** Cell text. @see @ref table_cell */
+    /** Cell text. */
     WCHAR* pszText;
     /** Number of characters in @c pszText. Used only on output. */
     int cchTextMax;
-    /** Cell value. @see @ref table_cell */
-    MC_HVALUE hValue;
     /** User data. */
     LPARAM lParam;
     /** Cell flags. See @ref MC_TCF_xxxx. */
@@ -170,12 +153,10 @@ typedef struct MC_TABLECELLW_tag {
 typedef struct MC_TABLECELLA_tag {
     /** Bitmask specifying what other members are valid. See @ref MC_TCMF_xxxx. */
     DWORD fMask;
-    /** Cell text. @see @ref table_cell */
+    /** Cell text. */
     char* pszText;
     /** Number of characters in @c pszText. Used only on output. */
     int cchTextMax;
-    /** Cell value. @see @ref table_cell */
-    MC_HVALUE hValue;
     /** User data. */
     LPARAM lParam;
     /** Cell flags. See @ref MC_TCF_xxxx. */

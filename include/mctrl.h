@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 Martin Mitas
+ * Copyright (c) 2011-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,6 @@
 #include <mCtrl/menubar.h>
 #include <mCtrl/mditab.h>
 #include <mCtrl/table.h>
-#include <mCtrl/value.h>
 #include <mCtrl/version.h>
 #include <mCtrl/theme.h>
 #include <mCtrl/treelist.h>

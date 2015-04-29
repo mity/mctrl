@@ -113,28 +113,4 @@ EXPORTS
     mcTreeList_Initialize
     mcTreeList_Terminate
     mcUpdatePanningFeedback
-    mcValue_CreateColor
-    mcValue_CreateIcon
-    mcValue_CreateImmStringA
-    mcValue_CreateImmStringW
-    mcValue_CreateInt32
-    mcValue_CreateInt64
-    mcValue_CreateStringA
-    mcValue_CreateStringW
-    mcValue_CreateUInt32
-    mcValue_CreateUInt64
-    mcValue_Destroy
-    mcValue_Duplicate
-    mcValue_GetColor
-    mcValue_GetIcon
-    mcValue_GetImmStringA
-    mcValue_GetImmStringW
-    mcValue_GetInt32
-    mcValue_GetInt64
-    mcValue_GetStringA
-    mcValue_GetStringW
-    mcValue_GetUInt32
-    mcValue_GetUInt64
-    mcValue_Type
-    mcValueType_GetBuiltin
     mcVersion

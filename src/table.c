@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2014 Martin Mitas
+ * Copyright (c) 2010-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,18 +29,14 @@
 #endif
 
 
-#define MC_TCMF_ALL    (MC_TCMF_TEXT | MC_TCMF_VALUE | MC_TCMF_PARAM | MC_TCMF_FLAGS)
+#define MC_TCMF_ALL    (MC_TCMF_TEXT | MC_TCMF_PARAM | MC_TCMF_FLAGS)
 
 
 static inline void
-table_cell_free(table_cell_t* cell)
+table_cell_clear(table_cell_t* cell)
 {
-    if(cell->text != NULL) {
-        if(!cell->is_value)
-            free(cell->text);
-        else
-            value_destroy(cell->value);
-    }
+    if(cell->text != NULL)
+        free(cell->text);
 }
 
 static inline void
@@ -255,7 +251,7 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
             WORD col, row;
             for(row = free_src[i].row0; row < free_src[i].row1; row++) {
                 for(col = free_src[i].col0; col < free_src[i].col1; col++) {
-                    table_cell_free(&table->cells[row * table->col_count + col]);
+                    table_cell_clear(&table->cells[row * table->col_count + col]);
                 }
             }
         }
@@ -275,7 +271,7 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
         WORD col;
         MC_ASSERT(table->cols != NULL);  /* implies from col_delta < 0 */
         for(col = col_pos; col < col_pos - col_delta; col++)
-            table_cell_free(&table->cols[col]);
+            table_cell_clear(&table->cols[col]);
         if(cols != NULL) {
             memcpy(&cols[col_pos], &table->cols[col_pos - col_delta],
                    (col_count - col_pos) * sizeof(table_cell_t));
@@ -296,7 +292,7 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
         WORD row;
         MC_ASSERT(table->rows != NULL);  /* implies from row_delta < 0 */
         for(row = row_pos; row < row_pos - row_delta; row++)
-            table_cell_free(&table->rows[row]);
+            table_cell_clear(&table->rows[row]);
         if(rows != NULL) {
             memcpy(&rows[row_pos], &table->rows[row_pos - row_delta],
                    (row_count - row_pos) * sizeof(table_cell_t));
@@ -401,7 +397,7 @@ table_destroy(table_t* table)
 
         n = table->col_count + table->row_count + table->col_count * table->row_count;
         for(i = 0; i < n; i++)
-            table_cell_free(&table->cells[i]);
+            table_cell_clear(&table->cells[i]);
 
         free(table->cells);
     }
@@ -444,8 +440,6 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
 {
     table_cell_t* cell;
     table_refresh_detail_t refresh_detail;
-    void* text;
-    MC_HVALUE val;
 
     TABLE_TRACE("table_set_cell_data(%p, %hd, %hd, %p, %s)",
                 table, col, row, cell_data, (unicode ? "unicode" : "ansi"));
@@ -462,23 +456,12 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
         return -1;
     }
 
-    text = (cell_data->fMask & MC_TCMF_TEXT) ? cell_data->pszText : NULL;
-    val = (cell_data->fMask & MC_TCMF_VALUE) ? cell_data->hValue : NULL;
-    if(MC_ERR(text != NULL  &&  val != NULL)) {
-        MC_TRACE("table_set_cell_data: Cannot set both MC_TABLECELL::pszText and MC_TABLECELL::hValue.");
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return -1;
-    }
-
     /* Set the cell */
-    if(val != NULL) {
-        table_cell_free(cell);
-        cell->value = val;
-        cell->is_value = TRUE;
-    } else {
+    if(cell_data->fMask & MC_TCMF_TEXT) {
         TCHAR* str;
-        if(text != NULL) {
-            str = mc_str(text, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+
+        if(cell_data->pszText != NULL) {
+            str = mc_str(cell_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
             if(MC_ERR(str == NULL)) {
                 MC_TRACE("table_set_cell_data: mc_str() failed.");
                 return -1;
@@ -486,9 +469,8 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
         } else {
             str = NULL;
         }
-        table_cell_free(cell);
+        table_cell_clear(cell);
         cell->text = str;
-        cell->is_value = FALSE;
     }
 
     if(cell_data->fMask & MC_TCMF_PARAM)
@@ -527,13 +509,9 @@ table_get_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
     }
 
     if(cell_data->fMask & MC_TCMF_TEXT) {
-        mc_str_inbuf((cell->is_value ? _T("") : cell->text), MC_STRT,
-                     cell_data->pszText, (unicode ? MC_STRW : MC_STRA),
-                     cell_data->cchTextMax);
+        mc_str_inbuf(cell->text, MC_STRT, cell_data->pszText,
+                     (unicode ? MC_STRW : MC_STRA), cell_data->cchTextMax);
     }
-
-    if(cell_data->fMask & MC_TCMF_VALUE)
-        cell_data->hValue = (cell->is_value ? cell->value : NULL);
 
     if(cell_data->fMask & MC_TCMF_PARAM)
         cell_data->lParam = cell->lp;
@@ -630,7 +608,7 @@ mcTable_Clear(MC_HTABLE hTable, DWORD dwWhat)
 
     for(i = 0; i < n; i++) {
         for(j = 0; j < count[i]; j++)
-            table_cell_free(&ptr[i][j]);
+            table_cell_clear(&ptr[i][j]);
         memset(ptr[i], 0, count[i] * sizeof(table_cell_t));
     }
 
