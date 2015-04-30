@@ -120,6 +120,14 @@ extern "C" {
  * - @c CCM_SETNOTIFYWINDOW
  * - @c CCM_SETUNICODEFORMAT
  * - @c CCM_SETWINDOWTHEME
+ *
+ * These standard notifications are sent by the control:
+ * - @c NM_CLICK
+ * - @c NM_DBLCLK
+ * - @c NM_RCLICK
+ * - @c NM_RDBLCLK
+ * - @c NM_OUTOFMEMORY
+ * - @c WM_CONTEXTMENU
  */
 
 

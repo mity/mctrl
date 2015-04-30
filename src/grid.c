@@ -1063,6 +1063,37 @@ grid_get_row_height(grid_t* grid, WORD row)
     return MAKELPARAM(grid_row_height(grid, row), 0);
 }
 
+static void
+grid_left_button(grid_t* grid, int x, int y, BOOL dblclick, WPARAM wp)
+{
+    UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
+
+    if(mc_send_notify(grid->notify_win, grid->win, notify_code)) {
+        /* Application suppresses the default processing of the message */
+        return;
+    }
+
+    /* TODO: Further processing (e.g. selection change etc.) */
+}
+
+static void
+grid_right_button(grid_t* grid, int x, int y, BOOL dblclick, WPARAM wp)
+{
+    UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
+    POINT pt;
+
+    if(mc_send_notify(grid->notify_win, grid->win, notify_code) != 0) {
+        /* Application suppresses the default processing of the message */
+        return;
+    }
+
+    /* Send WM_CONTEXTMENU */
+    pt.x = x;
+    pt.y = y;
+    ClientToScreen(grid->win, &pt);
+    MC_SEND(grid->notify_win, WM_CONTEXTMENU, grid->win, MAKELPARAM(pt.x, pt.y));
+}
+
 static int
 grid_set_table(grid_t* grid, table_t* table)
 {
@@ -1397,6 +1428,18 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             grid_mouse_wheel(grid, (msg == WM_MOUSEWHEEL), (int)(SHORT)HIWORD(wp));
             return 0;
 
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+            grid_left_button(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp),
+                             (msg == WM_LBUTTONDBLCLK), wp);
+            return 0;
+
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONDBLCLK:
+            grid_right_button(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp),
+                              (msg == WM_RBUTTONDBLCLK), wp);
+            return 0;
+
         case WM_SIZE:
             if(!grid->no_redraw) {
                 int old_scroll_x = grid->scroll_x;
@@ -1490,7 +1533,7 @@ grid_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    wc.style = CS_GLOBALCLASS | CS_PARENTDC;
+    wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_DBLCLKS;
     wc.lpfnWndProc = grid_proc;
     wc.cbWndExtra = sizeof(grid_t*);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
