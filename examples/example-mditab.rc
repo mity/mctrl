@@ -4,15 +4,13 @@
  */
 
 #include <windows.h>
-#include "ex_treelist2.h"
+#include "example-mditab.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-/* Manifest enabling XP theme on Win XP */
+/* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
-/* Icons used in the treelist */
-IDI_REG_KEY       ICON res/folder.ico
-IDI_REG_VALUE_STR ICON res/string.ico
-IDI_REG_VALUE_BIN ICON res/binary.ico
+/* Image list */
+IDL_IMGLIST BITMAP res/img_list.bmp

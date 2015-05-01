@@ -12,7 +12,7 @@
 
 #include <mCtrl/expand.h>
 #include <mCtrl/dialog.h>
-#include "ex_expand.h"
+#include "example-expand.h"
 
 
 static HINSTANCE hInst;

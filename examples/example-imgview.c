@@ -12,7 +12,7 @@
 
 #include <mCtrl/imgview.h>
 #include <mCtrl/dialog.h>
-#include "ex_imgview.h"
+#include "example-imgview.h"
 
 
 static HINSTANCE hInst;

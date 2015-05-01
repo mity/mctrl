@@ -5,7 +5,7 @@
 
 #include <windows.h>
 #include <mCtrl/button.h>
-#include "ex_button.h"
+#include "example-button.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL

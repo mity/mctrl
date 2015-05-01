@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #include <mCtrl/mditab.h>
-#include "ex_mditab.h"
+#include "example-mditab.h"
 
 
 static HINSTANCE hInst;

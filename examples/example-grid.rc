@@ -4,7 +4,7 @@
  */
 
 #include <windows.h>
-#include "ex_grid.h"
+#include "example-grid.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL

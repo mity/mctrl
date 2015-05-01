@@ -4,7 +4,7 @@
  */
 
 #include <windows.h>
-#include "ex_menubar.h"
+#include "example-menubar.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL

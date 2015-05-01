@@ -5,7 +5,7 @@
 
 #include <windows.h>
 #include <mCtrl/imgview.h>
-#include "ex_imgview.h"
+#include "example-imgview.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL

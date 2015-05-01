@@ -5,7 +5,7 @@
 
 #include <windows.h>
 #include <mCtrl/chart.h>
-#include "ex_chart.h"
+#include "example-chart.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL

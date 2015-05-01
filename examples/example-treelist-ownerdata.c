@@ -20,7 +20,7 @@
 #include <commctrl.h>
 
 #include <mCtrl/treelist.h>
-#include "ex_treelist2.h"
+#include "example-treelist-ownerdata.h"
 
 #define IDC_TREELIST    100
 

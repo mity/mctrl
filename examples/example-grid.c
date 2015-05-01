@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #include <mCtrl/grid.h>
-#include "ex_grid.h"
+#include "example-grid.h"
 
 
 static HINSTANCE hInst;

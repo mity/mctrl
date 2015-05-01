@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #include <mCtrl/menubar.h>
-#include "ex_menubar.h"
+#include "example-menubar.h"
 
 
 static HINSTANCE hInst;

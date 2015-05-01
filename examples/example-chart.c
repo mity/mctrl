@@ -12,7 +12,7 @@
 
 #include <mCtrl/chart.h>
 #include <mCtrl/dialog.h>
-#include "ex_chart.h"
+#include "example-chart.h"
 
 
 static HINSTANCE hInst;

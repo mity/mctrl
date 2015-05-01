@@ -5,7 +5,7 @@
 
 #include <windows.h>
 #include <mCtrl/expand.h>
-#include "ex_expand.h"
+#include "example-expand.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL

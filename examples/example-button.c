@@ -9,7 +9,7 @@
 #include <windows.h>
 #include <mCtrl/button.h>
 #include <mCtrl/dialog.h>
-#include "ex_button.h"
+#include "example-button.h"
 
 
 static HINSTANCE hInst;
