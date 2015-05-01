@@ -729,10 +729,10 @@ typedef struct MC_NMTLCUSTOMDRAW_tag {
     /** Standard custom-draw structure. */
     MC_NMCUSTOMDRAW nmcd;
     /** Level of the item to be painted.
-     *  Valid only if <tt>nmcd.dwDrawStage</tt> has the flags @c CDDS_ITEM. */
+     *  Valid only if <tt>nmcd.dwDrawStage</tt> has the flag @c CDDS_ITEM. */
     int iLevel;
     /** Subitem of the item to be painted.
-     *  Valid only if <tt>nmcd.dwDrawStage</tt> has the flags @c CDDS_SUBITEM. */
+     *  Valid only if <tt>nmcd.dwDrawStage</tt> has the flag @c CDDS_SUBITEM. */
     int iSubItem;
     /** Item/subitem text color. */
     COLORREF clrText;

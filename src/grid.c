@@ -504,11 +504,29 @@ grid_free_dispinfo(grid_t* grid, table_cell_t* cell, grid_dispinfo_t* di)
 
 static void
 grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
-                HDC dc, RECT* rect)
+                HDC dc, RECT* rect, COLORREF text_color, COLORREF back_color,
+                int control_cd_mode, MC_NMGCUSTOMDRAW* cd)
 {
     RECT content;
     UINT dt_flags = DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS;
     grid_dispinfo_t di;
+    int item_cd_mode = 0;
+
+    /* Custom draw: Item pre-paint notification */
+    if(control_cd_mode & CDRF_NOTIFYITEMDRAW) {
+        cd->nmcd.dwDrawStage = CDDS_ITEMPREPAINT;
+        mc_rect_copy(&cd->nmcd.rc, rect);
+        cd->nmcd.dwItemSpec = (DWORD)MAKELONG(col, row);
+        cd->nmcd.uItemState = 0;
+        cd->nmcd.lItemlParam = cell->lp;
+        cd->clrText = text_color;
+        cd->clrTextBk = back_color;
+        item_cd_mode = MC_SEND(grid->notify_win, WM_NOTIFY, cd->nmcd.hdr.idFrom, cd);
+        if(item_cd_mode & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
+            return;
+        text_color = cd->clrText;
+        back_color = cd->clrTextBk;
+    }
 
     grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
 
@@ -517,6 +535,12 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     content.top = rect->top + grid->padding_v;
     content.right = rect->right - grid->padding_h;
     content.bottom = rect->bottom - grid->padding_v;
+
+    /* Paint cell background */
+    if(back_color != MC_CLR_NONE  &&  back_color != MC_CLR_DEFAULT) {
+        SetBkColor(dc, back_color);
+        ExtTextOut(dc, 0, 0, ETO_OPAQUE, rect, NULL, 0, NULL);
+    }
 
     /* Paint cell value or text. */
     if(di.text != NULL) {
@@ -532,15 +556,28 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
             case MC_TCF_ALIGNVCENTER:   dt_flags |= DT_VCENTER; break;
             case MC_TCF_ALIGNBOTTOM:    dt_flags |= DT_BOTTOM; break;
         }
+        SetTextColor(dc, text_color);
         DrawText(dc, di.text, -1, &content, dt_flags);
     }
 
     grid_free_dispinfo(grid, cell, &di);
+
+    if(item_cd_mode & CDRF_NEWFONT) {
+        SelectObject(dc, grid->font);
+    }
+
+    /* Custom draw: Item post-paint notification */
+    if(item_cd_mode & CDRF_NOTIFYPOSTPAINT) {
+        cd->nmcd.dwDrawStage = CDDS_POSTPAINT;
+        MC_SEND(grid->notify_win, WM_NOTIFY, cd->nmcd.hdr.idFrom, cd);
+    }
 }
 
 static void
 grid_paint_header_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
-                       HDC dc, RECT* rect, int index, DWORD style)
+                       HDC dc, RECT* rect, int index, DWORD style,
+                       COLORREF text_color, COLORREF back_color,
+                       int control_cd_mode, MC_NMGCUSTOMDRAW* cd)
 {
     table_cell_t tmp;
     table_cell_t* tmp_cell = &tmp;
@@ -589,7 +626,8 @@ grid_paint_header_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
         tmp.flags |= MC_TCF_ALIGNVCENTER;
 
     /* Paint header contents. */
-    grid_paint_cell(grid, col, row, tmp_cell, dc, rect);
+    grid_paint_cell(grid, col, row, tmp_cell, dc, rect,
+                    text_color, back_color, control_cd_mode, cd);
 }
 
 static void
@@ -606,10 +644,15 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     int row_count = grid->row_count;
     table_t* table = grid->table;
     table_cell_t* cell;
+    MC_NMGCUSTOMDRAW cd = { { { 0 }, 0 }, 0 };
+    int cd_mode;
     int old_mode;
-    COLORREF old_text_color;
     HPEN old_pen;
     HFONT old_font;
+    COLORREF old_text_color;
+    COLORREF old_bk_color;
+    COLORREF item_text_color;
+    COLORREF item_bk_color;
 
     GRID_TRACE("grid_paint(%p, %d, %d, %d, %d)", grid,
                dirty->left, dirty->top, dirty->right, dirty->bottom);
@@ -622,9 +665,26 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     header_h = grid_header_height(grid);
 
     old_mode = SetBkMode(dc, TRANSPARENT);
-    old_text_color = SetTextColor(dc, RGB(0,0,0));
+    old_bk_color = GetBkColor(dc);
+    old_text_color = GetTextColor(dc);
     old_pen = SelectObject(dc, GetStockObject(BLACK_PEN));
-    old_font = (grid->font != NULL ? SelectObject(dc, grid->font) : NULL);
+    old_font = SelectObject(dc, (grid->font != NULL ?
+                            grid->font : GetStockObject(SYSTEM_FONT)));
+
+    /* Custom draw: Control pre-paint notification */
+    cd.nmcd.hdr.hwndFrom = grid->win;
+    cd.nmcd.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    cd.nmcd.hdr.code = NM_CUSTOMDRAW;
+    cd.nmcd.dwDrawStage = CDDS_PREPAINT;
+    cd.nmcd.hdc = dc;
+    cd.clrText = GetSysColor(COLOR_WINDOWTEXT);
+    cd.clrTextBk = MC_CLR_NONE;
+    cd_mode = MC_SEND(grid->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
+    if(cd_mode & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
+        goto skip_control_paint;
+
+    item_text_color = cd.clrText;
+    item_bk_color = cd.clrTextBk;
 
     /* Find 1st visible column */
     rect.left = header_w - grid->scroll_x;
@@ -694,51 +754,6 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         }
     }
 
-    /* Paint the "dead" top left header cell */
-    if(header_w > 0  &&  header_h > 0  &&
-       dirty->left < header_w  &&  dirty->top < header_h)
-    {
-        mc_rect_set(&rect, 0, 0, grid->header_width, grid->header_height);
-        mc_clip_set(dc, 0, 0, MC_MIN(header_w, client.right), MC_MIN(header_h, client.bottom));
-        grid_paint_header_cell(grid, MC_TABLE_HEADER, MC_TABLE_HEADER, NULL, dc, &rect, -1, 0);
-    }
-
-    /* Paint column headers */
-    if(header_h > 0  &&  dirty->top < header_h) {
-        rect.left = x0;
-        rect.top = 0;
-        rect.bottom = header_h;
-
-        for(col = col0; col < col_count; col++) {
-            rect.right = rect.left + grid_col_width(grid, col);
-            mc_clip_set(dc, MC_MAX(header_w, rect.left), rect.top,
-                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
-            grid_paint_header_cell(grid, col, MC_TABLE_HEADER, (table ? &table->cols[col] : NULL),
-                                   dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK));
-            rect.left = rect.right;
-            if(rect.right >= client.right)
-                break;
-        }
-    }
-
-    /* Paint row headers */
-    if(header_w > 0  &&  dirty->left <= header_w) {
-        rect.left = 0;
-        rect.top = y0;
-        rect.right = header_w;
-
-        for(row = row0; row < row_count; row++) {
-            rect.bottom = rect.top + grid_row_height(grid, row);
-            mc_clip_set(dc, rect.left, MC_MAX(header_h, rect.top),
-                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
-            grid_paint_header_cell(grid, MC_TABLE_HEADER, row, (table ? &table->rows[row] : NULL),
-                                   dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK));
-            rect.top = rect.bottom;
-            if(rect.bottom >= client.bottom)
-                break;
-        }
-    }
-
     /* Paint grid lines */
     if(!(grid->style & MC_GS_NOGRIDLINES)) {
         HPEN pen, old_pen;
@@ -772,7 +787,56 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         DeleteObject(pen);
     }
 
+    /* Paint the "dead" top left header cell */
+    if(header_w > 0  &&  header_h > 0  &&
+       dirty->left < header_w  &&  dirty->top < header_h)
+    {
+        mc_rect_set(&rect, 0, 0, grid->header_width, grid->header_height);
+        mc_clip_set(dc, 0, 0, MC_MIN(header_w, client.right), MC_MIN(header_h, client.bottom));
+        grid_paint_header_cell(grid, MC_TABLE_HEADER, MC_TABLE_HEADER, NULL, dc,
+                               &rect, -1, 0, item_text_color, item_bk_color, cd_mode, &cd);
+    }
+
+    /* Paint column headers */
+    if(header_h > 0  &&  dirty->top < header_h) {
+        rect.left = x0;
+        rect.top = 0;
+        rect.bottom = header_h;
+
+        for(col = col0; col < col_count; col++) {
+            rect.right = rect.left + grid_col_width(grid, col);
+            mc_clip_set(dc, MC_MAX(header_w, rect.left), rect.top,
+                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
+            grid_paint_header_cell(grid, col, MC_TABLE_HEADER, (table ? &table->cols[col] : NULL),
+                                   dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK),
+                                   item_text_color, item_bk_color, cd_mode, &cd);
+            rect.left = rect.right;
+            if(rect.right >= client.right)
+                break;
+        }
+    }
+
+    /* Paint row headers */
+    if(header_w > 0  &&  dirty->left <= header_w) {
+        rect.left = 0;
+        rect.top = y0;
+        rect.right = header_w;
+
+        for(row = row0; row < row_count; row++) {
+            rect.bottom = rect.top + grid_row_height(grid, row);
+            mc_clip_set(dc, rect.left, MC_MAX(header_h, rect.top),
+                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
+            grid_paint_header_cell(grid, MC_TABLE_HEADER, row, (table ? &table->rows[row] : NULL),
+                                   dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK),
+                                   item_text_color, item_bk_color, cd_mode, &cd);
+            rect.top = rect.bottom;
+            if(rect.bottom >= client.bottom)
+                break;
+        }
+    }
+
     /* Paint grid cells */
+    mc_clip_set(dc, header_w, header_h, client.right, client.bottom);
     rect.top = y0;
     for(row = row0; row < row_count; row++) {
         rect.bottom = rect.top + grid_row_height(grid, row);
@@ -783,7 +847,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             else
                 cell = NULL;
             rect.right = rect.left + grid_col_width(grid, col);
-            grid_paint_cell(grid, col, row, cell, dc, &rect);
+            grid_paint_cell(grid, col, row, cell, dc, &rect,
+                            item_text_color, item_bk_color, cd_mode, &cd);
             if(rect.right >= client.right)
                 break;
             rect.left = rect.right;
@@ -793,10 +858,19 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.top = rect.bottom;
     }
 
+    /* Custom draw: Control post-paint notification */
+    if(cd_mode & CDRF_NOTIFYPOSTPAINT) {
+        cd.nmcd.dwDrawStage = CDDS_POSTPAINT;
+        MC_SEND(grid->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
+    }
+
+skip_control_paint:
     SetBkMode(dc, old_mode);
+    SetBkColor(dc, old_bk_color);
     SetTextColor(dc, old_text_color);
     SelectObject(dc, old_pen);
-    SelectObject(dc, old_font);
+    if(old_font != NULL)
+        SelectObject(dc, old_font);
 }
 
 static void

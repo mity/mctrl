@@ -44,8 +44,8 @@ extern "C" {
  * the underlying @ref MC_HTABLE.
  *
  * By default, the control creates an empty table during its creation, of size
- * 0 x 0. So, usually, one of 1st messages sent to the control by any application
- * is @ref MC_GM_RESIZE.
+ * 0 x 0. So, usually, one of the first messages sent to the control by any
+ * application is @ref MC_GM_RESIZE.
  *
  * Alternatively, you can use the style @ref MC_GS_NOTABLECREATE. In that case
  * the control does not create any table during its creation, and you must
@@ -87,10 +87,12 @@ extern "C" {
  * free to ask for any cell, not just the one included in the range as specified
  * by the latest @ref MC_GN_ODCACHEHINT.
  *
- * Also that (if the control has the styles @ref MC_GS_COLUMNHEADERNORMAL
- * and/or @ref MC_GS_ROWHEADERNORMAL) also may frequently for the header
- * cells, although the headers are never included in @ref MC_GN_ODCACHEHINT.
- * The application should always cache the data for the column and row headers.
+ * Also note that (if the control has the styles @ref MC_GS_COLUMNHEADERNORMAL
+ * and/or @ref MC_GS_ROWHEADERNORMAL) the grid may ask for the header cells,
+ * although the headers are never explicitly included in @ref MC_GN_ODCACHEHINT.
+ *
+ * To force repainting of one or more items, when the underlying data change,
+ * the application is supposed to use the message @ref MC_GM_REDRAWCELLS.
  *
  * Please remember that when the style @ref MC_GS_OWNERDATA is used, some
  * control messages and styles behave differently:
@@ -106,8 +108,22 @@ extern "C" {
  * - Style @ref MC_GS_NOTABLECREATE has no effect (the @ref MC_GS_OWNERDATA
  *   actually does what @ref MC_GS_NOTABLECREATE and much more).
  *
- * To force repainting of one or more items, when the underlying data change,
- * the application is supposed to use the message @ref MC_GM_REDRAWCELLS.
+ *
+ * @section grid_header Column and Row Headers
+ *
+ * The application can manipulate also with headers of columns and rows. For
+ * many purposes, the control treats them as any ordinary cells, but of course
+ * there are also differences.
+ *
+ * The header cells have to be addressed by special index @ref MC_TABLE_HEADER.
+ * Column header uses index of the column of interest and row index @ref
+ * MC_TABLE_HEADER and, similarly, row header uses column header @ref
+ * MC_TABLE_HEADER and the row index.
+ *
+ * For example, to get or set contents of header cells, the application can
+ * use exactly the same messages as for ordinary cells, i.e. messages @ref
+ * MC_GM_GETCELL and @ref MC_GM_SETCELL respectively, where one of the
+ * indexes is set to @ref MC_TABLE_HEADER.
  *
  *
  * @section std_msgs Standard Messages
@@ -123,6 +139,7 @@ extern "C" {
  *
  * These standard notifications are sent by the control:
  * - @c NM_CLICK
+ * - @c NM_CUSTOMDRAW (see @ref MC_NMGCUSTOMDRAW)
  * - @c NM_DBLCLK
  * - @c NM_RCLICK
  * - @c NM_RDBLCLK
@@ -250,7 +267,7 @@ void MCTRL_API mcGrid_Terminate(void);
  * @sa MC_GM_SETGEOMETRY MC_GM_GETGEOMETRY
  */
 typedef struct MC_GGEOMETRY_tag {
-    /** Bitmask specifying what other members are valid. See @ref MC_GGF_xxxx. */
+    /** Bitmask specifying which other members are valid. See @ref MC_GGF_xxxx. */
     DWORD fMask;
     /** Height of column header cells. */
     WORD wColumnHeaderHeight;
@@ -281,6 +298,21 @@ typedef struct MC_NMGCACHEHINT_tag {
     /** Last row of the region to be cached. */
     WORD wRowTo;
 } MC_NMGCACHEHINT;
+
+/**
+ * @brief Structure used by the standard notification @c NM_CUSTOMDRAW.
+ */
+typedef struct MC_NMGCUSTOMDRAW_tag {
+    /** Standard custom-draw structure. Note that for draw stages related to
+      * a cell (item), i.e. when @c nmcd.dwDrawStage has set the flag
+      * @c CDDS_ITEM, <tt>LOWORD(nmcd.dwItemSpec)</tt> specifies column index
+      * and <tt>HIWORD(nmcd.dwItemSpec)</tt> specifies row index. */
+    MC_NMCUSTOMDRAW nmcd;
+    /** Item text color. */
+    COLORREF clrText;
+    /** Item background color. */
+    COLORREF clrTextBk;
+} MC_NMGCUSTOMDRAW;
 
 /**
  * @brief Structure used by notifications @ref MC_GN_GETDISPINFO and
