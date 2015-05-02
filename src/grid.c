@@ -51,7 +51,6 @@ static const WCHAR grid_listview_tc[] = L"LISTVIEW";
 #define CELL_DEF_PADDING_V              1
 
 
-
 typedef struct grid_tag grid_t;
 struct grid_tag {
     HWND win;
@@ -924,6 +923,103 @@ grid_refresh(void* view, void* detail)
     }
 }
 
+static DWORD
+grid_hit_test(grid_t* grid, MC_GHITTESTINFO* info)
+{
+    int x = info->pt.x;
+    int y = info->pt.y;
+    RECT rect;
+    int header_w, header_h;
+    WORD col, row;
+    UINT col_flags, row_flags;
+
+    /* Check if outside client */
+    GetClientRect(grid->win, &rect);
+    if(!mc_rect_contains_xy(&rect, x, y)) {
+        info->flags = 0;
+        if(x < rect.left)
+            info->flags |= MC_GHT_TOLEFT;
+        else if(x >= rect.right)
+            info->flags |= MC_GHT_TORIGHT;
+        if(y < rect.top)
+            info->flags |= MC_GHT_ABOVE;
+        else if(y >= rect.bottom)
+            info->flags |= MC_GHT_BELOW;
+        info->wColumn = (WORD) -1;
+        info->wRow = (WORD) -1;
+        return (DWORD) -1;
+    }
+
+    /* Check for MC_GHT_NOWHERE */
+    header_w = grid_header_width(grid);
+    header_h = grid_header_height(grid);
+    if(x > header_w + grid->scroll_x_max - grid->scroll_x  ||
+       y > header_h + grid->scroll_y_max - grid->scroll_y)
+    {
+        info->flags = MC_GHT_NOWHERE;
+        info->wColumn = (WORD) -1;
+        info->wRow = (WORD) -1;
+        return (DWORD) -1;
+    }
+
+    /* Find out column */
+    if(x < header_w) {
+        col_flags = MC_GHT_ONROWHEADER;
+        /* TODO: consider also MC_GHT_ONROWDIVIDER */
+    } else {
+        rect.left = header_w - grid->scroll_x;
+        for(col = 0; col < grid->col_count; col++) {
+            rect.right = rect.left + grid_col_width(grid, col);
+            if(x < rect.right)
+                break;
+            rect.left = rect.right;
+        }
+        col_flags = MC_GHT_ONNORMALCELL;
+    }
+
+    /* Find out row */
+    if(y < header_h) {
+        /* TODO: consider also MC_GHT_ONCOLUMNDIVIDER */
+        row_flags = MC_GHT_ONCOLUMNHEADER;
+    } else {
+        rect.top = header_h - grid->scroll_y;
+        for(row = 0; row < grid->col_count; row++) {
+            rect.bottom = rect.top + grid_row_height(grid, row);
+            if(y < rect.bottom)
+                break;
+            rect.top = rect.bottom;
+        }
+        col_flags = MC_GHT_ONNORMALCELL;
+    }
+
+    /* Check for MC_GHT_ONROWHEADER and MC_GHT_ONCOLUMNHEADER */
+    if((col_flags & MC_GHT_ONROWHEADER) || (row_flags & MC_GHT_ONCOLUMNHEADER)) {
+        info->flags = 0;
+
+        if(col_flags & MC_GHT_ONROWHEADER) {
+            info->flags |= col_flags;
+            info->wColumn = MC_TABLE_HEADER;
+        } else {
+            info->wColumn = col;
+        }
+
+        if(row_flags & MC_GHT_ONCOLUMNHEADER) {
+            info->flags |= row_flags;
+            info->wRow = MC_TABLE_HEADER;
+        } else {
+            info->wRow = row;
+        }
+
+        return MAKELRESULT(info->wColumn, info->wRow);
+    }
+
+    /* [x,y] is on an ordinary cell */
+    info->flags = MC_GHT_ONNORMALCELL;
+    info->wColumn = col;
+    info->wRow = row;
+    return MAKELRESULT(col, row);
+}
+
 static int
 grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom, BOOL invalidate)
 {
@@ -1485,6 +1581,9 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_GM_GETROWHEIGHT:
             return grid_get_row_height(grid, wp);
+
+        case MC_GM_HITTEST:
+            return (LRESULT) grid_hit_test(grid, (MC_GHITTESTINFO*) lp);
 
         case WM_SETREDRAW:
             grid->no_redraw = !wp;

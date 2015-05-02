@@ -258,6 +258,40 @@ void MCTRL_API mcGrid_Terminate(void);
 
 
 /**
+ * @name MC_GHITTESTINFO::flags Bits
+ * @anchor MC_GHT_xxxx
+ */
+/*@{*/
+
+/** @brief In the client area, but does not hit any cell. */
+#define MC_GHT_NOWHERE              (1 << 0)
+/** @brief On a column header cell. */
+#define MC_GHT_ONCOLUMNHEADER       (1 << 1)
+/** @brief On a row header cell. */
+#define MC_GHT_ONROWHEADER          (1 << 2)
+/** @brief On any header cell. */
+#define MC_GHT_ONHEADER             (MC_GHT_ONCOLUMNHEADER | MC_GHT_ONROWHEADER)
+/** @brief On normal cell. */
+#define MC_GHT_ONNORMALCELL         (1 << 3)
+/** @brief On cell. */
+#define MC_GHT_ONCELL               (MC_GHT_ONHEADER | MC_GHT_ONNORMALCELL)
+/** @brief Not supported, reserved for future use. */
+#define MC_GHT_ONCOLUMNDIVIDER      (1 << 4)
+/** @brief Not supported, reserved for future use. */
+#define MC_GHT_ONROWDIVIDER         (1 << 5)
+/** @brief Above the client area. */
+#define MC_GHT_ABOVE                (1 << 6)
+/** @brief Below the client area. */
+#define MC_GHT_BELOW                (1 << 7)
+/** @brief To right of the client area. */
+#define MC_GHT_TORIGHT              (1 << 8)
+/** @brief To left of the client area. */
+#define MC_GHT_TOLEFT               (1 << 9)
+
+/*@}*/
+
+
+/**
  * @name Structures
  */
 /*@{*/
@@ -282,6 +316,20 @@ typedef struct MC_GGEOMETRY_tag {
     /** Vertical padding in cells. */
     WORD wPaddingVert;
 } MC_GGEOMETRY;
+
+/**
+ * @brief Structure for message @ref MC_GM_HITTEST.
+ */
+typedef struct MC_GHITTESTINFO_tag {
+    /** Client coordinate of the point to test. */
+    POINT pt;
+    /** Flag receiving detail about result of the test. See @ref MC_GHT_xxxx */
+    UINT flags;
+    /** Column index of the cell that occupies the point. */
+    WORD wColumn;
+    /** Row index of the cell that occupies the point. */
+    WORD wRow;
+} MC_GHITTESTINFO;
 
 /**
  * @brief Structure used by notification @ref MC_GN_ODCACHEHINT.
@@ -566,6 +614,18 @@ typedef struct MC_NMGDISPINFOA_tag {
  * future and it is currently always set to zero.
  */
 #define MC_GM_GETROWHEIGHT        (MC_GM_FIRST + 16)
+
+/**
+ * @brief Tests which cell (and its part) is placed on specified position.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param[in,out] lParam (@ref MC_GHITTESTINFO*) Pointer to a hit test
+ * structure. Set @ref MC_GHITTESTINFO::pt on input.
+ * @return (@c DWORD) Cell column and row specification, if any, or -1
+ * otherwise. If not -1, in low word of the value, the column index is
+ * specified and, in high word of the value, its row index is specified.
+ */
+#define MC_GM_HITTEST             (MC_GM_FIRST + 17)
 
 /*@}*/
 
