@@ -627,6 +627,15 @@ typedef struct MC_NMGDISPINFOA_tag {
  */
 #define MC_GM_HITTEST             (MC_GM_FIRST + 17)
 
+/**
+ * @brief Get cell rectangle.
+ * @param[in] wParam (@c DWORD) Column and row of the cell. Low word specifies
+ * column index and high word specifies row index.
+ * @param[out] lParam (@c RECT*) Pointer to rectangle.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_GM_GETCELLRECT         (MC_GM_FIRST + 18)
+
 /*@}*/
 
 

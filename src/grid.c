@@ -1585,6 +1585,21 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_GM_HITTEST:
             return (LRESULT) grid_hit_test(grid, (MC_GHITTESTINFO*) lp);
 
+        case MC_GM_GETCELLRECT:
+        {
+            WORD col = LOWORD(wp);
+            WORD row = HIWORD(wp);
+            if(MC_ERR(col >= grid->col_count || row >= grid->row_count)) {
+                MC_TRACE("MC_GM_GETCELLRECT: Column or row index out of range "
+                         "(size: %ux%u; requested [%u,%u])",
+                         (unsigned) grid->col_count, (unsigned) grid->row_count,
+                         (unsigned) col, (unsigned) row);
+                return FALSE;
+            }
+            grid_cell_rect(grid, col, row, (RECT*) lp);
+            return TRUE;
+        }
+
         case WM_SETREDRAW:
             grid->no_redraw = !wp;
             if(!grid->no_redraw)
