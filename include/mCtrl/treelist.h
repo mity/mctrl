@@ -1194,7 +1194,7 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @ref MC_NMTREELIST
  * structure.
- * @return Application may prevent @c TRUE to prevent the selection change,
+ * @return Application may return @c TRUE to prevent the selection change,
  * or @c FALSE otherwise to allow it.
  */
 #define MC_TLN_SELCHANGING           (MC_TLN_FIRST + 1)
@@ -1230,7 +1230,7 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMTREELIST*) Pointer to a @ref MC_NMTREELIST
  * structure.
- * @return Application may prevent @c TRUE to prevent the item state change,
+ * @return Application may return @c TRUE to prevent the item state change,
  * or @c FALSE otherwise to allow it.
  */
 #define MC_TLN_EXPANDING             (MC_TLN_FIRST + 3)
