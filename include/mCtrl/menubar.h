@@ -228,7 +228,7 @@ extern "C" {
  * @endcode
  *
  *
- * @section std_msgs Standard Messages
+ * @section menubar_std_msgs Standard Messages
  *
  * These standard messages are handled by the control:
  * - @c CCM_SETNOTIFYWINDOW

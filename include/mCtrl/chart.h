@@ -125,7 +125,7 @@ extern "C" {
  * the user.
  *
  *
- * @section std_msgs Standard Messages
+ * @section chart_std_msgs Standard Messages
  *
  * These standard messages are handled by the control:
  * - @c WM_GETTEXT

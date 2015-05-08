@@ -126,7 +126,7 @@ extern "C" {
  * indexes is set to @ref MC_TABLE_HEADER.
  *
  *
- * @section std_msgs Standard Messages
+ * @section grid_std_msgs Standard Messages
  *
  * These standard messages are handled by @c MC_WC_GRID control:
  * - @c WM_GETFONT
