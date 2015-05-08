@@ -198,11 +198,10 @@ void MCTRL_API mcGrid_Terminate(void);
  *  @details See @ref grid_virtual for more info. */
 #define MC_GS_OWNERDATA              0x0008
 
-/* TODO:
+/** @brief Enable changing column width by dragging header divider. */
 #define MC_GS_RESIZABLECOLUMNS       0x0010
+/** @brief Enable changing row height by dragging row header divider. */
 #define MC_GS_RESIZABLEROWS          0x0020
-#define MC_GS_RESIZABLEHEADERS       0x0040
-*/
 
 /** @brief The contents of column headers is used. This is default. */
 #define MC_GS_COLUMNHEADERNORMAL     0x0000
@@ -279,14 +278,18 @@ void MCTRL_API mcGrid_Terminate(void);
 #define MC_GHT_ONCOLUMNDIVIDER      (1 << 4)
 /** @brief Not supported, reserved for future use. */
 #define MC_GHT_ONROWDIVIDER         (1 << 5)
+/** @brief Not supported, reserved for future use. */
+#define MC_GHT_ONCOLUMNDIVOPEN      (1 << 6)
+/** @brief Not supported, reserved for future use. */
+#define MC_GHT_ONROWDIVOPEN         (1 << 7)
 /** @brief Above the client area. */
-#define MC_GHT_ABOVE                (1 << 6)
+#define MC_GHT_ABOVE                (1 << 8)
 /** @brief Below the client area. */
-#define MC_GHT_BELOW                (1 << 7)
+#define MC_GHT_BELOW                (1 << 9)
 /** @brief To right of the client area. */
-#define MC_GHT_TORIGHT              (1 << 8)
+#define MC_GHT_TORIGHT              (1 << 10)
 /** @brief To left of the client area. */
-#define MC_GHT_TOLEFT               (1 << 9)
+#define MC_GHT_TOLEFT               (1 << 11)
 
 /*@}*/
 
@@ -391,6 +394,27 @@ typedef struct MC_NMGDISPINFOA_tag {
     /** Structure describing the contents of the cell. */
     MC_TABLECELLA cell;
 } MC_NMGDISPINFOA;
+
+/**
+ * @brief Structure used by notifications related to resizing of column and
+ * headers.
+ *
+ * @sa MC_GN_COLUMNWIDTHCHANGING MC_GN_COLUMNWIDTHCHANGED
+ * @sa MC_GN_ROWHEIGHTCHANGING @sa MC_GN_ROWHEIGHTCHANGED
+ *
+ */
+typedef struct MC_NMCOLROWSIZECHANGE_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Column index (for @ref MC_GN_COLUMNWIDTHCHANGING and
+     *  @ref MC_GN_COLUMNWIDTHCHANGED), or row index
+     *  (for @ref MC_GN_ROWHEIGHTCHANGING and @ref MC_GN_ROWHEIGHTCHANGED). */
+    WORD wColumnOrRow;
+    /** Column width (for @ref MC_GN_COLUMNWIDTHCHANGING and
+     *  @ref MC_GN_COLUMNWIDTHCHANGED), or row height
+     *  (for @ref MC_GN_ROWHEIGHTCHANGING and @ref MC_GN_ROWHEIGHTCHANGED). */
+    WORD wWidthOrHeight;
+} MC_NMCOLROWSIZECHANGE;
 
 /*@}*/
 
@@ -735,6 +759,90 @@ typedef struct MC_NMGDISPINFOA_tag {
  * @return None.
  */
 #define MC_GN_GETDISPINFOA        (MC_GN_FIRST + 4)
+
+/**
+ * @brief Fired when user has begun dragging a column header divider in the
+ * control.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return @c TRUE to prevent the column width change, @c FALSE to allow it.
+ */
+#define MC_GN_BEGINCOLUMNTRACK    (MC_GN_FIRST + 5)
+
+/**
+ * @brief Fired when user has finished dragging a column header divider in the
+ * control.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_GN_ENDCOLUMNTRACK      (MC_GN_FIRST + 6)
+
+/**
+ * @brief Fired when user has begun dragging a row header divider in the
+ * control.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return @c TRUE to prevent the row height change, @c FALSE to allow it.
+ */
+#define MC_GN_BEGINROWTRACK       (MC_GN_FIRST + 7)
+
+/**
+ * @brief Fired when user has finished dragging a row header divider in the
+ * control.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_GN_ENDROWTRACK         (MC_GN_FIRST + 8)
+
+/**
+ * @brief Fired when column width is about to change.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return @c TRUE to prevent the column width change, @c FALSE to allow it.
+ */
+#define MC_GN_COLUMNWIDTHCHANGING (MC_GN_FIRST + 9)
+
+/**
+ * @brief Fired after column width has been changed.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_GN_COLUMNWIDTHCHANGED  (MC_GN_FIRST + 10)
+
+/**
+ * @brief Fired when column width is about to change.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return @c TRUE to prevent the row height change, @c FALSE to allow it.
+ */
+#define MC_GN_ROWHEIGHTCHANGING   (MC_GN_FIRST + 11)
+
+/**
+ * @brief Fired after row height has been changed.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_GN_ROWHEIGHTCHANGED    (MC_GN_FIRST + 12)
 
 /*@}*/
 

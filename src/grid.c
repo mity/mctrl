@@ -46,9 +46,28 @@ static const WCHAR grid_listview_tc[] = L"LISTVIEW";
 
 #define GRID_DEFAULT_SIZE               0xffff
 
-
 #define CELL_DEF_PADDING_H              2
 #define CELL_DEF_PADDING_V              1
+
+#define DIVIDER_WIDTH                   10
+#define SMALL_DIVIDER_WIDTH             4
+
+
+/* Cursor for column and row resizing. */
+#define CURSOR_DIVIDER_H                0
+#define CURSOR_DIVIDER_V                1
+#define CURSOR_DIVOPEN_H                2
+#define CURSOR_DIVOPEN_V                3
+
+static struct {
+    int res_id;
+    HCURSOR cur;
+} grid_cursor[] = {
+    { IDR_CURSOR_DIVIDER_H, NULL },
+    { IDR_CURSOR_DIVIDER_V, NULL },
+    { IDR_CURSOR_DIVOPEN_H, NULL },
+    { IDR_CURSOR_DIVOPEN_V, NULL }
+};
 
 
 typedef struct grid_tag grid_t;
@@ -59,9 +78,16 @@ struct grid_tag {
     HTHEME theme_listview;
     HFONT font;
     table_t* table;  /* may be NULL (MC_GS_OWNERDATA, MC_GS_NOTABLECREATE) */
+
     DWORD style                 : 16;
     DWORD no_redraw             :  1;
     DWORD unicode_notifications :  1;
+    DWORD dragging              :  1;  /* is a column/row divider dragging? */
+    DWORD drag_is_col           :  1;  /* 0: dragging row, 1: dragging column */
+    int drag_offset             :  4;  /* range <-DIVIDER_WIDTH/2, DIVIDER_WIDTH/2> */
+
+    WORD drag_index;                   /* column or row being resized by drag */
+    WORD drag_orig_size;               /* original column width or row height */
 
     /* If MC_GS_OWNERDATA, we need it here locally. If not, it is a cached
      * value of table->col_count and table->row_count. */
@@ -138,14 +164,14 @@ grid_header_width(grid_t* grid)
 }
 
 static int
-grid_alloc_col_widths(grid_t* grid, WORD old_col_count, WORD new_col_count,
-                      BOOL cannot_fail)
+grid_realloc_col_widths(grid_t* grid, WORD old_col_count, WORD new_col_count,
+                        BOOL cannot_fail)
 {
     WORD* col_widths;
 
     col_widths = realloc(grid->col_widths, new_col_count * sizeof(WORD));
     if(MC_ERR(col_widths == NULL)) {
-        MC_TRACE("grid_alloc_col_widths: realloc() failed.");
+        MC_TRACE("grid_realloc_col_widths: realloc() failed.");
         mc_send_notify(grid->notify_win, grid->win, NM_OUTOFMEMORY);
 
         if(cannot_fail  &&  grid->col_widths != NULL) {
@@ -170,14 +196,14 @@ grid_alloc_col_widths(grid_t* grid, WORD old_col_count, WORD new_col_count,
 }
 
 static int
-grid_alloc_row_heights(grid_t* grid, WORD old_row_count, WORD new_row_count,
-                       BOOL cannot_fail)
+grid_realloc_row_heights(grid_t* grid, WORD old_row_count, WORD new_row_count,
+                         BOOL cannot_fail)
 {
     WORD* row_heights;
 
     row_heights = realloc(grid->row_heights, new_row_count * sizeof(WORD));
     if(MC_ERR(row_heights == NULL)) {
-        MC_TRACE("grid_alloc_row_heights: realloc() failed.");
+        MC_TRACE("grid_realloc_row_heights: realloc() failed.");
         mc_send_notify(grid->notify_win, grid->win, NM_OUTOFMEMORY);
 
         if(cannot_fail  &&  grid->row_heights != NULL) {
@@ -367,10 +393,13 @@ static void
 grid_setup_scrollbars(grid_t* grid, BOOL recalc_max)
 {
     SCROLLINFO si;
-    RECT rect;
+    RECT client;
     WORD header_w, header_h;
 
-    GetClientRect(grid->win, &rect);
+    GRID_TRACE("grid_setup_scrollbars(%p, %s)",
+               grid, recalc_max ? "TRUE" : "FALSE");
+
+    GetClientRect(grid->win, &client);
     header_w = grid_header_width(grid);
     header_h = grid_header_height(grid);
 
@@ -386,17 +415,15 @@ grid_setup_scrollbars(grid_t* grid, BOOL recalc_max)
 
     /* Setup horizontal scrollbar */
     si.nMax = grid->scroll_x_max;
-    si.nPage = mc_width(&rect) - header_w;
+    si.nPage = mc_width(&client) - header_w;
     grid->scroll_x = SetScrollInfo(grid->win, SB_HORZ, &si, TRUE);
 
-    /* Fixup for Win2000 - appearance of horizontal scrollbar sometimes
-     * breaks calculation of vertical scrollbar properties and last row
-     * can be "hidden" behind the horizontal scrollbar */
-    GetClientRect(grid->win, &rect);
+    /* SetScrollInfo() above could change client dimensions. */
+    GetClientRect(grid->win, &client);
 
     /* Setup vertical scrollbar */
     si.nMax = grid->scroll_y_max;
-    si.nPage = mc_height(&rect) - header_h;
+    si.nPage = mc_height(&client) - header_h;
     grid->scroll_y = SetScrollInfo(grid->win, SB_VERT, &si, TRUE);
 }
 
@@ -899,7 +926,7 @@ grid_refresh(void* view, void* detail)
 
         case TABLE_COLCOUNT_CHANGED:
             if(grid->col_widths != NULL)
-                grid_alloc_col_widths(grid, grid->col_count, rd->param[1], TRUE);
+                grid_realloc_col_widths(grid, grid->col_count, rd->param[1], TRUE);
             grid->col_count = rd->param[1];
             grid_setup_scrollbars(grid, TRUE);
             if(!grid->no_redraw) {
@@ -911,7 +938,7 @@ grid_refresh(void* view, void* detail)
 
         case TABLE_ROWCOUNT_CHANGED:
             if(grid->row_heights != NULL)
-                grid_alloc_row_heights(grid, grid->row_count, rd->param[1], TRUE);
+                grid_realloc_row_heights(grid, grid->row_count, rd->param[1], TRUE);
             grid->row_count = rd->param[1];
             grid_setup_scrollbars(grid, TRUE);
             if(!grid->no_redraw) {
@@ -924,100 +951,244 @@ grid_refresh(void* view, void* detail)
 }
 
 static DWORD
-grid_hit_test(grid_t* grid, MC_GHITTESTINFO* info)
+grid_hit_test_ex(grid_t* grid, MC_GHITTESTINFO* info, RECT* cell_rect)
 {
     int x = info->pt.x;
     int y = info->pt.y;
-    RECT rect;
+    RECT client;
     int header_w, header_h;
     WORD col, row;
-    UINT col_flags, row_flags;
+    int x0, x1, x2, x3;
+    int y0, y1, y2, y3;
 
     /* Check if outside client */
-    GetClientRect(grid->win, &rect);
-    if(!mc_rect_contains_xy(&rect, x, y)) {
+    GetClientRect(grid->win, &client);
+    if(!mc_rect_contains_xy(&client, x, y)) {
         info->flags = 0;
-        if(x < rect.left)
+
+        if(x < client.left)
             info->flags |= MC_GHT_TOLEFT;
-        else if(x >= rect.right)
+        else if(x >= client.right)
             info->flags |= MC_GHT_TORIGHT;
-        if(y < rect.top)
+
+        if(y < client.top)
             info->flags |= MC_GHT_ABOVE;
-        else if(y >= rect.bottom)
+        else if(y >= client.bottom)
             info->flags |= MC_GHT_BELOW;
+
         info->wColumn = (WORD) -1;
         info->wRow = (WORD) -1;
         return (DWORD) -1;
     }
 
-    /* Check for MC_GHT_NOWHERE */
+    /* Handle the "dead header cell" */
     header_w = grid_header_width(grid);
     header_h = grid_header_height(grid);
-    if(x > header_w + grid->scroll_x_max - grid->scroll_x  ||
-       y > header_h + grid->scroll_y_max - grid->scroll_y)
-    {
-        info->flags = MC_GHT_NOWHERE;
-        info->wColumn = (WORD) -1;
-        info->wRow = (WORD) -1;
-        return (DWORD) -1;
+    if(x < header_w  &&  y < header_h) {
+        info->flags = MC_GHT_ONCOLUMNHEADER | MC_GHT_ONROWHEADER;
+        info->wColumn = MC_TABLE_HEADER;
+        info->wRow = MC_TABLE_HEADER;
+        if(cell_rect != NULL)
+            mc_rect_set(cell_rect, 0, 0, header_w, header_h);
+        return MAKELRESULT(MC_TABLE_HEADER, MC_TABLE_HEADER);
     }
 
-    /* Find out column */
-    if(x < header_w) {
-        col_flags = MC_GHT_ONROWHEADER;
-        /* TODO: consider also MC_GHT_ONROWDIVIDER */
-    } else {
-        rect.left = header_w - grid->scroll_x;
-        for(col = 0; col < grid->col_count; col++) {
-            rect.right = rect.left + grid_col_width(grid, col);
-            if(x < rect.right)
-                break;
-            rect.left = rect.right;
-        }
-        col_flags = MC_GHT_ONNORMALCELL;
-    }
-
-    /* Find out row */
+    /* Handle column headers */
     if(y < header_h) {
-        /* TODO: consider also MC_GHT_ONCOLUMNDIVIDER */
-        row_flags = MC_GHT_ONCOLUMNHEADER;
-    } else {
-        rect.top = header_h - grid->scroll_y;
-        for(row = 0; row < grid->col_count; row++) {
-            rect.bottom = rect.top + grid_row_height(grid, row);
-            if(y < rect.bottom)
-                break;
-            rect.top = rect.bottom;
+        info->wRow = MC_TABLE_HEADER;
+
+        x3 = header_w - grid->scroll_x;
+        for(col = 0; col < grid->col_count; col++) {
+            int divider_width;
+
+            x0 = x3;
+            x3 += grid_col_width(grid, col);
+
+            if(x >= x3)
+                continue;
+
+            if(grid->style & MC_GS_RESIZABLECOLUMNS) {
+                if(x3 - x0 > 2 * DIVIDER_WIDTH)
+                    divider_width = DIVIDER_WIDTH;
+                else
+                    divider_width = SMALL_DIVIDER_WIDTH;
+            } else {
+                divider_width = 0;
+            }
+
+            x1 = x0 + divider_width / 2;
+            x2 = x3 - divider_width / 2;
+
+            if(x < x1  &&  col > 0) {
+                if(grid_col_width(grid, col - 1) > 0)
+                    info->flags = MC_GHT_ONCOLUMNDIVIDER;
+                else
+                    info->flags = MC_GHT_ONCOLUMNDIVOPEN;
+                info->wColumn = col - 1;
+            } else if(x >= x2) {
+                info->flags = MC_GHT_ONCOLUMNDIVIDER;
+                info->wColumn = col;
+            } else {
+                info->flags = MC_GHT_ONCOLUMNHEADER;
+                info->wColumn = col;
+            }
+
+            if(cell_rect != NULL)
+                mc_rect_set(cell_rect, x0, 0, x3, header_h);
+            return MAKELRESULT(info->wColumn, MC_TABLE_HEADER);
         }
-        col_flags = MC_GHT_ONNORMALCELL;
+
+        /* Treat a small area after the last column also as a part of the
+         * column divider. */
+        if((grid->style & MC_GS_RESIZABLECOLUMNS)  &&  grid->col_count > 0) {
+            if(x < x3 + DIVIDER_WIDTH / 2) {
+                if(grid_col_width(grid, grid->col_count - 1) > 0)
+                    info->flags = MC_GHT_ONCOLUMNDIVIDER;
+                else
+                    info->flags = MC_GHT_ONCOLUMNDIVOPEN;
+                info->wColumn = grid->col_count - 1;
+                if(cell_rect != NULL)
+                    mc_rect_set(cell_rect, x0, 0, x3, header_h);
+                return MAKELRESULT(info->wColumn, MC_TABLE_HEADER);
+            }
+        }
+
+        goto nowhere;
     }
 
-    /* Check for MC_GHT_ONROWHEADER and MC_GHT_ONCOLUMNHEADER */
-    if((col_flags & MC_GHT_ONROWHEADER) || (row_flags & MC_GHT_ONCOLUMNHEADER)) {
-        info->flags = 0;
+    /* Handle row headers */
+    if(x < header_w) {
+        info->wColumn = MC_TABLE_HEADER;
 
-        if(col_flags & MC_GHT_ONROWHEADER) {
-            info->flags |= col_flags;
-            info->wColumn = MC_TABLE_HEADER;
-        } else {
+        y3 = header_h - grid->scroll_y;
+        for(row = 0; row < grid->row_count; row++) {
+            int divider_width;
+
+            y0 = y3;
+            y3 += grid_row_height(grid, row);
+
+            if(y >= y3)
+                continue;
+
+            if(grid->style & MC_GS_RESIZABLEROWS) {
+                if(y3 - y0 > 2 * DIVIDER_WIDTH)
+                    divider_width = DIVIDER_WIDTH;
+                else
+                    divider_width = SMALL_DIVIDER_WIDTH;
+            } else {
+                divider_width = 0;
+            }
+
+            y1 = y0 + divider_width / 2;
+            y2 = y3 - divider_width / 2;
+
+            if(y < y1  &&  row > 0) {
+                if(grid_row_height(grid, row - 1) > 0)
+                    info->flags = MC_GHT_ONROWDIVIDER;
+                else
+                    info->flags = MC_GHT_ONROWDIVOPEN;
+                info->wRow = row - 1;
+            } else if(y >= y2) {
+                info->flags = MC_GHT_ONROWDIVIDER;
+                info->wRow = row;
+            } else {
+                info->flags = MC_GHT_ONROWHEADER;
+                info->wRow = row;
+            }
+
+            if(cell_rect != NULL)
+                mc_rect_set(cell_rect, 0, y0, header_w, y3);
+            return MAKELRESULT(MC_TABLE_HEADER, info->wRow);
+        }
+
+        /* Treat a small area after the last column also as a part of the
+         * column divider. */
+        if((grid->style & MC_GS_RESIZABLEROWS)  &&  grid->row_count > 0) {
+            if(y < y3 + DIVIDER_WIDTH / 2) {
+                if(grid_row_height(grid, grid->row_count - 1) > 0)
+                    info->flags = MC_GHT_ONROWDIVIDER;
+                else
+                    info->flags = MC_GHT_ONROWDIVOPEN;
+                info->wRow = grid->row_count - 1;
+                if(cell_rect != NULL)
+                    mc_rect_set(cell_rect, 0, y0, header_w, y3);
+                return MAKELRESULT(MC_TABLE_HEADER, info->wRow);
+            }
+        }
+
+        goto nowhere;
+    }
+
+    /* Handle ordinary cells */
+    info->wColumn = (WORD) -1;
+    x3 = header_w - grid->scroll_x;
+    for(col = 0; col < grid->col_count; col++) {
+        x0 = x3;
+        x3 += grid_col_width(grid, col);
+        if(x < x3)
             info->wColumn = col;
-        }
+    }
+    if(info->wColumn == (WORD) -1)
+        goto nowhere;
 
-        if(row_flags & MC_GHT_ONCOLUMNHEADER) {
-            info->flags |= row_flags;
-            info->wRow = MC_TABLE_HEADER;
-        } else {
+    info->wRow = (WORD) -1;
+    y3 = header_h - grid->scroll_y;
+    for(row = 0; row < grid->row_count; row++) {
+        y0 = y3;
+        y3 += grid_row_height(grid, row);
+        if(y < y3)
             info->wRow = row;
-        }
+    }
+    if(info->wRow == (WORD) -1)
+        goto nowhere;
 
-        return MAKELRESULT(info->wColumn, info->wRow);
+    info->flags = MC_GHT_ONNORMALCELL;
+    if(cell_rect != NULL)
+        mc_rect_set(cell_rect, x0, y0, x3, y3);
+    return MAKELRESULT(info->wColumn, info->wRow);
+
+    /* Nowhere. */
+nowhere:
+    info->flags = MC_GHT_NOWHERE;
+    info->wColumn = (WORD) -1;
+    info->wRow = (WORD) -1;
+    return (DWORD) -1;
+}
+
+static inline DWORD
+grid_hit_test(grid_t* grid, MC_GHITTESTINFO* info)
+{
+    return grid_hit_test_ex(grid, info, NULL);
+}
+
+static BOOL
+grid_set_cursor(grid_t* grid)
+{
+    MC_GHITTESTINFO info;
+
+    GetCursorPos(&info.pt);
+    ScreenToClient(grid->win, &info.pt);
+
+    grid_hit_test(grid, &info);
+
+    if(info.flags & (MC_GHT_ONCOLUMNDIVIDER | MC_GHT_ONCOLUMNDIVOPEN |
+                     MC_GHT_ONROWDIVIDER | MC_GHT_ONROWDIVOPEN)) {
+        int cur_id;
+
+        if(info.flags & MC_GHT_ONCOLUMNDIVIDER)
+            cur_id = CURSOR_DIVIDER_H;
+        else if(info.flags & MC_GHT_ONCOLUMNDIVOPEN)
+            cur_id = CURSOR_DIVOPEN_H;
+        else if(info.flags & MC_GHT_ONROWDIVIDER)
+            cur_id = CURSOR_DIVIDER_V;
+        else if(info.flags & MC_GHT_ONROWDIVOPEN)
+            cur_id = CURSOR_DIVOPEN_V;
+
+        SetCursor(grid_cursor[cur_id].cur);
+        return TRUE;
     }
 
-    /* [x,y] is on an ordinary cell */
-    info->flags = MC_GHT_ONNORMALCELL;
-    info->wColumn = col;
-    info->wRow = row;
-    return MAKELRESULT(col, row);
+    return FALSE;
 }
 
 static int
@@ -1166,6 +1337,11 @@ grid_redraw_cells(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
 static int
 grid_set_col_width(grid_t* grid, WORD col, WORD width)
 {
+    int old_width;
+    MC_NMCOLROWSIZECHANGE notif;
+
+    GRID_TRACE("grid_set_col_width(%p, %hu, %hu)", grid, col, width);
+
     if(MC_ERR(col >= grid->col_count)) {
         MC_TRACE("grid_set_col_width: column %hu our of range.", col);
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -1176,13 +1352,55 @@ grid_set_col_width(grid_t* grid, WORD col, WORD width)
         if(width == GRID_DEFAULT_SIZE)
             return 0;
 
-        if(MC_ERR(grid_alloc_col_widths(grid, 0, grid->col_count, FALSE) != 0)) {
-            MC_TRACE("grid_set_col_width: grid_alloc_col_widths() failed.");
+        if(MC_ERR(grid_realloc_col_widths(grid, 0, grid->col_count, FALSE) != 0)) {
+            MC_TRACE("grid_set_col_width: grid_realloc_col_widths() failed.");
             return -1;
         }
     }
 
+    old_width = grid->col_widths[col];
+    if(width == old_width)
+        return 0;
+
+    /* Fire notification MC_GN_COLUMNWIDTHCHANGING */
+    notif.hdr.hwndFrom = grid->win;
+    notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    notif.hdr.code = MC_GN_COLUMNWIDTHCHANGING;
+    notif.wColumnOrRow = col;
+    notif.wWidthOrHeight = width;
+    if(MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif)) {
+        /* Application suppresses the default processing */
+        GRID_TRACE("grid_set_col_width: "
+                   "MC_GN_COLUMNWIDTHCHANGING suppresses the change.");
+        return -1;
+    }
+
     grid->col_widths[col] = width;
+
+    if(!grid->no_redraw) {
+        RECT rect;
+        int x0, x1;
+
+        GetClientRect(grid->win, &rect);
+
+        x0 = grid_col_x(grid, col);
+        x1 = x0 + MC_MIN(old_width, width);
+
+        rect.left = x1;
+        ScrollWindowEx(grid->win, width - old_width, 0, &rect, &rect,
+                       NULL, NULL, SW_INVALIDATE | SW_ERASE);
+
+        rect.left = x0;
+        rect.right = x1;
+        InvalidateRect(grid->win, &rect, TRUE);
+    }
+
+    grid_setup_scrollbars(grid, TRUE);
+
+    /* Fire notification MC_GN_COLUMNWIDTHCHANGED */
+    notif.hdr.code = MC_GN_COLUMNWIDTHCHANGED;
+    MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
+
     return 0;
 }
 
@@ -1201,6 +1419,11 @@ grid_get_col_width(grid_t* grid, WORD col)
 static int
 grid_set_row_height(grid_t* grid, WORD row, WORD height)
 {
+    int old_height;
+    MC_NMCOLROWSIZECHANGE notif;
+
+    GRID_TRACE("grid_set_row_height(%p, %hu, %hu)", grid, row, height);
+
     if(MC_ERR(row >= grid->row_count)) {
         MC_TRACE("grid_set_row_height: row %hu our of range.", row);
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -1211,13 +1434,55 @@ grid_set_row_height(grid_t* grid, WORD row, WORD height)
         if(height == GRID_DEFAULT_SIZE)
             return 0;
 
-        if(MC_ERR(grid_alloc_row_heights(grid, 0, grid->row_count, FALSE) != 0)) {
-            MC_TRACE("grid_set_row_height: grid_alloc_row_heights() failed.");
+        if(MC_ERR(grid_realloc_row_heights(grid, 0, grid->row_count, FALSE) != 0)) {
+            MC_TRACE("grid_set_row_height: grid_realloc_row_heights() failed.");
             return -1;
         }
     }
 
+    old_height = grid->row_heights[row];
+    if(height == old_height)
+        return 0;
+
+    /* Fire notification MC_GN_ROWHEIGHTCHANGING */
+    notif.hdr.hwndFrom = grid->win;
+    notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    notif.hdr.code = MC_GN_ROWHEIGHTCHANGING;
+    notif.wColumnOrRow = row;
+    notif.wWidthOrHeight = height;
+    if(MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif)) {
+        /* Application suppresses the default processing */
+        GRID_TRACE("grid_set_row_height: "
+                   "MC_GN_ROWHEIGHTCHANGING suppresses the change.");
+        return -1;
+    }
+
     grid->row_heights[row] = height;
+
+    if(!grid->no_redraw) {
+        RECT rect;
+        int y0, y1;
+
+        GetClientRect(grid->win, &rect);
+
+        y0 = grid_row_y(grid, row);
+        y1 = y0 + MC_MIN(old_height, height);
+
+        rect.top = y1;
+        ScrollWindowEx(grid->win, 0, height - old_height, &rect, &rect,
+                       NULL, NULL, SW_INVALIDATE | SW_ERASE);
+
+        rect.top = y0;
+        rect.bottom = y1;
+        InvalidateRect(grid->win, &rect, TRUE);
+    }
+
+    grid_setup_scrollbars(grid, TRUE);
+
+    /* Fire notification MC_GN_ROWHEIGHTCHANGED */
+    notif.hdr.code = MC_GN_ROWHEIGHTCHANGED;
+    MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
+
     return 0;
 }
 
@@ -1234,20 +1499,144 @@ grid_get_row_height(grid_t* grid, WORD row)
 }
 
 static void
-grid_left_button(grid_t* grid, int x, int y, BOOL dblclick, WPARAM wp)
+grid_stop_dragging(grid_t* grid, BOOL cancel)
 {
-    UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
+    MC_NMCOLROWSIZECHANGE notif;
 
-    if(mc_send_notify(grid->notify_win, grid->win, notify_code)) {
+    if(!grid->dragging)
+        return;
+
+    grid->dragging = FALSE;
+
+    if(cancel) {
+        if(grid->drag_is_col)
+            grid_set_col_width(grid, grid->drag_index, grid->drag_orig_size);
+        else
+            grid_set_row_height(grid, grid->drag_index, grid->drag_orig_size);
+    }
+
+    notif.hdr.hwndFrom = grid->win;
+    notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    if(grid->drag_is_col) {
+        notif.hdr.code = MC_GN_ENDCOLUMNTRACK;
+        notif.wColumnOrRow = grid->drag_index;
+        notif.wWidthOrHeight = grid_col_width(grid, grid->drag_index);
+    } else {
+        notif.hdr.code = MC_GN_ENDROWTRACK;
+        notif.wColumnOrRow = grid->drag_index;
+        notif.wWidthOrHeight = grid_row_height(grid, grid->drag_index);
+    }
+    MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
+
+    if(grid->win == GetCapture())
+        ReleaseCapture();
+
+    mc_send_notify(grid->notify_win, grid->win, NM_RELEASEDCAPTURE);
+}
+
+static void
+grid_mouse_move(grid_t* grid, int x, int y)
+{
+    RECT cell_rect;
+
+    if(!grid->dragging)
+        return;
+
+    if(grid->drag_is_col) {
+        int right;
+
+        grid_cell_rect(grid, grid->drag_index, MC_TABLE_HEADER, &cell_rect);
+        right = MC_MAX(cell_rect.left, x - grid->drag_offset);
+        if(right == cell_rect.right)
+            return;
+
+        grid_set_col_width(grid, grid->drag_index, right - cell_rect.left);
+    } else {
+        int bottom;
+
+        grid_cell_rect(grid, MC_TABLE_HEADER, grid->drag_index, &cell_rect);
+        bottom = MC_MAX(cell_rect.top, y - grid->drag_offset);
+        if(bottom == cell_rect.bottom)
+            return;
+
+        grid_set_row_height(grid, grid->drag_index, bottom - cell_rect.top);
+    }
+}
+
+static void
+grid_left_button_down(grid_t* grid, int x, int y)
+{
+    static const DWORD col_track_mask = MC_GHT_ONCOLUMNDIVIDER | MC_GHT_ONCOLUMNDIVOPEN;
+    static const DWORD row_track_mask = MC_GHT_ONROWDIVIDER | MC_GHT_ONROWDIVOPEN;
+
+    MC_GHITTESTINFO info;
+    RECT cell_rect;
+
+    if(mc_send_notify(grid->notify_win, grid->win, NM_CLICK)) {
         /* Application suppresses the default processing of the message */
         return;
     }
 
-    /* TODO: Further processing (e.g. selection change etc.) */
+    info.pt.x = x;
+    info.pt.y = y;
+    grid_hit_test_ex(grid, &info, &cell_rect);
+
+    /* Column/row divider? Consider dragging mode to resize the column/row. */
+    if(info.flags & (col_track_mask | row_track_mask)) {
+        MC_NMCOLROWSIZECHANGE notif;
+
+        /* Fire MC_GN_BEGINCOLUMNTRACK or MC_GN_BEGINROWTRACK */
+        notif.hdr.hwndFrom = grid->win;
+        notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+        if(info.flags & col_track_mask) {
+            notif.hdr.code = MC_GN_BEGINCOLUMNTRACK;
+            notif.wColumnOrRow = info.wColumn;
+            notif.wWidthOrHeight = grid_col_width(grid, info.wColumn);
+        } else {
+            notif.hdr.code = MC_GN_BEGINROWTRACK;
+            notif.wColumnOrRow = info.wRow;
+            notif.wWidthOrHeight = grid_row_height(grid, info.wRow);
+        }
+
+        if(MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif) != 0) {
+            /* Application suppresses the dragging mode. */
+            return;
+        }
+
+        /* Capture mouse for the dragging */
+        if(info.flags & col_track_mask) {
+            grid->drag_is_col = TRUE;
+            grid->drag_index = info.wColumn;
+            grid->drag_orig_size = grid_col_width(grid, info.wColumn);
+            MC_ASSERT(cell_rect.left - x < DIVIDER_WIDTH / 2);
+            grid->drag_offset = cell_rect.left - x;
+        } else {
+            grid->drag_is_col = FALSE;
+            grid->drag_index = info.wRow;
+            grid->drag_orig_size = grid_row_height(grid, info.wRow);
+            MC_ASSERT(cell_rect.top - y < DIVIDER_WIDTH / 2);
+            grid->drag_offset = cell_rect.top - y;
+        }
+        SetCapture(grid->win);
+        grid->dragging = TRUE;
+    }
 }
 
 static void
-grid_right_button(grid_t* grid, int x, int y, BOOL dblclick, WPARAM wp)
+grid_left_button_up(grid_t* grid, int x, int y)
+{
+    if(grid->dragging)
+        grid_stop_dragging(grid, FALSE);
+}
+
+static void
+grid_left_button_dblclick(grid_t* grid, int x, int y)
+{
+    mc_send_notify(grid->notify_win, grid->win, NM_DBLCLK);
+}
+
+static void
+grid_right_button(grid_t* grid, int x, int y, BOOL dblclick)
 {
     UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
     POINT pt;
@@ -1344,9 +1733,9 @@ grid_resize_table(grid_t* grid, WORD col_count, WORD row_count)
         }
     } else {
         if(grid->col_widths != NULL)
-            grid_alloc_col_widths(grid, grid->col_count, col_count, TRUE);
+            grid_realloc_col_widths(grid, grid->col_count, col_count, TRUE);
         if(grid->row_heights)
-            grid_alloc_row_heights(grid, grid->row_count, row_count, TRUE);
+            grid_realloc_row_heights(grid, grid->row_count, row_count, TRUE);
 
         grid->col_count = col_count;
         grid->row_count = row_count;
@@ -1611,21 +2000,35 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             grid_scroll(grid, (msg == WM_VSCROLL), LOWORD(wp), 1);
             return 0;
 
+        case WM_MOUSEMOVE:
+            grid_mouse_move(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
+
         case WM_MOUSEWHEEL:
         case WM_MOUSEHWHEEL:
             grid_mouse_wheel(grid, (msg == WM_MOUSEWHEEL), (int)(SHORT)HIWORD(wp));
             return 0;
 
         case WM_LBUTTONDOWN:
+            grid_left_button_down(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
+
+        case WM_LBUTTONUP:
+            grid_left_button_up(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
+
         case WM_LBUTTONDBLCLK:
-            grid_left_button(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp),
-                             (msg == WM_LBUTTONDBLCLK), wp);
+            grid_left_button_dblclick(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
         case WM_RBUTTONDOWN:
         case WM_RBUTTONDBLCLK:
             grid_right_button(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp),
-                              (msg == WM_RBUTTONDBLCLK), wp);
+                              (msg == WM_RBUTTONDBLCLK));
+            return 0;
+
+        case WM_CAPTURECHANGED:
+            grid_stop_dragging(grid, TRUE);
             return 0;
 
         case WM_SIZE:
@@ -1648,6 +2051,11 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if((BOOL) lp  &&  !grid->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
             return 0;
+
+        case WM_SETCURSOR:
+            if(grid_set_cursor(grid))
+                return TRUE;
+            break;
 
         case WM_STYLECHANGED:
             if(wp == GWL_STYLE)
@@ -1719,7 +2127,18 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 int
 grid_init_module(void)
 {
+    int i;
     WNDCLASS wc = { 0 };
+
+    for(i = 0; i < MC_ARRAY_SIZE(grid_cursor); i++) {
+        grid_cursor[i].cur = LoadCursor(mc_instance,
+                                        MAKEINTRESOURCE(grid_cursor[i].res_id));
+        if(MC_ERR(grid_cursor[i].cur == NULL)) {
+            MC_TRACE("grid_init_module: LoadCursor(%d) failed [%lu]",
+                     grid_cursor[i].res_id, GetLastError());
+            goto err_LoadCursor;
+        }
+    }
 
     wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_DBLCLKS;
     wc.lpfnWndProc = grid_proc;
@@ -1729,14 +2148,25 @@ grid_init_module(void)
     wc.lpszClassName = grid_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
         MC_TRACE_ERR("grid_init_module: RegisterClass() failed");
-        return -1;
+        goto err_RegisterClass;
     }
 
     return 0;
+
+err_LoadCursor:
+err_RegisterClass:
+    while(--i >= 0)
+        DestroyCursor(grid_cursor[i].cur);
+    return -1;
 }
 
 void
 grid_fini_module(void)
 {
+    int i;
+
     UnregisterClass(grid_wc, NULL);
+
+    for(i = 0; i < MC_ARRAY_SIZE(grid_cursor); i++)
+        DestroyCursor(grid_cursor[i].cur);
 }
