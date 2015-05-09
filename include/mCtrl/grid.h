@@ -141,9 +141,10 @@ extern "C" {
  * - @c NM_CLICK
  * - @c NM_CUSTOMDRAW (see @ref MC_NMGCUSTOMDRAW)
  * - @c NM_DBLCLK
+ * - @c NM_OUTOFMEMORY
  * - @c NM_RCLICK
  * - @c NM_RDBLCLK
- * - @c NM_OUTOFMEMORY
+ * - @c NM_RELEASEDCAPTURE
  * - @c WM_CONTEXTMENU
  */
 
