@@ -32,7 +32,7 @@
 #define DSA_IS_COMPACT(dsa)             (dsa->capacity == 0xffff)
 
 #define DSA_MAX_ITEM_SIZE               32
-#define DSA_DEFAULT_GROW_SIZE(size)     (MC_MAX(8, (size) / 16))
+#define DSA_DEFAULT_GROW_SIZE(size)     (MC_MAX(8, (size) / 4))
 #define DSA_DEFAULT_SHRINK_SIZE(size)   (2*DSA_DEFAULT_GROW_SIZE(size))
 
 
