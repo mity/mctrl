@@ -1346,7 +1346,7 @@ html_call_script_func(html_t* html, void* func_name, MC_HMCALLSCRIPTFUNCW* csf,
     /* Setup arguments. Note we have to reverse the order of the arguments. */
     argc = csf->cArgs;
     for(i = 0; i < argc; i++) {
-        if(str_args[i] != NULL) {
+        if(str_args[argc-i-1] != NULL) {
             V_VT(&argv[i]) = VT_BSTR;
             V_BSTR(&argv[i]) = html_bstr(str_args[argc-i-1],
                                          (unicode ? MC_STRW : MC_STRA));
