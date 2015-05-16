@@ -458,6 +458,7 @@ typedef struct grid_dispinfo_tag grid_dispinfo_t;
 struct grid_dispinfo_tag {
     TCHAR* text;
     DWORD flags;
+    LPARAM lp;
 };
 
 static void
@@ -466,7 +467,7 @@ grid_get_dispinfo(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
 {
     MC_NMGDISPINFO info;
 
-    MC_ASSERT((mask & ~(MC_TCMF_TEXT | MC_TCMF_FLAGS)) == 0);
+    MC_ASSERT((mask & ~(MC_TCMF_TEXT | MC_TCMF_PARAM | MC_TCMF_FLAGS)) == 0);
 
     /* Use what can be taken from the cell. */
     if(cell != NULL) {
@@ -474,6 +475,9 @@ grid_get_dispinfo(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
             di->text = cell->text;
             mask &= ~MC_TCMF_TEXT;
         }
+
+        di->lp = cell->lp;
+        mask &= ~(MC_TCMF_PARAM);
 
         di->flags = cell->flags;
         mask &= ~(MC_TCMF_FLAGS);
@@ -538,13 +542,15 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     grid_dispinfo_t di;
     int item_cd_mode = 0;
 
+    grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
+
     /* Custom draw: Item pre-paint notification */
     if(control_cd_mode & CDRF_NOTIFYITEMDRAW) {
         cd->nmcd.dwDrawStage = CDDS_ITEMPREPAINT;
         mc_rect_copy(&cd->nmcd.rc, rect);
         cd->nmcd.dwItemSpec = (DWORD)MAKELONG(col, row);
         cd->nmcd.uItemState = 0;
-        cd->nmcd.lItemlParam = cell->lp;
+        cd->nmcd.lItemlParam = di.lp;
         cd->clrText = text_color;
         cd->clrTextBk = back_color;
         item_cd_mode = MC_SEND(grid->notify_win, WM_NOTIFY, cd->nmcd.hdr.idFrom, cd);
@@ -553,8 +559,6 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
         text_color = cd->clrText;
         back_color = cd->clrTextBk;
     }
-
-    grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
 
     /* Apply padding */
     content.left = rect->left + grid->padding_h;
