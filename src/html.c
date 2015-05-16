@@ -1304,8 +1304,8 @@ html_call_script_func(html_t* html, void* func_name, MC_HMCALLSCRIPTFUNCW* csf,
                       BOOL unicode)
 {
     static MC_HMCALLSCRIPTFUNCW dummy_csf = { sizeof(MC_HMCALLSCRIPTFUNCW), 0 };
-    const void* str_args[4] = { csf->pszArg1, csf->pszArg2, csf->pszArg3, csf->pszArg4 };
-    int i_val[4] = { csf->iArg1, csf->iArg2, csf->iArg3, csf->iArg4 };
+    const void* str_args[4];
+    int i_val[4];
     OLECHAR* func;
     int i, argc;
     VARIANT argv[4];
@@ -1314,6 +1314,11 @@ html_call_script_func(html_t* html, void* func_name, MC_HMCALLSCRIPTFUNCW* csf,
 
     if(csf == NULL)
         csf = &dummy_csf;
+
+    str_args[0] = csf->pszArg1; str_args[1] = csf->pszArg2;
+    str_args[2] = csf->pszArg3; str_args[3] = csf->pszArg4;
+    i_val[0] = csf->iArg1; i_val[1] = csf->iArg2;
+    i_val[2] = csf->iArg3; i_val[3] = csf->iArg4;
 
     if(MC_ERR(func_name == NULL)) {
         MC_TRACE("html_call_script_func: Function name not specified.");
