@@ -1294,13 +1294,15 @@ xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents)
 {
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
+        ID2D1GdiInteropRenderTarget* gdi_interop;
+        D2D1_DC_INITIALIZE_MODE init_mode;
         HRESULT hr;
         HDC dc;
 
         MC_ASSERT(c->gdi_interop == NULL);
 
         hr = ID2D1RenderTarget_QueryInterface(c->target,
-                    &IID_ID2D1GdiInteropRenderTarget, (void**) &c->gdi_interop);
+                    &IID_ID2D1GdiInteropRenderTarget, (void**) &gdi_interop);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("xdraw_canvas_acquire_dc: "
                      "ID2D1RenderTarget::QueryInterface(IID_ID2D1GdiInteropRenderTarget) "
@@ -1308,17 +1310,17 @@ xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents)
             return NULL;
         }
 
-        hr = ID2D1GdiInteropRenderTarget_GetDC(c->gdi_interop,
-                (retain_contents ? D2D1_DC_INITIALIZE_MODE_COPY : D2D1_DC_INITIALIZE_MODE_CLEAR),
-                &dc);
+        init_mode = (retain_contents ? D2D1_DC_INITIALIZE_MODE_COPY
+                                     : D2D1_DC_INITIALIZE_MODE_CLEAR);
+        hr = ID2D1GdiInteropRenderTarget_GetDC(gdi_interop, init_mode, &dc);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("xdraw_canvas_acquire_dc: "
                      "ID2D1GdiInteropRenderTarget::GetDC() failed. [0x%lx]", hr);
-            ID2D1GdiInteropRenderTarget_Release(c->gdi_interop);
-            c->gdi_interop = NULL;
+            ID2D1GdiInteropRenderTarget_Release(gdi_interop);
             return NULL;
         }
 
+        c->gdi_interop = gdi_interop;
         return dc;
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
