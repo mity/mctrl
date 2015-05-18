@@ -82,12 +82,14 @@ struct grid_tag {
     DWORD style                 : 16;
     DWORD no_redraw             :  1;
     DWORD unicode_notifications :  1;
-    DWORD dragging              :  1;  /* is a column/row divider dragging? */
-    DWORD drag_is_col           :  1;  /* 0: dragging row, 1: dragging column */
-    int drag_offset             :  4;  /* range <-DIVIDER_WIDTH/2, DIVIDER_WIDTH/2> */
 
-    WORD drag_index;                   /* column or row being resized by drag */
-    WORD drag_orig_size;               /* original column width or row height */
+    /* Header dragging */
+    DWORD header_dragging       :  1;  /* is a column/row divider dragging? */
+    DWORD header_drag_is_col    :  1;  /* 0: dragging row, 1: dragging column */
+    int header_drag_offset      :  4;  /* range <-DIVIDER_WIDTH/2, DIVIDER_WIDTH/2> */
+
+    WORD header_drag_index;            /* column or row being resized by drag */
+    WORD header_drag_orig_size;        /* original column width or row height */
 
     /* If MC_GS_OWNERDATA, we need it here locally. If not, it is a cached
      * value of table->col_count and table->row_count. */
@@ -106,6 +108,7 @@ struct grid_tag {
     WORD* col_widths;   /* alloc'ed lazily */
     WORD* row_heights;  /* alloc'ed lazily */
 
+    /* Scrolling */
     int scroll_x;
     int scroll_x_max;   /* Sum of column widths (excluding header) */
     int scroll_y;
@@ -1507,28 +1510,28 @@ grid_stop_dragging(grid_t* grid, BOOL cancel)
 {
     MC_NMCOLROWSIZECHANGE notif;
 
-    if(!grid->dragging)
+    if(!grid->header_dragging)
         return;
 
-    grid->dragging = FALSE;
+    grid->header_dragging = FALSE;
 
     if(cancel) {
-        if(grid->drag_is_col)
-            grid_set_col_width(grid, grid->drag_index, grid->drag_orig_size);
+        if(grid->header_drag_is_col)
+            grid_set_col_width(grid, grid->header_drag_index, grid->header_drag_orig_size);
         else
-            grid_set_row_height(grid, grid->drag_index, grid->drag_orig_size);
+            grid_set_row_height(grid, grid->header_drag_index, grid->header_drag_orig_size);
     }
 
     notif.hdr.hwndFrom = grid->win;
     notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
-    if(grid->drag_is_col) {
+    if(grid->header_drag_is_col) {
         notif.hdr.code = MC_GN_ENDCOLUMNTRACK;
-        notif.wColumnOrRow = grid->drag_index;
-        notif.wWidthOrHeight = grid_col_width(grid, grid->drag_index);
+        notif.wColumnOrRow = grid->header_drag_index;
+        notif.wWidthOrHeight = grid_col_width(grid, grid->header_drag_index);
     } else {
         notif.hdr.code = MC_GN_ENDROWTRACK;
-        notif.wColumnOrRow = grid->drag_index;
-        notif.wWidthOrHeight = grid_row_height(grid, grid->drag_index);
+        notif.wColumnOrRow = grid->header_drag_index;
+        notif.wWidthOrHeight = grid_row_height(grid, grid->header_drag_index);
     }
     MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
 
@@ -1543,27 +1546,27 @@ grid_mouse_move(grid_t* grid, int x, int y)
 {
     RECT cell_rect;
 
-    if(!grid->dragging)
+    if(!grid->header_dragging)
         return;
 
-    if(grid->drag_is_col) {
+    if(grid->header_drag_is_col) {
         int right;
 
-        grid_cell_rect(grid, grid->drag_index, MC_TABLE_HEADER, &cell_rect);
-        right = MC_MAX(cell_rect.left, x - grid->drag_offset);
+        grid_cell_rect(grid, grid->header_drag_index, MC_TABLE_HEADER, &cell_rect);
+        right = MC_MAX(cell_rect.left, x - grid->header_drag_offset);
         if(right == cell_rect.right)
             return;
 
-        grid_set_col_width(grid, grid->drag_index, right - cell_rect.left);
+        grid_set_col_width(grid, grid->header_drag_index, right - cell_rect.left);
     } else {
         int bottom;
 
-        grid_cell_rect(grid, MC_TABLE_HEADER, grid->drag_index, &cell_rect);
-        bottom = MC_MAX(cell_rect.top, y - grid->drag_offset);
+        grid_cell_rect(grid, MC_TABLE_HEADER, grid->header_drag_index, &cell_rect);
+        bottom = MC_MAX(cell_rect.top, y - grid->header_drag_offset);
         if(bottom == cell_rect.bottom)
             return;
 
-        grid_set_row_height(grid, grid->drag_index, bottom - cell_rect.top);
+        grid_set_row_height(grid, grid->header_drag_index, bottom - cell_rect.top);
     }
 }
 
@@ -1609,27 +1612,27 @@ grid_left_button_down(grid_t* grid, int x, int y)
 
         /* Capture mouse for the dragging */
         if(info.flags & col_track_mask) {
-            grid->drag_is_col = TRUE;
-            grid->drag_index = info.wColumn;
-            grid->drag_orig_size = grid_col_width(grid, info.wColumn);
+            grid->header_drag_is_col = TRUE;
+            grid->header_drag_index = info.wColumn;
+            grid->header_drag_orig_size = grid_col_width(grid, info.wColumn);
             MC_ASSERT(cell_rect.left - x < DIVIDER_WIDTH / 2);
-            grid->drag_offset = cell_rect.left - x;
+            grid->header_drag_offset = cell_rect.left - x;
         } else {
-            grid->drag_is_col = FALSE;
-            grid->drag_index = info.wRow;
-            grid->drag_orig_size = grid_row_height(grid, info.wRow);
+            grid->header_drag_is_col = FALSE;
+            grid->header_drag_index = info.wRow;
+            grid->header_drag_orig_size = grid_row_height(grid, info.wRow);
             MC_ASSERT(cell_rect.top - y < DIVIDER_WIDTH / 2);
-            grid->drag_offset = cell_rect.top - y;
+            grid->header_drag_offset = cell_rect.top - y;
         }
         SetCapture(grid->win);
-        grid->dragging = TRUE;
+        grid->header_dragging = TRUE;
     }
 }
 
 static void
 grid_left_button_up(grid_t* grid, int x, int y)
 {
-    if(grid->dragging)
+    if(grid->header_dragging)
         grid_stop_dragging(grid, FALSE);
 }
 
