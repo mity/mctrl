@@ -196,13 +196,15 @@ struct treelist_tag {
     treelist_item_t* hot_item;
     treelist_item_t* hotbutton_item;
     int scrolled_level;               /* level of the scrolled_item */
-    DWORD style                 : 16;
-    DWORD no_redraw             :  1;
-    DWORD unicode_notifications :  1;
-    DWORD dirty_scrollbars      :  1;
-    DWORD item_height_set       :  1;
-    DWORD focus                 :  1;
-    DWORD tracking_leave        :  1;
+    DWORD style                  : 16;
+    DWORD no_redraw              :  1;
+    DWORD unicode_notifications  :  1;
+    DWORD dirty_scrollbars       :  1;
+    DWORD item_height_set        :  1;
+    DWORD focus                  :  1;
+    DWORD tracking_leave         :  1;
+    DWORD theme_treeitem_defined :  1;
+    DWORD theme_hotglyph_defined :  1;
     DWORD displayed_items;
     WORD col_count;
     WORD item_height;
@@ -776,8 +778,7 @@ treelist_label_rect(treelist_t* tl, HDC dc, const TCHAR* str, UINT dtjustify,
 {
     UINT w;
 
-    if(tl->theme != NULL  &&
-       mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0)) {
+    if(tl->theme != NULL  &&  tl->theme_treeitem_defined) {
 #if 0
         /* What the hack???
          * For some reason mcGetThemeBackgroundContentRect() gets very
@@ -891,7 +892,7 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
         pt.x = GET_X_LPARAM(pos);
         pt.y = GET_Y_LPARAM(pos);
         ScreenToClient(tl->win, &pt);
-        if(item == tl->hotbutton_item  &&  mcIsThemePartDefined(tl->theme, TVP_HOTGLYPH, 0))
+        if(item == tl->hotbutton_item  &&  tl->theme_hotglyph_defined)
             part = TVP_HOTGLYPH;
 
         mcDrawThemeBackground(tl->theme, dc, part, state, &r, NULL);
@@ -959,7 +960,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     int col_ix;
     RECT subitem_rect;
     RECT label_rect;
-    BOOL use_theme;
+    BOOL theme_treeitem_defined = tl->theme_treeitem_defined;
     int state = 0;
     int padding_h = ITEM_PADDING_H;
     int padding_v = ITEM_PADDING_V;
@@ -1000,7 +1001,6 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     header_height = mc_height(&header_rect);
     if(tl->imglist_normal)
         ImageList_GetIconSize(tl->imglist_normal, &img_w, &img_h);
-    use_theme = (tl->theme != NULL  &&  mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
 
     /* Paint grid */
     if(tl->style & MC_TLS_GRIDLINES) {
@@ -1064,14 +1064,16 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         }
 
         /* Determine item state for themed paint */
-        if(use_theme) {
+        if(theme_treeitem_defined) {
             if(!IsWindowEnabled(tl->win)) {
                 state = TREIS_DISABLED;
             } else if(item->state & MC_TLIS_SELECTED) {
                 if(item == tl->hot_item)
                     state = TREIS_HOTSELECTED;
+                else if(tl->focus)
+                    state = TREIS_SELECTED;
                 else
-                    state = (tl->focus ? TREIS_SELECTED : TREIS_SELECTEDNOTFOCUS);
+                    state = TREIS_SELECTEDNOTFOCUS;
             } else if(item == tl->hot_item) {
                 state = TREIS_HOT;
             } else {
@@ -1099,7 +1101,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             paint_selected = (item->state & MC_TLIS_SELECTED)  &&
                     ((tl->style & MC_TLS_SHOWSELALWAYS) || tl->focus)  &&
                     ((tl->style & MC_TLS_FULLROWSELECT) || col_ix == 0);
-            if(paint_selected  &&  !use_theme) {
+            if(paint_selected  &&  !theme_treeitem_defined) {
                 subitem_text_color = GetSysColor(COLOR_HIGHLIGHTTEXT);
                 subitem_bk_color = GetSysColor(COLOR_HIGHLIGHT);
             } else {
@@ -1182,9 +1184,9 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 /* Paint background of the main item. We expand it to all
                  * subitems in case of MC_TLS_FULLROWSELECT and selected item. */
                 if((tl->style & MC_TLS_FULLROWSELECT)  &&
-                   (paint_selected  ||  (use_theme && state != TREIS_NORMAL)))
+                   (paint_selected  ||  (theme_treeitem_defined && state != TREIS_NORMAL)))
                     subitem_rect.right = tl->scroll_x_max - tl->scroll_x;
-                if(use_theme  &&  state != TREIS_NORMAL) {
+                if(theme_treeitem_defined  &&  state != TREIS_NORMAL) {
                     mcDrawThemeBackground(tl->theme, dc,
                             TVP_TREEITEM, state, &subitem_rect, NULL);
                 } else {
@@ -1201,7 +1203,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
                 /* Paint label of the main item */
                 mc_rect_inflate(&label_rect, -padding_h, -padding_v);
-                if(use_theme) {
+                if(theme_treeitem_defined) {
                     mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
                                     dispinfo.text, -1, ITEM_DTFLAGS, 0, &label_rect);
                     if(!(tl->style & MC_TLS_FULLROWSELECT))
@@ -1228,7 +1230,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                                     &subitem_rect, &padding_h, &padding_v);
                 mc_rect_inflate(&subitem_rect, -padding_h, -padding_v);
 
-                if(use_theme) {
+                if(theme_treeitem_defined) {
                     mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
                             subdispinfo.text, -1, ITEM_DTFLAGS | justify,
                             0, &subitem_rect);
@@ -2047,7 +2049,7 @@ static void
 treelist_mouse_move(treelist_t* tl, int x, int y)
 {
     /* Hot items only draw differently if we have themes, so... */
-    if(tl->theme != NULL && mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0)) {
+    if(tl->theme != NULL  &&  tl->theme_treeitem_defined) {
         MC_TLHITTESTINFO info;
         treelist_item_t* item;
         treelist_item_t* hot_item;
@@ -3440,11 +3442,23 @@ treelist_notify_format(treelist_t* tl)
 }
 
 static void
+treelist_open_theme(treelist_t* tl)
+{
+    tl->theme = mcOpenThemeData(tl->win, treelist_tc);
+
+    tl->theme_treeitem_defined = (tl->theme != NULL  &&
+                mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
+    tl->theme_hotglyph_defined = (tl->theme != NULL  &&
+                mcIsThemePartDefined(tl->theme, TVP_HOTGLYPH, 0));
+}
+
+static void
 treelist_theme_changed(treelist_t* tl)
 {
     if(tl->theme)
         mcCloseThemeData(tl->theme);
-    tl->theme = mcOpenThemeData(tl->win, treelist_tc);
+
+    treelist_open_theme(tl);
 
     if(!tl->no_redraw)
         InvalidateRect(tl->win, NULL, TRUE);
@@ -3497,7 +3511,7 @@ treelist_create(treelist_t* tl)
     }
     MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, MC_IS_UNICODE, 0);
 
-    tl->theme = mcOpenThemeData(tl->win, treelist_tc);
+    treelist_open_theme(tl);
     return 0;
 }
 
