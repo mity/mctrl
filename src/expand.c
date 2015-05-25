@@ -36,7 +36,6 @@
 #define FOCUS_INFLATE_H       3
 #define FOCUS_INFLATE_V       1
 
-#define ANIM_DURATION       100
 #define ANIM_TIMER_ID         1
 
 
@@ -628,9 +627,17 @@ expand_resize(expand_t* expand, DWORD flags)
     /* Animate the resize */
     if((expand->style & MC_EXS_ANIMATE)  &&  !(flags & MC_EXE_NOANIMATE)) {
         RECT start_rect;
+        DWORD duration;
 
         GetWindowRect(expand->notify_win, &start_rect);
-        expand->anim = anim_start(expand->win, ANIM_TIMER_ID, ANIM_DURATION, 50,
+
+        /* See http://blogs.msdn.com/b/oldnewthing/archive/2008/04/23/8417521.aspx */
+        duration = GetDoubleClickTime() / 5;
+
+        /* We store original (current) parent window size to deal correctly
+         * with situations, when it changes while the animation is in
+         * progress. */
+        expand->anim = anim_start(expand->win, ANIM_TIMER_ID, duration, 50,
                     MAKELPARAM(mc_width(&start_rect), mc_height(&start_rect)));
         if(expand->anim != NULL) {
             return;
