@@ -144,6 +144,7 @@ module_fini_modules(module_t** modules, int n)
 /* Module definition */
 
 DEFINE_MODULE(mc);
+DEFINE_MODULE(anim);
 DEFINE_MODULE(button);
 DEFINE_MODULE(chart);
 DEFINE_MODULE(expand);

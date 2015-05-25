@@ -68,6 +68,15 @@
 /* Get count of records in an array */
 #define MC_ARRAY_SIZE(array)   (sizeof((array)) / sizeof((array)[0]))
 
+/* Specifier of flexible array member size */
+#if __STDC_VERSION__ >= 199901L  ||  defined MC_COMPILER_MSVC
+    #define MC_ARRAY_FLEXIBLE_SIZE_SPEC       /* empty */
+#elif defined MC_COMPILER_GCC
+    #define MC_ARRAY_FLEXIBLE_SIZE_SPEC       0
+#else
+    #define MC_ARRAY_FLEXIBLE_SIZE_SPEC       1
+#endif
+
 /* Pi (float) */
 #define MC_PIf     3.14159265358979323846f
 
