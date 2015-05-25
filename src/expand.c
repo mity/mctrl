@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 Martin Mitas
+ * Copyright (c) 2012-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,7 @@
  */
 
 #include "expand.h"
+#include "anim.h"
 #include "doublebuffer.h"
 #include "theme.h"
 
@@ -35,10 +36,8 @@
 #define FOCUS_INFLATE_H       3
 #define FOCUS_INFLATE_V       1
 
-#define ANIM_DURATION        100
-#define ANIM_FRAMES            8
-#define ANIM_TIMER_ID          1
-#define ANIM_TIMER_INTERVAL   (ANIM_DURATION / ANIM_FRAMES)
+#define ANIM_DURATION       100
+#define ANIM_TIMER_ID         1
 
 
 static const TCHAR expand_wc[] = MC_WC_EXPAND;    /* Window class name */
@@ -82,6 +81,7 @@ struct expand_tag {
     HWND notify_win;
     HTHEME theme;
     HFONT font;
+    anim_t* anim;               /* animation of parent resizing */
     DWORD style          : 16;
     DWORD no_redraw      : 1;
     DWORD hide_accel     : 1;
@@ -91,13 +91,10 @@ struct expand_tag {
     DWORD space_pressed  : 1;
     DWORD state          : 3;
     DWORD old_state      : 3;  /* For painting state transitions. */
-    DWORD anim_frame     : 4;  /* For animating parent resize. */
     WORD collapsed_w;
     WORD collapsed_h;
     WORD expanded_w;
     WORD expanded_h;
-    WORD anim_start_w;         /* Needed for case collapsed/expand_[w|h]...  */
-    WORD anim_start_h;         /*      ... changes during the animation. */
 };
 
 
@@ -574,58 +571,43 @@ expand_handle_children(expand_t* expand, RECT* old_rect, RECT* new_rect)
 static void
 expand_animate_resize_callback(expand_t* expand)
 {
+    anim_t* anim = expand->anim;
+    RECT r;
     SIZE dlg_frame_size;
     SIZE dlg_client_size;
-    RECT r;
-    BOOL done;
+    LPARAM lp;
+    WORD start_w, start_h;
+
+    MC_ASSERT(anim != NULL);
+
+    lp = anim_lparam(anim);
+    start_w = GET_X_LPARAM(lp);
+    start_h = GET_Y_LPARAM(lp);
 
     GetWindowRect(expand->win, &r);
     expand_get_desired_dlg_size(expand, &dlg_frame_size, &dlg_client_size);
 
-    done = (mc_width(&r) == dlg_frame_size.cx  &&  mc_height(&r) == dlg_frame_size.cy);
-    if(!done) {
-        if(expand->anim_frame != ANIM_FRAMES-1) {
-            LONG dw = (LONG)expand->anim_frame * (dlg_frame_size.cx - (LONG)expand->anim_start_w) / ANIM_FRAMES;
-            LONG dh = (LONG)expand->anim_frame * (dlg_frame_size.cy - (LONG)expand->anim_start_h) / ANIM_FRAMES;
+    anim_step(anim);
 
-            dlg_frame_size.cx = expand->anim_start_w + dw;
-            dlg_frame_size.cy = expand->anim_start_h + dh;
-            dlg_client_size.cx = dlg_frame_size.cx;
-            dlg_client_size.cy = dlg_frame_size.cy;
-            expand_entire_to_client(expand, &dlg_client_size);
-        } else {
-            done = TRUE;
-        }
+    if(!anim_is_done(anim)) {
+        float progress = anim_progress(anim);
 
+        dlg_frame_size.cx = start_w + progress * (float)(dlg_frame_size.cx - start_w);
+        dlg_frame_size.cy = start_h + progress * (float)(dlg_frame_size.cy - start_h);
         expand_do_resize(expand, &dlg_frame_size);
-    }
-
-    if(done) {
+    } else {
         RECT old_rect, new_rect;
 
-        expand->anim_frame = 0;
-        KillTimer(expand->win, ANIM_TIMER_ID);
+        anim_stop(anim);
+        expand->anim = NULL;
 
-        mc_rect_set(&old_rect, 0, 0, expand->anim_start_w, expand->anim_start_h);
+        mc_rect_set(&old_rect, 0, 0, start_w, start_h);
         mc_rect_set(&new_rect, 0, 0, dlg_client_size.cx, dlg_client_size.cy);
+
+        expand_do_resize(expand, &dlg_frame_size);
         expand_handle_children(expand, &old_rect, &new_rect);
         mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDED);
-    } else {
-        expand->anim_frame++;
     }
-}
-
-static void
-expand_animate_resize(expand_t* expand, SIZE* dlg_frame_size, SIZE* dlg_client_size)
-{
-    RECT rect;
-
-    GetWindowRect(expand->notify_win, &rect);
-    expand->anim_start_w = mc_width(&rect);
-    expand->anim_start_h = mc_height(&rect);
-    expand->anim_frame = 0;
-
-    SetTimer(expand->win, ANIM_TIMER_ID, ANIM_TIMER_INTERVAL, NULL);
 }
 
 static void
@@ -633,26 +615,37 @@ expand_resize(expand_t* expand, DWORD flags)
 {
     SIZE dlg_frame_size;
     SIZE dlg_client_size;
+    RECT old_rect, new_rect;
 
     expand_get_desired_dlg_size(expand, &dlg_frame_size, &dlg_client_size);
 
-    if((expand->style & MC_EXS_ANIMATE)  &&  !(flags & MC_EXE_NOANIMATE)) {
-        expand_animate_resize(expand, &dlg_frame_size, &dlg_client_size);
-    } else {
-        RECT old_rect, new_rect;
-
-        /* If any animation in progress, stop it. */
-        if(expand->anim_frame != 0) {
-            expand->anim_frame = 0;
-            KillTimer(expand->win, ANIM_TIMER_ID);
-        }
-
-        expand_do_resize(expand, &dlg_frame_size);
-        GetClientRect(expand->win, &old_rect);
-        mc_rect_set(&new_rect, 0, 0, dlg_client_size.cx, dlg_client_size.cy);
-        expand_handle_children(expand, &old_rect, &new_rect);
-        mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDED);
+    /* If an animation is in progress, stop it. */
+    if(expand->anim != 0) {
+        anim_stop(expand->anim);
+        expand->anim = NULL;
     }
+
+    /* Animate the resize */
+    if((expand->style & MC_EXS_ANIMATE)  &&  !(flags & MC_EXE_NOANIMATE)) {
+        RECT start_rect;
+
+        GetWindowRect(expand->notify_win, &start_rect);
+        expand->anim = anim_start(expand->win, ANIM_TIMER_ID, ANIM_DURATION, 50,
+                    MAKELPARAM(mc_width(&start_rect), mc_height(&start_rect)));
+        if(expand->anim != NULL) {
+            return;
+        } else {
+            MC_TRACE("expand_resize: anim_start() failed. "
+                     "Falling back to instant resize.");
+        }
+    }
+
+    /* Instant resize */
+    expand_do_resize(expand, &dlg_frame_size);
+    GetClientRect(expand->win, &old_rect);
+    mc_rect_set(&new_rect, 0, 0, dlg_client_size.cx, dlg_client_size.cy);
+    expand_handle_children(expand, &old_rect, &new_rect);
+    mc_send_notify(expand->notify_win, expand->win, MC_EXN_EXPANDED);
 }
 
 static expand_t*
@@ -702,6 +695,9 @@ expand_destroy(expand_t* expand)
 static void
 expand_ncdestroy(expand_t* expand)
 {
+    if(expand->anim != NULL)
+        anim_stop(expand->anim);
+
     doublebuffer_init();
     free(expand);
 }
