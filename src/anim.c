@@ -43,6 +43,11 @@ anim_start_ex(HWND win, UINT timer_id, UINT duration, UINT freq,
     anim_t* anim;
     int i;
 
+    if(MC_ERR(anim_timestamp_freq == 0)) {
+        MC_TRACE("anim_start_ex: Perf. counter frequency is zero.");
+        return NULL;
+    }
+
     MC_ASSERT(duration != 0  ||  var_count == 0);
 
     anim = (anim_t*) malloc(sizeof(anim_t) + 3 * var_count * sizeof(float));
@@ -141,11 +146,23 @@ anim_init_module(void)
 {
     LARGE_INTEGER perf_freq;
 
+    /* According to MSDN, the functions QueryPerformanceFrequency() and
+     * QueryPerformanceCounter() never fail on XP and newer Windows versions.
+     *
+     * On Win 2000, this may depend on availability of a HW support.
+     * To not over-complicate the code, I assume the functions either always
+     * fail or always succeed.
+     *
+     * If it fails, we make anim_init_module() still succeed but any call to
+     * anim_start_ex() will return NULL to disable animation. (Caller should
+     * fall back to instant change instead of animation.)
+     */
+
     if(QueryPerformanceFrequency(&perf_freq)) {
         anim_timestamp_freq = perf_freq.QuadPart;
     } else {
         MC_TRACE_ERR("anim_init_module: QueryPerformanceFrequency() failed.");
-        return -1;
+        anim_timestamp_freq = 0;
     }
 
     return 0;
