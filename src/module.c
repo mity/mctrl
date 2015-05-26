@@ -144,7 +144,6 @@ module_fini_modules(module_t** modules, int n)
 /* Module definition */
 
 DEFINE_MODULE(mc);
-DEFINE_MODULE(anim);
 DEFINE_MODULE(button);
 DEFINE_MODULE(chart);
 DEFINE_MODULE(expand);
@@ -166,7 +165,7 @@ DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
 static module_t* mod_chart_deps[] = { &mod_mc, &mod_theme, &mod_xdraw, &mod_chart };
 DEFINE_PUBLIC_IFACE(chart, Chart, mod_chart_deps)
 
-static module_t* mod_expand_deps[] = { &mod_mc, &mod_anim, &mod_theme, &mod_expand };
+static module_t* mod_expand_deps[] = { &mod_mc, &mod_theme, &mod_expand };
 DEFINE_PUBLIC_IFACE(expand, Expand, mod_expand_deps)
 
 static module_t* mod_grid_deps[] = { &mod_mc, &mod_theme, &mod_grid };

@@ -25,45 +25,31 @@
 /* Structure representing the animation. */
 typedef struct anim_tag anim_t;
 struct anim_tag {
-    uint64_t timestamp_start;
-    uint64_t timestamp_prev_frame;
-    uint64_t timestamp_curr_frame;
-    uint64_t timestamp_end;
-    LPARAM lp;
     HWND win;
     UINT timer_id;
-    UINT var_count;
-    float var[MC_ARRAY_FLEXIBLE_SIZE_SPEC];   /* (3 * var_count) */
+    DWORD time_start;
+    DWORD time_prev_frame;
+    DWORD time_curr_frame;
+    DWORD time_end;
 };
 
 
-/* Range specifying a linear development of a variable during the animation.
- * (Supported only for "finite" animations, i.e. those which have non-zero
- * duration set in anim_start_ex()).
- */
-typedef struct anim_var_tag anim_var_t;
-struct anim_var_tag {
-    float f0;    /* Initial value (at the start of animation) */
-    float f1;    /* The final value (at the end of variable) */
-};
+/* Get the extra data associated with the animation. */
+#define ANIM_EXTRA_DATA(anim, type)     ((type*)((anim) + 1))
 
 
 /* Start a new animation.
  *  -- Allocates and sets up the structure.
- *  -- Initializes all animation variables.
  *  -- If duration is zero, the anim_step() never returns non-zero and
  *     the animation continues unless caller decides to stop it with anim_stop().
  *  -- Starts a timer with SetTimer(), accordingly to the desired frequency
  *     (frames per second).
  */
-anim_t* anim_start_ex(HWND win, UINT timer_id, UINT duration, UINT freq,
-                      anim_var_t* vars, UINT var_count, LPARAM lp);
+anim_t* anim_start_ex(HWND win, UINT timer_id, DWORD duration, DWORD freq,
+                      void* extra_bytes, size_t extra_size);
 
-static inline anim_t* anim_start(HWND win, UINT timer_id, UINT duration, UINT freq, LPARAM lp)
-    { return anim_start_ex(win, timer_id, duration, freq, NULL, 0, lp); }
-
-static inline LPARAM anim_lparam(anim_t* anim)
-    { return anim->lp; }
+static inline anim_t* anim_start(HWND win, UINT timer_id, DWORD duration, DWORD freq)
+    { return anim_start_ex(win, timer_id, duration, freq, NULL, 0); }
 
 /* Performs animation step.
  *  -- Can be called anytime between anim_start() and anim_end(), but typically
@@ -78,23 +64,18 @@ BOOL anim_step(anim_t* anim);
 
 /* Gets how much time in milliseconds has passed since the previous
  * anim_step() call, or since the animation start. */
-DWORD anim_time(anim_t* anim, BOOL since_start);
-
-/* Gets animation variable.
- *  -- Index specifies the respective variable as specified in anim_start_ex().
- *  -- Asks about animation variable as computed in the last anim_step() call.
- */
-static inline float anim_var_value(anim_t* anim, UINT var_index)
-    { MC_ASSERT(var_index < anim->var_count); return anim->var[var_index]; }
+static inline DWORD anim_time(anim_t* anim)
+    { return (anim->time_curr_frame - anim->time_start); }
+static inline DWORD anim_frame_time(anim_t* anim)
+    { return (anim->time_curr_frame - anim->time_prev_frame); }
 
 /* Gets a current animation progress (in a range of 0.0f ... 1.0f).
  * Valid only for finite animations. */
 static inline float anim_progress(anim_t* anim)
-    { return (float)(anim->timestamp_curr_frame - anim->timestamp_start) /
-             (float)(anim->timestamp_end - anim->timestamp_start); }
+    { return (float)(anim->time_curr_frame - anim->time_start) /
+             (float)(anim->time_end - anim->time_start); }
 
-static inline BOOL anim_is_done(anim_t* anim)
-    { return (anim->timestamp_curr_frame >= anim->timestamp_end); }
+BOOL anim_is_done(anim_t* anim);
 
 /* Stops the animation and releases all resources associated with it.
  *  -- Stops the animation timer with KillTimer().

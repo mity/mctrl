@@ -19,64 +19,41 @@
 #include "anim.h"
 
 
-static uint64_t anim_timestamp_freq = 0;
-
-
-#define ANIM_CURR_VALUE(anim,i)    (anim)->var[(i)]
-#define ANIM_START_VALUE(anim,i)   (anim)->var[(anim)->var_count + (i)]
-#define ANIM_END_VALUE(anim,i)     (anim)->var[2 * (anim)->var_count + (i)]
-
-
-static inline uint64_t
-anim_timestamp(void)
+static inline int
+anim_time_cmp(DWORD t1, DWORD t2)
 {
-    LARGE_INTEGER ts;
-    QueryPerformanceCounter(&ts);
-    return ts.QuadPart;
+    DWORD diff = t2 - t1;
+
+    if(diff == 0)
+        return 0;
+
+    if(INT32_MIN <= diff  &&  diff <= INT32_MAX)
+        return (int)diff;
+    else
+        return -(int)diff;
 }
 
 
-anim_t*
-anim_start_ex(HWND win, UINT timer_id, UINT duration, UINT freq,
-              anim_var_t* vars, UINT var_count, LPARAM lp)
+anim_t* anim_start_ex(HWND win, UINT timer_id, DWORD duration, DWORD freq,
+                      void* extra_bytes, size_t extra_size)
 {
     anim_t* anim;
-    int i;
 
-    if(MC_ERR(anim_timestamp_freq == 0)) {
-        MC_TRACE("anim_start_ex: Perf. counter frequency is zero.");
-        return NULL;
-    }
-
-    MC_ASSERT(duration != 0  ||  var_count == 0);
-
-    anim = (anim_t*) malloc(sizeof(anim_t) + 3 * var_count * sizeof(float));
+    anim = (anim_t*) malloc(sizeof(anim_t) + extra_size);
     if(MC_ERR(anim == NULL)) {
         MC_TRACE("anim_start_ex: malloc() failed.");
         return NULL;
     }
 
-    if(var_count > 0) {
-        for(i = 0; i < var_count; i++) {
-            ANIM_START_VALUE(anim, i) = vars[i].f0;
-            ANIM_END_VALUE(anim, i) = vars[i].f1;
-        }
-
-        memcpy(&ANIM_CURR_VALUE(anim, 0), &ANIM_START_VALUE(anim, 0), var_count * sizeof(float));
-    }
-
-    anim->lp = lp;
     anim->win = win;
     anim->timer_id = timer_id;
-    anim->var_count = var_count;
+    if(extra_size > 0)
+        memcpy(anim+1, extra_bytes, extra_size);
 
-    anim->timestamp_start = anim_timestamp();
-    anim->timestamp_prev_frame = anim->timestamp_start;
-    anim->timestamp_curr_frame = anim->timestamp_start;
-    if(duration >= 0)
-        anim->timestamp_end = anim->timestamp_start + (anim_timestamp_freq * (uint64_t)duration / 1000);
-    else
-        anim->timestamp_end = UINT64_MAX;
+    anim->time_start = GetTickCount();
+    anim->time_prev_frame = anim->time_start;
+    anim->time_curr_frame = anim->time_start;
+    anim->time_end = anim->time_start + duration;
 
     if(MC_ERR(SetTimer(win, timer_id, 1000 / freq, NULL) == 0)) {
         MC_TRACE_ERR("anim_start_ex: SetTimer() failed.");
@@ -90,48 +67,26 @@ anim_start_ex(HWND win, UINT timer_id, UINT duration, UINT freq,
 BOOL
 anim_step(anim_t* anim)
 {
-    uint64_t timestamp_now;
-    int i;
+    BOOL check_end = (anim->time_start != anim->time_end);
+    DWORD now;
 
-    timestamp_now = anim_timestamp();
+    now = GetTickCount();
+    if(check_end  &&  anim_time_cmp(now, anim->time_end) > 0)
+        now = anim->time_end;
 
-    anim->timestamp_prev_frame = anim->timestamp_curr_frame;
+    anim->time_prev_frame = anim->time_curr_frame;
+    anim->time_curr_frame = now;
 
-    if(timestamp_now < anim->timestamp_end) {
-        if(anim->var_count > 0) {
-            float factor = (float)(timestamp_now - anim->timestamp_start) /
-                           (float)(anim->timestamp_end - anim->timestamp_start);
-
-            for(i = 0; i < anim->var_count; i++) {
-                ANIM_CURR_VALUE(anim, i) = ANIM_START_VALUE(anim, i) +
-                        factor * (ANIM_END_VALUE(anim, i) - ANIM_START_VALUE(anim, i));
-            }
-        }
-
-        anim->timestamp_curr_frame = timestamp_now;
+    if(check_end)
+        return (anim_time_cmp(now, anim->time_end) < 0);
+    else
         return TRUE;
-    } else {
-        if(anim->var_count > 0) {
-            memcpy(&ANIM_CURR_VALUE(anim, 0), &ANIM_END_VALUE(anim, 0),
-                   anim->var_count * sizeof(float));
-        }
-
-        anim->timestamp_curr_frame = anim->timestamp_end;
-        return FALSE;
-    }
 }
 
-DWORD
-anim_time(anim_t* anim, BOOL since_start)
+BOOL
+anim_is_done(anim_t* anim)
 {
-    uint64_t diff;
-
-    if(since_start)
-        diff = anim->timestamp_curr_frame - anim->timestamp_start;
-    else
-        diff = anim->timestamp_curr_frame - anim->timestamp_prev_frame;
-
-    return 1000 * diff / anim_timestamp_freq;
+    return (anim_time_cmp(anim->time_curr_frame, anim->time_end) >= 0);
 }
 
 void
@@ -139,37 +94,4 @@ anim_stop(anim_t* anim)
 {
     KillTimer(anim->win, anim->timer_id);
     free(anim);
-}
-
-int
-anim_init_module(void)
-{
-    LARGE_INTEGER perf_freq;
-
-    /* According to MSDN, the functions QueryPerformanceFrequency() and
-     * QueryPerformanceCounter() never fail on XP and newer Windows versions.
-     *
-     * On Win 2000, this may depend on availability of a HW support.
-     * To not over-complicate the code, I assume the functions either always
-     * fail or always succeed.
-     *
-     * If it fails, we make anim_init_module() still succeed but any call to
-     * anim_start_ex() will return NULL to disable animation. (Caller should
-     * fall back to instant change instead of animation.)
-     */
-
-    if(QueryPerformanceFrequency(&perf_freq)) {
-        anim_timestamp_freq = perf_freq.QuadPart;
-    } else {
-        MC_TRACE_ERR("anim_init_module: QueryPerformanceFrequency() failed.");
-        anim_timestamp_freq = 0;
-    }
-
-    return 0;
-}
-
-void
-anim_fini_module(void)
-{
-    /* noop */
 }

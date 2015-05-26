@@ -567,21 +567,22 @@ expand_handle_children(expand_t* expand, RECT* old_rect, RECT* new_rect)
     }
 }
 
+/* For parent resize animation, we need to remember the original window size. */
+typedef struct expand_anim_ctx_tag expand_anim_ctx_t;
+struct expand_anim_ctx_tag {
+    SIZE orig_size;
+};
+
 static void
 expand_animate_resize_callback(expand_t* expand)
 {
     anim_t* anim = expand->anim;
+    expand_anim_ctx_t* anim_ctx = ANIM_EXTRA_DATA(anim, expand_anim_ctx_t);
+    LONG orig_w = anim_ctx->orig_size.cx;
+    LONG orig_h = anim_ctx->orig_size.cy;
     RECT r;
     SIZE dlg_frame_size;
     SIZE dlg_client_size;
-    LPARAM lp;
-    WORD start_w, start_h;
-
-    MC_ASSERT(anim != NULL);
-
-    lp = anim_lparam(anim);
-    start_w = GET_X_LPARAM(lp);
-    start_h = GET_Y_LPARAM(lp);
 
     GetWindowRect(expand->win, &r);
     expand_get_desired_dlg_size(expand, &dlg_frame_size, &dlg_client_size);
@@ -591,8 +592,8 @@ expand_animate_resize_callback(expand_t* expand)
     if(!anim_is_done(anim)) {
         float progress = anim_progress(anim);
 
-        dlg_frame_size.cx = start_w + progress * (float)(dlg_frame_size.cx - start_w);
-        dlg_frame_size.cy = start_h + progress * (float)(dlg_frame_size.cy - start_h);
+        dlg_frame_size.cx = orig_w + progress * (float)(dlg_frame_size.cx - orig_w);
+        dlg_frame_size.cy = orig_h + progress * (float)(dlg_frame_size.cy - orig_h);
         expand_do_resize(expand, &dlg_frame_size);
     } else {
         RECT old_rect, new_rect;
@@ -600,7 +601,7 @@ expand_animate_resize_callback(expand_t* expand)
         anim_stop(anim);
         expand->anim = NULL;
 
-        mc_rect_set(&old_rect, 0, 0, start_w, start_h);
+        mc_rect_set(&old_rect, 0, 0, orig_w, orig_h);
         mc_rect_set(&new_rect, 0, 0, dlg_client_size.cx, dlg_client_size.cy);
 
         expand_do_resize(expand, &dlg_frame_size);
@@ -627,9 +628,12 @@ expand_resize(expand_t* expand, DWORD flags)
     /* Animate the resize */
     if((expand->style & MC_EXS_ANIMATE)  &&  !(flags & MC_EXE_NOANIMATE)) {
         RECT start_rect;
+        expand_anim_ctx_t anim_ctx;
         DWORD duration;
 
         GetWindowRect(expand->notify_win, &start_rect);
+        anim_ctx.orig_size.cx = mc_width(&start_rect);
+        anim_ctx.orig_size.cy = mc_height(&start_rect);
 
         /* See http://blogs.msdn.com/b/oldnewthing/archive/2008/04/23/8417521.aspx */
         duration = GetDoubleClickTime() / 5;
@@ -637,8 +641,8 @@ expand_resize(expand_t* expand, DWORD flags)
         /* We store original (current) parent window size to deal correctly
          * with situations, when it changes while the animation is in
          * progress. */
-        expand->anim = anim_start(expand->win, ANIM_TIMER_ID, duration, 50,
-                    MAKELPARAM(mc_width(&start_rect), mc_height(&start_rect)));
+        expand->anim = anim_start_ex(expand->win, ANIM_TIMER_ID, duration, 50,
+                                     &anim_ctx, sizeof(expand_anim_ctx_t));
         if(expand->anim != NULL) {
             return;
         } else {
