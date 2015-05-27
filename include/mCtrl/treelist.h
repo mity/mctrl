@@ -169,10 +169,10 @@ extern "C" {
  * - @c NM_CUSTOMDRAW (see @ref MC_NMTLCUSTOMDRAW)
  * - @c NM_DBLCLK
  * - @c NM_KILLFOCUS
+ * - @c NM_OUTOFMEMORY
  * - @c NM_RCLICK
  * - @c NM_RDBLCLK
  * - @c NM_SETFOCUS
- * - @c NM_OUTOFMEMORY
  * - @c WM_CONTEXTMENU
  */
 
