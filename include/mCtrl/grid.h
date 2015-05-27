@@ -126,6 +126,27 @@ extern "C" {
  * indexes is set to @ref MC_TABLE_HEADER.
  *
  *
+ * @section grid_cell_focus Focused Cell
+ *
+ * With the style @c MC_GS_FOCUSEDCELL, the control supports a cell focus.
+ * Then, exactly one cell has a status of the focused cell.
+ *
+ * Certain aspects of control behavior change when the style is enabled:
+ *
+ * - The focused cell has a focus rectangle painted around it (if the control
+ *   has focus).
+ *
+ * - Navigation keys (like arrow keys, page up/down, home/end etc.) move the
+ *   focus from a given cell to another one, as appropriate to the given key.
+ *   (When the style is not used the keys translate directly to a scrolling
+ *   action.)
+ *
+ * Application can set and get currently focused cell with messages
+ * @c MC_GM_SETFOCUSEDCELL and @c MC_GM_GETFOCUSEDCELL, and be notified about
+ * its change of focused cell via the notification @c MC_GN_FOCUSEDCELLCHANGING
+ * and @c MC_GN_FOCUSEDCELLCHANGED.
+ *
+ *
  * @section grid_std_msgs Standard Messages
  *
  * These standard messages are handled by @c MC_WC_GRID control:
@@ -141,10 +162,12 @@ extern "C" {
  * - @c NM_CLICK
  * - @c NM_CUSTOMDRAW (see @ref MC_NMGCUSTOMDRAW)
  * - @c NM_DBLCLK
+ * - @c NM_KILLFOCUS
  * - @c NM_OUTOFMEMORY
  * - @c NM_RCLICK
  * - @c NM_RDBLCLK
  * - @c NM_RELEASEDCAPTURE
+ * - @c NM_SETFOCUS
  * - @c WM_CONTEXTMENU
  */
 
@@ -203,6 +226,9 @@ void MCTRL_API mcGrid_Terminate(void);
 #define MC_GS_RESIZABLECOLUMNS       0x0010
 /** @brief Enable changing row height by dragging row header divider. */
 #define MC_GS_RESIZABLEROWS          0x0020
+
+/** @brief Enables cell focus. */
+#define MC_GS_FOCUSEDCELL            0x0040
 
 /** @brief The contents of column headers is used. This is default. */
 #define MC_GS_COLUMNHEADERNORMAL     0x0000
@@ -400,9 +426,8 @@ typedef struct MC_NMGDISPINFOA_tag {
  * @brief Structure used by notifications related to resizing of column and
  * headers.
  *
- * @sa MC_GN_COLUMNWIDTHCHANGING MC_GN_COLUMNWIDTHCHANGED
+ * @sa MC_GN_COLUMNWIDTHCHANGING @sa MC_GN_COLUMNWIDTHCHANGED
  * @sa MC_GN_ROWHEIGHTCHANGING @sa MC_GN_ROWHEIGHTCHANGED
- *
  */
 typedef struct MC_NMGCOLROWSIZECHANGE_tag {
     /** Common notification structure header. */
@@ -416,6 +441,24 @@ typedef struct MC_NMGCOLROWSIZECHANGE_tag {
      *  (for @ref MC_GN_ROWHEIGHTCHANGING and @ref MC_GN_ROWHEIGHTCHANGED). */
     WORD wWidthOrHeight;
 } MC_NMGCOLROWSIZECHANGE;
+
+/**
+ * @brief Structure used by notifications related to focused cell.
+ *
+ * @sa MC_GN_FOCUSEDCELLCHANGING MC_GN_FOCUSEDCELLCHANGED
+ */
+typedef struct MC_NMGFOCUSEDCELLCHANGE_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Column of old focused cell. */
+    WORD wOldColumn;
+    /** Row of old focused cell. */
+    WORD wOldRow;
+    /** Column of new focused cell. */
+    WORD wNewColumn;
+    /** Row of new focused cell. */
+    WORD wNewRow;
+} MC_NMGFOCUSEDCELLCHANGE;
 
 /*@}*/
 
@@ -606,7 +649,7 @@ typedef struct MC_NMGCOLROWSIZECHANGE_tag {
  * @brief Get width of specified column.
  *
  * @param[in] wParam (@c WORD) Index of the column.
- * @param[in] lParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
  * @return (@c LRESULT) If the message fails, the return value is @c -1.
  * On success, low word is the width in pixels, high word is reserved for
  * future and it is currently always set to zero.
@@ -633,7 +676,7 @@ typedef struct MC_NMGCOLROWSIZECHANGE_tag {
  * @brief Get height of specified row.
  *
  * @param[in] wParam (@c WORD) Index of the row.
- * @param[in] lParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
  * @return (@c LRESULT) If the message fails, the return value is @c -1.
  * On success, low word is the height in pixels, high word is reserved for
  * future and it is currently always set to zero.
@@ -672,6 +715,23 @@ typedef struct MC_NMGCOLROWSIZECHANGE_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_GM_ENSUREVISIBLE       (MC_GM_FIRST + 19)
+
+/**
+ * @brief Set cell which has focus.
+ * @param[in] wParam (@c DWORD) Low word specifies column, high word specifies
+ * row. Note that cursor can move only to ordinary cells.
+ * @param lParam Reserved, set to zero.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_GM_SETFOCUSEDCELL      (MC_GM_FIRST + 20)
+
+/**
+ * @brief Get cell which has focus.
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c DWORD) Low word specifies column, high word specifies row.
+ */
+#define MC_GM_GETFOCUSEDCELL      (MC_GM_FIRST + 21)
 
 /*@}*/
 
@@ -856,6 +916,26 @@ typedef struct MC_NMGCOLROWSIZECHANGE_tag {
  * @return Application should return zero if it processes the notification.
  */
 #define MC_GN_ROWHEIGHTCHANGED    (MC_GN_FIRST + 12)
+
+/**
+ * @brief Fired when focused cell is about to change.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMGFOCUSEDCELLCHANGE*) Pointer to @ref
+ * MC_NMGFOCUSEDCELLCHANGE structure.
+ * @return @c TRUE to prevent the row height change, @c FALSE to allow it.
+ */
+#define MC_GN_FOCUSEDCELLCHANGING (MC_GN_FIRST + 13)
+
+/**
+ * @brief Fired after focused cell has been changed.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMGFOCUSEDCELLCHANGE*) Pointer to @ref
+ * MC_NMGFOCUSEDCELLCHANGE structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_GN_FOCUSEDCELLCHANGED  (MC_GN_FIRST + 14)
 
 /*@}*/
 

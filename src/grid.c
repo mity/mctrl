@@ -82,6 +82,7 @@ struct grid_tag {
     DWORD style                 : 16;
     DWORD no_redraw             :  1;
     DWORD unicode_notifications :  1;
+    DWORD focus                 :  1;
 
     /* Header dragging */
     DWORD header_dragging       :  1;  /* is a column/row divider dragging? */
@@ -97,6 +98,10 @@ struct grid_tag {
     WORD row_count;
 
     WORD cache_hint[4];
+
+    /* Currently focused cell */
+    WORD focused_col;
+    WORD focused_row;
 
     /* Cell geometry */
     WORD padding_h;
@@ -334,11 +339,7 @@ grid_scroll_xy(grid_t* grid, int scroll_x, int scroll_y)
     if(scroll_x == old_scroll_x  &&  scroll_y == old_scroll_y)
         return;
 
-    grid->scroll_x = scroll_x;
-    grid->scroll_y = scroll_y;
-    SetScrollPos(grid->win, SB_HORZ, scroll_x, TRUE);
-    SetScrollPos(grid->win, SB_VERT, scroll_y, TRUE);
-
+    /* Refresh */
     if(!grid->no_redraw) {
         if(scroll_x == old_scroll_x) {
             /* Optimization for purely vertical scrolling:
@@ -375,7 +376,32 @@ grid_scroll_xy(grid_t* grid, int scroll_x, int scroll_y)
         /* Scroll ordinary cells. */
         ScrollWindowEx(grid->win, old_scroll_x - scroll_x, old_scroll_y - scroll_y,
                        &rect, &rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
+
+        /* Focus rect can overlap into headers, so the scrolling could leave
+         * there an artifact. */
+        if(grid->focus  &&  (grid->style & MC_GS_FOCUSEDCELL)  &&
+           (header_w > 0 || header_h > 0))
+        {
+            RECT r;
+
+            grid_cell_rect(grid, grid->focused_col, grid->focused_row, &r);
+            mc_rect_inflate(&r, 1, 1);
+
+            if(header_w > 0  &&  r.left < header_w  &&  r.right >= header_w) {
+                RECT rr = { header_w-1, r.top, header_w, r.bottom };
+                InvalidateRect(grid->win, &rr, TRUE);
+            }
+            if(header_h > 0  &&  r.top < header_h  &&  r.bottom >= header_h) {
+                RECT rr = { r.left, header_h-1, r.right, header_h };
+                InvalidateRect(grid->win, &rr, TRUE);
+            }
+        }
     }
+
+    SetScrollPos(grid->win, SB_HORZ, scroll_x, TRUE);
+    SetScrollPos(grid->win, SB_VERT, scroll_y, TRUE);
+    grid->scroll_x = scroll_x;
+    grid->scroll_y = scroll_y;
 }
 
 static void
@@ -703,6 +729,20 @@ grid_paint_header_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
                     text_color, back_color, control_cd_mode, cd);
 }
 
+static inline void
+grid_paint_rect(HDC dc, const RECT* r)
+{
+    POINT p[5] = {
+        { r->left-1, r->top-1 },
+        { r->right-1, r->top-1 },
+        { r->right-1, r->bottom-1 },
+        { r->left-1, r->bottom-1 },
+        { r->left-1, r->top-1 }
+    };
+
+    Polyline(dc, p, 5);
+}
+
 static void
 grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 {
@@ -722,6 +762,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     int old_mode;
     HPEN old_pen;
     HFONT old_font;
+    HRGN old_clip;
     COLORREF old_text_color;
     COLORREF old_bk_color;
     COLORREF item_text_color;
@@ -743,6 +784,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     old_pen = SelectObject(dc, GetStockObject(BLACK_PEN));
     old_font = SelectObject(dc, (grid->font != NULL ?
                             grid->font : GetStockObject(SYSTEM_FONT)));
+    old_clip = mc_clip_get(dc);
 
     /* Custom draw: Control pre-paint notification */
     cd.nmcd.hdr.hwndFrom = grid->win;
@@ -931,6 +973,20 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.top = rect.bottom;
     }
 
+    /* Paint focus cursor */
+    if(grid->focus  &&  (grid->style & MC_GS_FOCUSEDCELL)  &&
+       col_count > 0  &&  row_count > 0)
+    {
+        RECT r;
+
+        mc_clip_set(dc, MC_MAX(0, header_w-1), MC_MAX(0, header_h-1),
+                        client.right, client.bottom);
+        grid_cell_rect(grid, grid->focused_col, grid->focused_row, &r);
+        grid_paint_rect(dc, &r);
+        mc_rect_inflate(&r, -1, -1);
+        grid_paint_rect(dc, &r);
+    }
+
     /* Custom draw: Control post-paint notification */
     if(cd_mode & CDRF_NOTIFYPOSTPAINT) {
         cd.nmcd.dwDrawStage = CDDS_POSTPAINT;
@@ -944,6 +1000,27 @@ skip_control_paint:
     SelectObject(dc, old_pen);
     if(old_font != NULL)
         SelectObject(dc, old_font);
+    mc_clip_reset(dc, old_clip);
+}
+
+static inline void
+grid_invalidate_region(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
+{
+    RECT r;
+
+    grid_region_rect(grid, col0, row0, col1, row1, &r);
+    InvalidateRect(grid->win, &r, TRUE);
+}
+
+static inline void
+grid_invalidate_cell(grid_t* grid, WORD col, WORD row, BOOL extend_for_focus)
+{
+    RECT r;
+
+    grid_cell_rect(grid, col, row, &r);
+    if(extend_for_focus)
+        mc_rect_inflate(&r, 1, 1);
+    InvalidateRect(grid->win, &r, TRUE);
 }
 
 static void
@@ -951,24 +1028,19 @@ grid_refresh(void* view, void* detail)
 {
     grid_t* grid = (grid_t*) view;
     table_refresh_detail_t* rd = (table_refresh_detail_t*) detail;
-    RECT rect;
 
     MC_ASSERT(rd != NULL);
 
     switch(rd->event) {
         case TABLE_CELL_CHANGED:
-            if(!grid->no_redraw) {
-                grid_cell_rect(grid, rd->param[0], rd->param[1], &rect);
-                InvalidateRect(grid->win, &rect, TRUE);
-            }
+            if(!grid->no_redraw)
+                grid_invalidate_cell(grid, rd->param[0], rd->param[1], FALSE);
             break;
 
         case TABLE_REGION_CHANGED:
-            if(!grid->no_redraw) {
-                grid_region_rect(grid, rd->param[0], rd->param[1],
-                                 rd->param[2], rd->param[3], &rect);
-                InvalidateRect(grid->win, &rect, TRUE);
-            }
+            if(!grid->no_redraw)
+                grid_invalidate_region(grid, rd->param[0], rd->param[1],
+                                       rd->param[2], rd->param[3]);
             break;
 
         case TABLE_COLCOUNT_CHANGED:
@@ -1210,6 +1282,71 @@ static inline DWORD
 grid_hit_test(grid_t* grid, MC_GHITTESTINFO* info)
 {
     return grid_hit_test_ex(grid, info, NULL);
+}
+
+static int
+grid_set_focused_cell(grid_t* grid, WORD col, WORD row)
+{
+    WORD old_col = grid->focused_col;
+    WORD old_row = grid->focused_row;
+    MC_NMGFOCUSEDCELLCHANGE notif;
+
+    if(MC_ERR(col >= grid->col_count  ||  row >= grid->row_count)) {
+        MC_TRACE("grid_set_focused_cell: Cell [%hu, %hu] out of range.",
+                 col, row);
+        return -1;
+    }
+
+    if(col == grid->focused_col  &&  row == grid->focused_row)
+        return 0;
+
+    /* Fire notification MC_GN_FOCUSEDCELLCHANGING */
+    notif.hdr.hwndFrom = grid->win;
+    notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    notif.hdr.code = MC_GN_FOCUSEDCELLCHANGING;
+    notif.wOldColumn = old_col;
+    notif.wOldRow = old_row;
+    notif.wNewColumn = col;
+    notif.wNewRow = row;
+    if(MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif)) {
+        /* Application suppresses the default processing */
+        GRID_TRACE("grid_set_focused_cell: "
+                   "MC_GN_FOCUSEDCELLCHANGING suppresses the change");
+        return -1;
+    }
+
+    grid->focused_col = col;
+    grid->focused_row = row;
+
+    /* Fire notification MC_GN_FOCUSEDCELLCHANGED. */
+    notif.hdr.hwndFrom = grid->win;
+    notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    notif.hdr.code = MC_GN_FOCUSEDCELLCHANGED;
+    notif.wOldColumn = old_col;
+    notif.wOldRow = old_row;
+    notif.wNewColumn = col;
+    notif.wNewRow = row;
+    MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
+
+    /* Refresh */
+    if(!grid->no_redraw  &&  grid->focus) {
+        grid_invalidate_cell(grid, old_col, old_row, TRUE);
+        grid_invalidate_cell(grid, col, row, TRUE);
+    }
+
+    return 0;
+}
+
+static void
+grid_change_focus(grid_t* grid, BOOL setfocus)
+{
+    if(!grid->no_redraw  &&  (grid->style & MC_GS_FOCUSEDCELL)  &&
+       grid->col_count > 0  &&  grid->row_count > 0)
+        grid_invalidate_cell(grid, grid->focused_col, grid->focused_row, TRUE);
+
+    grid->focus = setfocus;
+    mc_send_notify(grid->notify_win, grid->win,
+                   (setfocus ? NM_SETFOCUS : NM_KILLFOCUS));
 }
 
 static BOOL
@@ -1703,6 +1840,13 @@ grid_left_button_down(grid_t* grid, int x, int y)
         SetCapture(grid->win);
         grid->header_dragging = TRUE;
     }
+
+    /* Ordinary cell? Activate it. */
+    if(info.flags & MC_GHT_ONNORMALCELL) {
+        if(grid->style & MC_GS_FOCUSEDCELL) {
+            grid_set_focused_cell(grid, info.wColumn, info.wRow);
+        }
+    }
 }
 
 static void
@@ -1736,6 +1880,54 @@ grid_right_button(grid_t* grid, int x, int y, BOOL dblclick)
     MC_SEND(grid->notify_win, WM_CONTEXTMENU, grid->win, MAKELPARAM(pt.x, pt.y));
 }
 
+static WORD
+grid_row_pgup_or_pgdn(grid_t* grid, WORD row, BOOL is_down)
+{
+    SCROLLINFO si;
+    RECT rect;
+    int y;
+
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_PAGE;
+    GetScrollInfo(grid->win, SB_VERT, &si);
+
+    grid_cell_rect(grid, 0, row, &rect);
+
+    if(is_down) {
+        y = rect.bottom;
+        do {
+            y += grid_row_height(grid, row);
+            if(row >= grid->row_count)
+                break;
+            row++;
+        } while(y < rect.top + (int)si.nPage);
+    } else {
+        y = rect.top;
+        do {
+            if(row == 0)
+                break;
+            row--;
+            y -= grid_row_height(grid, row);
+        } while(y > rect.bottom - (int)si.nPage);
+    }
+
+    return row;
+}
+
+static void
+grid_move_focus(grid_t* grid, WORD col, WORD row)
+{
+    if(grid->col_count == 0  ||  grid->row_count == 0) {
+        /* Empty table or no attached table. */
+        MC_ASSERT(grid->focused_col == 0);
+        MC_ASSERT(grid->focused_row == 0);
+        return;
+    }
+
+    if(grid_set_focused_cell(grid, col, row) == 0)
+        grid_ensure_visible(grid, col, row, FALSE);
+}
+
 static void
 grid_key_down(grid_t* grid, int key)
 {
@@ -1743,35 +1935,81 @@ grid_key_down(grid_t* grid, int key)
 
     switch(key) {
         case VK_LEFT:
-            grid_scroll(grid, FALSE, SB_LINELEFT, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                if(grid->focused_col > 0)
+                    grid_move_focus(grid, grid->focused_col-1, grid->focused_row);
+            } else {
+                grid_scroll(grid, FALSE, SB_LINELEFT, 1);
+            }
             break;
 
         case VK_RIGHT:
-            grid_scroll(grid, FALSE, SB_LINERIGHT, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                if(grid->focused_col < grid->col_count-1)
+                    grid_move_focus(grid, grid->focused_col+1, grid->focused_row);
+            } else {
+                grid_scroll(grid, FALSE, SB_LINERIGHT, 1);
+            }
             break;
 
         case VK_UP:
-            grid_scroll(grid, TRUE, SB_LINEUP, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                if(grid->focused_row > 0)
+                    grid_move_focus(grid, grid->focused_col, grid->focused_row-1);
+            } else {
+                grid_scroll(grid, TRUE, SB_LINEUP, 1);
+            }
             break;
 
         case VK_DOWN:
-            grid_scroll(grid, TRUE, SB_LINEDOWN, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                if(grid->focused_row < grid->row_count-1)
+                    grid_move_focus(grid, grid->focused_col, grid->focused_row+1);
+            } else {
+                grid_scroll(grid, TRUE, SB_LINEDOWN, 1);
+            }
             break;
 
         case VK_HOME:
-            grid_scroll(grid, control_pressed, SB_TOP, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                if(control_pressed)
+                    grid_move_focus(grid, grid->focused_col, 0);
+                else
+                    grid_move_focus(grid, 0, grid->focused_row);
+            } else {
+                grid_scroll(grid, control_pressed, SB_TOP, 1);
+            }
             break;
 
         case VK_END:
-            grid_scroll(grid, control_pressed, SB_BOTTOM, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                if(control_pressed)
+                    grid_move_focus(grid, grid->focused_col, grid->row_count-1);
+                else
+                    grid_move_focus(grid, grid->col_count-1, grid->focused_row);
+            } else {
+                grid_scroll(grid, control_pressed, SB_BOTTOM, 1);
+            }
             break;
 
         case VK_PRIOR:
-            grid_scroll(grid, TRUE, SB_PAGEUP, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                WORD row = grid_row_pgup_or_pgdn(grid, grid->focused_row, FALSE);
+                grid_scroll(grid, TRUE, SB_PAGEUP, 1);
+                grid_move_focus(grid, grid->focused_col, row);
+            } else {
+                grid_scroll(grid, TRUE, SB_PAGEUP, 1);
+            }
             break;
 
         case VK_NEXT:
-            grid_scroll(grid, TRUE, SB_PAGEDOWN, 1);
+            if(grid->style & MC_GS_FOCUSEDCELL) {
+                WORD row = grid_row_pgup_or_pgdn(grid, grid->focused_row, TRUE);
+                grid_scroll(grid, TRUE, SB_PAGEDOWN, 1);
+                grid_move_focus(grid, grid->focused_col, row);
+            } else {
+                grid_scroll(grid, TRUE, SB_PAGEDOWN, 1);
+            }
             break;
     }
 }
@@ -1826,6 +2064,9 @@ grid_set_table(grid_t* grid, table_t* table)
     grid->cache_hint[1] = 0;
     grid->cache_hint[2] = 0;
     grid->cache_hint[3] = 0;
+
+    grid->focused_col = 0;
+    grid->focused_row = 0;
 
     if(grid->col_widths != NULL) {
         free(grid->col_widths);
@@ -1917,38 +2158,6 @@ grid_get_cell(grid_t* grid, WORD col, WORD row, MC_TABLECELL* cell, BOOL unicode
     }
 
     return 0;
-}
-
-static void
-grid_ensure_visible(grid_t* grid, WORD col, WORD row, BOOL partial)
-{
-    RECT viewport_rect;
-    RECT cell_rect;
-    int scroll_x;
-    int scroll_y;
-
-    GetClientRect(grid->win, &viewport_rect);
-    viewport_rect.left = grid_header_width(grid);
-    viewport_rect.top = grid_header_height(grid);
-
-    grid_cell_rect(grid, col, row, &cell_rect);
-
-    if(partial  &&  mc_rect_overlaps_rect(&viewport_rect, &cell_rect))
-        return;
-    if(mc_rect_contains_rect(&viewport_rect, &cell_rect))
-        return;
-
-    if(cell_rect.right > viewport_rect.right)
-        scroll_x = grid->scroll_x + (cell_rect.right - viewport_rect.right);
-    if(cell_rect.left < viewport_rect.left)
-        scroll_x = cell_rect.left;
-
-    if(cell_rect.bottom > viewport_rect.bottom)
-        scroll_y = grid->scroll_y + (cell_rect.bottom - viewport_rect.bottom);
-    if(cell_rect.top < viewport_rect.top)
-        scroll_y = cell_rect.top;
-
-    grid_scroll_xy(grid, scroll_x, scroll_y);
 }
 
 static void
@@ -2162,6 +2371,12 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return TRUE;
         }
 
+        case MC_GM_SETFOCUSEDCELL:
+            return (grid_set_focused_cell(grid, LOWORD(wp), HIWORD(wp)) == 0 ? TRUE : FALSE);
+
+        case MC_GM_GETFOCUSEDCELL:
+            return MAKELRESULT(grid->focused_col, grid->focused_row);
+
         case WM_SETREDRAW:
             grid->no_redraw = !wp;
             if(!grid->no_redraw)
@@ -2230,6 +2445,11 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             grid->font = (HFONT) wp;
             if((BOOL) lp  &&  !grid->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
+            return 0;
+
+        case WM_SETFOCUS:
+        case WM_KILLFOCUS:
+            grid_change_focus(grid, (msg == WM_SETFOCUS));
             return 0;
 
         case WM_SETCURSOR:
