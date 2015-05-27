@@ -1132,8 +1132,10 @@ grid_hit_test_ex(grid_t* grid, MC_GHITTESTINFO* info, RECT* cell_rect)
     for(col = 0; col < grid->col_count; col++) {
         x0 = x3;
         x3 += grid_col_width(grid, col);
-        if(x < x3)
+        if(x < x3) {
             info->wColumn = col;
+            break;
+        }
     }
     if(info->wColumn == (WORD) -1)
         goto nowhere;
@@ -1143,8 +1145,10 @@ grid_hit_test_ex(grid_t* grid, MC_GHITTESTINFO* info, RECT* cell_rect)
     for(row = 0; row < grid->row_count; row++) {
         y0 = y3;
         y3 += grid_row_height(grid, row);
-        if(y < y3)
+        if(y < y3) {
             info->wRow = row;
+            break;
+        }
     }
     if(info->wRow == (WORD) -1)
         goto nowhere;
