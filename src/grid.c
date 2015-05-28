@@ -796,22 +796,22 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         pen = CreatePen(PS_SOLID, 0, mcGetThemeSysColor(grid->theme_listview, COLOR_3DFACE));
         old_pen = SelectObject(dc, pen);
 
-        x = x0;
+        x = x0 - 1;
         y = header_h + grid->scroll_y_max - grid->scroll_y;
         for(col = col0; col < col_count; col++) {
             x += grid_col_width(grid, col);
-            MoveToEx(dc, x-1, header_h, NULL);
-            LineTo(dc, x-1, y);
+            MoveToEx(dc, x, header_h, NULL);
+            LineTo(dc, x, y);
             if(x >= client.right)
                 break;
         }
 
         x = header_w + grid->scroll_x_max - grid->scroll_x;
-        y = y0;
-        for(row = 0; row < row_count; row++) {
+        y = y0 - 1;
+        for(row = row0; row < row_count; row++) {
             y += grid_row_height(grid, row);
-            MoveToEx(dc, header_w, y-1, NULL);
-            LineTo(dc, x, y-1);
+            MoveToEx(dc, header_w, y, NULL);
+            LineTo(dc, x, y);
             if(y >= client.bottom)
                 break;
         }
