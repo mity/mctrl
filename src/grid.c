@@ -309,11 +309,81 @@ grid_cell_rect(grid_t* grid, WORD col, WORD row, RECT* rect)
 }
 
 static void
+grid_scroll_xy(grid_t* grid, int scroll_x, int scroll_y)
+{
+    SCROLLINFO sih, siv;
+    RECT rect;
+    int header_w = grid_header_width(grid);
+    int header_h = grid_header_height(grid);
+    int old_scroll_x = grid->scroll_x;
+    int old_scroll_y = grid->scroll_y;
+
+    sih.cbSize = sizeof(SCROLLINFO);
+    sih.fMask = SIF_RANGE | SIF_PAGE;
+    GetScrollInfo(grid->win, SB_HORZ, &sih);
+
+    siv.cbSize = sizeof(SCROLLINFO);
+    siv.fMask = SIF_RANGE | SIF_PAGE;
+    GetScrollInfo(grid->win, SB_VERT, &siv);
+
+    GetClientRect(grid->win, &rect);
+
+    scroll_x = MC_MID3(scroll_x, 0, MC_MAX(0, sih.nMax - (int)sih.nPage));
+    scroll_y = MC_MID3(scroll_y, 0, MC_MAX(0, siv.nMax - (int)siv.nPage));
+
+    if(scroll_x == old_scroll_x  &&  scroll_y == old_scroll_y)
+        return;
+
+    grid->scroll_x = scroll_x;
+    grid->scroll_y = scroll_y;
+    SetScrollPos(grid->win, SB_HORZ, scroll_x, TRUE);
+    SetScrollPos(grid->win, SB_VERT, scroll_y, TRUE);
+
+    if(!grid->no_redraw) {
+        if(scroll_x == old_scroll_x) {
+            /* Optimization for purely vertical scrolling:
+             * Column headers can be scrolled together with ordinary cells. */
+            rect.top = header_h;
+        } else if(scroll_y == old_scroll_y) {
+            /* Optimization for purely horizontal scrolling:
+             * Row headers can be scrolled together with ordinary cells. */
+            rect.left = header_w;
+        } else {
+            /* Combined (both horizontal and vertical) scrolling. */
+            RECT header_rect;
+
+            if(header_h > 0) {
+                /* Scroll column headers. */
+                mc_rect_set(&header_rect, header_w, 0, rect.right, header_h);
+                ScrollWindowEx(grid->win, old_scroll_x - scroll_x, 0,
+                               &header_rect, &header_rect, NULL, NULL,
+                               SW_ERASE | SW_INVALIDATE);
+            }
+
+            if(header_w > 0) {
+                /* Scroll row headers. */
+                mc_rect_set(&header_rect, 0, header_h, header_w, rect.bottom);
+                ScrollWindowEx(grid->win, 0, old_scroll_y - scroll_y,
+                               &header_rect, &header_rect, NULL, NULL,
+                               SW_ERASE | SW_INVALIDATE);
+            }
+
+            rect.left = header_w;
+            rect.top = header_h;
+        }
+
+        /* Scroll ordinary cells. */
+        ScrollWindowEx(grid->win, old_scroll_x - scroll_x, old_scroll_y - scroll_y,
+                       &rect, &rect, NULL, NULL, SW_ERASE | SW_INVALIDATE);
+    }
+}
+
+static void
 grid_scroll(grid_t* grid, BOOL is_vertical, WORD opcode, int factor)
 {
     SCROLLINFO si;
-    int old_scroll_x = grid->scroll_x;
-    int old_scroll_y = grid->scroll_y;
+    int scroll_x = grid->scroll_x;
+    int scroll_y = grid->scroll_y;
 
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
@@ -321,60 +391,30 @@ grid_scroll(grid_t* grid, BOOL is_vertical, WORD opcode, int factor)
     if(is_vertical) {
         GetScrollInfo(grid->win, SB_VERT, &si);
         switch(opcode) {
-            case SB_BOTTOM: grid->scroll_y = si.nMax; break;
-            case SB_LINEUP: grid->scroll_y -= factor * MC_MIN3(grid->def_row_height, 40, si.nPage); break;
-            case SB_LINEDOWN: grid->scroll_y += factor * MC_MIN3(grid->def_row_height, 40, si.nPage); break;
-            case SB_PAGEUP: grid->scroll_y -= si.nPage; break;
-            case SB_PAGEDOWN: grid->scroll_y += si.nPage; break;
-            case SB_THUMBPOSITION: grid->scroll_y = si.nPos; break;
-            case SB_THUMBTRACK: grid->scroll_y = si.nTrackPos; break;
-            case SB_TOP: grid->scroll_y = 0; break;
+            case SB_BOTTOM:         scroll_y = si.nMax; break;
+            case SB_LINEUP:         scroll_y -= factor * MC_MIN3(grid->def_row_height, 40, si.nPage); break;
+            case SB_LINEDOWN:       scroll_y += factor * MC_MIN3(grid->def_row_height, 40, si.nPage); break;
+            case SB_PAGEUP:         scroll_y -= si.nPage; break;
+            case SB_PAGEDOWN:       scroll_y += si.nPage; break;
+            case SB_THUMBPOSITION:  scroll_y = si.nPos; break;
+            case SB_THUMBTRACK:     scroll_y = si.nTrackPos; break;
+            case SB_TOP:            scroll_y = 0; break;
         }
-
-        if(grid->scroll_y > si.nMax - (int)si.nPage)
-            grid->scroll_y = si.nMax - (int)si.nPage;
-        if(grid->scroll_y < si.nMin)
-            grid->scroll_y = si.nMin;
-        if(old_scroll_y == grid->scroll_y)
-            return;
-
-        SetScrollPos(grid->win, SB_VERT, grid->scroll_y, TRUE);
     } else {
         GetScrollInfo(grid->win, SB_HORZ, &si);
         switch(opcode) {
-            case SB_BOTTOM: grid->scroll_x = si.nMax; break;
-            case SB_LINELEFT: grid->scroll_x -= factor * MC_MIN3(grid->def_col_width, 40, si.nPage); break;
-            case SB_LINERIGHT: grid->scroll_x += factor * MC_MIN3(grid->def_col_width, 40, si.nPage); break;
-            case SB_PAGELEFT: grid->scroll_x -= si.nPage; break;
-            case SB_PAGERIGHT: grid->scroll_x += si.nPage; break;
-            case SB_THUMBPOSITION: grid->scroll_x = si.nPos; break;
-            case SB_THUMBTRACK: grid->scroll_x = si.nTrackPos; break;
-            case SB_TOP: grid->scroll_x = 0; break;
+            case SB_BOTTOM:         scroll_x = si.nMax; break;
+            case SB_LINELEFT:       scroll_x -= factor * MC_MIN3(grid->def_col_width, 40, si.nPage); break;
+            case SB_LINERIGHT:      scroll_x += factor * MC_MIN3(grid->def_col_width, 40, si.nPage); break;
+            case SB_PAGELEFT:       scroll_x -= si.nPage; break;
+            case SB_PAGERIGHT:      scroll_x += si.nPage; break;
+            case SB_THUMBPOSITION:  scroll_x = si.nPos; break;
+            case SB_THUMBTRACK:     scroll_x = si.nTrackPos; break;
+            case SB_TOP:            scroll_x = 0; break;
         }
-
-        if(grid->scroll_x > si.nMax - (int)si.nPage)
-            grid->scroll_x = si.nMax - (int)si.nPage;
-        if(grid->scroll_x < si.nMin)
-            grid->scroll_x = si.nMin;
-        if(old_scroll_x == grid->scroll_x)
-            return;
-
-        SetScrollPos(grid->win, SB_HORZ, grid->scroll_x, TRUE);
     }
 
-    if(!grid->no_redraw) {
-        RECT rect;
-
-        GetClientRect(grid->win, &rect);
-        if(is_vertical)
-            rect.top = grid_header_height(grid);
-        else
-            rect.left = grid_header_width(grid);
-
-        ScrollWindowEx(grid->win, old_scroll_x - grid->scroll_x,
-                       old_scroll_y - grid->scroll_y, &rect, &rect, NULL, NULL,
-                       SW_ERASE | SW_INVALIDATE);
-    }
+    grid_scroll_xy(grid, scroll_x, scroll_y);
 }
 
 static void
@@ -1546,6 +1586,38 @@ grid_stop_dragging(grid_t* grid, BOOL cancel)
 }
 
 static void
+grid_ensure_visible(grid_t* grid, WORD col, WORD row, BOOL partial)
+{
+    RECT viewport_rect;
+    RECT cell_rect;
+    int scroll_x = grid->scroll_x;
+    int scroll_y = grid->scroll_y;
+
+    GetClientRect(grid->win, &viewport_rect);
+    viewport_rect.left = grid_header_width(grid);
+    viewport_rect.top = grid_header_height(grid);
+
+    grid_cell_rect(grid, col, row, &cell_rect);
+
+    if(partial  &&  mc_rect_overlaps_rect(&viewport_rect, &cell_rect))
+        return;
+    if(mc_rect_contains_rect(&viewport_rect, &cell_rect))
+        return;
+
+    if(cell_rect.left < viewport_rect.left)
+        scroll_x -= viewport_rect.left - cell_rect.left;
+    else if(cell_rect.right > viewport_rect.right)
+        scroll_x += cell_rect.right - viewport_rect.right;
+
+    if(cell_rect.top < viewport_rect.top)
+        scroll_y -= viewport_rect.top - cell_rect.top;
+    else if(cell_rect.bottom > viewport_rect.bottom)
+        scroll_y += cell_rect.bottom - viewport_rect.bottom;
+
+    grid_scroll_xy(grid, scroll_x, scroll_y);
+}
+
+static void
 grid_mouse_move(grid_t* grid, int x, int y)
 {
     RECT cell_rect;
@@ -1994,9 +2066,27 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                          "(size: %ux%u; requested [%u,%u])",
                          (unsigned) grid->col_count, (unsigned) grid->row_count,
                          (unsigned) col, (unsigned) row);
+                SetLastError(ERROR_INVALID_PARAMETER);
                 return FALSE;
             }
             grid_cell_rect(grid, col, row, (RECT*) lp);
+            return TRUE;
+        }
+
+        case MC_GM_ENSUREVISIBLE:
+        {
+            WORD col = LOWORD(wp);
+            WORD row = HIWORD(wp);
+            if(MC_ERR(col >= grid->col_count || row >= grid->row_count)) {
+                MC_TRACE("MC_GM_ENSUREVISIBLE: Column or row index out of range "
+                         "(size: %ux%u; requested [%u,%u])",
+                         (unsigned) grid->col_count, (unsigned) grid->row_count,
+                         (unsigned) col, (unsigned) row);
+                SetLastError(ERROR_INVALID_PARAMETER);
+                return FALSE;
+            }
+
+            grid_ensure_visible(grid, col, row, lp);
             return TRUE;
         }
 

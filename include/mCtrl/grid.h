@@ -661,6 +661,18 @@ typedef struct MC_NMGCOLROWSIZECHANGE_tag {
  */
 #define MC_GM_GETCELLRECT         (MC_GM_FIRST + 18)
 
+/**
+ * @brief Ensure the cell is visible.
+ * @details If not visible, the control scrolls to make the cell visible.
+ * @param[in] wParam (@c DWORD) Column and row of the cell. Low word specifies
+ * column index and high word specifies row index.
+ * @param[in] (@c BOOL) A value specifying whether entire cell should be
+ * visible. If @c TRUE, no scrolling happens when the cell is at least
+ * partially visible.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_GM_ENSUREVISIBLE       (MC_GM_FIRST + 19)
+
 /*@}*/
 
 
