@@ -1349,7 +1349,7 @@ static int
 grid_set_col_width(grid_t* grid, WORD col, WORD width)
 {
     int old_width;
-    MC_NMCOLROWSIZECHANGE notif;
+    MC_NMGCOLROWSIZECHANGE notif;
 
     GRID_TRACE("grid_set_col_width(%p, %hu, %hu)", grid, col, width);
 
@@ -1431,7 +1431,7 @@ static int
 grid_set_row_height(grid_t* grid, WORD row, WORD height)
 {
     int old_height;
-    MC_NMCOLROWSIZECHANGE notif;
+    MC_NMGCOLROWSIZECHANGE notif;
 
     GRID_TRACE("grid_set_row_height(%p, %hu, %hu)", grid, row, height);
 
@@ -1512,7 +1512,7 @@ grid_get_row_height(grid_t* grid, WORD row)
 static void
 grid_stop_dragging(grid_t* grid, BOOL cancel)
 {
-    MC_NMCOLROWSIZECHANGE notif;
+    MC_NMGCOLROWSIZECHANGE notif;
 
     if(!grid->header_dragging)
         return;
@@ -1594,7 +1594,7 @@ grid_left_button_down(grid_t* grid, int x, int y)
 
     /* Column/row divider? Consider dragging mode to resize the column/row. */
     if(info.flags & (col_track_mask | row_track_mask)) {
-        MC_NMCOLROWSIZECHANGE notif;
+        MC_NMGCOLROWSIZECHANGE notif;
 
         /* Fire MC_GN_BEGINCOLUMNTRACK or MC_GN_BEGINROWTRACK */
         notif.hdr.hwndFrom = grid->win;

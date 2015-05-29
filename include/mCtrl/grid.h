@@ -404,7 +404,7 @@ typedef struct MC_NMGDISPINFOA_tag {
  * @sa MC_GN_ROWHEIGHTCHANGING @sa MC_GN_ROWHEIGHTCHANGED
  *
  */
-typedef struct MC_NMCOLROWSIZECHANGE_tag {
+typedef struct MC_NMGCOLROWSIZECHANGE_tag {
     /** Common notification structure header. */
     NMHDR hdr;
     /** Column index (for @ref MC_GN_COLUMNWIDTHCHANGING and
@@ -415,7 +415,7 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
      *  @ref MC_GN_COLUMNWIDTHCHANGED), or row height
      *  (for @ref MC_GN_ROWHEIGHTCHANGING and @ref MC_GN_ROWHEIGHTCHANGED). */
     WORD wWidthOrHeight;
-} MC_NMCOLROWSIZECHANGE;
+} MC_NMGCOLROWSIZECHANGE;
 
 /*@}*/
 
@@ -766,8 +766,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * control.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return @c TRUE to prevent the column width change, @c FALSE to allow it.
  */
 #define MC_GN_BEGINCOLUMNTRACK    (MC_GN_FIRST + 5)
@@ -777,8 +777,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * control.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return Application should return zero if it processes the notification.
  */
 #define MC_GN_ENDCOLUMNTRACK      (MC_GN_FIRST + 6)
@@ -788,8 +788,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * control.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return @c TRUE to prevent the row height change, @c FALSE to allow it.
  */
 #define MC_GN_BEGINROWTRACK       (MC_GN_FIRST + 7)
@@ -799,8 +799,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * control.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return Application should return zero if it processes the notification.
  */
 #define MC_GN_ENDROWTRACK         (MC_GN_FIRST + 8)
@@ -809,8 +809,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * @brief Fired when column width is about to change.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return @c TRUE to prevent the column width change, @c FALSE to allow it.
  */
 #define MC_GN_COLUMNWIDTHCHANGING (MC_GN_FIRST + 9)
@@ -819,8 +819,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * @brief Fired after column width has been changed.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return Application should return zero if it processes the notification.
  */
 #define MC_GN_COLUMNWIDTHCHANGED  (MC_GN_FIRST + 10)
@@ -829,8 +829,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * @brief Fired when column width is about to change.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return @c TRUE to prevent the row height change, @c FALSE to allow it.
  */
 #define MC_GN_ROWHEIGHTCHANGING   (MC_GN_FIRST + 11)
@@ -839,8 +839,8 @@ typedef struct MC_NMCOLROWSIZECHANGE_tag {
  * @brief Fired after row height has been changed.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in] lParam (@ref MC_NMCOLROWSIZECHANGE*) Pointer to
- * @ref MC_NMCOLROWSIZECHANGE structure.
+ * @param[in] lParam (@ref MC_NMGCOLROWSIZECHANGE*) Pointer to
+ * @ref MC_NMGCOLROWSIZECHANGE structure.
  * @return Application should return zero if it processes the notification.
  */
 #define MC_GN_ROWHEIGHTCHANGED    (MC_GN_FIRST + 12)
