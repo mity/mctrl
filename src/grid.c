@@ -1920,6 +1920,38 @@ grid_get_cell(grid_t* grid, WORD col, WORD row, MC_TABLECELL* cell, BOOL unicode
 }
 
 static void
+grid_ensure_visible(grid_t* grid, WORD col, WORD row, BOOL partial)
+{
+    RECT viewport_rect;
+    RECT cell_rect;
+    int scroll_x;
+    int scroll_y;
+
+    GetClientRect(grid->win, &viewport_rect);
+    viewport_rect.left = grid_header_width(grid);
+    viewport_rect.top = grid_header_height(grid);
+
+    grid_cell_rect(grid, col, row, &cell_rect);
+
+    if(partial  &&  mc_rect_overlaps_rect(&viewport_rect, &cell_rect))
+        return;
+    if(mc_rect_contains_rect(&viewport_rect, &cell_rect))
+        return;
+
+    if(cell_rect.right > viewport_rect.right)
+        scroll_x = grid->scroll_x + (cell_rect.right - viewport_rect.right);
+    if(cell_rect.left < viewport_rect.left)
+        scroll_x = cell_rect.left;
+
+    if(cell_rect.bottom > viewport_rect.bottom)
+        scroll_y = grid->scroll_y + (cell_rect.bottom - viewport_rect.bottom);
+    if(cell_rect.top < viewport_rect.top)
+        scroll_y = cell_rect.top;
+
+    grid_scroll_xy(grid, scroll_x, scroll_y);
+}
+
+static void
 grid_notify_format(grid_t* grid)
 {
     LRESULT lres;
