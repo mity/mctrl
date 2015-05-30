@@ -128,7 +128,7 @@ extern "C" {
  *
  * @section grid_cell_focus Focused Cell
  *
- * With the style @c MC_GS_FOCUSEDCELL, the control supports a cell focus.
+ * With the style @ref MC_GS_FOCUSEDCELL, the control supports a cell focus.
  * Then, exactly one cell has a status of the focused cell.
  *
  * Certain aspects of control behavior change when the style is enabled:
@@ -142,9 +142,9 @@ extern "C" {
  *   action.)
  *
  * Application can set and get currently focused cell with messages
- * @c MC_GM_SETFOCUSEDCELL and @c MC_GM_GETFOCUSEDCELL, and be notified about
- * its change of focused cell via the notification @c MC_GN_FOCUSEDCELLCHANGING
- * and @c MC_GN_FOCUSEDCELLCHANGED.
+ * @ref MC_GM_SETFOCUSEDCELL and @ref MC_GM_GETFOCUSEDCELL, and be notified
+ * about its change of focused cell via the notification @ref
+ * MC_GN_FOCUSEDCELLCHANGING and @ref MC_GN_FOCUSEDCELLCHANGED.
  *
  *
  * @section grid_std_msgs Standard Messages
@@ -709,7 +709,7 @@ typedef struct MC_NMGFOCUSEDCELLCHANGE_tag {
  * @details If not visible, the control scrolls to make the cell visible.
  * @param[in] wParam (@c DWORD) Column and row of the cell. Low word specifies
  * column index and high word specifies row index.
- * @param[in] (@c BOOL) A value specifying whether entire cell should be
+ * @param[in] lParam (@c BOOL) A value specifying whether entire cell should be
  * visible. If @c TRUE, no scrolling happens when the cell is at least
  * partially visible.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
