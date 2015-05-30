@@ -1736,6 +1736,46 @@ grid_right_button(grid_t* grid, int x, int y, BOOL dblclick)
     MC_SEND(grid->notify_win, WM_CONTEXTMENU, grid->win, MAKELPARAM(pt.x, pt.y));
 }
 
+static void
+grid_key_down(grid_t* grid, int key)
+{
+    BOOL control_pressed = (GetKeyState(VK_CONTROL) & 0x8000);
+
+    switch(key) {
+        case VK_LEFT:
+            grid_scroll(grid, FALSE, SB_LINELEFT, 1);
+            break;
+
+        case VK_RIGHT:
+            grid_scroll(grid, FALSE, SB_LINERIGHT, 1);
+            break;
+
+        case VK_UP:
+            grid_scroll(grid, TRUE, SB_LINEUP, 1);
+            break;
+
+        case VK_DOWN:
+            grid_scroll(grid, TRUE, SB_LINEDOWN, 1);
+            break;
+
+        case VK_HOME:
+            grid_scroll(grid, control_pressed, SB_TOP, 1);
+            break;
+
+        case VK_END:
+            grid_scroll(grid, control_pressed, SB_BOTTOM, 1);
+            break;
+
+        case VK_PRIOR:
+            grid_scroll(grid, TRUE, SB_PAGEUP, 1);
+            break;
+
+        case VK_NEXT:
+            grid_scroll(grid, TRUE, SB_PAGEDOWN, 1);
+            break;
+    }
+}
+
 static int
 grid_set_table(grid_t* grid, table_t* table)
 {
@@ -2127,6 +2167,13 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             grid_right_button(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp),
                               (msg == WM_RBUTTONDBLCLK));
             return 0;
+
+        case WM_KEYDOWN:
+            grid_key_down(grid, wp);
+            return 0;
+
+        case WM_GETDLGCODE:
+            return DLGC_WANTARROWS;
 
         case WM_CAPTURECHANGED:
             grid_stop_dragging(grid, TRUE);
