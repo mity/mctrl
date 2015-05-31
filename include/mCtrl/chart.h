@@ -87,7 +87,7 @@ extern "C" {
  * is multiplied with <tt>(10 ^ exp)</tt>, where @c ^ marks power and
  * @c exp the exponent.
  *
- * This is especially usefull for charts with non-integer values as negative
+ * This is especially useful for charts with non-integer values as negative
  * factor exponent actually turns the data set values into fixed point numbers.
  *
  * For example with factor exponent @c -2, data set with values <tt>{ 5, 100,
@@ -282,7 +282,7 @@ typedef struct MC_NMCHDISPINFO_tag {
     int iValueFirst;
     /** Index of last value the controls asks for. */
     int iValueLast;
-    /** Pointer to a buffer where application fills the value. */
+    /** Pointer to a buffer where application fills the values. */
     int* piValues;
 } MC_NMCHDISPINFO;
 
@@ -533,9 +533,9 @@ typedef struct MC_NMCHDISPINFO_tag {
 /** Unicode-resolution alias. @sa MC_CHM_SETDATASETLEGENDW MC_CHM_SETDATASETLEGENDA */
 #define MC_CHM_SETDATASETLEGEND  MCTRL_NAME_AW(MC_CHM_SETDATASETLEGEND)
 /** Unicode-resolution alias. @sa MC_CHM_GETAXISLEGENDW MC_CHM_GETAXISLEGENDA */
-#define MC_CHM_GETAXISLEGEND  MCTRL_NAME_AW(MC_CHM_GETAXISLEGEND)
+#define MC_CHM_GETAXISLEGEND     MCTRL_NAME_AW(MC_CHM_GETAXISLEGEND)
 /** Unicode-resolution alias. @sa MC_CHM_SETAXISLEGENDW MC_CHM_SETAXISLEGENDA */
-#define MC_CHM_SETAXISLEGEND  MCTRL_NAME_AW(MC_CHM_SETAXISLEGEND)
+#define MC_CHM_SETAXISLEGEND     MCTRL_NAME_AW(MC_CHM_SETAXISLEGEND)
 
 /*@}*/
 
