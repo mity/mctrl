@@ -71,8 +71,7 @@ extern "C" {
  *
  * The control has a concept of two axes, the primary and secondary one.
  * It depends on particular chart type though, whether and how the control uses
- * them. Currently each axis has only a single attribute, a factor exponent,
- * but in future versions more attributes may be added.
+ * them.
  *
  * Usually (for chart types where it gives any sense), the primary axis
  * corresponds to the index of data set and in most cases is displayed as the
@@ -81,6 +80,9 @@ extern "C" {
  * exception to this rule of thumb are bar (@ref MC_CHS_BAR) and stacked bar
  * (@ref MC_CHS_STACKEDBAR) charts which are similar to the (stacked) column
  * chart, but with horizontal and vertical axes swapped.
+ *
+ * Each axis has some attributes associated with it that determine the value
+ * tags along the axis.
  *
  * The factor exponent is an integer value in the range (@c -9 to @c +9),
  * and it it is used when painting values for the given axis. An integer value
@@ -92,6 +94,18 @@ extern "C" {
  *
  * For example with factor exponent @c -2, data set with values <tt>{ 5, 100,
  * 101, 102 }</tt> would be displayed as <tt>{ 0.05, 1.00, 1.01, 1.02 }.</tt>
+ *
+ * To set or get the factor exponent, use messages @ref MC_CHM_SETFACTOREXPONENT
+ * and @ref MC_CHM_GETFACTOREXPONENT respectively.
+ *
+ * Other import axis attribute is a value offset. The offset specifies a number
+ * which is added to an index. This way, application can set the offset of the
+ * axis for example to @c 2003, and hence, the value tags along the axis shall
+ * be 2003, 2004, 2005, etc. This can be used, for example, in charts which
+ * show some time development of some values across, e.g. several years.
+ *
+ * To set or get the axis offset, use messages @ref MC_CHM_SETAXISOFFSET and
+ * @ref MC_CHM_GETAXISOFFSET respectively.
  *
  *
  * @section chart_types Chart Types
