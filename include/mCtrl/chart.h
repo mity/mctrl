@@ -380,12 +380,22 @@ typedef struct MC_NMCHDISPINFO_tag {
 #define MC_CHM_SETDATASETCOLOR        (MC_CHM_FIRST + 7)
 
 /**
- * Not yet implemented.
+ * @brief Get legend text of the data set (Unicode variant).
+ * @param[in] wParam (@c DWORD) Low word specifies index of the data set.
+ * High word specifies size of the buffer provided within @c lParam.
+ * @param[out] lParam (@c WCHAR*) Pointer to a buffer that is to receive the
+ * text. If the buffer is too small, the text is truncated.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_GETDATASETLEGENDW      (MC_CHM_FIRST + 8)
 
 /**
- * Not yet implemented.
+ * @brief Get legend text of the data set (ANSI variant).
+ * @param[in] wParam (@c DWORD) Low word specifies index of the data set.
+ * High word specifies size of the buffer provided within @c lParam.
+ * @param[out] lParam (@c char*) Pointer to a buffer that is to receive the
+ * text. If the buffer is too small, the text is truncated.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_GETDATASETLEGENDA      (MC_CHM_FIRST + 9)
 
@@ -462,12 +472,24 @@ typedef struct MC_NMCHDISPINFO_tag {
 #define MC_CHM_GETTOOLTIPS            (MC_CHM_FIRST + 17)
 
 /**
- * Not yet implemented.
+ * @brief Get legend text of the axis (Unicode variant).
+ * @param[in] wParam (@c DWORD) Low word specifies index of the axis. Use
+ * @c 1 to set primary axis, or @c 2 to set secondary axis. High word specifies
+ * size of the buffer provided within @c lParam.
+ * @param[out] lParam (@c WCHAR*) Pointer to a buffer that is to receive the
+ * text. If the buffer is too small, the text is truncated.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_GETAXISLEGENDW         (MC_CHM_FIRST + 18)
 
 /**
- * Not yet implemented.
+ * @brief Get legend text of the axis (ANSI variant).
+ * @param[in] wParam (@c DWORD) Low word specifies index of the axis. Use
+ * @c 1 to set primary axis, or @c 2 to set secondary axis. High word specifies
+ * size of the buffer provided within @c lParam.
+ * @param[out] lParam (@c char*) Pointer to a buffer that is to receive the
+ * text. If the buffer is too small, the text is truncated.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_CHM_GETAXISLEGENDA         (MC_CHM_FIRST + 19)
 

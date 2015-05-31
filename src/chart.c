@@ -2948,6 +2948,25 @@ chart_set_dataset_color(chart_t* chart, int set_ix, COLORREF color)
 }
 
 static BOOL
+chart_get_dataset_legend(chart_t* chart, int set_ix, UINT buf_size,
+                         void* buffer, BOOL unicode)
+{
+    chart_data_t* data;
+
+    if(MC_ERR(set_ix < 0  ||  set_ix >= dsa_size(&chart->data))) {
+        MC_TRACE("chart_get_dataset_legend: invalid data set index (%d)", set_ix);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+
+    mc_str_inbuf(data->name, MC_STRT,
+                 buffer, (unicode ? MC_STRW : MC_STRA), buf_size);
+    return TRUE;
+}
+
+static BOOL
 chart_set_dataset_legend(chart_t* chart, int set_ix, void* text, BOOL unicode)
 {
     TCHAR* str;
@@ -3075,6 +3094,26 @@ chart_set_axis_offset(chart_t* chart, int axis_id, int offset)
     if(!chart->no_redraw)
         InvalidateRect(chart->win, NULL, TRUE);
 
+    return TRUE;
+}
+
+static BOOL
+chart_get_axis_legend(chart_t* chart, int axis_id, UINT buf_size, void* buffer,
+                      BOOL unicode)
+{
+    chart_axis_t* axis;
+
+    switch(axis_id) {
+        case 1:  axis = &chart->axis1; break;
+        case 2:  axis = &chart->axis2; break;
+        default:
+            MC_TRACE("chart_get_axis_legend: Invalid axis %d", axis_id);
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return FALSE;
+    }
+
+    mc_str_inbuf(axis->name, MC_STRT,
+                 buffer, (unicode ? MC_STRW : MC_STRA), buf_size);
     return TRUE;
 }
 
@@ -3259,8 +3298,8 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_CHM_GETDATASETLEGENDW:
         case MC_CHM_GETDATASETLEGENDA:
-            /* TODO */
-            break;
+            return chart_get_dataset_legend(chart, LOWORD(wp), HIWORD(wp),
+                                (void*) lp, (msg == MC_CHM_GETDATASETLEGENDW));
 
         case MC_CHM_SETDATASETLEGENDW:
         case MC_CHM_SETDATASETLEGENDA:
@@ -3291,8 +3330,8 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_CHM_GETAXISLEGENDW:
         case MC_CHM_GETAXISLEGENDA:
-            /* TODO */
-            break;
+            return chart_get_axis_legend(chart, LOWORD(wp), HIWORD(wp),
+                                (void*)lp, (msg == MC_CHM_GETAXISLEGENDW));
 
         case MC_CHM_SETAXISLEGENDW:
         case MC_CHM_SETAXISLEGENDA:
