@@ -1102,8 +1102,13 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                     ((tl->style & MC_TLS_SHOWSELALWAYS) || tl->focus)  &&
                     ((tl->style & MC_TLS_FULLROWSELECT) || col_ix == 0);
             if(paint_selected  &&  !theme_treeitem_defined) {
-                subitem_text_color = GetSysColor(COLOR_HIGHLIGHTTEXT);
-                subitem_bk_color = GetSysColor(COLOR_HIGHLIGHT);
+                if(tl->focus) {
+                    subitem_text_color = GetSysColor(COLOR_HIGHLIGHTTEXT);
+                    subitem_bk_color = GetSysColor(COLOR_HIGHLIGHT);
+                } else {
+                    subitem_text_color = item_text_color;
+                    subitem_bk_color = GetSysColor(COLOR_BTNFACE);
+                }
             } else {
                 subitem_text_color = item_text_color;
                 subitem_bk_color = item_bk_color;
