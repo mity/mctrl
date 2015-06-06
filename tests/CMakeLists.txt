@@ -25,8 +25,8 @@ foreach(SOURCE ${TEST_SOURCES})
 
     add_executable(${TARGET} ${SOURCE} ${HEADER})
 
-    # all tests but test_build.exe link with mCtrl.dll
-    if(NOT ${TARGET} MATCHES test_build)
+    # all tests but test-build.exe link with mCtrl.dll
+    if(NOT ${TARGET} MATCHES test-build)
         target_link_libraries(${TARGET} mCtrl)
     endif()
 endforeach()
