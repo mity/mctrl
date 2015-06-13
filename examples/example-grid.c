@@ -127,7 +127,7 @@ win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP |
                     MC_GS_COLUMNHEADERALPHABETIC | MC_GS_ROWHEADERNORMAL |
                     MC_GS_RESIZABLECOLUMNS | MC_GS_RESIZABLEROWS |
-                    MC_GS_FOCUSEDCELL,
+                    MC_GS_FOCUSEDCELL | MC_GS_COMPLEXSEL | MC_GS_SHOWSELALWAYS,
                     0, 0, 0, 0, hwnd, (HMENU) IDC_GRID, hInst, NULL);
             LoadGrid();
             return 0;

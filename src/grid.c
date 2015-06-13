@@ -20,6 +20,7 @@
 #include "generic.h"
 #include "table.h"
 #include "theme.h"
+#include "rgn16.h"
 
 
 /* Uncomment this to have more verbose traces about MC_GRID control. */
@@ -43,6 +44,8 @@ static const WCHAR grid_listview_tc[] = L"LISTVIEW";
          MC_GGF_DEFCOLUMNWIDTH | MC_GGF_DEFROWHEIGHT |                      \
          MC_GGF_PADDINGHORZ | MC_GGF_PADDINGVERT)
 
+#define GRID_GS_SELMASK                                                     \
+        (MC_GS_NOSEL | MC_GS_SINGLESEL | MC_GS_RECTSEL | MC_GS_COMPLEXSEL)
 
 #define GRID_DEFAULT_SIZE               0xffff
 
@@ -51,6 +54,9 @@ static const WCHAR grid_listview_tc[] = L"LISTVIEW";
 
 #define DIVIDER_WIDTH                   10
 #define SMALL_DIVIDER_WIDTH             4
+
+#define COL_INVALID                     0xfffe   /* 0xffff is taken by MC_TABLE_HEADER */
+#define ROW_INVALID                     0xfffe
 
 
 /* Cursor for column and row resizing. */
@@ -79,15 +85,16 @@ struct grid_tag {
     HFONT font;
     table_t* table;  /* may be NULL (MC_GS_OWNERDATA, MC_GS_NOTABLECREATE) */
 
-    DWORD style                 : 16;
-    DWORD no_redraw             :  1;
-    DWORD unicode_notifications :  1;
-    DWORD focus                 :  1;
+    DWORD style                  : 16;
+    DWORD no_redraw              :  1;
+    DWORD unicode_notifications  :  1;
+    DWORD focus                  :  1;
+    DWORD theme_listitem_defined :  1;
 
     /* Header dragging */
-    DWORD header_dragging       :  1;  /* is a column/row divider dragging? */
-    DWORD header_drag_is_col    :  1;  /* 0: dragging row, 1: dragging column */
-    int header_drag_offset      :  4;  /* range <-DIVIDER_WIDTH/2, DIVIDER_WIDTH/2> */
+    DWORD header_dragging        :  1;  /* is a column/row divider dragging? */
+    DWORD header_drag_is_col     :  1;  /* 0: dragging row, 1: dragging column */
+    int header_drag_offset       :  4;  /* range <-DIVIDER_WIDTH/2, DIVIDER_WIDTH/2> */
 
     WORD header_drag_index;            /* column or row being resized by drag */
     WORD header_drag_orig_size;        /* original column width or row height */
@@ -99,9 +106,14 @@ struct grid_tag {
 
     WORD cache_hint[4];
 
-    /* Currently focused cell */
+    /* Focused cell */
     WORD focused_col;
     WORD focused_row;
+
+    /* Selection */
+    rgn16_t selection;
+    WORD selmark_col;   /* selection mark for selecting with <SHIFT> key */
+    WORD selmark_row;
 
     /* Cell geometry */
     WORD padding_h;
@@ -603,15 +615,28 @@ grid_free_dispinfo(grid_t* grid, table_cell_t* cell, grid_dispinfo_t* di)
 
 static void
 grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
-                HDC dc, RECT* rect, COLORREF text_color, COLORREF back_color,
-                int control_cd_mode, MC_NMGCUSTOMDRAW* cd)
+                HDC dc, RECT* rect, int control_cd_mode, MC_NMGCUSTOMDRAW* cd)
 {
     RECT content;
     UINT dt_flags = DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS;
     grid_dispinfo_t di;
     int item_cd_mode = 0;
+    BOOL is_selected;
+    int state;
+    COLORREF text_color;
+    COLORREF back_color;
 
+    is_selected = rgn16_contains_xy(&grid->selection, col, row);
     grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
+
+    text_color = GetSysColor(COLOR_BTNTEXT);
+    back_color = MC_CLR_NONE;
+    if(is_selected) {
+        if(grid->focus)
+            back_color = RGB(209,232,255);
+        else if(grid->style & MC_GS_SHOWSELALWAYS)
+            back_color = GetSysColor(COLOR_BTNFACE);
+    }
 
     /* Custom draw: Item pre-paint notification */
     if(control_cd_mode & CDRF_NOTIFYITEMDRAW) {
@@ -619,6 +644,11 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
         mc_rect_copy(&cd->nmcd.rc, rect);
         cd->nmcd.dwItemSpec = (DWORD)MAKELONG(col, row);
         cd->nmcd.uItemState = 0;
+        if(is_selected)
+            cd->nmcd.uItemState |= CDIS_SELECTED;
+        if((grid->style & MC_GS_FOCUSEDCELL)  &&  grid->focus  &&
+            col == grid->focused_col  &&  row == grid->focused_row)
+            cd->nmcd.uItemState |= CDIS_FOCUS;
         cd->nmcd.lItemlParam = di.lp;
         cd->clrText = text_color;
         cd->clrTextBk = back_color;
@@ -636,9 +666,31 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     content.bottom = rect->bottom - grid->padding_v;
 
     /* Paint cell background */
-    if(back_color != MC_CLR_NONE  &&  back_color != MC_CLR_DEFAULT) {
-        SetBkColor(dc, back_color);
-        ExtTextOut(dc, 0, 0, ETO_OPAQUE, rect, NULL, 0, NULL);
+    if(col != MC_TABLE_HEADER  &&  row != MC_TABLE_HEADER) {
+        if(grid->theme_listitem_defined) {
+            if(!IsWindowEnabled(grid->win)) {
+                state = LISS_DISABLED;
+            } else if(is_selected) {
+                if(grid->focus)
+                    state = LISS_SELECTED;
+                else
+                    state = LISS_SELECTEDNOTFOCUS;
+            } else {
+                state = LISS_NORMAL;
+            }
+
+            mcDrawThemeBackground(grid->theme_listview, dc, LVP_LISTITEM, state, rect, NULL);
+        } else if(back_color != MC_CLR_NONE  &&  back_color != MC_CLR_DEFAULT) {
+            SetBkColor(dc, back_color);
+            ExtTextOut(dc, 0, 0, ETO_OPAQUE, rect, NULL, 0, NULL);
+        }
+    } else {
+        if(grid->theme_header != NULL) {
+            mcDrawThemeBackground(grid->theme_header, dc,
+                                  HP_HEADERITEM, HIS_NORMAL, rect, NULL);
+        } else {
+            DrawEdge(dc, rect, BDR_RAISEDINNER, BF_MIDDLE | BF_RECT);
+        }
     }
 
     /* Paint cell value or text. */
@@ -655,15 +707,20 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
             case MC_TCF_ALIGNVCENTER:   dt_flags |= DT_VCENTER; break;
             case MC_TCF_ALIGNBOTTOM:    dt_flags |= DT_BOTTOM; break;
         }
-        SetTextColor(dc, text_color);
-        DrawText(dc, di.text, -1, &content, dt_flags);
+
+        if(grid->theme_listitem_defined) {
+            mcDrawThemeText(grid->theme_listview, dc, LVP_LISTITEM, state,
+                            di.text, -1, dt_flags, 0, &content);
+        } else {
+            SetTextColor(dc, text_color);
+            DrawText(dc, di.text, -1, &content, dt_flags);
+        }
     }
 
     grid_free_dispinfo(grid, cell, &di);
 
-    if(item_cd_mode & CDRF_NEWFONT) {
+    if(item_cd_mode & CDRF_NEWFONT)
         SelectObject(dc, grid->font);
-    }
 
     /* Custom draw: Item post-paint notification */
     if(item_cd_mode & CDRF_NOTIFYPOSTPAINT) {
@@ -675,25 +732,12 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
 static void
 grid_paint_header_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
                        HDC dc, RECT* rect, int index, DWORD style,
-                       COLORREF text_color, COLORREF back_color,
                        int control_cd_mode, MC_NMGCUSTOMDRAW* cd)
 {
     table_cell_t tmp;
     table_cell_t* tmp_cell = &tmp;
     TCHAR buffer[16];
     DWORD fabricate;
-
-    /* Paint header background. */
-    if(grid->theme_header != NULL) {
-        mcDrawThemeBackground(grid->theme_header, dc,
-                              HP_HEADERITEM, HIS_NORMAL, rect, NULL);
-    } else {
-        DrawEdge(dc, rect, BDR_RAISEDINNER, BF_MIDDLE | BF_RECT);
-    }
-
-    /* The 'dead' cell cannot have any contents. */
-    if(index < 0)
-        return;
 
     /* Retrieve (or fabricate) cell to be painted. */
     fabricate = (style & (MC_GS_COLUMNHEADERMASK | MC_GS_ROWHEADERMASK));
@@ -725,8 +769,7 @@ grid_paint_header_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
         tmp.flags |= MC_TCF_ALIGNVCENTER;
 
     /* Paint header contents. */
-    grid_paint_cell(grid, col, row, tmp_cell, dc, rect,
-                    text_color, back_color, control_cd_mode, cd);
+    grid_paint_cell(grid, col, row, tmp_cell, dc, rect, control_cd_mode, cd);
 }
 
 static inline void
@@ -750,6 +793,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     RECT client;
     RECT rect;
     int header_w, header_h;
+    int gridline_w;
     int col0, row0;
     int x0, y0;
     int col, row;
@@ -765,8 +809,6 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     HRGN old_clip;
     COLORREF old_text_color;
     COLORREF old_bk_color;
-    COLORREF item_text_color;
-    COLORREF item_bk_color;
 
     GRID_TRACE("grid_paint(%p, %d, %d, %d, %d)", grid,
                dirty->left, dirty->top, dirty->right, dirty->bottom);
@@ -792,14 +834,11 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     cd.nmcd.hdr.code = NM_CUSTOMDRAW;
     cd.nmcd.dwDrawStage = CDDS_PREPAINT;
     cd.nmcd.hdc = dc;
-    cd.clrText = GetSysColor(COLOR_WINDOWTEXT);
-    cd.clrTextBk = MC_CLR_NONE;
+    cd.clrText = 0;
+    cd.clrTextBk = 0;
     cd_mode = MC_SEND(grid->notify_win, WM_NOTIFY, cd.nmcd.hdr.idFrom, &cd);
     if(cd_mode & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
         goto skip_control_paint;
-
-    item_text_color = cd.clrText;
-    item_bk_color = cd.clrTextBk;
 
     /* Find 1st visible column */
     rect.left = header_w - grid->scroll_x;
@@ -900,6 +939,10 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
         SelectObject(dc, old_pen);
         DeleteObject(pen);
+
+        gridline_w = 1;
+    } else {
+        gridline_w = 0;
     }
 
     /* Paint the "dead" top left header cell */
@@ -909,7 +952,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         mc_rect_set(&rect, 0, 0, grid->header_width, grid->header_height);
         mc_clip_set(dc, 0, 0, MC_MIN(header_w, client.right), MC_MIN(header_h, client.bottom));
         grid_paint_header_cell(grid, MC_TABLE_HEADER, MC_TABLE_HEADER, NULL, dc,
-                               &rect, -1, 0, item_text_color, item_bk_color, cd_mode, &cd);
+                               &rect, -1, 0, cd_mode, &cd);
     }
 
     /* Paint column headers */
@@ -924,7 +967,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                         MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
             grid_paint_header_cell(grid, col, MC_TABLE_HEADER, (table ? &table->cols[col] : NULL),
                                    dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK),
-                                   item_text_color, item_bk_color, cd_mode, &cd);
+                                   cd_mode, &cd);
             rect.left = rect.right;
             if(rect.right >= client.right)
                 break;
@@ -943,7 +986,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                         MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
             grid_paint_header_cell(grid, MC_TABLE_HEADER, row, (table ? &table->rows[row] : NULL),
                                    dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK),
-                                   item_text_color, item_bk_color, cd_mode, &cd);
+                                   cd_mode, &cd);
             rect.top = rect.bottom;
             if(rect.bottom >= client.bottom)
                 break;
@@ -954,23 +997,22 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     mc_clip_set(dc, header_w, header_h, client.right, client.bottom);
     rect.top = y0;
     for(row = row0; row < row_count; row++) {
-        rect.bottom = rect.top + grid_row_height(grid, row);
+        rect.bottom = rect.top + grid_row_height(grid, row) - gridline_w;
         rect.left = x0;
         for(col = col0; col < col_count; col++) {
             if(table != NULL)
                 cell = table_cell(table, col, row);
             else
                 cell = NULL;
-            rect.right = rect.left + grid_col_width(grid, col);
-            grid_paint_cell(grid, col, row, cell, dc, &rect,
-                            item_text_color, item_bk_color, cd_mode, &cd);
+            rect.right = rect.left + grid_col_width(grid, col) - gridline_w;
+            grid_paint_cell(grid, col, row, cell, dc, &rect, cd_mode, &cd);
             if(rect.right >= client.right)
                 break;
-            rect.left = rect.right;
+            rect.left = rect.right + gridline_w;
         }
         if(rect.bottom >= client.bottom)
             break;
-        rect.top = rect.bottom;
+        rect.top = rect.bottom + gridline_w;
     }
 
     /* Paint focus cursor */
@@ -982,6 +1024,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         mc_clip_set(dc, MC_MAX(0, header_w-1), MC_MAX(0, header_h-1),
                         client.right, client.bottom);
         grid_cell_rect(grid, grid->focused_col, grid->focused_row, &r);
+        r.right -= gridline_w;
+        r.bottom -= gridline_w;
         grid_paint_rect(dc, &r);
         mc_rect_inflate(&r, -1, -1);
         grid_paint_rect(dc, &r);
@@ -1021,6 +1065,14 @@ grid_invalidate_cell(grid_t* grid, WORD col, WORD row, BOOL extend_for_focus)
     if(extend_for_focus)
         mc_rect_inflate(&r, 1, 1);
     InvalidateRect(grid->win, &r, TRUE);
+}
+
+static inline void
+grid_invalidate_selection(grid_t* grid)
+{
+    const rgn16_rect_t* ext = rgn16_extents(&grid->selection);
+    if(ext != NULL)
+        grid_invalidate_region(grid, ext->x0, ext->y0, ext->x1, ext->y1);
 }
 
 static void
@@ -1319,13 +1371,7 @@ grid_set_focused_cell(grid_t* grid, WORD col, WORD row)
     grid->focused_row = row;
 
     /* Fire notification MC_GN_FOCUSEDCELLCHANGED. */
-    notif.hdr.hwndFrom = grid->win;
-    notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
     notif.hdr.code = MC_GN_FOCUSEDCELLCHANGED;
-    notif.wOldColumn = old_col;
-    notif.wOldRow = old_row;
-    notif.wNewColumn = col;
-    notif.wNewRow = row;
     MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
 
     /* Refresh */
@@ -1338,11 +1384,174 @@ grid_set_focused_cell(grid_t* grid, WORD col, WORD row)
 }
 
 static void
+grid_setup_MC_GSELECTION(MC_GSELECTION* gsel, rgn16_t* rgn)
+{
+    static const rgn16_rect_t empty_rc = { 0, 0, 0, 0 };
+    const rgn16_rect_t* extents;
+    const rgn16_rect_t* vec;
+    WORD n;
+
+    switch(rgn->n) {
+        case 0:     extents = &empty_rc;      vec = NULL;           n = 0;          break;
+        case 1:     extents = &rgn->s.rc;     vec = &rgn->s.rc;     n = 1;          break;
+        default:    extents = &rgn->c.vec[0]; vec = &rgn->c.vec[1]; n = rgn->n - 1; break;
+    }
+
+    /* rgn16_rect_t and MC_GRECT are binary compatible. */
+    memcpy(&gsel->rcExtents, extents, sizeof(rgn16_rect_t));
+    gsel->uDataCount = n;
+    gsel->rcData = (MC_GRECT*) vec;
+}
+
+/* Warning: the function consumes the 'sel'. */
+static int
+grid_install_selection(grid_t* grid, rgn16_t* sel)
+{
+    MC_NMGSELECTIONCHANGE notif;
+    char buf[MC_MAX(sizeof(rgn16_t), sizeof(MC_GSELECTION))];
+
+    if(rgn16_equals_rgn(&grid->selection, sel))
+        return 0;
+
+    /* Fire notification MC_GN_SELECTIONCHANGING */
+    notif.hdr.hwndFrom = grid->win;
+    notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
+    notif.hdr.code = MC_GN_SELECTIONCHANGING;
+    grid_setup_MC_GSELECTION(&notif.oldSelection, &grid->selection);
+    grid_setup_MC_GSELECTION(&notif.newSelection, sel);
+
+    if(MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif)) {
+        /* Application suppresses the processing */
+        GRID_TRACE("grid_install_selection: "
+                   "MC_GN_SELECTIONCHANGING suppresses the change.");
+        return -1;
+    }
+
+    /* Install the new selection. */
+    memcpy(buf, &grid->selection, sizeof(rgn16_t));
+    memcpy(&grid->selection, sel, sizeof(rgn16_t));
+    memcpy(sel, buf, sizeof(rgn16_t));
+
+    /* Refresh */
+    if(!grid->no_redraw) {
+        const rgn16_rect_t* ext;
+
+        ext = rgn16_extents(&grid->selection);
+        if(ext != NULL)
+            grid_invalidate_region(grid, ext->x0, ext->y0, ext->x1, ext->y1);
+
+        ext = rgn16_extents(sel);
+        if(ext != NULL)
+            grid_invalidate_region(grid, ext->x0, ext->y0, ext->x1, ext->y1);
+    }
+
+    /* Fire notification MC_GN_SELECTIONCHANGED */
+    notif.hdr.code = MC_GN_SELECTIONCHANGED;
+    MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
+
+    /* Free the original selection */
+    rgn16_fini(sel);
+
+    return 0;
+}
+
+static int
+grid_set_selection(grid_t* grid, MC_GSELECTION* gsel)
+{
+    UINT n = gsel->uDataCount;
+    rgn16_t sel;
+
+    if(n == 0) {
+        rgn16_init(&sel);
+    } else if(n == 1) {
+        rgn16_init_with_rect(&sel, (rgn16_rect_t*) &gsel->rcData[0]);
+    } else {
+        /* We have to be careful. On input, application can provide rect
+         * array which does not follow rgn16_t rules. Hence we create the
+         * selection by iterative unioning all the rects.
+         *
+         * TODO: Optimize ths. We should only call union for whole sequences of
+         *       rects which follow the rgn16_t rules.
+         */
+        WORD i;
+
+        rgn16_init(&sel);
+
+        for(i = 0; i < gsel->uDataCount; i++) {
+            rgn16_t rgn_rc;
+            rgn16_t rgn_union;
+
+            if(gsel->rcData[i].wColumnFrom >= gsel->rcData[i].wColumnTo ||
+               gsel->rcData[i].wRowFrom >= gsel->rcData[i].wRowTo) {
+                /* Skip empty rect */
+                continue;
+            }
+
+            rgn16_init_with_rect(&rgn_rc, (rgn16_rect_t*) &gsel->rcData[i]);
+            if(MC_ERR(rgn16_union(&rgn_union, &sel, &rgn_rc)) != 0) {
+                MC_TRACE("grid_set_selection: rgn16_union() failed.");
+                rgn16_fini(&sel);
+                return -1;
+            }
+            rgn16_fini(&rgn_rc);
+
+            rgn16_fini(&sel);
+            memcpy(&sel, &rgn_union, sizeof(rgn16_t));
+        }
+    }
+
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_set_selection: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static UINT
+grid_get_selection(grid_t* grid, MC_GSELECTION* gsel)
+{
+    static const rgn16_rect_t empty_rc = { 0, 0, 0, 0 };
+    const rgn16_rect_t* extents;
+    const rgn16_rect_t* vec;
+    WORD n;
+    rgn16_t* rgn = &grid->selection;
+
+    switch(rgn->n) {
+        case 0:     extents = &empty_rc;      vec = NULL;           n = 0;          break;
+        case 1:     extents = &rgn->s.rc;     vec = &rgn->s.rc;     n = 1;          break;
+        default:    extents = &rgn->c.vec[0]; vec = &rgn->c.vec[1]; n = rgn->n - 1; break;
+    }
+
+    if(gsel == NULL)
+        return n;
+
+    gsel->rcExtents.wColumnFrom = extents->x0;
+    gsel->rcExtents.wRowFrom = extents->y0;
+    gsel->rcExtents.wColumnTo = extents->x1;
+    gsel->rcExtents.wRowTo = extents->y1;
+
+    if(gsel->uDataCount == (UINT) -1) {
+        gsel->uDataCount = n;
+        gsel->rcData = (MC_GRECT*) vec;
+    } else {
+        gsel->uDataCount = MC_MIN(gsel->uDataCount, n);
+        if(gsel->uDataCount > 0)
+            memcpy(gsel->rcData, vec, gsel->uDataCount * sizeof(rgn16_rect_t));
+    }
+
+    return n;
+}
+
+static void
 grid_change_focus(grid_t* grid, BOOL setfocus)
 {
     if(!grid->no_redraw  &&  (grid->style & MC_GS_FOCUSEDCELL)  &&
        grid->col_count > 0  &&  grid->row_count > 0)
         grid_invalidate_cell(grid, grid->focused_col, grid->focused_row, TRUE);
+
+    if(!grid->no_redraw)
+        grid_invalidate_selection(grid);
 
     grid->focus = setfocus;
     mc_send_notify(grid->notify_win, grid->win,
@@ -1783,6 +1992,84 @@ grid_mouse_move(grid_t* grid, int x, int y)
     }
 }
 
+static int
+grid_reset_selection(grid_t* grid)
+{
+    rgn16_t sel;
+
+    rgn16_init(&sel);
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_reset_selection: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+grid_select_cell(grid_t* grid, WORD col, WORD row)
+{
+    rgn16_t sel;
+
+    rgn16_init_with_xy(&sel, col, row);
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_select_cell: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+grid_select_rect(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
+{
+    rgn16_rect_t sel_rect = { col0, row0, col1, row1 };
+    rgn16_t sel;
+
+    rgn16_init_with_rect(&sel, &sel_rect);
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_select_rect: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+grid_toggle_cell_selection(grid_t* grid, WORD col, WORD row)
+{
+    rgn16_t sel;
+
+    if((grid->style & GRID_GS_SELMASK) == MC_GS_COMPLEXSEL) {
+        rgn16_t tmp;
+        int err;
+
+        rgn16_init_with_xy(&tmp, col, row);
+        err = rgn16_xor(&sel, &grid->selection, &tmp);
+        rgn16_fini(&tmp);
+        if(MC_ERR(err != 0)) {
+            MC_TRACE("grid_toggle_cell_selection: rgn16_xor() failed.");
+            return -1;
+        }
+    } else {
+        /* In selection modes simpler then MC_GS_COMPLEXSEL we make the toggle
+         * only work only within a single cell. */
+        const rgn16_rect_t* ext = rgn16_extents(&grid->selection);
+        if(ext != NULL  &&  col == ext->x0  &&  row == ext->y0  &&
+                            col+1 == ext->x1  &&  row+1 == ext->y1)
+            rgn16_init(&sel);
+        else
+            rgn16_init_with_xy(&sel, col, row);
+    }
+
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_toggle_cell_selection: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
 static void
 grid_left_button_down(grid_t* grid, int x, int y)
 {
@@ -1791,6 +2078,8 @@ grid_left_button_down(grid_t* grid, int x, int y)
 
     MC_GHITTESTINFO info;
     RECT cell_rect;
+    BOOL control_pressed = (GetKeyState(VK_CONTROL) & 0x8000);
+    BOOL shift_pressed = (GetKeyState(VK_SHIFT) & 0x8000);
 
     if(mc_send_notify(grid->notify_win, grid->win, NM_CLICK)) {
         /* Application suppresses the default processing of the message */
@@ -1841,11 +2130,71 @@ grid_left_button_down(grid_t* grid, int x, int y)
         grid->header_dragging = TRUE;
     }
 
-    /* Ordinary cell? Activate it. */
-    if(info.flags & MC_GHT_ONNORMALCELL) {
-        if(grid->style & MC_GS_FOCUSEDCELL) {
-            grid_set_focused_cell(grid, info.wColumn, info.wRow);
-        }
+    /* Ordinary cell? Focus it. */
+    if((info.flags & MC_GHT_ONNORMALCELL)  &&  (grid->style & MC_GS_FOCUSEDCELL))
+        grid_set_focused_cell(grid, info.wColumn, info.wRow);
+
+    /* Update selection. */
+    switch(grid->style & GRID_GS_SELMASK) {
+        case MC_GS_COMPLEXSEL:
+            /* <CTRL>+click toggles selection state of the cell. */
+            if(control_pressed) {
+                if(info.flags & MC_GHT_ONNORMALCELL) {
+                    int err = grid_toggle_cell_selection(grid, info.wColumn, info.wRow);
+                    if(err == 0) {
+                        grid->selmark_col = info.wColumn;
+                        grid->selmark_row = info.wRow;
+                    } else {
+                        MC_TRACE("grid_left_button_down: grid_toggle_cell_selection() failed.");
+                    }
+                }
+                break;
+            } else {
+                /* Fall through */
+            }
+
+        case MC_GS_RECTSEL:
+            /* <SHIFT>+click sets the selection to rect (the other corner
+             * is determined by grid->selmark_col/row) */
+            if(shift_pressed  &&
+               grid->selmark_col < grid->col_count  &&
+               grid->selmark_row < grid->row_count)
+            {
+                if(info.flags & MC_GHT_ONNORMALCELL) {
+                    int err = grid_select_rect(grid,
+                            MC_MIN(grid->selmark_col, info.wColumn),
+                            MC_MIN(grid->selmark_row, info.wRow),
+                            MC_MAX(grid->selmark_col, info.wColumn) + 1,
+                            MC_MAX(grid->selmark_row, info.wRow) + 1);
+                    if(err != 0) {
+                        MC_TRACE("grid_left_button_down: grid_select_rect() failed.");
+                    }
+                }
+                break;
+            } else {
+                /* Fall through */
+            }
+
+        case MC_GS_SINGLESEL:
+            /* Normal click sets the selection to the given cell. */
+            if(info.flags & MC_GHT_ONNORMALCELL) {
+                if(grid_select_cell(grid, info.wColumn, info.wRow) == 0) {
+                    grid->selmark_col = info.wColumn;
+                    grid->selmark_row = info.wRow;
+                } else {
+                    MC_TRACE("grid_left_button_down: grid_select_cell() failed.");
+                }
+                break;
+            } else {
+                /* Fall through */
+            }
+
+        case MC_GS_NOSEL:
+            /* No selection. */
+            grid_reset_selection(grid);
+            grid->selmark_col = COL_INVALID;
+            grid->selmark_row = ROW_INVALID;
+            break;
     }
 }
 
@@ -1931,8 +2280,13 @@ grid_move_focus(grid_t* grid, WORD col, WORD row)
 static void
 grid_key_down(grid_t* grid, int key)
 {
+    WORD old_focused_col = grid->focused_col;
+    WORD old_focused_row = grid->focused_row;
     BOOL control_pressed = (GetKeyState(VK_CONTROL) & 0x8000);
+    BOOL shift_pressed = (GetKeyState(VK_SHIFT) & 0x8000);
+    int err;
 
+    /* Move focused cell or scroll */
     switch(key) {
         case VK_LEFT:
             if(grid->style & MC_GS_FOCUSEDCELL) {
@@ -2012,6 +2366,46 @@ grid_key_down(grid_t* grid, int key)
             }
             break;
     }
+
+    if((grid->style & GRID_GS_SELMASK) != MC_GS_NOSEL) {
+        /* If the focused cell changed, we (likely) may also need to change
+         * current selection. */
+        if(!control_pressed  &&
+           (grid->focused_col != old_focused_col || grid->focused_row != old_focused_row))
+        {
+            if(shift_pressed  &&  grid->selmark_col < grid->col_count  &&
+                                  grid->selmark_row < grid->row_count) {
+                err = grid_select_rect(grid,
+                                MC_MIN(grid->selmark_col, grid->focused_col),
+                                MC_MIN(grid->selmark_row, grid->focused_row),
+                                MC_MAX(grid->selmark_col, grid->focused_col) + 1,
+                                MC_MAX(grid->selmark_row, grid->focused_row) + 1);
+                if(MC_ERR(err != 0))
+                    MC_TRACE("grid_key_down: grid_select_rect() failed.");
+            } else {
+                err = grid_select_cell(grid, grid->focused_col, grid->focused_row);
+                if(err == 0) {
+                    grid->selmark_col = grid->focused_col;
+                    grid->selmark_row = grid->focused_row;
+                } else {
+                    MC_TRACE("grid_key_down: grid_select_cell() failed.");
+                }
+            }
+        }
+
+        /* <CTRL>+<SPACE> toggles selection state of focused cell.
+         * If (!MC_GS_COMPLEXSEL), the old selection is 1st reset if it involves
+         * other any other cell. */
+        if(control_pressed  &&  key == VK_SPACE) {
+            err = grid_toggle_cell_selection(grid, grid->focused_col, grid->focused_row);
+            if(err == 0) {
+                MC_TRACE("grid_key_down: grid_toggle_cell_selection() failed.");
+            } else {
+                grid->selmark_col = grid->focused_col;
+                grid->selmark_row = grid->focused_row;
+            }
+        }
+    }
 }
 
 static int
@@ -2067,6 +2461,10 @@ grid_set_table(grid_t* grid, table_t* table)
 
     grid->focused_col = 0;
     grid->focused_row = 0;
+
+    rgn16_clear(&grid->selection);
+    grid->selmark_col = COL_INVALID;
+    grid->selmark_row = ROW_INVALID;
 
     if(grid->col_widths != NULL) {
         free(grid->col_widths);
@@ -2178,6 +2576,9 @@ grid_open_theme(grid_t* grid)
      * return that one to the app. */
     grid->theme_header = mcOpenThemeData(NULL, grid_header_tc);
     grid->theme_listview = mcOpenThemeData(grid->win, grid_listview_tc);
+
+    grid->theme_listitem_defined = (grid->theme_listview != NULL  &&
+                    mcIsThemePartDefined(grid->theme_listview, LVP_LISTITEM, 0));
 }
 
 static void
@@ -2221,6 +2622,8 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
     grid->notify_win = cs->hwndParent;
     grid->style = cs->style;
 
+    rgn16_init(&grid->selection);
+
     grid_set_geometry(grid, NULL, FALSE);
     grid_notify_format(grid);
 
@@ -2262,6 +2665,7 @@ grid_ncdestroy(grid_t* grid)
         free(grid->col_widths);
     if(grid->row_heights)
         free(grid->row_heights);
+    rgn16_fini(&grid->selection);
     free(grid);
 }
 
@@ -2376,6 +2780,12 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_GM_GETFOCUSEDCELL:
             return MAKELRESULT(grid->focused_col, grid->focused_row);
+
+        case MC_GM_SETSELECTION:
+            return (grid_set_selection(grid, (MC_GSELECTION*) lp) == 0 ? TRUE : FALSE);
+
+        case MC_GM_GETSELECTION:
+            return grid_get_selection(grid, (MC_GSELECTION*) lp);
 
         case WM_SETREDRAW:
             grid->no_redraw = !wp;

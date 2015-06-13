@@ -126,6 +126,31 @@ extern "C" {
  * indexes is set to @ref MC_TABLE_HEADER.
  *
  *
+ * @section grid_selection Selection
+ *
+ * The grid control supports four distinct selection modes. These modes
+ * determine how the cells may or may not be selected:
+ *
+ * - With style @c MC_GS_NOSEL, selection is disabled altogether and no cell
+ *   can be selected. This is default.
+ *
+ * - With style @c MC_GS_SINGLESEL, only single cell may be selected at any
+ *   time.
+ *
+ * - With style @c MC_GS_RECTSEL, only a set of cells which form a block of
+ *   rectangular shape may be selected.
+ *
+ * - With style @c MC_GS_COMPLEXSEL, any set of cells, even discontinuous one,
+ *   may be selected.
+ *
+ * The mode influences how the control reacts on mouse and keyboard events
+ * with respect to the selection, and also how the control processes various
+ * selection related messages and notifications.
+ *
+ * Note that the selection may also be changed with keyboard only if
+ * the style @c ref MC_GS_FOCUSEDCELL is also used.
+ *
+ *
  * @section grid_cell_focus Focused Cell
  *
  * With the style @ref MC_GS_FOCUSEDCELL, the control supports a cell focus.
@@ -140,6 +165,9 @@ extern "C" {
  *   focus from a given cell to another one, as appropriate to the given key.
  *   (When the style is not used the keys translate directly to a scrolling
  *   action.)
+ *
+ * - Depending on the selection mode, the style @c MC_GS_FOCUSEDCELL enables
+ *   changing the current selection with keyboard.
  *
  * Application can set and get currently focused cell with messages
  * @ref MC_GM_SETFOCUSEDCELL and @ref MC_GM_GETFOCUSEDCELL, and be notified
@@ -229,6 +257,18 @@ void MCTRL_API mcGrid_Terminate(void);
 
 /** @brief Enables cell focus. */
 #define MC_GS_FOCUSEDCELL            0x0040
+
+/** @brief Control does not allow cell selection. */
+#define MC_GS_NOSEL                  0x0000
+/** @brief Control allows to select only one cell. */
+#define MC_GS_SINGLESEL              0x0100
+/** @brief Control allows to select only a rectangular area of cells. */
+#define MC_GS_RECTSEL                0x0200
+/** @brief Control allows to select any arbitrary set of cells. */
+#define MC_GS_COMPLEXSEL             0x0300
+
+/** @brief Paint selection even when the control does not have focus. */
+#define MC_GS_SHOWSELALWAYS          0x0400
 
 /** @brief The contents of column headers is used. This is default. */
 #define MC_GS_COLUMNHEADERNORMAL     0x0000
@@ -327,6 +367,24 @@ void MCTRL_API mcGrid_Terminate(void);
 /*@{*/
 
 /**
+ * @brief A miscellaneous structure determining a rectangular area  in the grid.
+ *
+ * Note that by convention the top left corner (@c wColumnFrom, @c wRowFrom)
+ * is inclusive and the right bottom corner (@c wColumnTo, @c wRowTo) is
+ * exclusive.
+ */
+typedef struct MC_GRECT_tag {
+    /** The left column coordinate. */
+    WORD wColumnFrom;
+    /** The top row coordinate. */
+    WORD wRowFrom;
+    /** The right column coordinate. */
+    WORD wColumnTo;
+    /** The bottom row coordinate. */
+    WORD wRowTo;
+} MC_GRECT;
+
+/**
  * @brief Structure describing inner geometry of the grid.
  * @sa MC_GM_SETGEOMETRY MC_GM_GETGEOMETRY
  */
@@ -360,6 +418,47 @@ typedef struct MC_GHITTESTINFO_tag {
     /** Row index of the cell that occupies the point. */
     WORD wRow;
 } MC_GHITTESTINFO;
+
+/**
+ * @brief Structure describing a selection.
+ *
+ * In general, the selection is described as a set of rectangular areas. All
+ * cells in any of those areas is then considered selected.
+ *
+ * The control guarantees that on output (when using @ref MC_GN_GETSELECTION
+ * or handling any selection-related notification), the rectangles do not
+ * overlap each other.
+ *
+ * I.e. the following code snippet can be used to enumerate all the cells
+ * within the selection @c sel:
+ * @code
+ * UINT uIndex;
+ * WORD wCol, wRow;
+ *
+ * for(uIndex = 0; uIndex < sel.uDataCount; uIndex++) {
+ *     MC_GRECT* pRc = &sel.rcData[uIndex];
+ *     for(wRow = pRc->wRowFrom; wRow < pRc->wRowTo; wRow++) {
+ *         for(wCol = pRc->wColumnFrom; wCol < pRc->wColumnTo; wCol++) {
+ *             // ... process the cell [wCol, wRow]
+ *         }
+ *     }
+ * }
+ * @endcode
+ *
+ * @sa MC_GM_SETSELECTION MC_GM_GETSELECTION
+ * @sa MC_GN_SELECTIONCHANGING MC_GN_SELECTIONCHANGED
+ */
+typedef struct MC_GSELECTION_tag {
+    /** Extents rectangle of the selection. This member is ignored on input. */
+    MC_GRECT rcExtents;
+    /** Count of rectangles in the @c rcData array. Zero if no cell is
+     *  selected. The count may be larger then 1 only if style @ref
+     *  MC_GS_COMPLEXSEL is used. */
+    UINT uDataCount;
+    /** Pointer to array (of @c uCount members) of rectangles describing the
+     *  selection. */
+    MC_GRECT* rcData;
+} MC_GSELECTION;
 
 /**
  * @brief Structure used by notification @ref MC_GN_ODCACHEHINT.
@@ -426,8 +525,8 @@ typedef struct MC_NMGDISPINFOA_tag {
  * @brief Structure used by notifications related to resizing of column and
  * headers.
  *
- * @sa MC_GN_COLUMNWIDTHCHANGING @sa MC_GN_COLUMNWIDTHCHANGED
- * @sa MC_GN_ROWHEIGHTCHANGING @sa MC_GN_ROWHEIGHTCHANGED
+ * @sa MC_GN_COLUMNWIDTHCHANGING MC_GN_COLUMNWIDTHCHANGED
+ * @sa MC_GN_ROWHEIGHTCHANGING MC_GN_ROWHEIGHTCHANGED
  */
 typedef struct MC_NMGCOLROWSIZECHANGE_tag {
     /** Common notification structure header. */
@@ -459,6 +558,20 @@ typedef struct MC_NMGFOCUSEDCELLCHANGE_tag {
     /** Row of new focused cell. */
     WORD wNewRow;
 } MC_NMGFOCUSEDCELLCHANGE;
+
+/**
+ * @brief  Structure used by notifications related to selection change.
+ *
+ * @sa MC_GN_SELECTIONCHANGING MC_GN_SELECTIONCHANGED
+ */
+typedef struct MC_NMGSELECTIONCHANGE_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Old selection description. */
+    MC_GSELECTION oldSelection;
+    /** New selection description. */
+    MC_GSELECTION newSelection;
+} MC_NMGSELECTIONCHANGE;
 
 /*@}*/
 
@@ -733,6 +846,47 @@ typedef struct MC_NMGFOCUSEDCELLCHANGE_tag {
  */
 #define MC_GM_GETFOCUSEDCELL      (MC_GM_FIRST + 21)
 
+/**
+ * @brief Set selection.
+ * @param wParam Reserved, set to zero.
+ * @param[in] lParam (@ref MC_GSELECTION*) Pointer to structure describing the
+ * selection, or @c NULL to reset selection.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_GM_SETSELECTION        (MC_GM_FIRST + 22)
+
+/**
+ * @brief Get selection.
+ *
+ * When sending this message application has set some members of @c
+ * MC_GSELECTION, as provided via @c lParam. There are three modes operations.
+ *
+ * - Application sets @c lParam to @c NULL. Then no actual data are retrieved
+ *   and the message only returns the count of rectangles the selection is
+ *   composed of.
+ *
+ * - Application provides a buffer where control fills the selection data.
+ *   The application has to set @c MC_GSELECTION::rcData to point to the
+ *   buffer, and @c MC_GSELECTION::uDataCount to maximal count of rectangles
+ *   the buffer can hold. On output, the @c MC_GSELECTION::uDataCount is set
+ *   to the actual count of rectangles copied into the buffer.
+ *
+ * - Application does not provide any buffer. In this case the application
+ *   has to set @c MC_GSELECTION::uDataCount to @c (UINT)-1. Instead of copying,
+ *   the control sets @c MC_GSELECTION::rcData to point into its internal
+ *   buffer. In this mode application must not free or modify the contents of
+ *   the internal buffer, and also it must not retain the pointer for later
+ *   use as it may become invalid any time.
+ *
+ * @param wParam Reserved, set to zero.
+ * @param[in,out] lParam (@ref MC_GSELECTION*) Pointer to structure to be
+ * filled by the control, or @c NULL. Application has initialize some members
+ * of the structure as described above.
+ * @return (@c UINT) Count of rectangles required for @c MC_GSELECTION::rcData
+ * on success. Zero means the selection is empty.
+ */
+#define MC_GM_GETSELECTION        (MC_GM_FIRST + 23)
+
 /*@}*/
 
 
@@ -936,6 +1090,26 @@ typedef struct MC_NMGFOCUSEDCELLCHANGE_tag {
  * @return Application should return zero if it processes the notification.
  */
 #define MC_GN_FOCUSEDCELLCHANGED  (MC_GN_FIRST + 14)
+
+/**
+ * @brief Fired when selection is about to change.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMGSELECTIONCHANGE*) Pointer to @ref
+ * MC_NMGSELECTIONCHANGE structure.
+ * @return @c TRUE to prevent the selection change, @c FALSE to allow it.
+ */
+#define MC_GN_SELECTIONCHANGING   (MC_GN_FIRST + 15)
+
+/**
+ * @brief Fired after selection has been changed.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in] lParam (@ref MC_NMGSELECTIONCHANGE*) Pointer to @ref
+ * MC_NMGSELECTIONCHANGE structure.
+ * @return Application should return zero if it processes the notification.
+ */
+#define MC_GN_SELECTIONCHANGED    (MC_GN_FIRST + 16)
 
 /*@}*/
 
