@@ -496,6 +496,16 @@ mc_dlus_from_pixels(HFONT font, int pixels, BOOL vert)
  **********************/
 
 #ifdef DEBUG
+
+/* Unit testing forward declarations. */
+void rgn16_test(void);
+
+static void
+perform_unit_tests(void)
+{
+    rgn16_test();
+}
+
 static const char*
 get_win_name(BYTE type)
 {
@@ -524,6 +534,7 @@ get_win_name(BYTE type)
         }
     }
 }
+
 #endif  /* #ifdef DEBUG */
 
 static void
@@ -596,6 +607,11 @@ mc_init_module(void)
     setup_win_version();
     setup_load_sys_dll();
     setup_comctl32_version();
+
+    /* In debug builds, we may want to run few basic unit tests. */
+#ifdef DEBUG
+    perform_unit_tests();
+#endif
 
     /* Success */
     return 0;
