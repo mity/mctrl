@@ -636,7 +636,7 @@ expand_resize(expand_t* expand, DWORD flags)
         anim_ctx.orig_size.cy = mc_height(&start_rect);
 
         /* See http://blogs.msdn.com/b/oldnewthing/archive/2008/04/23/8417521.aspx */
-        duration = GetDoubleClickTime() / 5;
+        duration = GetDoubleClickTime() / 3;
 
         /* We store original (current) parent window size to deal correctly
          * with situations, when it changes while the animation is in
