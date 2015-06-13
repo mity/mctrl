@@ -22,15 +22,7 @@
 static inline int
 anim_time_cmp(DWORD t1, DWORD t2)
 {
-    DWORD diff = t2 - t1;
-
-    if(diff == 0)
-        return 0;
-
-    if(INT32_MIN <= diff  &&  diff <= INT32_MAX)
-        return (int)diff;
-    else
-        return -(int)diff;
+    return (int32_t) t1 - (int32_t) t2;
 }
 
 
