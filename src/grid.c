@@ -1470,8 +1470,8 @@ grid_set_selection(grid_t* grid, MC_GSELECTION* gsel)
          * array which does not follow rgn16_t rules. Hence we create the
          * selection by iterative unioning all the rects.
          *
-         * TODO: Optimize ths. We should only call union for whole sequences of
-         *       rects which follow the rgn16_t rules.
+         * TODO: Optimize this. We should only call union for whole sequences
+         *       of rects which follow the rgn16_t rules.
          */
         WORD i;
 
@@ -1480,14 +1480,19 @@ grid_set_selection(grid_t* grid, MC_GSELECTION* gsel)
         for(i = 0; i < gsel->uDataCount; i++) {
             rgn16_t rgn_rc;
             rgn16_t rgn_union;
+            rgn16_rect_t r;
 
-            if(gsel->rcData[i].wColumnFrom >= gsel->rcData[i].wColumnTo ||
-               gsel->rcData[i].wRowFrom >= gsel->rcData[i].wRowTo) {
+            r.x0 = gsel->rcData[i].wColumnFrom;
+            r.y0 = gsel->rcData[i].wRowFrom;
+            r.x1 = MC_MIN(gsel->rcData[i].wColumnTo, grid->col_count);
+            r.y1 = MC_MIN(gsel->rcData[i].wRowTo, grid->row_count);
+
+            if(r.x0 >= r.x1  ||  r.y0 >= r.y1) {
                 /* Skip empty rect */
                 continue;
             }
 
-            rgn16_init_with_rect(&rgn_rc, (rgn16_rect_t*) &gsel->rcData[i]);
+            rgn16_init_with_rect(&rgn_rc, &r);
             if(MC_ERR(rgn16_union(&rgn_union, &sel, &rgn_rc)) != 0) {
                 MC_TRACE("grid_set_selection: rgn16_union() failed.");
                 rgn16_fini(&sel);
@@ -1500,12 +1505,43 @@ grid_set_selection(grid_t* grid, MC_GSELECTION* gsel)
         }
     }
 
+    /* Verify the selection corresponds to the control's style. */
+    switch(grid->style & GRID_GS_SELMASK) {
+        case MC_GS_NOSEL:
+            if(sel.n > 0)
+                goto err_invalid_sel;
+            break;
+
+        case MC_GS_SINGLESEL:
+            if(sel.n != 0  &&
+               (sel.s.n != 1 || sel.s.rc.x0+1 != sel.s.rc.x1 ||
+                                sel.s.rc.y0+1 != sel.s.rc.y1)) {
+                goto err_invalid_sel;
+            }
+            break;
+
+        case MC_GS_RECTSEL:
+            if(sel.n > 2)
+                goto err_invalid_sel;
+            break;
+
+        case MC_GS_COMPLEXSEL:
+            /* Noop. Any selection is ok. */
+            break;
+    }
+
     if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
         MC_TRACE("grid_set_selection: grid_install_selection() failed.");
         return -1;
     }
 
     return 0;
+
+err_invalid_sel:
+    MC_TRACE("grid_set_selection: Request selection refused due control style.");
+    rgn16_fini(&sel);
+    SetLastError(ERROR_INVALID_PARAMETER);
+    return -1;
 }
 
 static UINT
