@@ -2638,6 +2638,9 @@ grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
     if((ss->styleNew & MC_GS_OWNERDATA) != (ss->styleOld & MC_GS_OWNERDATA))
         grid_set_table(grid, NULL);
 
+    if((ss->styleNew & GRID_GS_SELMASK) != (ss->styleOld & GRID_GS_SELMASK))
+        grid_reset_selection(grid);
+
     if(!grid->no_redraw)
         InvalidateRect(grid->win, NULL, TRUE);
 }
