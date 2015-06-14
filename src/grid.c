@@ -90,6 +90,7 @@ struct grid_tag {
     DWORD unicode_notifications  :  1;
     DWORD focus                  :  1;
     DWORD theme_listitem_defined :  1;
+    DWORD tracking_leave         :  1;
 
     /* Header dragging */
     DWORD header_dragging        :  1;  /* is a column/row divider dragging? */
@@ -105,6 +106,10 @@ struct grid_tag {
     WORD row_count;
 
     WORD cache_hint[4];
+
+    /* Hot cell */
+    WORD hot_col;
+    WORD hot_row;
 
     /* Focused cell */
     WORD focused_col;
@@ -622,11 +627,15 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     grid_dispinfo_t di;
     int item_cd_mode = 0;
     BOOL is_selected;
+    BOOL is_hot;
     int state;
     COLORREF text_color;
     COLORREF back_color;
 
     is_selected = rgn16_contains_xy(&grid->selection, col, row);
+    is_hot = (col == grid->hot_col  &&  row == grid->hot_row  &&
+              col < grid->col_count  &&  row < grid->row_count);  /* <-- avoid headers */
+
     grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
 
     text_color = GetSysColor(COLOR_BTNTEXT);
@@ -649,6 +658,8 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
         if((grid->style & MC_GS_FOCUSEDCELL)  &&  grid->focus  &&
             col == grid->focused_col  &&  row == grid->focused_row)
             cd->nmcd.uItemState |= CDIS_FOCUS;
+        if(is_hot)
+            cd->nmcd.uItemState |= CDIS_HOT;
         cd->nmcd.lItemlParam = di.lp;
         cd->clrText = text_color;
         cd->clrTextBk = back_color;
@@ -671,10 +682,14 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
             if(!IsWindowEnabled(grid->win)) {
                 state = LISS_DISABLED;
             } else if(is_selected) {
-                if(grid->focus)
+                if(is_hot)
+                    state = LISS_HOTSELECTED;
+                else if(grid->focus)
                     state = LISS_SELECTED;
                 else
                     state = LISS_SELECTEDNOTFOCUS;
+            } else if(is_hot) {
+                state = LISS_HOT;
             } else {
                 state = LISS_NORMAL;
             }
@@ -2003,29 +2018,75 @@ static void
 grid_mouse_move(grid_t* grid, int x, int y)
 {
     RECT cell_rect;
+    WORD hot_col = COL_INVALID;
+    WORD hot_row = ROW_INVALID;
 
-    if(!grid->header_dragging)
-        return;
+    /* Resizing columns/rows */
+    if(grid->header_dragging) {
+        if(grid->header_drag_is_col) {
+            int right;
 
-    if(grid->header_drag_is_col) {
-        int right;
+            grid_cell_rect(grid, grid->header_drag_index, MC_TABLE_HEADER, &cell_rect);
+            right = MC_MAX(cell_rect.left, x - grid->header_drag_offset);
+            if(right == cell_rect.right)
+                return;
 
-        grid_cell_rect(grid, grid->header_drag_index, MC_TABLE_HEADER, &cell_rect);
-        right = MC_MAX(cell_rect.left, x - grid->header_drag_offset);
-        if(right == cell_rect.right)
-            return;
+            grid_set_col_width(grid, grid->header_drag_index, right - cell_rect.left);
+        } else {
+            int bottom;
 
-        grid_set_col_width(grid, grid->header_drag_index, right - cell_rect.left);
-    } else {
-        int bottom;
+            grid_cell_rect(grid, MC_TABLE_HEADER, grid->header_drag_index, &cell_rect);
+            bottom = MC_MAX(cell_rect.top, y - grid->header_drag_offset);
+            if(bottom == cell_rect.bottom)
+                return;
 
-        grid_cell_rect(grid, MC_TABLE_HEADER, grid->header_drag_index, &cell_rect);
-        bottom = MC_MAX(cell_rect.top, y - grid->header_drag_offset);
-        if(bottom == cell_rect.bottom)
-            return;
-
-        grid_set_row_height(grid, grid->header_drag_index, bottom - cell_rect.top);
+            grid_set_row_height(grid, grid->header_drag_index, bottom - cell_rect.top);
+        }
     }
+
+    /* Hot tracking. */
+    if(!grid->header_dragging  &&  grid->theme_listview != NULL  &&  grid->theme_listitem_defined) {
+        /* We paint hot item differently only with themes. */
+        MC_GHITTESTINFO info;
+
+        info.pt.x = x;
+        info.pt.y = y;
+        grid_hit_test(grid, &info);
+
+        if(info.flags & MC_GHT_ONNORMALCELL) {
+            hot_col = info.wColumn;
+            hot_row = info.wRow;
+        }
+    }
+    if(hot_col != grid->hot_col  ||  hot_row != grid->hot_row) {
+        if(!grid->no_redraw) {
+            if(grid->hot_col < grid->col_count  &&  grid->hot_row < grid->row_count)
+                grid_invalidate_cell(grid, grid->hot_col, grid->hot_row, FALSE);
+
+            if(hot_col < grid->col_count  &&  hot_row < grid->row_count)
+                grid_invalidate_cell(grid, hot_col, hot_row, FALSE);
+        }
+
+        hot_col = grid->hot_col;
+        hot_row = grid->hot_row;
+    }
+
+    /* Ask for WM_LEAVE */
+    if(!grid->tracking_leave) {
+        mc_track_mouse(grid->win, TME_LEAVE);
+        grid->tracking_leave = TRUE;
+    }
+}
+
+static void
+grid_mouse_leave(grid_t* grid)
+{
+    if(grid->hot_col < grid->col_count  &&  grid->hot_row < grid->row_count)
+        grid_invalidate_cell(grid, grid->hot_col, grid->hot_row, FALSE);
+
+    grid->hot_col = COL_INVALID;
+    grid->hot_row = ROW_INVALID;
+    grid->tracking_leave = FALSE;
 }
 
 static int
@@ -2839,6 +2900,10 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_MOUSEMOVE:
             grid_mouse_move(grid, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
+
+        case WM_MOUSELEAVE:
+            grid_mouse_leave(grid);
             return 0;
 
         case WM_MOUSEWHEEL:
