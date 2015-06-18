@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2013 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -56,7 +56,6 @@
 
 
 static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
-static const WCHAR mditab_tc[] = L"TAB";        /* theme class name */
 
 static const TCHAR toolbar_wc[] = TOOLBARCLASSNAME;
 
@@ -115,7 +114,6 @@ struct mditab_tag {
     HWND tb2_win;              /* right-side toolbar */
     HWND notify_win;           /* notifications target window */
     HIMAGELIST img_list;
-    HTHEME theme;
     HFONT font;
     dsa_t items;
     RECT main_rect;
@@ -132,7 +130,7 @@ struct mditab_tag {
     int scroll_x_desired;
     int scroll_x_max;
     SHORT item_selected;
-    SHORT item_hot;            /* tracked only when themed */
+    SHORT item_hot;            /* tracked only > Win 2000 */
     SHORT item_mclose;         /* candidate item to close by middle button */
     USHORT item_min_width;
     USHORT item_def_width;
@@ -351,21 +349,13 @@ static void
 mditab_mouse_move(mditab_t* mditab, int x, int y)
 {
     int index;
+    MC_MTHITTESTINFO hti;
 
     MDITAB_TRACE("mditab_mouse_move(%p, %d, %d)", mditab, x, y);
 
-    if(mditab->theme) {
-        MC_MTHITTESTINFO hti;
-
-        hti.pt.x = x;
-        hti.pt.y = y;
-        index = mditab_hit_test(mditab, &hti);
-    } else {
-        /* When not themed, hot tabs look as any inactive one, so there is
-         * no need to track it. So lets save the timer and lot of useless
-         * redrawing when user moves the mouse over the control. */
-        index = -1;
-    }
+    hti.pt.x = x;
+    hti.pt.y = y;
+    index = mditab_hit_test(mditab, &hti);
 
     if(index != mditab->item_hot) {
         /* Redraw old hot tab */
@@ -801,9 +791,8 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
 {
     mditab_item_t* item;
     RECT contents;
-    HTHEME theme = mditab->theme;
-    int state = 0;
     UINT flags;
+    RECT r;
 
     item = mditab_item(mditab, index);
 
@@ -811,38 +800,21 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
                  mditab, dc, index, rect->left, rect->top, rect->right, rect->bottom);
 
     /* Draw tab background */
-    if(theme) {
-        if(!IsWindowEnabled(mditab->win)) {
-            state = TTIS_DISABLED;
-        } else {
-            if(index == mditab->item_selected)
-                state = TTIS_SELECTED;
-            else if(index == mditab->item_hot)
-                state = TTIS_HOT;
-            else
-                state = TTIS_NORMAL;
-        }
+    SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
+    DrawEdge(dc, rect, EDGE_RAISED, BF_SOFT | BF_LEFT | BF_TOP | BF_RIGHT);
 
-        mcDrawThemeBackground(theme, dc, TABP_TOPTABITEM, state, rect, rect);
-    } else {
-        RECT r;
+    /* Make left corner rounded */
+    mc_rect_set(&r, rect->left, rect->top, rect->left + ITEM_CORNER_SIZE,
+                rect->top + ITEM_CORNER_SIZE);
+    ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, 0);
+    DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_DIAGONAL_ENDTOPRIGHT);
 
-        SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
-        DrawEdge(dc, rect, EDGE_RAISED, BF_SOFT | BF_LEFT | BF_TOP | BF_RIGHT);
-
-        /* Make left corner rounded */
-        mc_rect_set(&r, rect->left, rect->top, rect->left + ITEM_CORNER_SIZE,
-                    rect->top + ITEM_CORNER_SIZE);
-        ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, 0);
-        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_DIAGONAL_ENDTOPRIGHT);
-
-        /* Make right corner rounded */
-        mc_rect_set(&r, rect->right - ITEM_CORNER_SIZE + 1, rect->top, rect->right,
-                    rect->top + ITEM_CORNER_SIZE);
-        ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, 0);
-        r.top++;
-        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_DIAGONAL_ENDBOTTOMRIGHT);
-    }
+    /* Make right corner rounded */
+    mc_rect_set(&r, rect->right - ITEM_CORNER_SIZE + 1, rect->top, rect->right,
+                rect->top + ITEM_CORNER_SIZE);
+    ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, 0);
+    r.top++;
+    DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_DIAGONAL_ENDBOTTOMRIGHT);
 
     /* If needed, draw focus rect */
     if(mditab->win == GetFocus()  &&  index == mditab->item_selected) {
@@ -867,13 +839,8 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
         mditab_calc_ico_rect(&rect_ico, &contents, ico_w, ico_h);
 
         /* Do the draw */
-        if(theme) {
-            mcDrawThemeIcon(theme, dc, TABP_TOPTABITEM, TTIS_NORMAL,
-                           &rect_ico, mditab->img_list, item->img);
-        } else {
-            ImageList_Draw(mditab->img_list, item->img, dc,
-                           rect_ico.left, rect_ico.top, ILD_TRANSPARENT);
-        }
+        ImageList_Draw(mditab->img_list, item->img, dc,
+                       rect_ico.left, rect_ico.top, ILD_TRANSPARENT);
 
         /* Adjust the contents rect, where the text will be drawn */
         contents.left += ico_w + 3;
@@ -885,15 +852,9 @@ mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
     flags = 0;
     if(mditab->ui_state & UISF_HIDEACCEL)
         flags |= DT_HIDEPREFIX;
-    if(theme) {
-        contents.top += 2;
-        mcDrawThemeText(theme, dc, TABP_TOPTABITEM, state, item->text, -1,
-                            flags, 0, &contents);
-    } else {
-        if(index == mditab->item_selected)
-            contents.bottom -= 2;
-        DrawText(dc, item->text, -1, &contents, flags | DT_SINGLELINE | DT_VCENTER);
-    }
+    if(index == mditab->item_selected)
+        contents.bottom -= 2;
+    DrawText(dc, item->text, -1, &contents, flags | DT_SINGLELINE | DT_VCENTER);
 }
 
 static void
@@ -908,6 +869,7 @@ mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     int dirty_left;
     int dirty_right;
     HRGN old_clip;
+    RECT r;
 
     MDITAB_TRACE("mditab_paint(%p, %p, %p, %d)", mditab, dc, dirty, erase);
 
@@ -951,26 +913,16 @@ mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
     /* Draw pane */
     item = (mditab->item_selected >= 0) ? mditab_item(mditab, mditab->item_selected) : NULL;
-    if(mditab->theme) {
-        RECT r;
-
-        mc_rect_set(&r, rect.left - 5, rect.bottom - 5,
-                    rect.right + 5, rect.bottom + 1);
-        mcDrawThemeBackground(mditab->theme, dc, TABP_PANE, 0, &r, &r);
+    if(item != NULL) {
+        RECT s;
+        mditab_calc_item_rect(mditab, mditab->item_selected, &s);
+        mc_rect_set(&r, rect.left - 5, rect.bottom - 4, s.left, rect.bottom + 1);
+        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
+        mc_rect_set(&r, s.right, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
+        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
     } else {
-        RECT r;
-
-        if(item != NULL) {
-            RECT s;
-            mditab_calc_item_rect(mditab, mditab->item_selected, &s);
-            mc_rect_set(&r, rect.left - 5, rect.bottom - 4, s.left, rect.bottom + 1);
-            DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
-            mc_rect_set(&r, s.right, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
-            DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
-        } else {
-            mc_rect_set(&r, rect.left - 5, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
-            DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
-        }
+        mc_rect_set(&r, rect.left - 5, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
+        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
     }
 
     mc_clip_set(dc, mditab->main_rect.left - SELECTED_EXTRA_LEFT, 0,
@@ -1627,24 +1579,6 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
     }
 }
 
-static void
-mditab_theme_changed(mditab_t* mditab)
-{
-    POINT pos;
-
-    if(mditab->theme)
-        mcCloseThemeData(mditab->theme);
-    mditab->theme = mcOpenThemeData(mditab->win, mditab_tc);
-    if(!mditab->no_redraw)
-        RedrawWindow(mditab->win, NULL, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
-
-    /* As an optimization, we do not track hot item when not themed, so
-     * it might be in inconsistant state now. Refresh the state. */
-    GetCursorPos(&pos);
-    ScreenToClient(mditab->win, &pos);
-    mditab_mouse_move(mditab, pos.x, pos.y);
-}
-
 static mditab_t*
 mditab_nccreate(HWND win, CREATESTRUCT* cs)
 {
@@ -1696,7 +1630,6 @@ mditab_create(mditab_t* mditab)
     MC_SEND(mditab->tb2_win, TB_SETBUTTONSIZE, 0,
            MAKELPARAM(TOOLBAR_BTN_WIDTH, TOOLBAR_BTN_WIDTH));
 
-    mditab->theme = mcOpenThemeData(mditab->win, mditab_tc);
     mditab_layout(mditab, FALSE);
     return 0;
 }
@@ -1705,12 +1638,6 @@ static void
 mditab_destroy(mditab_t* mditab)
 {
     mditab_notify_delete_all_items(mditab);
-
-    if(mditab->theme) {
-        mcCloseThemeData(mditab->theme);
-        mditab->theme = NULL;
-    }
-
     dsa_fini(&mditab->items, mditab_item_dtor);
 }
 
@@ -1881,10 +1808,6 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 mditab_style_changed(mditab, (STYLESTRUCT*) lp);
             break;
 
-        case WM_THEMECHANGED:
-            mditab_theme_changed(mditab);
-            return 0;
-
         case WM_SYSCOLORCHANGE:
             if(!mditab->no_redraw)
                 RedrawWindow(win, NULL, NULL, RDW_INVALIDATE);
@@ -1906,10 +1829,6 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             mditab->notify_win = (wp ? (HWND) wp : GetAncestor(win, GA_PARENT));
             return (LRESULT) old;
         }
-
-        case CCM_SETWINDOWTHEME:
-            mcSetWindowTheme(win, (const WCHAR*) lp, NULL);
-            return 0;
 
         case WM_NCCREATE:
             mditab = mditab_nccreate(win, (CREATESTRUCT*)lp);
