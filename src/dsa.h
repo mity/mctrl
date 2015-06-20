@@ -33,9 +33,6 @@ struct dsa_tag {
 /* destructor */
 typedef void (*dsa_dtor_t)(dsa_t*, void*);
 
-/* comparison callback */
-typedef int (*dsa_cmp_t)(dsa_t*, const void*, const void*);
-
 
 static inline WORD
 dsa_size(dsa_t* dsa)
@@ -78,12 +75,6 @@ void* dsa_insert_raw(dsa_t* dsa, WORD index);
 int dsa_insert(dsa_t* dsa, WORD index, void* item);
 void dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func);
 void dsa_clear(dsa_t* dsa, dsa_dtor_t dtor_func);
-
-void dsa_sort(dsa_t* dsa, dsa_cmp_t cmp_func);
-int dsa_insert_sorted(dsa_t* dsa, void* item, dsa_cmp_t cmp_func);
-int dsa_move_sorted(dsa_t* dsa, WORD index, dsa_cmp_t cmp_func);
-
-int dsa_insert_smart(dsa_t* dsa, WORD index, void* item, dsa_cmp_t cmp_func);
 
 
 #endif  /* MC_DSA_H */
