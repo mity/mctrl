@@ -356,32 +356,19 @@ expand_is_mouse_in_active_rect(expand_t* expand, int x, int y)
     return mc_rect_contains_xy(&layout.active_rect, x, y);
 }
 
-static void
-expand_update_ui_state(expand_t* expand, WORD action, WORD mask)
+static LRESULT
+expand_update_ui_state(expand_t* expand, WPARAM wp, LPARAM lp)
 {
-    switch(action) {
-        case UIS_CLEAR:
-            if(mask & UISF_HIDEACCEL)
-                expand->hide_accel = 0;
-            if(mask & UISF_HIDEFOCUS)
-                expand->hide_focus = 0;
-            break;
+    LRESULT ret;
+    DWORD flags;
 
-        case UIS_SET:
-            if(mask & UISF_HIDEACCEL)
-                expand->hide_accel = 1;
-            if(mask & UISF_HIDEFOCUS)
-                expand->hide_focus = 1;
-            break;
-
-        case UIS_INITIALIZE:
-            expand->hide_accel = (mask & UISF_HIDEACCEL) ? 1 : 0;
-            expand->hide_focus = (mask & UISF_HIDEFOCUS) ? 1 : 0;
-            break;
-    }
-
+    ret = DefWindowProc(expand->win, WM_UPDATEUISTATE, wp, lp);
+    flags = MC_SEND(expand->win, WM_QUERYUISTATE, 0, 0);
+    expand->hide_focus = (flags & UISF_HIDEFOCUS) ? 1 : 0;
+    expand->hide_accel = (flags & UISF_HIDEACCEL) ? 1 : 0;
     if(!expand->no_redraw)
-        InvalidateRect(expand->win, NULL, TRUE);
+        InvalidateRect(expand->win, NULL, FALSE);
+    return ret;
 }
 
 static void
@@ -923,8 +910,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_UPDATEUISTATE:
-            expand_update_ui_state(expand, LOWORD(wp), HIWORD(wp));
-            break;
+            return expand_update_ui_state(expand, wp, lp);
 
         case CCM_SETNOTIFYWINDOW:
         {
