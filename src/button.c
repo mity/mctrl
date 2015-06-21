@@ -427,29 +427,19 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     SelectObject(dc, old_clip);
 }
 
-static void
-button_update_ui_state(button_t* button, WORD action, WORD flags)
+static LRESULT
+button_update_ui_state(HWND win, button_t* button, WPARAM wp, LPARAM lp)
 {
-    switch(action) {
-        case UIS_CLEAR:
-            if(flags & UISF_HIDEFOCUS)
-                button->hide_focus = 0;
-            if(flags & UISF_HIDEACCEL)
-                button->hide_accel = 0;
-            break;
+    LRESULT ret;
+    DWORD flags;
 
-        case UIS_SET:
-            if(flags & UISF_HIDEFOCUS)
-                button->hide_focus = 1;
-            if(flags & UISF_HIDEACCEL)
-                button->hide_accel = 1;
-            break;
-
-        case UIS_INITIALIZE:
-            button->hide_focus = (flags & UISF_HIDEFOCUS) ? 1 : 0;
-            button->hide_accel = (flags & UISF_HIDEACCEL) ? 1 : 0;
-            break;
-    }
+    ret = CallWindowProc(orig_button_proc, win, WM_UPDATEUISTATE, wp, lp);
+    flags = MC_SEND(win, WM_QUERYUISTATE, 0, 0);
+    button->hide_focus = (flags & UISF_HIDEFOCUS) ? 1 : 0;
+    button->hide_accel = (flags & UISF_HIDEACCEL) ? 1 : 0;
+    if(!button->no_redraw)
+        InvalidateRect(win, NULL, FALSE);
+    return ret;
 }
 
 static BOOL
@@ -665,9 +655,7 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_UPDATEUISTATE:
-            button_update_ui_state(button, LOWORD(wp), HIWORD(wp));
-            InvalidateRect(win, NULL, FALSE);
-            break;
+            return button_update_ui_state(win, button, wp, lp);
 
         case WM_NCCREATE:
             if(MC_ERR(!CallWindowProc(orig_button_proc, win, WM_NCCREATE, wp, lp))) {
