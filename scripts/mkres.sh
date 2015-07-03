@@ -39,7 +39,7 @@ Supported tokens:
 EOF
 }
 
-# Parse command line otpions
+# Parse command line options
 while test $# -ne 0; do
     case $1 in
         -h | --help )
@@ -58,7 +58,7 @@ while test $# -ne 0; do
             ;;
 
         -o )
-            # Output file name shoud follow
+            # Output file name should follow
             shift
             outfile=$1
             if [ -z "$outfile" ]; then
