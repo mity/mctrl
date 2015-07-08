@@ -26,8 +26,8 @@
  * and immutable for the lifetime of the stream. The stream does not copy the
  * data and reads them directly from the given source.
  *
- * The caller should release the stream as a standard COM object:
- * via IStream::Relase().
+ * The caller should release the stream as a standard COM object, i.e. via
+ * method IStream::Release().
  */
 
 IStream* memstream_create(const BYTE* buffer, ULONG size);
