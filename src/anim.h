@@ -34,14 +34,18 @@ struct anim_tag {
 };
 
 
+#define ANIM_DEFAULT_FREQUENCY         50
+#define ANIM_UNLIMITED_DURATION         0
+
 /* Get the extra data associated with the animation. */
 #define ANIM_EXTRA_DATA(anim, type)     ((type*)((anim) + 1))
 
 
 /* Start a new animation.
  *  -- Allocates and sets up the structure.
- *  -- If duration is zero, the anim_step() never returns non-zero and
- *     the animation continues unless caller decides to stop it with anim_stop().
+ *  -- If duration is ANIM_UNLIMITED_DURATION, the anim_step() never returns
+ *     non-zero and the animation continues unless caller decides to stop it
+ *     with anim_stop().
  *  -- Starts a timer with SetTimer(), accordingly to the desired frequency
  *     (frames per second).
  */
