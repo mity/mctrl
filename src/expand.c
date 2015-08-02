@@ -628,8 +628,8 @@ expand_resize(expand_t* expand, DWORD flags)
         /* We store original (current) parent window size to deal correctly
          * with situations, when it changes while the animation is in
          * progress. */
-        expand->anim = anim_start_ex(expand->win, ANIM_TIMER_ID, duration, 50,
-                                     &anim_ctx, sizeof(expand_anim_ctx_t));
+        expand->anim = anim_start_ex(expand->win, ANIM_TIMER_ID, duration,
+                ANIM_DEFAULT_FREQUENCY, &anim_ctx, sizeof(expand_anim_ctx_t));
         if(expand->anim != NULL) {
             return;
         } else {
