@@ -159,7 +159,61 @@ extern "C" {
  *   into their hexadecimal representation (e.g. space ' ' becomes "%20").
  *
  *
- * @section chtml_std_msgs Standard Messages
+ * @section html_ie_versions IE Versions
+ *
+ * As noted in the introduction, the control is implemented as a thin wrapper
+ * of Internet Explorer COM object (COM interface @c IWebBrowser2).
+ *
+ * Because of the compatibility reasons, Microsoft has decided that by default
+ * the control will behave as Internet Explorer version 7 (assuming IE 7
+ * or newer is installed in the computer).
+ *
+ * This has some impact on how the HTML pages are rendered and, more
+ * importantly, on java-script dialect understood by it. Unfortunately the API
+ * does not allow reasonable to change the compatibility mode on a per-control
+ * (or rather on a per-COM-object-instance) manner.
+ *
+ * Furthermore, the switched is done through a change in the registry, which
+ * should likely be done during installation phase of the application (and
+ * possibly undone when it is uninstalled). Therefore the mCtrl does not offer
+ * any API to change this and instead you are on your own to deal with the
+ * registry keys.
+ *
+ * To change the behavior, you need to create the following registry key
+ * "HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\FeatureControl\"
+ * if it does not already exist, and in it, create a DWORD value named as a
+ * binary name of your application (e.g. "MyApplication.exe"). The DWORD value
+ * then determines the compatibility version (taken from MSDN documentation):
+ *
+ * - 7000 (0x1b58): IE 7 mode (the default).
+ * - 8000 (0x1f40): IE 8 mode or IE 10 mode depending on !DOCTYPE directives
+ *                  within HTML document.
+ * - 8888 (0x22b8): IE 8 mode, regardless of the declared !DOCTYPE directives.
+ * - 9000 (0x2328): IE 9 mode or IE 10 mode depending on !DOCTYPE directives
+ *                  within HTML document.
+ * - 9999 (0x270f): IE 9 mode, regardless of the declared !DOCTYPE directives.
+ * - 10000 (0x2710): IE 10 mode for HTML documents with !DOCTYPE directives.
+ * - 10001 (0x2711): IE 10 mode, regardless of the declared !DOCTYPE directives.
+ * - 11000 (0x2af8): IE 11 mode.
+ * - 11001 (0x2af9): IE 11 mode, regardless of the declared !DOCTYPE directives.
+ *                   Failing to declare a !DOCTYPE directive causes the page to
+ *                   load in Quirks mode.
+ *
+ * Note that only IE version 8 and newer can understand this registry value and,
+ * of course, the maximal value understood by it is limited by version of IE
+ * installed on the system. E.g. asking IE 8 to behave as IE 10 won't work.
+ *
+ * Further recommendations:
+ *  - When using this, you should consider to make name of your .exe file as
+ *    unique as possible to mitigate possible conflicts with other applications.
+ *  - When creating the registry key/value within your exe before creating the
+ *    control, you may consider to create it volatile to not leave waste in the
+ *    persistent registry storage.
+ *  - Application can only switch all @c IWebBrowser2 instances to the given
+ *    compatibility mode, or none of them.
+ *
+ *
+ * @section html_std_msgs Standard Messages
  *
  * These standard messages are handled by the control:
  * - @c CCM_GETUNICODEFORMAT
