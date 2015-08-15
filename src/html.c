@@ -810,7 +810,7 @@ ui_handler_GetHostInfo(IDocHostUIHandler* self, DOCHOSTUIINFO* info)
     info->dwFlags |= DOCHOSTUIFLAG_NO3DOUTERBORDER;
 
     /* Check whether the controls on HTML page should use XP theming. */
-    if(mcIsThemeActive()) {
+    if(mcIsAppThemed()) {
         info->dwFlags &= ~DOCHOSTUIFLAG_NOTHEME;
         info->dwFlags |= DOCHOSTUIFLAG_THEME;
     } else {
