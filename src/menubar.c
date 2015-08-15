@@ -27,12 +27,12 @@
 
 
 /* Note that message processing in the module is a bit tricky and complex,
- * especially for keyboard messages. There are three different contexts 
- * where we handle messages in this module. All the three have to play in 
+ * especially for keyboard messages. There are three different contexts
+ * where we handle messages in this module. All the three have to play in
  * concert:
  *
  * (1) mcIsMenubarMessage() handles messages, supposedly in the context of
- *     the main application message loop. It is responsible for activating 
+ *     the main application message loop. It is responsible for activating
  *     the menubar on <F10> or <ALT>, and for distributing accelerator keys.
  *     Note it processes <F10> or <ALT> only when no menubar is currently
  *     active (if it is active, it lets the message to propagate into (2)).
@@ -319,7 +319,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
             NMTBCUSTOMDRAW* info = (NMTBCUSTOMDRAW*) hdr;
             switch(info->nmcd.dwDrawStage) {
                 case CDDS_PREPAINT:
-                    if(mc_win_version >= MC_WIN_VISTA  &&  theme_IsAppThemed())
+                    if(mc_win_version >= MC_WIN_VISTA  &&  mcIsAppThemed())
                         return CDRF_DODEFAULT;
                     else if(mc_win_version < MC_WIN_XP)
                         return CDRF_DODEFAULT;
