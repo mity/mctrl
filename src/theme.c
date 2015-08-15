@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2013 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -95,6 +95,103 @@ HRESULT  (WINAPI* theme_SetWindowThemeAttribute)(HWND,enum WINDOWTHEMEATTRIBUTET
 BOOL     (WINAPI* theme_UpdatePanningFeedback)(HWND,LONG,LONG,BOOL) = NULL;
 
 
+/**************************************
+ *** Fallbacks for double buffering ***
+ **************************************/
+
+typedef struct dummy_HPAINTBUFFER_tag dummy_HPAINTBUFFER_t;
+struct dummy_HPAINTBUFFER_tag {
+    HDC dc_target;
+    HDC dc_buffered;
+    HBITMAP old_bmp;
+    POINT old_origin;
+    RECT rect;
+};
+
+typedef dummy_HPAINTBUFFER_t* dummy_HPAINTBUFFER;
+
+
+static HRESULT WINAPI
+dummy_BufferedPaintInit(void)
+{
+    /* noop */
+    return S_OK;
+}
+
+static HRESULT WINAPI
+dummy_BufferedPaintUnInit(void)
+{
+    /* noop */
+    return S_OK;
+}
+
+static dummy_HPAINTBUFFER WINAPI
+dummy_BeginBufferedPaint(HDC dc_target, const RECT* rect, BP_BUFFERFORMAT fmt,
+                         BP_PAINTPARAMS* params, HDC* dc_buffered)
+{
+    dummy_HPAINTBUFFER_t* pb;
+    HBITMAP bmp;
+
+    pb = (dummy_HPAINTBUFFER_t*) malloc(sizeof(dummy_HPAINTBUFFER_t));
+    if(MC_ERR(pb == NULL)) {
+        MC_TRACE("dummy_BeginBufferedPaint: malloc() failed.");
+        goto err_malloc;
+    }
+
+    pb->dc_target = dc_target;
+    pb->dc_buffered = CreateCompatibleDC(dc_target);
+    if(MC_ERR(pb->dc_buffered == NULL)) {
+        MC_TRACE_ERR("dummy_BeginBufferedPaint: CreateCompatibleDC() failed.");
+        goto err_CreateCompatibleDC;
+    }
+
+    bmp = CreateCompatibleBitmap(dc_target, mc_width(rect), mc_height(rect));
+    if(MC_ERR(bmp == NULL)) {
+        MC_TRACE_ERR("dummy_BeginBufferedPaint: CreateCompatibleBitmap() failed.");
+        goto err_CreateCompatibleBitmap;
+    }
+
+    mc_rect_copy(&pb->rect, rect);
+    pb->old_bmp = SelectObject(pb->dc_buffered, bmp);
+    OffsetViewportOrgEx(pb->dc_buffered, -rect->left, -rect->top, &pb->old_origin);
+
+    if(dc_buffered != NULL)
+        *dc_buffered = pb->dc_buffered;
+
+    /* Success */
+    return pb;
+
+    /* Error path */
+err_CreateCompatibleBitmap:
+    DeleteDC(pb->dc_buffered);
+err_CreateCompatibleDC:
+    free(pb);
+err_malloc:
+    if(dc_buffered != NULL)
+        *dc_buffered = NULL;
+    return NULL;
+}
+
+static HRESULT WINAPI
+dummy_EndBufferedPaint(dummy_HPAINTBUFFER pb, BOOL update_target)
+{
+    HBITMAP bmp;
+
+    if(update_target) {
+        SetViewportOrgEx(pb->dc_buffered, pb->old_origin.x, pb->old_origin.y, NULL);
+        BitBlt(pb->dc_target, pb->rect.left, pb->rect.top, mc_width(&pb->rect),
+               mc_height(&pb->rect), pb->dc_buffered, 0, 0, SRCCOPY);
+    }
+
+    bmp = SelectObject(pb->dc_buffered, pb->old_bmp);
+    DeleteObject(bmp);
+    DeleteDC(pb->dc_buffered);
+    free(pb);
+
+    return S_OK;
+}
+
+
 /****************
  *** Wrappers ***
  ****************/
@@ -125,10 +222,8 @@ mcBeginBufferedPaint(HDC hdcTarget, const RECT* prcTarget,
                     pPaintParams, phdc);
     }
 
-    if(phdc != NULL)  *phdc = NULL;
-
-    MC_TRACE("mcBeginBufferedPaint: Stub [NULL]");
-    return NULL;
+    return (HPAINTBUFFER) dummy_BeginBufferedPaint(hdcTarget, prcTarget,
+                                    dwFormat, pPaintParams, phdc);
 }
 
 BOOL MCTRL_API
@@ -157,8 +252,7 @@ mcBufferedPaintInit(void)
     if(theme_BufferedPaintInit != NULL)
         return theme_BufferedPaintInit();
 
-    MC_TRACE("mcBufferedPaintInit: Stub [E_NOTIMPL]");
-    return E_NOTIMPL;
+    return dummy_BufferedPaintInit();
 }
 
 BOOL MCTRL_API
@@ -197,8 +291,7 @@ mcBufferedPaintUnInit(void)
     if(theme_BufferedPaintUnInit != NULL)
         return theme_BufferedPaintUnInit();
 
-    MC_TRACE("mcBufferedPaintUnInit: Stub [E_NOTIMPL]");
-    return E_NOTIMPL;
+    return dummy_BufferedPaintUnInit();
 }
 
 HRESULT MCTRL_API
@@ -366,8 +459,7 @@ mcEndBufferedPaint(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget)
     if(theme_EndBufferedPaint != NULL)
         return theme_EndBufferedPaint(hBufferedPaint, fUpdateTarget);
 
-    MC_TRACE("mcEndBufferedPaint: Stub [E_NOTIMPL]");
-    return E_NOTIMPL;
+    return dummy_EndBufferedPaint((dummy_HPAINTBUFFER) hBufferedPaint, fUpdateTarget);
 }
 
 BOOL MCTRL_API

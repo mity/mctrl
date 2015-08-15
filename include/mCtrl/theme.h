@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Martin Mitas
+ * Copyright (c) 2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,10 +40,9 @@ extern "C" {
  * This miscellaneous module provides wrapper of functions exported from
  * @c UXTHEME.DLL, as the library is only available on Windows XP and later.
  *
- * @note mCtrl only uses @c UXTHEME.DLL if it is convinced the application is
- * themed. I.e. it must be linked against @c COMCTL32.DLL version 6 or later,
- * as earlier versions does not support themed controls and mCtrl tries to be
- * consistent with rest of the application.
+ * The wrappers deal with situation when the @c UXTHEME.DLL is not available
+ * (e.g. on Windows 2000), when themes are disabled (then @ref mcOpenThemeData()
+ * and al. return @c NULL) and so on.
  *
  * The wrapper functions provided by this module simply have the same name
  * as functions exported from @c UXTHEME.DLL, with the prefix <tt>mc</tt>
@@ -51,17 +50,66 @@ extern "C" {
  * if it is loaded and available (as some @c UXTHEME.DLL functions were
  * introduced later then on Windows XP).
  *
+ * Before using anu functions from this modules, application has 1st to
+ * initialize it with @ref mcTheme_Initialize(). The functions attempts to
+ * load @c UXTHEME.DLL if available and performs needed initialization.
+ *
  * If the @c UXTHEME.DLL is not used, or if the particular function is not
  * available, then most of the wrapper functions just fail gracefully and
  * return @c E_NOTIMPL, @c NULL, @c 0 or @c FALSE, depending on the return type.
  *
- * However there are also wrapper functions which provide some fallback
- * implementation. Those cases are described in description of particular
- * functions.
+ * However there are also wrapper functions which provide some reasonable
+ * fallback  implementation. Those cases are described in description of
+ * particular functions, and also see sections below.
  *
  * @note Note that future versions of mCtrl can provide fallback implementation
  * for more functions. If you want directly call the @c UXTHEME.DLL function,
- * then get its address manually with @c GetProcAddress().
+ * then get its address manually with @c GetProcAddress() and do not rely on
+ * mCtrl wrapper functions.
+ *
+ *
+ * @section sec_theme_painting Themed Painting
+ *
+ * Majority of @c UXTHEME.DLL API focuses on themed painting (all those
+ * functions working with @c HTHEME handle).
+ *
+ * If @c UXTHEME.DLL is not available, or if application uses @c COMCTL32.DLL
+ * version 5.x or older, all the wrappers falling into this category behave as
+ * if no theming is available.
+ *
+ * This in particular means the following:
+ *  - @ref mcOpenThemeData() and @ref mcOpenThemeDataEx() return @c NULL.
+ *  - @ref mcIsAppThemed() returns @c FALSE.
+ *  - The above means the application is supposed to fall back to the unthemed
+ *    painting code path and never call any other theme-aware painting function.
+ *
+ *
+ * @section sec_theme_props System Theme Properties
+ *
+ * All the wrapper functions for getting system theme properties, i.e.
+ * all the functions @c mcGetThemeSys...(), implement a reasonable fallback,
+ * calling @c SystemParametersInfo(), @c GetSysColor() and so on.
+ *
+ * The only notable exception is @c mcGetThemeSysInt() which has no pre-theme
+ * counterpart (as far as authors of mCtrl are aware).
+ *
+ *
+ * @c section sec_theme_buffered_paint Buffered Painting.
+ *
+ * All the functions for double-buffering, i.e. @ref mcBufferedPaintInit(),
+ * @ref BufferedPaintUnInit(), @ref mcBeginBufferedPaint() and
+ * @ref mcEndBufferedPaint(), implement a fallback in case @c UXTHEME.DLL is
+ * not available.
+ *
+ * All those fallbacks are good enough for implementing simple double-buffered
+ * painting. This limitations for example means the paramaters like @c dwFormat
+ * or @c pPaintParams of @c mcBeginBufferedPaint() are simply ignored.
+ *
+ * (However note that nothing more is provided by the fallback. In particular,
+ * @ref mcBufferedPaintClear() and mcBufferedPaintSetAlpha() just fail.)
+ *
+ * This allows application to implement a double-buffered painting regardless
+ * whether @c UXTHEME.DLL is present or not.
  */
 
 
@@ -119,7 +167,7 @@ HANIMATIONBUFFER MCTRL_API mcBeginBufferedAnimation(HWND hwnd, HDC hdcTarget,
 
 /**
  * Calls @c BeginBufferedPaint() if available (and @c UXTHEME.DLL is in use),
- * or returns @c NULL.
+ * or emulates it if it does not.
  *
  * @param hdcTarget
  * @param prcTarget
@@ -159,7 +207,7 @@ HRESULT MCTRL_API mcBufferedPaintClear(HPAINTBUFFER hBufferedPaint,
 
 /**
  * Calls @c BufferedPaintInit() if available (and @c UXTHEME.DLL is in use),
- * or returns @c E_NOTIMPL.
+ * or emulates it if it does not.
  *
  * @return Return value of @c BufferedPaintInit() or @c E_NOTIMPL.
  *
