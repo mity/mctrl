@@ -100,8 +100,8 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
 
             MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*)hdr;
 
-            if (_tcsncmp(nmhtmlurl->pszUrl, L"app:", 4) != 0 &&
-                _tcscmp(nmhtmlurl->pszUrl, INITIAL_URL) != 0)
+            if(_tcsncmp(nmhtmlurl->pszUrl, L"http://", 7) == 0  ||
+               _tcsncmp(nmhtmlurl->pszUrl, L"https://", 8) == 0)
             {
                 TCHAR pszBuffer[1024];
 
