@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Mitas
+ * Copyright (c) 2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,80 +22,34 @@
 void
 doublebuffer_init(void)
 {
-    if(theme_BufferedPaintInit != NULL)
-        theme_BufferedPaintInit();
+    mcBufferedPaintInit();
 }
 
 void
 doublebuffer_fini(void)
 {
-    if(theme_BufferedPaintUnInit != NULL)
-        theme_BufferedPaintUnInit();
+    mcBufferedPaintUnInit();
 }
 
 HDC
 doublebuffer_open(doublebuffer_t* dblbuf, HDC dc, const RECT* rect)
 {
-    HBITMAP bmp;
+    BP_PAINTPARAMS params = { sizeof(BP_PAINTPARAMS), BPPF_NOCLIP, NULL, NULL };
+    HDC dc_buffered;
 
-    if(MC_LIKELY(theme_BeginBufferedPaint != NULL)) {
-        BP_PAINTPARAMS params = { sizeof(BP_PAINTPARAMS), BPPF_NOCLIP, NULL, NULL };
-
-        dblbuf->uxtheme_buf = theme_BeginBufferedPaint(dc, rect,
-                                BPBF_TOPDOWNDIB, &params, &dblbuf->mem_dc);
-        if(dblbuf->uxtheme_buf != NULL)
-            return dblbuf->mem_dc;
-    } else {
-        dblbuf->uxtheme_buf = NULL;
+    dblbuf->uxtheme_buf = mcBeginBufferedPaint(dc, rect, BPBF_TOPDOWNDIB, &params, &dc_buffered);
+    if(MC_ERR(dblbuf->uxtheme_buf == NULL)) {
+        MC_TRACE("doublebuffer_open: mcBeginBufferedPaint() failed.");
+        /* We shall painting directly, without the double-buffering. */
+        return dc;
     }
 
-    /* The old good plain Win32API double-buffering */
-    dblbuf->dc = dc;
-    dblbuf->mem_dc = CreateCompatibleDC(dc);
-    if(MC_ERR(dblbuf->mem_dc == NULL)) {
-        MC_TRACE_ERR("doublebuffer_begin: CreateCompatibleDC() failed.");
-        goto err_CreateCompatibleDC;
-    }
-    bmp = CreateCompatibleBitmap(dc, mc_width(rect), mc_height(rect));
-    if(MC_ERR(bmp == NULL)) {
-        MC_TRACE_ERR("doublebuffer_begin: CreateCompatibleBitmap() failed.");
-        goto err_CreateCompatibleBitmap;
-    }
-
-    mc_rect_copy(&dblbuf->rect, rect);
-
-    dblbuf->old_bmp = SelectObject(dblbuf->mem_dc, bmp);
-    OffsetViewportOrgEx(dblbuf->mem_dc, -rect->left, -rect->top, &dblbuf->old_origin);
-
-    return dblbuf->mem_dc;
-
-    /* Error path: Paint directly without any double-buffering. */
-err_CreateCompatibleBitmap:
-    DeleteDC(dblbuf->mem_dc);
-err_CreateCompatibleDC:
-    return dc;
+    return dc_buffered;
 }
 
 void
 doublebuffer_close(doublebuffer_t* dblbuf, BOOL blit)
 {
-    if(MC_LIKELY(dblbuf->uxtheme_buf != NULL)) {
-        MC_ASSERT(theme_EndBufferedPaint != NULL);
-        theme_EndBufferedPaint(dblbuf->uxtheme_buf, blit);
-        return;
-    }
-
-    if(dblbuf->mem_dc != NULL) {
-        if(blit) {
-            SetViewportOrgEx(dblbuf->mem_dc,
-                    dblbuf->old_origin.x, dblbuf->old_origin.y, NULL);
-            BitBlt(dblbuf->dc, dblbuf->rect.left, dblbuf->rect.left,
-                    mc_width(&dblbuf->rect), mc_height(&dblbuf->rect),
-                    dblbuf->mem_dc, 0, 0, SRCCOPY);
-        }
-
-        HBITMAP bmp = SelectObject(dblbuf->mem_dc, dblbuf->old_bmp);
-        DeleteObject(bmp);
-        DeleteDC(dblbuf->mem_dc);
-    }
+    if(dblbuf != NULL)
+        mcEndBufferedPaint(dblbuf->uxtheme_buf, blit);
 }

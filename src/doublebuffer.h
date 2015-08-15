@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Mitas
+ * Copyright (c) 2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,11 +26,6 @@
 typedef struct doublebuffer_tag doublebuffer_t;
 struct doublebuffer_tag {
     HPAINTBUFFER uxtheme_buf;
-    HDC dc;
-    HDC mem_dc;
-    HBITMAP old_bmp;
-    POINT old_origin;
-    RECT rect;
 };
 
 /* Every thread using double buffering should call this.
