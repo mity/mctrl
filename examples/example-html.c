@@ -27,7 +27,7 @@
 
 /* The initial URL refers to the HTML document embedded into this example as
  * a resource. */
-#define INITIAL_URL   _T("res://ex_html.exe/doc.html")
+#define INITIAL_URL   _T("res://example-html.exe/doc.html")
 
 
 static HINSTANCE hInst;
@@ -94,18 +94,24 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
 
         if (hdr->code == MC_HN_BEFORENAVIGATE) {
             /* User has clicked a link (possibly an "app:" link), or performed
-             * another navigation action.
+             * another navigation action and this notification allows us to
+             * intercept the navigation.
              */
+
             MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*)hdr;
-            /* Skip "app:" links, and only prompt if this is *not* our initial 
-             * URL. 
-             */
+
             if (_tcsncmp(nmhtmlurl->pszUrl, L"app:", 4) != 0 &&
-                _tcscmp(nmhtmlurl->pszUrl, INITIAL_URL) != 0 &&
-                MessageBox(
-                hwnd, _T("Do you want to allow this navigation"),
-                _T("C code prompt"), MB_YESNO) != IDYES) {
-                return -1;
+                _tcscmp(nmhtmlurl->pszUrl, INITIAL_URL) != 0)
+            {
+                TCHAR pszBuffer[1024];
+
+                _sntprintf(pszBuffer, sizeof(pszBuffer) / sizeof(pszBuffer[0]),
+                           _T("Allow navigation to %s?"), nmhtmlurl->pszUrl);
+
+                if(MessageBox(hwnd, pszBuffer, _T("C code prompt"), MB_YESNO) == IDYES)
+                    return 0;    /* Allow the navigation */
+                else
+                    return -1;   /* Ignore it. */
             }
         }
 
