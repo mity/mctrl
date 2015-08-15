@@ -1069,17 +1069,13 @@ theme_init_module(void)
             }                                                                 \
         } while(0)
 
-    if(mc_comctl32_version >= MC_DLL_VER(6, 0)) {
-        GPA(HTHEME,   OpenThemeData, (HWND,const WCHAR*));
-        /* OpenThemeDataEx() on WinXP is only exported as the ordinal #61. */
-        if(mc_win_version > MC_WIN_XP)
-            GPA(HTHEME,   OpenThemeDataEx, (HWND,const WCHAR*,DWORD));
-        else
-            theme_OpenThemeDataEx = (HTHEME (WINAPI*)(HWND,const WCHAR*,DWORD))
-                        GetProcAddress(uxtheme_dll, MAKEINTRESOURCEA(61));
-    } else {
-        MC_TRACE("theme_init_module: Disabling themes (COMCTL32.DLL version < 6.0)");
-    }
+    GPA(HTHEME,   OpenThemeData, (HWND,const WCHAR*));
+    /* OpenThemeDataEx() on WinXP is only exported as the ordinal #61. */
+    if(mc_win_version > MC_WIN_XP)
+        GPA(HTHEME,   OpenThemeDataEx, (HWND,const WCHAR*,DWORD));
+    else
+        theme_OpenThemeDataEx = (HTHEME (WINAPI*)(HWND,const WCHAR*,DWORD))
+                    GetProcAddress(uxtheme_dll, MAKEINTRESOURCEA(61));
     GPA(HRESULT,  CloseThemeData, (HTHEME));
     GPA(HRESULT,  DrawThemeBackground, (HTHEME,HDC,int,int,const RECT*,const RECT*));
     GPA(HRESULT,  DrawThemeEdge, (HTHEME,HDC,int,int,const RECT*,UINT,UINT,RECT*));
@@ -1154,6 +1150,13 @@ theme_init_module(void)
         GPA(HDC,      GetBufferedPaintTargetDC, (HPAINTBUFFER));
         GPA(HRESULT,  GetBufferedPaintTargetRect, (HPAINTBUFFER,RECT*));
         GPA(BOOL,     UpdatePanningFeedback, (HWND,LONG,LONG,BOOL));
+    }
+
+    if(mc_comctl32_version < MC_DLL_VER(6, 0)) {
+        MC_TRACE("theme_init_module: Disabling themes (COMCTL32.DLL version < 6.0)");
+        theme_OpenThemeData = NULL;
+        theme_OpenThemeDataEx = NULL;
+        theme_IsAppThemed = NULL;
     }
 
     /* Workaround: It seems that IsAppThemed() and IsCompositionActive()
