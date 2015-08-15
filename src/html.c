@@ -802,11 +802,8 @@ ui_handler_ShowContextMenu(IDocHostUIHandler* self, DWORD menu_id, POINT* pos,
 static HRESULT STDMETHODCALLTYPE
 ui_handler_GetHostInfo(IDocHostUIHandler* self, DOCHOSTUIINFO* info)
 {
-    if(MC_ERR(info == NULL || info->cbSize < sizeof(DOCHOSTUIINFO))) {
-        MC_TRACE("ui_handler_GetHostInfo: info->cbSize == %lu [E_UNEXPECTED]",
-                 (info != NULL ? info->cbSize : 0));
-        return E_UNEXPECTED;
-    }
+    memset(info, 0, sizeof(DOCHOSTUIINFO));
+    info->cbSize = sizeof(DOCHOSTUIINFO);
 
     /* Host window is responsible for outer border (the host window may use
      * WS_BORDER and/or WS_EX_CLIENTEDGE) */
