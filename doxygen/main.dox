@@ -34,6 +34,7 @@
  * @subsection toc_general General Design
  * - @ref page_intro
  * - @ref page_design
+ * - @ref page_debug
  *
  * @subsection toc_controls Control Reference
  * - @ref mCtrl/button.h - Enhanced button control

@@ -1,0 +1,55 @@
+/**
+ * @page page_debug Debugging (with) mCtrl
+ *
+ *
+ * @section sec_debug_build Debug Build
+ *
+ * @c MCTRL.DLL can be built in Release as well as in Debug configuration.
+ * In production, the release build should always be used. However for
+ * diagnostics, debugging and during development of you application, or even
+ * when developing mCtrl itself, the Debug build may be very helpful.
+ *
+ * In general, the debug builds of @c MCTRL.DLL should be binary compatible
+ * and usable as a drop-in replacement of the Release builds of @c MCTRL.DLL.
+ *
+ * The Debug builds differs from the Release builds in the following ways:
+ *  - It is built with most compiler optimizations disabled.
+ *  - It is built with debug information so the debugger can provide more info.
+ *    (That is as long as using the same toolchain as mCtrl was built with as
+ *    Microsoft tools in general do not understand DWARF format as produced
+ *    by @c gcc, and @c gdb does not understand PDB format as produced by
+ *    Microsoft's compiler.)
+ *  - It contains some internal assertions to catch internal mCtrl bugs.
+ *    If an assertion is hit, a message box with info about it is displayed,
+ *    a debug message is logged out and the process is terminated. (Under
+ *    debugger, the execution is interrupted via @c DebugBreak() or similar
+ *    function instead of process termination so developer can perform
+ *    further analyzes of the issue.)
+ *  - In case of a detected error (e.g. a @c MCTRL.DLL function called with
+ *    an invalid parameter), it logs down a debug message explaining the issue.
+ *    (See below for more details.)
+ *
+ * Since version 0.10.0, debug builds (built with @c gcc) are included in the
+ * released binary packages.
+ *
+ *
+ * @section dec_debug_log Debug Logging
+ *
+ * As noted above, the debug build of @c MCTRL.DLL logs down some messages
+ * during the runtime of application linked with @c MCTRL.DLL. The logging
+ * is performed via the @c OutputDebugString() function.
+ *
+ * So this debug output may be seen with any application capable catching it,
+ * which includes Microsoft debugger within Microsoft Visual Studio (just
+ * run your application within the debugger), @c gdb (ditto), or DebugView
+ * utility available from the package of SysInternals utilities (see
+ * https://technet.microsoft.com/en-us/sysinternals/).
+ *
+ * Seeing this debug output may help whenever something with mCtrl goes wrong
+ * and this makes the Debug build of @c MCTRL.DLL very valuable tool during
+ * application development:
+ *  - If any call (function or control message) to @c MCTRL.DLL fails, the
+ *    output may provide a hint about the reason.
+ *  - Even if it is internal mCtrl bug, the output may be helpful as a part
+ *    of bug report for diagnoses by mCtrl developers.
+ */
