@@ -90,14 +90,14 @@ extern "C" {
  * all the functions @c mcGetThemeSys...(), implement a reasonable fallback,
  * calling @c SystemParametersInfo(), @c GetSysColor() and so on.
  *
- * The only notable exception is @c mcGetThemeSysInt() which has no pre-theme
+ * The only notable exception is @ref mcGetThemeSysInt() which has no pre-theme
  * counterpart (as far as authors of mCtrl are aware).
  *
  *
  * @c section sec_theme_buffered_paint Buffered Painting.
  *
  * All the functions for double-buffering, i.e. @ref mcBufferedPaintInit(),
- * @ref BufferedPaintUnInit(), @ref mcBeginBufferedPaint() and
+ * @ref mcBufferedPaintUnInit(), @ref mcBeginBufferedPaint() and
  * @ref mcEndBufferedPaint(), implement a fallback in case @c UXTHEME.DLL is
  * not available.
  *
@@ -954,10 +954,11 @@ HRESULT MCTRL_API mcGetThemeTextMetrics(HTHEME hTheme, HDC hdc, int iPartId,
  * use), or returns @c E_NOTIMPL.
  *
  * @param hTheme
- * @param hdc
  * @param iPartId
- * @param iStateId
- * @param pTextMetric
+ * @param iStateIdFrom
+ * @param iStateIdTo
+ * @param iPropId
+ * @param pdwDuration
  * @return Return value of @c GetThemeTextMetrics(), or @c E_NOTIMPL.
  *
  * @note Requires @c _WIN32_WINNT to be @c 0x0600 or newer.
