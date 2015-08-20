@@ -173,7 +173,7 @@ extern "C" {
  * does not allow reasonable to change the compatibility mode on a per-control
  * (or rather on a per-COM-object-instance) manner.
  *
- * Furthermore, the switched is done through a change in the registry, which
+ * Furthermore, the switching is done through a change in the registry, which
  * should likely be done during installation phase of the application (and
  * possibly undone when it is uninstalled). Therefore the mCtrl does not offer
  * any API to change this and instead you are on your own to deal with the
@@ -297,17 +297,17 @@ typedef struct MC_HMCALLSCRIPTFUNCW_tag {
     /** Specify 2nd argument (if it is of string type). */
     LPCWSTR pszArg2;
     /** Specify 2nd argument (if it is of integer type). Ignored if
-     *  @c pszArg1 is not @c NULL. */
+     *  @c pszArg2 is not @c NULL. */
     int iArg2;
     /** Specify 3rd argument (if it is of string type). */
     LPCWSTR pszArg3;
     /** Specify 3rd argument (if it is of integer type). Ignored if
-     *  @c pszArg1 is not @c NULL. */
+     *  @c pszArg3 is not @c NULL. */
     int iArg3;
     /** Specify 4th argument (if it is of string type). */
     LPCWSTR pszArg4;
     /** Specify 4th argument (if it is of integer type). Ignored if
-     *  @c pszArg1 is not @c NULL. */
+     *  @c pszArg4 is not @c NULL. */
     int iArg4;
 } MC_HMCALLSCRIPTFUNCW;
 
