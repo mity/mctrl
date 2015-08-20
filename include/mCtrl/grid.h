@@ -425,7 +425,7 @@ typedef struct MC_GHITTESTINFO_tag {
  * In general, the selection is described as a set of rectangular areas. All
  * cells in any of those areas is then considered selected.
  *
- * The control guarantees that on output (when using @ref MC_GN_GETSELECTION
+ * The control guarantees that on output (when using @ref MC_GM_GETSELECTION
  * or handling any selection-related notification), the rectangles do not
  * overlap each other.
  *
