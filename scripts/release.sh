@@ -92,10 +92,10 @@ echo "$BUILD" >&3
 rm -rf $TMP/mCtrl-$VERSION
 git clone . $TMP/mCtrl-$VERSION
 
-echo -n "Building 64-bit binaries... " >&3
-mkdir -p "$TMP/mCtrl-$VERSION/build64"
+echo -n "Building 64-bit binaries (release build)... " >&3
+mkdir -p "$TMP/mCtrl-$VERSION/build64-rel"
 
-(cd "$TMP/mCtrl-$VERSION/build64" && \
+(cd "$TMP/mCtrl-$VERSION/build64-rel" && \
  cmake -D CMAKE_BUILD_TYPE=Release \
        -D CMAKE_C_FLAGS="-m64" \
        -D CMAKE_EXE_LINKER_FLAGS="-m64" \
@@ -103,12 +103,31 @@ mkdir -p "$TMP/mCtrl-$VERSION/build64"
        -D CMAKE_RC_FLAGS="--target=pe-x86-64" \
        -D DLLTOOL_FLAGS="-m;i386:x86-64;-f;--64" \
        -G "$CMAKE_GENERATOR" .. && \
- $BUILD > $PRJ/build-x86_64.log 2>&1)
+ $BUILD > $PRJ/build-x86_64-rel.log 2>&1)
 if [ $? -eq 0 ]; then
-    HAVE_X86_64=yes
+    HAVE_X86_64_REL=yes
     echo "Done." >&3
 else
-    echo "Failed. See build-x86_64.log." >&3
+    echo "Failed. See build-x86_64-rel.log." >&3
+fi
+
+echo -n "Building 64-bit binaries (debug build)... " >&3
+mkdir -p "$TMP/mCtrl-$VERSION/build64-dbg"
+
+(cd "$TMP/mCtrl-$VERSION/build64-dbg" && \
+ cmake -D CMAKE_BUILD_TYPE=Debug \
+       -D CMAKE_C_FLAGS="-m64" \
+       -D CMAKE_EXE_LINKER_FLAGS="-m64" \
+       -D CMAKE_SHARED_LINKER_FLAGS="-m64" \
+       -D CMAKE_RC_FLAGS="--target=pe-x86-64" \
+       -D DLLTOOL_FLAGS="-m;i386:x86-64;-f;--64" \
+       -G "$CMAKE_GENERATOR" .. && \
+ $BUILD > $PRJ/build-x86_64-dbg.log 2>&1)
+if [ $? -eq 0 ]; then
+    HAVE_X86_64_DBG=yes
+    echo "Done." >&3
+else
+    echo "Failed. See build-x86_64-dbg.log." >&3
 fi
 
 
@@ -116,10 +135,10 @@ fi
 # Build 32-bit binaries #
 #########################
 
-echo -n "Building 32-bit binaries... " >&3
-mkdir -p "$TMP/mCtrl-$VERSION/build32"
+echo -n "Building 32-bit binaries (release build)... " >&3
+mkdir -p "$TMP/mCtrl-$VERSION/build32-rel"
 
-(cd "$TMP/mCtrl-$VERSION/build32" && \
+(cd "$TMP/mCtrl-$VERSION/build32-rel" && \
  cmake -D CMAKE_BUILD_TYPE=Release \
        -D CMAKE_C_FLAGS="-m32 -march=i586 -mtune=core2" \
        -D CMAKE_EXE_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
@@ -127,12 +146,32 @@ mkdir -p "$TMP/mCtrl-$VERSION/build32"
        -D CMAKE_RC_FLAGS="--target=pe-i386" \
        -D DLLTOOL_FLAGS="-m;i386;-f;--32" \
        -G "$CMAKE_GENERATOR" .. && \
- $BUILD > $PRJ/build-x86.log 2>&1)
+ $BUILD > $PRJ/build-x86-rel.log 2>&1)
 if [ $? -eq 0 ]; then
-    HAVE_X86=yes
+    HAVE_X86_REL=yes
     echo "Done." >&3
 else
-    echo "Failed. See build-x86.log." >&3
+    echo "Failed. See build-x86-rel.log." >&3
+fi
+
+
+echo -n "Building 32-bit binaries (debug build)... " >&3
+mkdir -p "$TMP/mCtrl-$VERSION/build32-dbg"
+
+(cd "$TMP/mCtrl-$VERSION/build32-dbg" && \
+ cmake -D CMAKE_BUILD_TYPE=Debug \
+       -D CMAKE_C_FLAGS="-m32 -march=i586 -mtune=core2" \
+       -D CMAKE_EXE_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
+       -D CMAKE_SHARED_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
+       -D CMAKE_RC_FLAGS="--target=pe-i386" \
+       -D DLLTOOL_FLAGS="-m;i386;-f;--32" \
+       -G "$CMAKE_GENERATOR" .. && \
+ $BUILD > $PRJ/build-x86-dbg.log 2>&1)
+if [ $? -eq 0 ]; then
+    HAVE_X86_DBG=yes
+    echo "Done." >&3
+else
+    echo "Failed. See build-x86-dbg.log." >&3
 fi
 
 
@@ -162,23 +201,31 @@ echo -n "Packing binary package... " >&3
 rm -rf $TMP/mCtrl-$VERSION-src
 mv $TMP/mCtrl-$VERSION $TMP/mCtrl-$VERSION-src
 mkdir $TMP/mCtrl-$VERSION
-if [ x$HAVE_X86 != x ]; then
+if [ x$HAVE_X86_REL != x ]; then
     mkdir -p $TMP/mCtrl-$VERSION/bin
-    cp $TMP/mCtrl-$VERSION-src/build32/mCtrl.dll $TMP/mCtrl-$VERSION/bin/
-    cp $TMP/mCtrl-$VERSION-src/build32/example-*.exe $TMP/mCtrl-$VERSION/bin/
-    cp $TMP/mCtrl-$VERSION-src/build32/test-*.exe $TMP/mCtrl-$VERSION/bin/
+    cp $TMP/mCtrl-$VERSION-src/build32-rel/mCtrl.dll $TMP/mCtrl-$VERSION/bin/
+    cp $TMP/mCtrl-$VERSION-src/build32-rel/example-*.exe $TMP/mCtrl-$VERSION/bin/
+    cp $TMP/mCtrl-$VERSION-src/build32-rel/test-*.exe $TMP/mCtrl-$VERSION/bin/
     mkdir -p $TMP/mCtrl-$VERSION/lib
-    cp $TMP/mCtrl-$VERSION-src/build32/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/libmCtrl.dll.a
-    cp $TMP/mCtrl-$VERSION-src/build32/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
+    cp $TMP/mCtrl-$VERSION-src/build32-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/libmCtrl.dll.a
+    cp $TMP/mCtrl-$VERSION-src/build32-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
 fi
-if [ x$HAVE_X86_64 != x ]; then
+if [ x$HAVE_X86_DBG != x ]; then
+    mkdir -p $TMP/mCtrl-$VERSION/bin/debug
+    cp $TMP/mCtrl-$VERSION-src/build32-dbg/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug/
+fi
+if [ x$HAVE_X86_64_REL != x ]; then
     mkdir -p $TMP/mCtrl-$VERSION/bin64
-    cp $TMP/mCtrl-$VERSION-src/build64/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/
-    cp $TMP/mCtrl-$VERSION-src/build64/example-*.exe $TMP/mCtrl-$VERSION/bin64/
-    cp $TMP/mCtrl-$VERSION-src/build64/test-*.exe $TMP/mCtrl-$VERSION/bin64/
+    cp $TMP/mCtrl-$VERSION-src/build64-rel/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/
+    cp $TMP/mCtrl-$VERSION-src/build64-rel/example-*.exe $TMP/mCtrl-$VERSION/bin64/
+    cp $TMP/mCtrl-$VERSION-src/build64-rel/test-*.exe $TMP/mCtrl-$VERSION/bin64/
     mkdir -p $TMP/mCtrl-$VERSION/lib64
-    cp $TMP/mCtrl-$VERSION-src/build64/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/libmCtrl.dll.a
-    cp $TMP/mCtrl-$VERSION-src/build64/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/mCtrl.lib
+    cp $TMP/mCtrl-$VERSION-src/build64-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/libmCtrl.dll.a
+    cp $TMP/mCtrl-$VERSION-src/build64-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/mCtrl.lib
+fi
+if [ x$HAVE_X86_64_DBG != x ]; then
+    mkdir -p $TMP/mCtrl-$VERSION/bin64/debug
+    cp $TMP/mCtrl-$VERSION-src/build64-dbg/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/debug/
 fi
 if [ x$HAVE_DOC != x ]; then
     cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
