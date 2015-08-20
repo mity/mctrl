@@ -180,7 +180,7 @@ extern "C" {
  * registry keys.
  *
  * To change the behavior, you need to create the following registry key
- * "HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\FeatureControl\"
+ * "HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION"
  * if it does not already exist, and in it, create a DWORD value named as a
  * binary name of your application (e.g. "MyApplication.exe"). The DWORD value
  * then determines the compatibility version (taken from MSDN documentation):
