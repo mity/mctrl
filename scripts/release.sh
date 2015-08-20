@@ -165,7 +165,8 @@ mkdir $TMP/mCtrl-$VERSION
 if [ x$HAVE_X86 != x ]; then
     mkdir -p $TMP/mCtrl-$VERSION/bin
     cp $TMP/mCtrl-$VERSION-src/build32/mCtrl.dll $TMP/mCtrl-$VERSION/bin/
-    cp $TMP/mCtrl-$VERSION-src/build32/ex_*.exe $TMP/mCtrl-$VERSION/bin/
+    cp $TMP/mCtrl-$VERSION-src/build32/example-*.exe $TMP/mCtrl-$VERSION/bin/
+    cp $TMP/mCtrl-$VERSION-src/build32/test-*.exe $TMP/mCtrl-$VERSION/bin/
     mkdir -p $TMP/mCtrl-$VERSION/lib
     cp $TMP/mCtrl-$VERSION-src/build32/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/libmCtrl.dll.a
     cp $TMP/mCtrl-$VERSION-src/build32/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
@@ -173,7 +174,8 @@ fi
 if [ x$HAVE_X86_64 != x ]; then
     mkdir -p $TMP/mCtrl-$VERSION/bin64
     cp $TMP/mCtrl-$VERSION-src/build64/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/
-    cp $TMP/mCtrl-$VERSION-src/build64/ex_*.exe $TMP/mCtrl-$VERSION/bin64/
+    cp $TMP/mCtrl-$VERSION-src/build64/example-*.exe $TMP/mCtrl-$VERSION/bin64/
+    cp $TMP/mCtrl-$VERSION-src/build64/test-*.exe $TMP/mCtrl-$VERSION/bin64/
     mkdir -p $TMP/mCtrl-$VERSION/lib64
     cp $TMP/mCtrl-$VERSION-src/build64/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/libmCtrl.dll.a
     cp $TMP/mCtrl-$VERSION-src/build64/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/mCtrl.lib
