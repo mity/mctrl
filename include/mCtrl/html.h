@@ -367,8 +367,7 @@ typedef struct MC_HMCALLSCRIPTFUNCEX_tag {
      *  (or if the caller ignores it).
      *  If not @c NULL, the caller should initialize it to @c VT_EMPTY
      *  before making the call and, after it returns, the caller is responsible
-     *  for its contents. I.e. if the returned type is @c VT_BSTR, the caller
-     *  must eventually free the string with @c SysFreeString(). */
+     *  to eventuall free its contents with @c VariantClear(). */
     VARIANT* lpRet;
 } MC_HMCALLSCRIPTFUNCEX;
 
