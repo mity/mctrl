@@ -21,8 +21,8 @@
 #include "xcom.h"
 #include "doublebuffer.h"
 
-#include <math.h>
 #include <float.h>
+#include <math.h>
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -95,6 +95,20 @@ enum dw_DWRITE_TEXT_ALIGNMENT_tag {
     dw_DWRITE_TEXT_ALIGNMENT_CENTER
 };
 
+typedef enum dw_DWRITE_TRIMMING_GRANULARITY_tag dw_DWRITE_TRIMMING_GRANULARITY;
+enum dw_DWRITE_TRIMMING_GRANULARITY_tag {
+    dw_DWRITE_TRIMMING_GRANULARITY_NONE = 0,
+    dw_DWRITE_TRIMMING_GRANULARITY_CHARACTER,
+    dw_DWRITE_TRIMMING_GRANULARITY_WORD
+};
+
+typedef struct dw_DWRITE_TRIMMING_tag dw_DWRITE_TRIMMING;
+struct dw_DWRITE_TRIMMING_tag {
+  dw_DWRITE_TRIMMING_GRANULARITY granularity;
+  UINT32 delimiter;
+  UINT32 delimiterCount;
+};
+
 typedef struct dw_DWRITE_FONT_METRICS_tag dw_DWRITE_FONT_METRICS;
 struct dw_DWRITE_FONT_METRICS_tag {
     UINT16 designUnitsPerEm;
@@ -162,7 +176,7 @@ struct dw_IDWriteFactoryVtbl_tag {
     STDMETHOD(CreateTextLayout)(dw_IDWriteFactory*, WCHAR const*, UINT32,
             dw_IDWriteTextFormat*, FLOAT, FLOAT, dw_IDWriteTextLayout**);
     STDMETHOD(dummy_CreateGdiCompatibleTextLayout)(void);
-    STDMETHOD(dummy_CreateEllipsisTrimmingSign)(void);
+    STDMETHOD(CreateEllipsisTrimmingSign)(dw_IDWriteFactory*, dw_IDWriteTextFormat*, void**);
     STDMETHOD(dummy_CreateTextAnalyzer)(void);
     STDMETHOD(dummy_CreateNumberSubstitution)(void);
     STDMETHOD(dummy_CreateGlyphRunAnalysis)(void);
@@ -178,6 +192,7 @@ struct dw_IDWriteFactory_tag {
 #define IDWriteFactory_GetSystemFontCollection(self,a,b)        (self)->vtbl->GetSystemFontCollection(self,a,b)
 #define IDWriteFactory_CreateTextFormat(self,a,b,c,d,e,f,g,h)   (self)->vtbl->CreateTextFormat(self,a,b,c,d,e,f,g,h)
 #define IDWriteFactory_CreateTextLayout(self,a,b,c,d,e,f)       (self)->vtbl->CreateTextLayout(self,a,b,c,d,e,f)
+#define IDWriteFactory_CreateEllipsisTrimmingSign(self,a,b)     (self)->vtbl->CreateEllipsisTrimmingSign(self,a,b)
 
 
 typedef struct dw_IDWriteFontVtbl_tag dw_IDWriteFontVtbl;
@@ -331,7 +346,7 @@ struct dw_IDWriteTextLayoutVtbl_tag {
     STDMETHOD(dummy_SetReadingDirection)(void);
     STDMETHOD(dummy_SetFlowDirection)(void);
     STDMETHOD(dummy_SetIncrementalTabStop)(void);
-    STDMETHOD(dummy_SetTrimming)(void);
+    STDMETHOD(SetTrimming)(dw_IDWriteTextLayout*, const dw_DWRITE_TRIMMING*, void*);
     STDMETHOD(dummy_SetLineSpacing)(void);
     STDMETHOD(dummy_GetTextAlignment)(void);
     STDMETHOD(dummy_GetParagraphAlignment)(void);
@@ -402,6 +417,7 @@ struct dw_IDWriteTextLayout_tag {
 #define IDWriteTextLayout_Release(self)                         (self)->vtbl->Release(self)
 #define IDWriteTextLayout_SetTextAlignment(self,a)              (self)->vtbl->SetTextAlignment(self,a)
 #define IDWriteTextLayout_SetWordWrapping(self,a)               (self)->vtbl->SetWordWrapping(self,a)
+#define IDWriteTextLayout_SetTrimming(self,a,b)                 (self)->vtbl->SetTrimming(self,a,b)
 #define IDWriteTextLayout_GetMetrics(self,a)                    (self)->vtbl->GetMetrics(self,a)
 
 
@@ -414,10 +430,12 @@ struct dw_IDWriteTextLayout_tag {
 
 #ifdef MC_TOOLCHAIN_MINGW64
     /* In mingw-w64, these IIDs are missing in libuuid.a. */
-    static const GUID xdraw_IID_ID2D1Factory = {0x06152247,0x6f50,0x465a,{0x92,0x45,0x11,0x8b,0xfd,0x3b,0x60,0x07}};
+    static const GUID xdraw_IID_ID2D1Factory = 
+            {0x06152247,0x6f50,0x465a,{0x92,0x45,0x11,0x8b,0xfd,0x3b,0x60,0x07}};
     #define IID_ID2D1Factory xdraw_IID_ID2D1Factory
 
-    static const GUID xdraw_IID_ID2D1GdiInteropRenderTarget = {0xe0db51c3,0x6f77,0x4bae,{0xb3,0xd5,0xe4,0x75,0x09,0xb3,0x58,0x38}};
+    static const GUID xdraw_IID_ID2D1GdiInteropRenderTarget = 
+            {0xe0db51c3,0x6f77,0x4bae,{0xb3,0xd5,0xe4,0x75,0x09,0xb3,0x58,0x38}};
     #define IID_ID2D1GdiInteropRenderTarget xdraw_IID_ID2D1GdiInteropRenderTarget
 
     /* In mingw-w64, macro wrapping ID2D1RenderTarget::CreateLayer() is broken. */
@@ -434,12 +452,6 @@ static dw_IDWriteFactory* dw_factory;
 
 static int (WINAPI* fn_GetUserDefaultLocaleName)(WCHAR*, int);
 
-enum d2d_target_type_tag {
-    TARGETTTYPE_GENERIC = 0,
-    TARGETTTYPE_BITMAP,
-    TARGETTTYPE_HWND
-};
-typedef enum d2d_target_type_tag d2d_target_type_t;
 
 static int
 d2d_init(void)
@@ -542,9 +554,16 @@ d2d_fini(void)
     d2d_dll = NULL;
 }
 
+#define D2D_CANVASTYPE_BITMAP       0
+#define D2D_CANVASTYPE_DC           1
+#define D2D_CANVASTYPE_HWND         2
+
+#define D2D_CANVASFLAG_RECTCLIP   0x1
+
 typedef struct d2d_canvas_tag d2d_canvas_t;
 struct d2d_canvas_tag {
-    d2d_target_type_t type;
+    WORD type;
+    WORD flags;
     union {
         ID2D1RenderTarget* target;
         ID2D1BitmapRenderTarget* bmp_target;
@@ -571,7 +590,7 @@ d2d_reset_transform(ID2D1RenderTarget* target)
 }
 
 static d2d_canvas_t*
-d2d_canvas_alloc(ID2D1RenderTarget* target, d2d_target_type_t type)
+d2d_canvas_alloc(ID2D1RenderTarget* target, WORD type)
 {
     d2d_canvas_t* c;
 
@@ -582,6 +601,7 @@ d2d_canvas_alloc(ID2D1RenderTarget* target, d2d_target_type_t type)
     }
 
     c->type = type;
+    c->flags = 0;
     c->target = target;
     c->gdi_interop = NULL;
     c->clip_layer = NULL;
@@ -609,7 +629,7 @@ d2d_create_wic_source(const WCHAR* path, IStream* stream)
     wic_factory = (IWICImagingFactory*) xcom_init_create(
             &CLSID_WICImagingFactory, CLSCTX_INPROC, &IID_IWICImagingFactory);
     if(MC_ERR(wic_factory == NULL)) {
-        MC_TRACE("d2d_create_wic_converter: xcom_init_create() failed.");
+        MC_TRACE("d2d_create_wic_source: xcom_init_create() failed.");
         goto err_xcom_init_create;
     }
 
@@ -617,7 +637,7 @@ d2d_create_wic_source(const WCHAR* path, IStream* stream)
         hr = IWICImagingFactory_CreateDecoderFromFilename(wic_factory, path,
                 NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wic_decoder);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("d2d_create_wic_converter: "
+            MC_TRACE("d2d_create_wic_source: "
                      "IWICImagingFactory::CreateDecoderFromFilename() failed. "
                      "[0x%lx]", hr);
             goto err_CreateDecoder;
@@ -626,7 +646,7 @@ d2d_create_wic_source(const WCHAR* path, IStream* stream)
         hr = IWICImagingFactory_CreateDecoderFromStream(wic_factory, stream,
                 NULL, WICDecodeMetadataCacheOnLoad, &wic_decoder);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("d2d_create_wic_converter: "
+            MC_TRACE("d2d_create_wic_source: "
                      "IWICImagingFactory::CreateDecoderFromStream() failed. "
                      "[0x%lx]", hr);
             goto err_CreateDecoder;
@@ -635,14 +655,14 @@ d2d_create_wic_source(const WCHAR* path, IStream* stream)
 
     hr = IWICBitmapDecoder_GetFrame(wic_decoder, 0, &wic_source);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_wic_converter: "
+        MC_TRACE("d2d_create_wic_source: "
                  "IWICBitmapDecoder::GetFrame() failed. [0x%lx]", hr);
         goto err_GetFrame;
     }
 
     hr = IWICImagingFactory_CreateFormatConverter(wic_factory, &wic_converter);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_wic_converter: "
+        MC_TRACE("d2d_create_wic_source: "
                  "IWICImagingFactory::CreateFormatConverter() failed. "
                  "[0x%lx]", hr);
         goto err_CreateFormatConverter;
@@ -650,9 +670,9 @@ d2d_create_wic_source(const WCHAR* path, IStream* stream)
 
     hr = IWICFormatConverter_Initialize(wic_converter,
             (IWICBitmapSource*) wic_source, &GUID_WICPixelFormat32bppPBGRA,
-            WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeMedianCut);
+            WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_wic_converter: "
+        MC_TRACE("d2d_create_wic_source: "
                  "IWICFormatConverter::Initialize() failed. [0x%lx]", hr);
         goto err_Initialize;
     }
@@ -679,13 +699,13 @@ static void
 d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg, const xdraw_circle_t* circle,
                       float base_angle, float sweep_angle)
 {
-    float x = circle->x;
-    float y = circle->y;
+    float cx = circle->x;
+    float cy = circle->y;
     float r = circle->r;
     float sweep_rads = (base_angle + sweep_angle) * (MC_PIf / 180.0f);
 
-    arc_seg->point.x = x + r * cosf(sweep_rads);
-    arc_seg->point.y = y + r * sinf(sweep_rads);
+    arc_seg->point.x = cx + r * cosf(sweep_rads);
+    arc_seg->point.y = cy + r * sinf(sweep_rads);
     arc_seg->size.width = r;
     arc_seg->size.height = r;
     arc_seg->rotationAngle = 0.0f;
@@ -780,6 +800,31 @@ d2d_create_text_layout(dw_IDWriteTextFormat* tf, const xdraw_rect_t* rect,
     if(flags & XDRAW_STRING_NOWRAP)
         IDWriteTextLayout_SetWordWrapping(layout, dw_DWRITE_WORD_WRAPPING_NO_WRAP);
 
+    if((flags & XDRAW_STRING_ELLIPSIS_MASK) != 0) {
+        static const dw_DWRITE_TRIMMING trim_end = { dw_DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+        static const dw_DWRITE_TRIMMING trim_word = { dw_DWRITE_TRIMMING_GRANULARITY_WORD, 0, 0 };
+        static const dw_DWRITE_TRIMMING trim_path = { dw_DWRITE_TRIMMING_GRANULARITY_WORD, L'\\', 1 };
+        const dw_DWRITE_TRIMMING* trim_options;
+        void* trim_sign;
+
+        hr = IDWriteFactory_CreateEllipsisTrimmingSign(dw_factory, tf, &trim_sign);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("d2d_create_text_layout: "
+                     "IDWriteFactory::CreateEllipsisTrimmingSign() failed. [0x%lx]", hr);
+            goto err_CreateEllipsisTrimmingSign;
+        }
+
+        switch(flags & XDRAW_STRING_ELLIPSIS_MASK) {
+            case XDRAW_STRING_END_ELLIPSIS:     trim_options = &trim_end; break;
+            case XDRAW_STRING_WORD_ELLIPSIS:    trim_options = &trim_word; break;
+            case XDRAW_STRING_PATH_ELLIPSIS:    trim_options = &trim_path; break;
+            default:                            MC_UNREACHABLE; break;
+        }
+
+        IDWriteTextLayout_SetTrimming(layout, trim_options, trim_sign);
+    }
+
+err_CreateEllipsisTrimmingSign:
     return layout;
 }
 
@@ -865,6 +910,7 @@ static int (WINAPI* gdix_GetLineSpacing)(const void*, int, UINT16*);
 static int (WINAPI* gdix_LoadImageFromFile)(const WCHAR*, void**);
 static int (WINAPI* gdix_LoadImageFromStream)(IStream*, void**);
 static int (WINAPI* gdix_CreateBitmapFromHBITMAP)(HBITMAP, HPALETTE, void**);
+static int (WINAPI* gdix_CreateBitmapFromHICON)(HICON, void**);
 static int (WINAPI* gdix_DisposeImage)(void*);
 static int (WINAPI* gdix_GetImageBounds)(void*, gdix_RectF*, int*);
 
@@ -873,6 +919,7 @@ static int (WINAPI* gdix_CreateStringFormat)(int, LANGID, void**);
 static int (WINAPI* gdix_DeleteStringFormat)(void*);
 static int (WINAPI* gdix_SetStringFormatAlign)(void*, int);
 static int (WINAPI* gdix_SetStringFormatFlags)(void*, int);
+static int (WINAPI* gdix_SetStringFormatTrimming)(void*, int);
 
 /* Draw/fill functions */
 static int (WINAPI* gdix_DrawArc)(void*, void*, float, float, float, float, float, float);
@@ -994,6 +1041,7 @@ gdix_init(void)
     GPA(LoadImageFromFile, (const WCHAR*, void**));
     GPA(LoadImageFromStream, (IStream*, void**));
     GPA(CreateBitmapFromHBITMAP, (HBITMAP, HPALETTE, void**));
+    GPA(CreateBitmapFromHICON, (HICON, void**));
     GPA(DisposeImage, (void*));
     GPA(GetImageBounds, (void*, gdix_RectF*, int*));
 
@@ -1002,11 +1050,13 @@ gdix_init(void)
     GPA(DeleteStringFormat, (void*));
     GPA(SetStringFormatAlign, (void*, int));
     GPA(SetStringFormatFlags, (void*, int));
+    GPA(SetStringFormatTrimming, (void*, int));
 
     /* Draw/fill functions */
     GPA(DrawArc, (void*, void*, float, float, float, float, float, float));
     GPA(DrawImageRectRect, (void*, void*, float, float, float, float, float, float, float, float, int, const void*, void*, void*));
     GPA(DrawLine, (void*, void*, float, float, float, float));
+    GPA(DrawPath, (void*, void*, void*));
     GPA(DrawPie, (void*, void*, float, float, float, float, float, float));
     GPA(DrawRectangle, (void*, void*, float, float, float, float));
     GPA(DrawString, (void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, const void*));
@@ -1130,6 +1180,7 @@ gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags)
 {
     int sfa;
     int sff;
+    int trim;
 
     if(flags & XDRAW_STRING_RIGHT)
         sfa = 2;  /* StringAlignmentFar */
@@ -1145,13 +1196,18 @@ gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags)
     if(!(flags & XDRAW_STRING_CLIP))
         sff |= 0x00004000;  /* StringFormatFlagsNoClip */
     gdix_SetStringFormatFlags(c->string_format, sff);
-}
 
-typedef struct gdix_path_sink_tag gdix_path_sink_t;
-struct gdix_path_sink_tag {
-    void* path;
-    xdraw_point_t last_point;
-};
+    if((flags & XDRAW_STRING_ELLIPSIS_MASK) != 0) {
+        switch(flags & XDRAW_STRING_ELLIPSIS_MASK) {
+            case XDRAW_STRING_END_ELLIPSIS:     trim = 3; break; /*StringTrimmingEllipsisCharacter */
+            case XDRAW_STRING_WORD_ELLIPSIS:    trim = 4; break; /* StringTrimmingEllipsisWord */
+            case XDRAW_STRING_PATH_ELLIPSIS:    trim = 5; break; /* StringTrimmingEllipsisPath */
+            default:                            MC_UNREACHABLE; break;
+        }
+
+        gdix_SetStringFormatTrimming(c->string_format, trim);
+    }
+}
 
 
 /**************************
@@ -1161,6 +1217,8 @@ struct gdix_path_sink_tag {
 xdraw_canvas_t*
 xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, DWORD flags)
 {
+    XDRAW_TRACE("xdraw_canvas_create_with_paintstruct()");
+
     if(d2d_dll != NULL) {
         D2D1_RENDER_TARGET_PROPERTIES props = {
             D2D1_RENDER_TARGET_TYPE_DEFAULT,
@@ -1193,7 +1251,7 @@ xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, DWORD flags)
             return NULL;
         }
 
-        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, TARGETTTYPE_HWND);
+        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, D2D_CANVASTYPE_HWND);
         if(MC_ERR(c == NULL)) {
             MC_TRACE("xdraw_canvas_create_with_paintstruct: d2d_canvas_alloc() failed.");
             ID2D1RenderTarget_Release((ID2D1RenderTarget*)target);
@@ -1211,6 +1269,8 @@ xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, DWORD flags)
 xdraw_canvas_t*
 xdraw_canvas_create_with_dc(HDC dc, const RECT* rect, DWORD flags)
 {
+    XDRAW_TRACE("xdraw_canvas_create_with_dc()");
+
     if(d2d_dll != NULL) {
         D2D1_RENDER_TARGET_PROPERTIES props = {
             D2D1_RENDER_TARGET_TYPE_DEFAULT,
@@ -1240,7 +1300,7 @@ xdraw_canvas_create_with_dc(HDC dc, const RECT* rect, DWORD flags)
             goto err_BindDC;
         }
 
-        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, TARGETTTYPE_GENERIC);
+        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, D2D_CANVASTYPE_DC);
         if(MC_ERR(c == NULL)) {
             MC_TRACE("xdraw_canvas_create_with_dc: d2d_canvas_alloc() failed.");
             goto err_d2d_canvas_alloc;
@@ -1261,12 +1321,16 @@ err_CreateDCRenderTarget:
 void
 xdraw_canvas_destroy(xdraw_canvas_t* canvas)
 {
+    XDRAW_TRACE("xdraw_canvas_destroy(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
 
-        ID2D1RenderTarget_Release(c->target);
-        MC_ASSERT(c->clip_layer == NULL);
+        MC_ASSERT(c->flags == 0);
         MC_ASSERT(c->gdi_interop == NULL);
+        MC_ASSERT(c->clip_layer == NULL);
+
+        ID2D1RenderTarget_Release(c->target);
         free(c);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
@@ -1281,9 +1345,11 @@ xdraw_canvas_destroy(xdraw_canvas_t* canvas)
 int
 xdraw_canvas_resize(xdraw_canvas_t* canvas, UINT width, UINT height)
 {
+    XDRAW_TRACE("xdraw_canvas_destroy(%p, %u, %u)", canvas, width, height);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
-        if(c->type == TARGETTTYPE_HWND) {
+        if(c->type == D2D_CANVASTYPE_HWND) {
             D2D1_SIZE_U size = { width, height };
             HRESULT hr;
 
@@ -1313,6 +1379,8 @@ xdraw_canvas_resize(xdraw_canvas_t* canvas, UINT width, UINT height)
 void
 xdraw_canvas_begin_paint(xdraw_canvas_t* canvas)
 {
+    XDRAW_TRACE("xdraw_canvas_begin_paint(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1RenderTarget_BeginDraw(c->target);
@@ -1324,6 +1392,8 @@ xdraw_canvas_begin_paint(xdraw_canvas_t* canvas)
 BOOL
 xdraw_canvas_end_paint(xdraw_canvas_t* canvas)
 {
+    XDRAW_TRACE("xdraw_canvas_end_paint(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         HRESULT hr;
@@ -1344,6 +1414,8 @@ xdraw_canvas_end_paint(xdraw_canvas_t* canvas)
 HDC
 xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents)
 {
+    XDRAW_TRACE("xdraw_canvas_acquire_dc(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1GdiInteropRenderTarget* gdi_interop;
@@ -1392,6 +1464,8 @@ xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents)
 void
 xdraw_canvas_release_dc(xdraw_canvas_t* canvas, HDC dc)
 {
+    XDRAW_TRACE("xdraw_canvas_release_dc(%p, %p)", canvas, dc);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
 
@@ -1407,6 +1481,9 @@ xdraw_canvas_release_dc(xdraw_canvas_t* canvas, HDC dc)
 void
 xdraw_canvas_transform_with_rotation(xdraw_canvas_t* canvas, float angle)
 {
+    XDRAW_TRACE("xdraw_canvas_transform_with_rotation(%p, %f)",
+                canvas, (double)angle);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         D2D1_MATRIX_3X2_F old_transform, new_transform;
@@ -1431,6 +1508,9 @@ xdraw_canvas_transform_with_rotation(xdraw_canvas_t* canvas, float angle)
 void
 xdraw_canvas_transform_with_translation(xdraw_canvas_t* canvas, float dx, float dy)
 {
+    XDRAW_TRACE("xdraw_canvas_transform_with_translation(%p, %f, %f)",
+                canvas, (double)dx, (double)dy);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         D2D1_MATRIX_3X2_F transform;
@@ -1448,6 +1528,8 @@ xdraw_canvas_transform_with_translation(xdraw_canvas_t* canvas, float dx, float 
 void
 xdraw_canvas_transform_reset(xdraw_canvas_t* canvas)
 {
+    XDRAW_TRACE("xdraw_canvas_transform_reset(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         d2d_reset_transform(c->target);
@@ -1458,64 +1540,11 @@ xdraw_canvas_transform_reset(xdraw_canvas_t* canvas)
 }
 
 void
-xdraw_canvas_set_clip_rect(xdraw_canvas_t* canvas, const xdraw_rect_t* rect)
+xdraw_canvas_set_clip(xdraw_canvas_t* canvas, const xdraw_rect_t* rect,
+                      const xdraw_path_t* path)
 {
-    if(d2d_dll != NULL) {
-        d2d_canvas_t* c = (d2d_canvas_t*) canvas;
-        ID2D1RenderTarget_PushAxisAlignedClip(c->target,
-                    (const D2D1_RECT_F*) rect, 0 /*D2D1_ANTIALIAS_MODE_PER_PRIMITIVE*/);
-    } else {
-        gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_SetClipRect(c->graphics, rect->x0, rect->y0, rect->x1, rect->y1,
-                    0 /*CombineModeReplace*/);
-    }
-}
+    XDRAW_TRACE("xdraw_canvas_set_clip(%p)", canvas);
 
-void
-xdraw_canvas_set_clip_path(xdraw_canvas_t* canvas, const xdraw_path_t* path)
-{
-    if(d2d_dll != NULL) {
-        d2d_canvas_t* c = (d2d_canvas_t*) canvas;
-        ID2D1PathGeometry* g = (ID2D1PathGeometry*) path;
-        ID2D1Layer* layer;
-        D2D1_LAYER_PARAMETERS layer_params;
-
-        HRESULT hr;
-
-        hr = ID2D1RenderTarget_CreateLayer(c->target, NULL, &layer);
-        if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_canvas_set_clip_path: "
-                     "ID2D1RenderTarget::CreateLayer() failed. [0x%lx]", hr);
-            return;
-        }
-
-        layer_params.contentBounds.left = FLT_MIN;
-        layer_params.contentBounds.top = FLT_MIN;
-        layer_params.contentBounds.right = FLT_MAX;
-        layer_params.contentBounds.bottom = FLT_MAX;
-        layer_params.geometricMask = (ID2D1Geometry*) g;
-        layer_params.maskAntialiasMode = 0; /*D2D1_ANTIALIAS_MODE_PER_PRIMITIVE*/
-        layer_params.maskTransform._11 = 1.0f;
-        layer_params.maskTransform._12 = 0.0f;
-        layer_params.maskTransform._21 = 0.0f;
-        layer_params.maskTransform._22 = 1.0f;
-        layer_params.maskTransform._31 = 0.0f;
-        layer_params.maskTransform._32 = 0.0f;
-        layer_params.opacity = 1.0f;
-        layer_params.opacityBrush = NULL;
-        layer_params.layerOptions = D2D1_LAYER_OPTIONS_NONE;
-        ID2D1RenderTarget_PushLayer(c->target, &layer_params, layer);
-
-        c->clip_layer = layer;
-    } else {
-        gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_SetClipPath(c->graphics, (void*) path, 0 /*CombineModeReplace*/);
-    }
-}
-
-void
-xdraw_canvas_reset_clip(xdraw_canvas_t* canvas)
-{
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
 
@@ -1523,18 +1552,78 @@ xdraw_canvas_reset_clip(xdraw_canvas_t* canvas)
             ID2D1RenderTarget_PopLayer(c->target);
             ID2D1Layer_Release(c->clip_layer);
             c->clip_layer = NULL;
-        } else {
+        }
+
+        if(c->flags & D2D_CANVASFLAG_RECTCLIP) {
             ID2D1RenderTarget_PopAxisAlignedClip(c->target);
+            c->flags &= ~D2D_CANVASFLAG_RECTCLIP;
+        }
+
+        if(rect != NULL) {
+            ID2D1RenderTarget_PushAxisAlignedClip(c->target,
+                    (const D2D1_RECT_F*) rect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+            c->flags |= D2D_CANVASFLAG_RECTCLIP;
+        }
+
+        if(path != NULL) {
+            ID2D1PathGeometry* g = (ID2D1PathGeometry*) path;
+            D2D1_LAYER_PARAMETERS layer_params;
+            HRESULT hr;
+
+            hr = ID2D1RenderTarget_CreateLayer(c->target, NULL, &c->clip_layer);
+            if(MC_ERR(FAILED(hr))) {
+                MC_TRACE("xdraw_canvas_set_clip_path: "
+                         "ID2D1RenderTarget::CreateLayer() failed. [0x%lx]", hr);
+                return;
+            }
+
+            if(rect != NULL) {
+                layer_params.contentBounds.left = rect->x0;
+                layer_params.contentBounds.top = rect->y0;
+                layer_params.contentBounds.right = rect->x1;
+                layer_params.contentBounds.bottom = rect->y1;
+            } else {
+                layer_params.contentBounds.left = FLT_MIN;
+                layer_params.contentBounds.top = FLT_MIN;
+                layer_params.contentBounds.right = FLT_MAX;
+                layer_params.contentBounds.bottom = FLT_MAX;
+            }
+            layer_params.geometricMask = (ID2D1Geometry*) g;
+            layer_params.maskAntialiasMode = D2D1_ANTIALIAS_MODE_PER_PRIMITIVE;
+            layer_params.maskTransform._11 = 1.0f;
+            layer_params.maskTransform._12 = 0.0f;
+            layer_params.maskTransform._21 = 0.0f;
+            layer_params.maskTransform._22 = 1.0f;
+            layer_params.maskTransform._31 = 0.0f;
+            layer_params.maskTransform._32 = 0.0f;
+            layer_params.opacity = 1.0f;
+            layer_params.opacityBrush = NULL;
+            layer_params.layerOptions = D2D1_LAYER_OPTIONS_NONE;
+            ID2D1RenderTarget_PushLayer(c->target, &layer_params, c->clip_layer);
         }
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_ResetClip(c->graphics);
+        int combine_mode = 0;  /*CombineModeReplace*/
+
+        if(rect == NULL  &&  path == NULL)
+            gdix_ResetClip(c->graphics);
+
+        if(rect != NULL) {
+            gdix_SetClipRect(c->graphics, rect->x0, rect->y0,
+                             rect->x1, rect->y1, combine_mode);
+            combine_mode = 1;  /*CombineModeIntersect*/
+        }
+
+        if(path != NULL)
+            gdix_SetClipPath(c->graphics, (void*) path, combine_mode);
     }
 }
 
 BOOL
 xdraw_is_always_doublebuffered(void)
 {
+    XDRAW_TRACE("xdraw_is_always_doublebuffered()");
+
     if(d2d_dll != NULL) {
         return TRUE;   /* D2D is always using double-buffering. */
     } else {
@@ -1545,6 +1634,8 @@ xdraw_is_always_doublebuffered(void)
 xdraw_brush_t*
 xdraw_brush_solid_create(xdraw_canvas_t* canvas, xdraw_color_t color)
 {
+    XDRAW_TRACE("xdraw_brush_solid_create(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1SolidColorBrush* b;
@@ -1581,6 +1672,8 @@ xdraw_brush_solid_create(xdraw_canvas_t* canvas, xdraw_color_t color)
 void
 xdraw_brush_destroy(xdraw_brush_t* brush)
 {
+    XDRAW_TRACE("xdraw_brush_destroy(%p)", brush);
+
     if(d2d_dll != NULL) {
         ID2D1Brush_Release((ID2D1Brush*) brush);
     } else {
@@ -1591,6 +1684,8 @@ xdraw_brush_destroy(xdraw_brush_t* brush)
 void
 xdraw_brush_solid_set_color(xdraw_brush_t* solidbrush, xdraw_color_t color)
 {
+    XDRAW_TRACE("xdraw_brush_solid_set_color(%p)", solidbrush);
+
     if(d2d_dll != NULL) {
         D2D_COLOR_F clr;
 
@@ -1608,6 +1703,8 @@ xdraw_brush_solid_set_color(xdraw_brush_t* solidbrush, xdraw_color_t color)
 xdraw_font_t*
 xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
 {
+    XDRAW_TRACE("xdraw_font_create_with_LOGFONT(%p)", canvas);
+
 #ifndef UNICODE
     #error xdraw_font_create_with_LOGFONT() is not (yet?) implemented for ANSI build.
 #endif
@@ -1703,6 +1800,8 @@ xdraw_font_create_with_HFONT(xdraw_canvas_t* canvas, HFONT font_handle)
     LOGFONT lf;
     xdraw_font_t* f;
 
+    XDRAW_TRACE("xdraw_font_create_with_HFONT(%p)", canvas);
+
     if(font_handle == NULL)
         font_handle = GetStockObject(SYSTEM_FONT);
 
@@ -1717,6 +1816,8 @@ xdraw_font_create_with_HFONT(xdraw_canvas_t* canvas, HFONT font_handle)
 void
 xdraw_font_destroy(xdraw_font_t* font)
 {
+    XDRAW_TRACE("xdraw_font_destroy(%p)", font);
+
     if(d2d_dll != NULL) {
         dw_IDWriteTextFormat* tf = (dw_IDWriteTextFormat*) font;
         IDWriteTextFormat_Release(tf);
@@ -1728,6 +1829,8 @@ xdraw_font_destroy(xdraw_font_t* font)
 void
 xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
 {
+    XDRAW_TRACE("xdraw_font_get_metrics(%p)", font);
+
     if(MC_ERR(font == NULL)) {
         /* Treat NULL as "no font". This simplifies paint code when font
          * creation fails. */
@@ -1871,6 +1974,8 @@ err_malloca:
 xdraw_image_t*
 xdraw_image_create_from_HBITMAP(HBITMAP bmp)
 {
+    XDRAW_TRACE("xdraw_image_create_from_HBITMAP(%p)", bmp);
+
     if(d2d_dll != NULL) {
         IWICImagingFactory* wic_factory;
         IWICBitmap* b;
@@ -1918,6 +2023,8 @@ err_xcom_init_create:
 xdraw_image_t*
 xdraw_image_load_from_file(const TCHAR* path)
 {
+    XDRAW_TRACE("xdraw_image_load_from_file()");
+
 #ifndef UNICODE
     #error Non-unicode support not implemented.
 #endif
@@ -1951,6 +2058,8 @@ xdraw_image_load_from_file(const TCHAR* path)
 xdraw_image_t*
 xdraw_image_load_from_stream(IStream* stream)
 {
+    XDRAW_TRACE("xdraw_image_load_from_stream()");
+
     if(d2d_dll != NULL) {
         IWICBitmapSource* source;
 
@@ -1980,6 +2089,8 @@ xdraw_image_load_from_stream(IStream* stream)
 void
 xdraw_image_destroy(xdraw_image_t* image)
 {
+    XDRAW_TRACE("xdraw_image_destroy()");
+
     if(d2d_dll != NULL) {
         IWICBitmapSource* source = (IWICBitmapSource*) image;
         IWICBitmapSource_Release(source);
@@ -1992,6 +2103,8 @@ xdraw_image_destroy(xdraw_image_t* image)
 void
 xdraw_image_get_size(xdraw_image_t* image, float* w, float* h)
 {
+    XDRAW_TRACE("xdraw_image_get_size(%p)", image);
+
     if(d2d_dll != NULL) {
         IWICBitmapSource* source = (IWICBitmapSource*) image;
         UINT iw, ih;
@@ -2013,6 +2126,8 @@ xdraw_image_get_size(xdraw_image_t* image, float* w, float* h)
 xdraw_path_t*
 xdraw_path_create(xdraw_canvas_t* canvas)
 {
+    XDRAW_TRACE("xdraw_path_create(%p)", canvas);
+
     if(d2d_dll != NULL) {
         ID2D1PathGeometry* g;
         HRESULT hr;
@@ -2049,6 +2164,8 @@ xdraw_path_create_with_polygon(xdraw_canvas_t* canvas,
     xdraw_path_sink_t sink;
     UINT i;
 
+    XDRAW_TRACE("xdraw_path_create_with_polygon(%p, %u points)", canvas, n);
+
     MC_ASSERT(n > 0);
 
     path = xdraw_path_create(canvas);
@@ -2075,6 +2192,8 @@ xdraw_path_create_with_polygon(xdraw_canvas_t* canvas,
 void
 xdraw_path_destroy(xdraw_path_t* path)
 {
+    XDRAW_TRACE("xdraw_path_destroy(%p)", path);
+
     if(d2d_dll != NULL) {
         ID2D1PathGeometry* g = (ID2D1PathGeometry*) path;
         ID2D1PathGeometry_Release(g);
@@ -2086,6 +2205,8 @@ xdraw_path_destroy(xdraw_path_t* path)
 int
 xdraw_path_open_sink(xdraw_path_sink_t* sink, xdraw_path_t* path)
 {
+    XDRAW_TRACE("xdraw_path_open_sink(%p, %p)", sink, path);
+
     if(d2d_dll != NULL) {
         ID2D1PathGeometry* g = (ID2D1PathGeometry*) path;
         ID2D1GeometrySink* s;
@@ -2109,6 +2230,8 @@ xdraw_path_open_sink(xdraw_path_sink_t* sink, xdraw_path_t* path)
 void
 xdraw_path_close_sink(xdraw_path_sink_t* sink)
 {
+    XDRAW_TRACE("xdraw_path_close_sink(%p)", sink);
+
     if(d2d_dll != NULL) {
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) sink->data;
         ID2D1GeometrySink_Close(s);
@@ -2121,6 +2244,8 @@ xdraw_path_close_sink(xdraw_path_sink_t* sink)
 void
 xdraw_path_begin_figure(xdraw_path_sink_t* sink, const xdraw_point_t* start_point)
 {
+    XDRAW_TRACE("xdraw_path_begin_figure(%p)", sink);
+
     if(d2d_dll != NULL) {
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) sink->data;
         ID2D1GeometrySink_BeginFigure(s, *((D2D1_POINT_2F*) start_point),
@@ -2136,6 +2261,8 @@ xdraw_path_begin_figure(xdraw_path_sink_t* sink, const xdraw_point_t* start_poin
 void
 xdraw_path_end_figure(xdraw_path_sink_t* sink, BOOL closed_end)
 {
+    XDRAW_TRACE("xdraw_path_end_figure(%p)", sink);
+
     if(d2d_dll != NULL) {
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) sink->data;
         ID2D1GeometrySink_EndFigure(s, (closed_end ? D2D1_FIGURE_END_CLOSED
@@ -2149,6 +2276,8 @@ xdraw_path_end_figure(xdraw_path_sink_t* sink, BOOL closed_end)
 void
 xdraw_path_add_line(xdraw_path_sink_t* sink, const xdraw_point_t* end_point)
 {
+    XDRAW_TRACE("xdraw_path_add_line(%p)", sink);
+
     if(d2d_dll != NULL) {
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) sink->data;
         ID2D1GeometrySink_AddLine(s, *((D2D1_POINT_2F*) end_point));
@@ -2162,8 +2291,51 @@ xdraw_path_add_line(xdraw_path_sink_t* sink, const xdraw_point_t* end_point)
 }
 
 void
+xdraw_path_add_arc(xdraw_path_sink_t* sink, const xdraw_point_t* center,
+                   float sweep_angle)
+{
+    float cx = center->x;
+    float cy = center->y;
+    float ax = sink->end.x;
+    float ay = sink->end.y;
+    float xdiff = ax - cx;
+    float ydiff = ay - cy;
+    float r;
+    float base_angle;
+
+    XDRAW_TRACE("xdraw_path_add_arc(%p)", sink);
+
+    /* Avoid undefined case for atan2f() */
+    if(xdiff == 0.0f  &&  ydiff == 0.0f)
+        return;
+
+    r = sqrtf(xdiff * xdiff + ydiff * ydiff);
+    base_angle = atan2f(ydiff, xdiff) * (180.0f / MC_PIf);
+
+    if(d2d_dll != NULL) {
+        ID2D1GeometrySink* s = (ID2D1GeometrySink*) sink->data;
+        xdraw_circle_t circle = { cx, cy, r };
+        D2D1_ARC_SEGMENT arc_seg;
+
+        d2d_setup_arc_segment(&arc_seg, &circle, base_angle, sweep_angle);
+        ID2D1GeometrySink_AddArc(s, &arc_seg);
+        sink->end.x = arc_seg.point.x;
+        sink->end.y = arc_seg.point.y;
+    } else {
+        float d = 2.0f * r;
+        float sweep_rads = (base_angle + sweep_angle) * (MC_PIf / 180.0f);
+
+        gdix_AddPathArc(sink->data, cx - r, cy - r, d, d, base_angle, sweep_angle);
+        sink->end.x = cx + r * cosf(sweep_rads);
+        sink->end.y = cy + r * sinf(sweep_rads);
+    }
+}
+
+void
 xdraw_clear(xdraw_canvas_t* canvas, xdraw_color_t color)
 {
+    XDRAW_TRACE("xdraw_clear(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         D2D_COLOR_F clr;
@@ -2185,6 +2357,8 @@ xdraw_draw_arc(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                const xdraw_circle_t* circle, float base_angle,
                float sweep_angle, float stroke_width)
 {
+    XDRAW_TRACE("xdraw_draw_arc(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
@@ -2212,6 +2386,8 @@ void
 xdraw_draw_line(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                 const xdraw_line_t* line, float stroke_width)
 {
+    XDRAW_TRACE("xdraw_draw_line(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
@@ -2230,6 +2406,8 @@ void
 xdraw_draw_path(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                 const xdraw_path_t* path, float stroke_width)
 {
+    XDRAW_TRACE("xdraw_draw_path(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Geometry* g = (ID2D1Geometry*) path;
@@ -2237,7 +2415,9 @@ xdraw_draw_path(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
         ID2D1RenderTarget_DrawGeometry(c->target, g, b, 1.0f, NULL);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_DrawPath(c->graphics, (void*) brush, (void*) path);
+        gdix_SetPenBrushFill(c->pen, (void*) brush);
+        gdix_SetPenWidth(c->pen, stroke_width);
+        gdix_DrawPath(c->graphics, (void*) c->pen, (void*) path);
     }
 }
 
@@ -2246,6 +2426,8 @@ xdraw_draw_pie(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                const xdraw_circle_t* circle, float base_angle,
                float sweep_angle, float stroke_width)
 {
+    XDRAW_TRACE("xdraw_draw_pie(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
@@ -2273,6 +2455,8 @@ void
 xdraw_draw_rect(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                 const xdraw_rect_t* rect, float stroke_width)
 {
+    XDRAW_TRACE("xdraw_draw_rect(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
@@ -2291,6 +2475,8 @@ void
 xdraw_fill_circle(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                   const xdraw_circle_t* circle)
 {
+    XDRAW_TRACE("xdraw_fill_circle(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
@@ -2308,6 +2494,8 @@ void
 xdraw_fill_path(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                 const xdraw_path_t* path)
 {
+    XDRAW_TRACE("xdraw_fill_path(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Geometry* g = (ID2D1Geometry*) path;
@@ -2323,6 +2511,8 @@ void
 xdraw_fill_pie(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                const xdraw_circle_t* circle, float base_angle, float sweep_angle)
 {
+    XDRAW_TRACE("xdraw_fill_pie(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
@@ -2348,6 +2538,8 @@ void
 xdraw_fill_rect(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                 const xdraw_rect_t* rect)
 {
+    XDRAW_TRACE("xdraw_fill_rect(%p)", canvas);
+
     if(d2d_dll != NULL) {
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
@@ -2360,10 +2552,117 @@ xdraw_fill_rect(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
 }
 
 void
+xdraw_blit_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
+                 const xdraw_rect_t* dst, const xdraw_rect_t* src)
+{
+    XDRAW_TRACE("xdraw_blit_image(%p)", canvas);
+
+    if(d2d_dll != NULL) {
+        d2d_canvas_t* c = (d2d_canvas_t*) canvas;
+        IWICBitmapSource* source = (IWICBitmapSource*) image;
+        ID2D1Bitmap* b;
+        HRESULT hr;
+        /* Compensation for translation in xdraw_canvas_transform_reset() */
+        D2D1_RECT_F dst_fix = { dst->x0 - 0.5f, dst->y0 - 0.5f,
+                                dst->x1 - 0.5f, dst->y1 - 0.5f };
+
+        hr = ID2D1RenderTarget_CreateBitmapFromWicBitmap(c->target, source, NULL, &b);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("xdraw_blit_image: "
+                     "ID2D1RenderTarget::CreateBitmapFromWicBitmap() failed. "
+                     "[0x%lx]", hr);
+            return;
+        }
+        ID2D1RenderTarget_DrawBitmap(c->target, b, &dst_fix, 1.0f,
+                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, (D2D1_RECT_F*) src);
+        ID2D1Bitmap_Release(b);
+    } else {
+        gdix_canvas_t* c = (gdix_canvas_t*) canvas;
+        gdix_DrawImageRectRect(c->graphics, (void*) image,
+                dst->x0, dst->y0, dst->x1 - dst->x0, dst->y1 - dst->y0,
+                src->x0, src->y0, src->x1 - src->x0, src->y1 - src->y0,
+                2/*UnitPixel*/, NULL, NULL, NULL);
+    }
+}
+
+void
+xdraw_blit_HICON(xdraw_canvas_t* canvas, HICON icon, const xdraw_rect_t* rect)
+{
+    xdraw_rect_t source_rect = { 0, 0, rect->x1 - rect->x0, rect->y1 - rect->y0 };
+
+    XDRAW_TRACE("xdraw_blit_HICON(%p, %p)", canvas, icon);
+
+    if(d2d_dll != NULL) {
+        IWICImagingFactory* wic_factory;
+        IWICBitmap* wic_bitmap;
+        IWICFormatConverter* wic_converter;
+        HRESULT hr;
+
+        wic_factory = (IWICImagingFactory*) xcom_init_create(
+                &CLSID_WICImagingFactory, CLSCTX_INPROC, &IID_IWICImagingFactory);
+        if(MC_ERR(wic_factory == NULL)) {
+            MC_TRACE("xdraw_blit_HICON: xcom_init_create() failed.");
+            goto err_xcom_init_create;
+        }
+
+        hr = IWICImagingFactory_CreateBitmapFromHICON(wic_factory, icon, &wic_bitmap);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("xdraw_blit_HICON: "
+                     "IWICImagingFactory::CreateBitmapFromHICON() failed. "
+                     "[0x%lx]", hr);
+            goto err_CreateBitmapFromHICON;
+        }
+
+        hr = IWICImagingFactory_CreateFormatConverter(wic_factory, &wic_converter);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("xdraw_blit_HICON: "
+                     "IWICImagingFactory::CreateFormatConverter() failed. "
+                     "[0x%lx]", hr);
+            goto err_CreateFormatConverter;
+        }
+
+        hr = IWICFormatConverter_Initialize(wic_converter,
+                (IWICBitmapSource*) wic_bitmap, &GUID_WICPixelFormat32bppPBGRA,
+                WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE("xdraw_blit_HICON: "
+                     "IWICFormatConverter::Initialize() failed. [0x%lx]", hr);
+            goto err_Initialize;
+        }
+
+        xdraw_blit_image(canvas, (xdraw_image_t*) wic_converter, rect, &source_rect);
+
+err_Initialize:
+        IWICFormatConverter_Release(wic_converter);
+err_CreateFormatConverter:
+        IWICBitmap_Release(wic_bitmap);
+err_CreateBitmapFromHICON:
+        IWICImagingFactory_Release(wic_factory);
+        xcom_fini();
+err_xcom_init_create:
+        ;  /* noop */
+    } else {
+        void* b;
+        int status;
+
+        status = gdix_CreateBitmapFromHICON(icon, &b);
+        if(MC_ERR(status != 0)) {
+            MC_TRACE("xdraw_blit_HICON: gdix_CreateBitmapFromHICON() failed. "
+                     "[%d]", status);
+            return;
+        }
+        xdraw_blit_image(canvas, (xdraw_image_t*) b, rect, &source_rect);
+        gdix_DisposeImage(b);
+    }
+}
+
+void
 xdraw_draw_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
                   const xdraw_rect_t* rect, const TCHAR* str, int len,
                   const xdraw_brush_t* brush, DWORD flags)
 {
+    XDRAW_TRACE("xdraw_draw_string(%p, %.*s)", canvas, len, str);
+
     if(d2d_dll != NULL) {
         D2D1_POINT_2F origin = { rect->x0, rect->y0 };
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
@@ -2396,6 +2695,8 @@ xdraw_measure_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
                      const xdraw_rect_t* rect, const TCHAR* str, int len,
                      xdraw_string_measure_t* measure, DWORD flags)
 {
+    XDRAW_TRACE("xdraw_measure_string(%p, %.*s)", canvas, len, str);
+
     if(d2d_dll != NULL) {
         dw_IDWriteTextFormat* tf = (dw_IDWriteTextFormat*) font;
         dw_IDWriteTextLayout* layout;
@@ -2431,36 +2732,18 @@ xdraw_measure_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
     }
 }
 
-void
-xdraw_blit_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
-                 const xdraw_rect_t* dst, const xdraw_rect_t* src)
+float
+xdraw_measure_string_width(xdraw_canvas_t* canvas, const xdraw_font_t* font,
+                           const TCHAR* str)
 {
-    if(d2d_dll != NULL) {
-        d2d_canvas_t* c = (d2d_canvas_t*) canvas;
-        IWICBitmapSource* source = (IWICBitmapSource*) image;
-        ID2D1Bitmap* b;
-        HRESULT hr;
-        /* Compensation for translation in xdraw_canvas_transform_reset() */
-        D2D1_RECT_F dst_fix = { dst->x0 - 0.5f, dst->y0 - 0.5f,
-                                dst->x1 - 0.5f, dst->y1 - 0.5f };
+    static const xdraw_rect_t infinite_rect = { 0, 0, FLT_MAX, FLT_MAX };
+    xdraw_string_measure_t measure;
 
-        hr = ID2D1RenderTarget_CreateBitmapFromWicBitmap(c->target, source, NULL, &b);
-        if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_blit_image: "
-                     "ID2D1RenderTarget::CreateBitmapFromWicBitmap() failed. "
-                     "[0x%lx]", hr);
-            return;
-        }
-        ID2D1RenderTarget_DrawBitmap(c->target, b, &dst_fix, 1.0f,
-                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, (D2D1_RECT_F*) src);
-        ID2D1Bitmap_Release(b);
-    } else {
-        gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_DrawImageRectRect(c->graphics, (void*) image,
-                dst->x0, dst->y0, dst->x1 - dst->x0, dst->y1 - dst->y0,
-                src->x0, src->y0, src->x1 - src->x0, src->y1 - src->y0,
-                2/*UnitPixel*/, NULL, NULL, NULL);
-    }
+    XDRAW_TRACE("xdraw_measure_string_width(%p, %s)", canvas, str);
+
+    xdraw_measure_string(canvas, font, &infinite_rect, str, _tcslen(str),
+                         &measure, XDRAW_STRING_LEFT | XDRAW_STRING_NOWRAP);
+    return (measure.bound.x1 - measure.bound.x0);
 }
 
 
@@ -2492,6 +2775,7 @@ xdraw_init_module(void)
         /* Ouch. Both drivers failed or are not available. This should not
          * normally happen unless on Win2K, if the application does not provide
          * distributable version of GDIPLUS.DLL. */
+        MC_TRACE("xdraw_init_module: No suitable driver.");
         return -1;
     }
 

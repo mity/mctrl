@@ -165,9 +165,20 @@ void xdraw_canvas_transform_with_rotation(xdraw_canvas_t* canvas, float angle);
 void xdraw_canvas_transform_with_translation(xdraw_canvas_t* canvas, float dx, float dy);
 void xdraw_canvas_transform_reset(xdraw_canvas_t* canvas);
 
-void xdraw_canvas_set_clip_rect(xdraw_canvas_t* canvas, const xdraw_rect_t* rect);
-void xdraw_canvas_set_clip_path(xdraw_canvas_t* canvas, const xdraw_path_t* path);
-void xdraw_canvas_reset_clip(xdraw_canvas_t* canvas);
+/* If both the rect as well as the path are provided, the clipping is set to
+ * the intersection of them. */
+void xdraw_canvas_set_clip(xdraw_canvas_t* canvas, const xdraw_rect_t* rect,
+                           const xdraw_path_t* path);
+
+static inline void
+xdraw_canvas_set_clip_rect(xdraw_canvas_t* canvas, const xdraw_rect_t* rect)
+    { xdraw_canvas_set_clip(canvas, rect, NULL); }
+static inline void
+xdraw_canvas_set_clip_path(xdraw_canvas_t* canvas, const xdraw_path_t* path)
+    { xdraw_canvas_set_clip(canvas, NULL, path); }
+static inline void
+xdraw_canvas_reset_clip(xdraw_canvas_t* canvas)
+    { xdraw_canvas_set_clip(canvas, NULL, NULL); }
 
 
 /*********************************
@@ -212,6 +223,8 @@ void xdraw_path_begin_figure(xdraw_path_sink_t* sink, const xdraw_point_t* start
 void xdraw_path_end_figure(xdraw_path_sink_t* sink, BOOL closed_end);
 
 void xdraw_path_add_line(xdraw_path_sink_t* sink, const xdraw_point_t* end_point);
+void xdraw_path_add_arc(xdraw_path_sink_t* sink, const xdraw_point_t* center,
+                        float sweep_angle);
 
 
 /*************************
@@ -287,16 +300,26 @@ void xdraw_fill_rect(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
 void xdraw_blit_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
                       const xdraw_rect_t* dst, const xdraw_rect_t* src);
 
+void xdraw_blit_HICON(xdraw_canvas_t* canvas, HICON icon, const xdraw_rect_t* rect);
+
 
 /***********************
  ***  String output  ***
  ***********************/
 
-#define XDRAW_STRING_LEFT         0x00
-#define XDRAW_STRING_CENTER       0x01
-#define XDRAW_STRING_RIGHT        0x02
-#define XDRAW_STRING_CLIP         0x04
-#define XDRAW_STRING_NOWRAP       0x08
+#define XDRAW_STRING_LEFT               0x00
+#define XDRAW_STRING_CENTER             0x01
+#define XDRAW_STRING_RIGHT              0x02
+#define XDRAW_STRING_CLIP               0x04
+#define XDRAW_STRING_NOWRAP             0x08
+#define XDRAW_STRING_END_ELLIPSIS       0x10
+#define XDRAW_STRING_WORD_ELLIPSIS      0x20
+#define XDRAW_STRING_PATH_ELLIPSIS      0x30
+
+#define XDRAW_STRING_ALIGNEMENT_MASK                                        \
+        (XDRAW_STRING_LEFT | XDRAW_STRING_CENTER | XDRAW_STRING_RIGHT)
+#define XDRAW_STRING_ELLIPSIS_MASK                                          \
+        (XDRAW_STRING_END_ELLIPSIS | XDRAW_STRING_WORD_ELLIPSIS | XDRAW_STRING_PATH_ELLIPSIS)
 
 void xdraw_draw_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
                        const xdraw_rect_t* rect, const TCHAR* str, int len,
@@ -311,6 +334,10 @@ struct xdraw_string_measure_tag {
 void xdraw_measure_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
                           const xdraw_rect_t* rect, const TCHAR* str, int len,
                           xdraw_string_measure_t* measure, DWORD flags);
+
+float xdraw_measure_string_width(xdraw_canvas_t* canvas,
+                                 const xdraw_font_t* font, const TCHAR* str);
+
 
 
 #endif  /* MC_XDRAW_H */

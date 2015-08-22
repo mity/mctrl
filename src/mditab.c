@@ -18,34 +18,17 @@
 
 #include "mditab.h"
 #include "generic.h"
+#include "anim.h"
 #include "dsa.h"
 #include "theme.h"
+#include "xdraw.h"
 
-/* TODO:
- *
- * Features:
- * - Support drag&drop:
- *    [a] reordering tabs with mouse drag&drop in the control
- *        (fully implemented internally in mCtrl.dll)
- *    [b] dragging the tab to other targets (only if some new style is used).
- *        Parent window will get notifications about the drag&drop attempt.
- *        So for example, application can implement moving the tab from one
- *        MTAB control to another MTAB control (which can be in another
- *        top-level window).
- *
- * Messages:
- * - MC_MTM_REMOVEIMAGE (see TCM_REMOVEIMAGE)
- * - MC_MTM_SETTOOLTIPS/MC_MTM_GETTOOLTIPS (see TCM_SETTOOLTIPS/TCM_GETTOOLTIPS)
- * - MC_MTM_HITTEST - add support for MC_MTHT_ONITEMCLOSEBUTTON
- *
- * Styles:
- * - MC_MTS_CBONEACHTAB - close button on each tab
- * - MC_MTS_CBONACTIVETAB - close button on the active tab
- */
+#include <math.h>
 
 
 /* Uncomment this to have more verbose traces from this module. */
 /*#define MDITAB_DEBUG     1*/
+#define MDITAB_DEBUG     1
 
 #ifdef MDITAB_DEBUG
     #define MDITAB_TRACE       MC_TRACE
@@ -54,46 +37,84 @@
 #endif
 
 
+/* Few implementation notes:
+ * =========================
+ *
+ * The control geometry is quite complex, therefore we distinguish several
+ * different widths of items:
+ *
+ * (1) Current width: This is the width "right now". I.e. painting and hit
+ *     testing uses this item width.
+ *
+ *     current_width = (mditab_item_t::x1 - mditab_item_t::x0)
+ *
+ * (2) Ideal width: Width which guarantees that whole item label (and icon)
+ *     can be painted within the item. The ideal width is cached in
+ *     mditab_item_t::ideal_width (but it is only calculated lazily).
+ *
+ * (3) Target width: On a control change, width of an item may need to change.
+ *     This determines the desired width. Unless animation is in progress,
+ *     this is same as (1). It depends on many control styles, control size
+ *     and other attributes.
+ *
+ *     Normally, it is equal to mditab_t::item_def_width (if it is non-zero)
+ *     or ideal width (if the item_def_width is zero). But if the control is
+ *     too small to accommodate all items (i.e. if scrolling arrows are visible
+ *     and enabled) the target width may be shorter (mditab_t::item_min_width).
+ *     (The shortening is disabled if item_min_width is zero.)
+ *
+ * Furthermore, the shape of items is irregular (it has those curved sides),
+ * so all the width measure "an average width", which is defined to ignore
+ * parts of items which may overlap with other items. Painting (invalidating)
+ * and hit-testing code has to deal with this specially but otherwise it
+ * simplifies a lot of our math.
+ *
+ * The curved parts are parts of circle, their radius equal to half of the
+ * item height (which is equal to client rect. height - MDITAB_ITEM_TOP_MARGIN).
+ */
+
+
 
 static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
-
-static const TCHAR toolbar_wc[] = TOOLBARCLASSNAME;
 
 
 /* Geometry constants */
 #define DEFAULT_ITEM_MIN_WIDTH       60
 #define DEFAULT_ITEM_DEF_WIDTH        0
 
-#define ITEM_PADDING_H                4
-#define ITEM_PADDING_V                2
-#define ITEM_CORNER_SIZE              3
+#define BTNID_LSCROLL                 0
+#define BTNID_RSCROLL                 1
+#define BTNID_LIST                    2
+#define BTNID_CLOSE                   3
 
-#define SELECTED_EXTRA_LEFT           2
-#define SELECTED_EXTRA_TOP            2
-#define SELECTED_EXTRA_RIGHT          1
-#define SELECTED_EXTRA_BOTTOM         1
+#define BTNMASK_LSCROLL              (1 << BTNID_LSCROLL)
+#define BTNMASK_RSCROLL              (1 << BTNID_RSCROLL)
+#define BTNMASK_LIST                 (1 << BTNID_LIST)
+#define BTNMASK_CLOSE                (1 << BTNID_CLOSE)
 
-#define TOOLBAR_BTN_WIDTH            16
+#define BTNMASK_SCROLL               (BTNMASK_LSCROLL | BTNMASK_RSCROLL)
 
-#define MARGIN_H                      2
+#define ITEM_HOT_NONE              -100
 
-/* Timer for animation */
-#define ANIM_TIMER_ID                 2
-#define ANIM_TIMER_INTERVAL       (1000 / 25)   /* 25 frames per sec. */
-#define ANIM_DELTA                   32         /* max. pixels to move between frames */
+#define ANIM_TIMER_ID                 1
+#define ANIM_MAX_PIXELS_PER_SECOND  800
 
-/* Child control IDs */
-#define IDC_TBAR_1                  100  /* left toolbar */
-#define IDC_SCROLL_LEFT             101
-#define IDC_TBAR_2                  200  /* right toolbar */
-#define IDC_SCROLL_RIGHT            201
-#define IDC_LIST_ITEMS              202
-#define IDC_CLOSE_ITEM              203
+#define MDITAB_ITEM_TOP_MARGIN        4    /* space above item */
+#define MDITAB_ITEM_PADDING           8    /* horizontal padding inside the item */
+#define MDITAB_ITEM_ICON_MARGIN       5    /* space between icon and text */
 
-#define BTN_SCROLL                  0x1
-#define BTN_LIST                    0x2
-#define BTN_CLOSE                   0x4
+#define MDITAB_COLOR_BACKGROUND    XDRAW_COLORREF(GetSysColor(COLOR_APPWORKSPACE))
+#define MDITAB_COLOR_BORDER        XDRAW_COLORREF(GetSysColor(COLOR_3DDKSHADOW))
+#define MDITAB_COLOR_INACTIVEITEM  XDRAW_ACOLORREF(127,GetSysColor(COLOR_APPWORKSPACE))
+#define MDITAB_COLOR_HOTITEM       XDRAW_ACOLORREF(63,GetSysColor(COLOR_APPWORKSPACE))
 
+
+typedef struct mditab_paint_tag mditab_paint_t;
+struct mditab_paint_tag {
+    xdraw_canvas_t* canvas;
+    xdraw_brush_t* solid_brush;
+    xdraw_font_t* font;
+};
 
 /* Per-tab structure */
 typedef struct mditab_item_tag mditab_item_t;
@@ -101,41 +122,56 @@ struct mditab_item_tag {
     TCHAR* text;
     LPARAM lp;
     SHORT img;
-    USHORT left;
-    USHORT right;
-    USHORT desired_width;
+    USHORT x0;           /* Relative to mditab_t::area_margin0. */
+    USHORT x1;
+    USHORT ideal_width;  /* Cached result of mditab_item_ideal_width() */
 };
 
 /* Per-control structure */
 typedef struct mditab_tag mditab_t;
 struct mditab_tag {
     HWND win;
-    HWND tb1_win;              /* left-side toolbar */
-    HWND tb2_win;              /* right-side toolbar */
-    HWND notify_win;           /* notifications target window */
+    HWND notify_win;
     HIMAGELIST img_list;
     HFONT font;
+    mditab_paint_t* paint_ctx;
+    anim_t* animation;
     dsa_t items;
-    RECT main_rect;
-    DWORD ui_state;
-    DWORD style           : 16;
-    DWORD btn_mask        :  3;
-    DWORD no_redraw       :  1;
-    DWORD tracking_leave  :  1;
-/*  DWORD tracking_hover  :  1; */
-    DWORD dirty_layout    :  1;
-    DWORD dirty_scroll    :  1;
-    DWORD is_animating    :  1;
+    DWORD style             : 16;
+    DWORD btn_mask          :  4;
+    DWORD no_redraw         :  1;
+    DWORD tracking_leave    :  1;
+    DWORD dirty_layout      :  1;
+    DWORD dirty_scroll      :  1;
+    DWORD btn_pressed       :  1;  /* Button ABS(item_hot) is pressed. */
+    DWORD scrolling_to_item :  1;  /* If set, scroll_x_desired is item index. */
     int scroll_x;
     int scroll_x_desired;
     int scroll_x_max;
+    USHORT area_margin0; /* Left and right margins of area where tabs live. */
+    USHORT area_margin1;
     SHORT item_selected;
-    SHORT item_hot;            /* tracked only > Win 2000 */
-    SHORT item_mclose;         /* candidate item to close by middle button */
+    SHORT item_hot;      /* If negative, ABS(item_hot+1) is BTNID_xxx of hot/pressed button. */
+    SHORT item_mclose;   /* Close-by-middle-button candidate. */
     USHORT item_min_width;
     USHORT item_def_width;
 };
 
+typedef struct mditab_item_layout_tag mditab_item_layout_t;
+struct mditab_item_layout_tag {
+    xdraw_rect_t icon_rect;
+    xdraw_rect_t text_rect;
+};
+
+
+static inline int
+mditab_hot_button(mditab_t* mditab)
+{
+    if(mditab->item_hot < 0)
+        return -mditab->item_hot - 1;
+    else
+        return -1;
+}
 
 static inline mditab_item_t*
 mditab_item(mditab_t* mditab, WORD index)
@@ -157,193 +193,376 @@ mditab_item_dtor(dsa_t* dsa, void* it)
         free(item->text);
 }
 
-static int
-mditab_calc_desired_width(mditab_t* mditab, WORD index)
+static inline USHORT
+mditab_item_current_width(mditab_t* mditab, WORD index)
 {
-    int width;
-
-    width = mc_width(&mditab->main_rect) / mditab_count(mditab);
-    if(width > mditab->item_def_width) {
-        if(mditab->item_def_width > 0) {
-            width = mditab->item_def_width;
-        } else {
-            mditab_item_t* item = mditab_item(mditab, index);
-
-            width = 2 *  ITEM_PADDING_H;
-            if(mditab->img_list != NULL) {
-                int w, h;
-
-                ImageList_GetIconSize(mditab->img_list, &w, &h);
-                width += w + 3;
-            }
-
-            if(item->text != NULL)
-                width += mc_string_width(item->text, mditab->font);
-        }
-    }
-
-    if(mditab->item_min_width > 0  &&  width < mditab->item_min_width)
-        width = mditab->item_min_width;
-
-    return width;
+    mditab_item_t* item = mditab_item(mditab, index);
+    return (item->x1 - item->x0);
 }
 
-static inline void
-mditab_inflate_selected_item_rect(RECT* rect)
-{
-    rect->left -= SELECTED_EXTRA_LEFT;
-    rect->top -= SELECTED_EXTRA_TOP;
-    rect->right += SELECTED_EXTRA_RIGHT;
-    rect->bottom += SELECTED_EXTRA_BOTTOM;
-}
-
-static inline void
-mditab_calc_item_rect(mditab_t* mditab, WORD index, RECT* rect)
+static USHORT
+mditab_item_ideal_width(mditab_t* mditab, WORD index)
 {
     mditab_item_t* item = mditab_item(mditab, index);
 
-    rect->left = mditab->main_rect.left + item->left - mditab->scroll_x;
-    rect->top = mditab->main_rect.top;
-    rect->right = mditab->main_rect.left + item->right - mditab->scroll_x;
-    rect->bottom = mditab->main_rect.bottom - 4;
+    if(MC_UNLIKELY(item->ideal_width == 0)) {
+        const TCHAR* text = item->text;
+        int w = 0;
 
-    if(index == mditab->item_selected)
-        mditab_inflate_selected_item_rect(rect);
+        if(mditab->img_list != NULL) {
+            int ico_w, ico_h;
+            ImageList_GetIconSize(mditab->img_list, &ico_w, &ico_h);
+            w += ico_w + MDITAB_ITEM_PADDING;
+
+            if(text != NULL)
+                w += MDITAB_ITEM_ICON_MARGIN;
+            else
+                w += MDITAB_ITEM_PADDING;
+        }
+
+        if(text != NULL) {
+            xdraw_canvas_t* canvas;
+            xdraw_font_t* font;
+
+            if(mditab->paint_ctx != NULL) {
+                canvas = mditab->paint_ctx->canvas;
+                font = mditab->paint_ctx->font;
+            } else {
+                RECT client;
+                HDC dc;
+
+                GetClientRect(mditab->win, &client);
+                dc = GetDCEx(NULL, NULL, DCX_CACHE);
+                canvas = xdraw_canvas_create_with_dc(dc, &client, 0);
+                if(MC_ERR(canvas == NULL)) {
+                    MC_TRACE("mditab_item_ideal_width: "
+                             "xdraw_canvas_create_with_dc() failed.");
+                    goto err_xdraw_canvas_create_with_dc;
+                }
+                font = xdraw_font_create_with_HFONT(canvas, mditab->font);
+                if(MC_ERR(font == NULL)) {
+                    MC_TRACE("mditab_item_ideal_width: "
+                             "draw_font_create_with_HFONT() failed.");
+                    goto err_xdraw_font_create_with_HFONT;
+                }
+            }
+
+            w += xdraw_measure_string_width(canvas, font, text);
+            w += MDITAB_ITEM_PADDING;
+
+            /* FIXME: Not sure why this is needed so that the text fits in.
+             *        Would be better to fix in xdraw.c */
+            w += 1.0f;
+
+            if(mditab->paint_ctx == NULL) {
+                xdraw_font_destroy(font);
+err_xdraw_font_create_with_HFONT:
+                xdraw_canvas_destroy(canvas);
+err_xdraw_canvas_create_with_dc:
+                ;  /* noop */
+            }
+        }
+
+        item->ideal_width = w;
+    }
+
+    return MC_MAX(item->ideal_width, mditab->item_min_width);
 }
 
-static inline void
-mditab_calc_contents_rect(RECT* contents, const RECT* tab_rect)
+static void
+mditab_reset_ideal_widths(mditab_t* mditab)
 {
-    contents->left = tab_rect->left + ITEM_PADDING_H;
-    contents->top = tab_rect->top + ITEM_PADDING_V;
-    contents->right = tab_rect->right - ITEM_PADDING_H;
-    contents->bottom = tab_rect->bottom;
+    int i;
+    int n = mditab_count(mditab);
+
+    for(i = 0; i < n; i++) {
+        mditab_item_t* item = mditab_item(mditab, i);
+        item->ideal_width = 0;
+    }
 }
 
-static inline void
-mditab_calc_ico_rect(RECT* ico_rect, const RECT* contents, int ico_w, int ico_h)
+static inline int
+mditab_button_size(const RECT* client)
 {
-    ico_rect->left = contents->left;
-    ico_rect->top = (contents->top + contents->bottom - ico_h) / 2;
-    ico_rect->right = ico_rect->left + ico_w;
-    ico_rect->bottom = ico_rect->top + ico_h;
+    return mc_height(client) - 4;
+}
+
+static void
+mditab_button_rect(mditab_t* mditab, int btn_id, RECT* rect)
+{
+    RECT client;
+    int x0, y0;
+    int btn_size;
+
+    MC_ASSERT(mditab->btn_mask & (1 << btn_id));
+
+    GetClientRect(mditab->win, &client);
+    btn_size = mditab_button_size(&client);
+    y0 = (client.bottom - btn_size + 1) / 2;
+
+    if(btn_id == BTNID_LSCROLL) {
+        x0 = 0;
+        mc_rect_set(rect, x0, y0, x0 + btn_size, y0 + btn_size);
+        return;
+    }
+
+    x0 = client.right - btn_size;
+    if(btn_id == BTNID_CLOSE) {
+        mc_rect_set(rect, x0, y0, x0 + btn_size, y0 + btn_size);
+        return;
+    }
+
+    if(mditab->btn_mask & (1 << BTNID_CLOSE))
+        x0 -= btn_size;
+
+    if(btn_id == BTNID_LIST) {
+        mc_rect_set(rect, x0, y0, x0 + btn_size, y0 + btn_size);
+        return;
+    }
+
+    if(mditab->btn_mask & (1 << BTNID_LIST))
+        x0 -= btn_size;
+
+    MC_ASSERT(btn_id == BTNID_RSCROLL);
+    mc_rect_set(rect, x0, y0, x0 + btn_size, y0 + btn_size);
+}
+
+static void
+mditab_setup_item_layout(mditab_t* mditab,mditab_item_t* item, int x0, int y0,
+                         int x1, int y1, mditab_item_layout_t* layout)
+{
+    int contents_x = x0 + MDITAB_ITEM_PADDING;
+
+    if(mditab->img_list != NULL) {
+        int icon_w, icon_h;
+
+        ImageList_GetIconSize(mditab->img_list, &icon_w, &icon_h);
+        layout->icon_rect.x0 = contents_x;
+        layout->icon_rect.y0 = (y0 + y1 - icon_h) / 2;
+        layout->icon_rect.x1 = layout->icon_rect.x0 + icon_w;
+        layout->icon_rect.y1 = layout->icon_rect.y0 + icon_h;
+
+        contents_x += icon_w + MDITAB_ITEM_ICON_MARGIN;
+    }
+
+    if(item->text != NULL) {
+        SIZE size;
+
+        mc_font_size(mditab->font, &size, TRUE);
+        layout->text_rect.x0 = contents_x;
+        layout->text_rect.y0 = (y0 + y1 - size.cy) / 2;
+        layout->text_rect.x1 = x1 - MDITAB_ITEM_PADDING;
+        layout->text_rect.y1 = layout->text_rect.y0 + size.cy;
+    }
 }
 
 static BOOL
-mditab_is_item_visible(mditab_t* mditab, int index)
+mditab_hit_test_item(mditab_t* mditab, MC_MTHITTESTINFO* hti,
+                     const RECT* client, WORD index, BOOL want_hti_flags)
 {
-    mditab_item_t* item = mditab_item(mditab, index);
+    int x = hti->pt.x;
+    int y = hti->pt.y;
+    mditab_item_t* item;
+    int x0, y0, x1, y1;
+    int r;
 
-    if(item->right - mditab->scroll_x <= mditab->main_rect.left)
+    item = mditab_item(mditab, index);
+
+    x0 = mditab->area_margin0 + item->x0 - mditab->scroll_x;
+    y0 = MDITAB_ITEM_TOP_MARGIN;
+    x1 = mditab->area_margin0 + item->x1 - mditab->scroll_x;
+    y1 = client->bottom;
+
+    r = (y1 - y0) / 2;
+
+    if(y < y0  ||  y >= y1)
         return FALSE;
-    if(item->left - mditab->scroll_x >= mditab->main_rect.right)
+    if(x < x0 - r  ||  x >= x1 + r)
         return FALSE;
+
+    if(x < x0 + r  ||  x > x1 - r) {
+        if(x < x0) {
+            int cx = x0 - r;
+            int cy = y0 + r;
+            int xdiff = x - cx;
+            int ydiff = y - cy;
+            if(!(y > cy  &&  xdiff * xdiff + ydiff * ydiff >= r * r))
+                return FALSE;
+        } else if(x < x0 + r) {
+            int cx = x0 + r;
+            int cy = y0 + r;
+            int xdiff = x - cx;
+            int ydiff = y - cy;
+            if(!(y > cy  ||  xdiff * xdiff + ydiff * ydiff <= r * r))
+                return FALSE;
+        } else if(x < x1) {
+            int cx = x1 - r;
+            int cy = y0 + r;
+            int xdiff = x - cx;
+            int ydiff = y - cy;
+            if(!(y > cy  ||  xdiff * xdiff + ydiff * ydiff <= r * r))
+                return FALSE;
+        } else {
+            int cx = x1 + r;
+            int cy = y0 + r;
+            int xdiff = x - cx;
+            int ydiff = y - cy;
+            if(!(y > cy  &&  xdiff * xdiff + ydiff * ydiff >= r * r))
+                return FALSE;
+        }
+    }
+
+    if(want_hti_flags) {
+        mditab_item_layout_t layout;
+
+        mditab_setup_item_layout(mditab, item, x0, y0, x1, y1, &layout);
+
+        if(mditab->img_list != NULL  &&
+           layout.icon_rect.x0 <= x  &&  x < layout.icon_rect.x1  &&
+           layout.icon_rect.y0 <= y  &&  y < layout.icon_rect.y1)
+            hti->flags = MC_MTHT_ONITEMICON;
+        else
+            hti->flags = MC_MTHT_ONITEMLABEL;
+    }
+
     return TRUE;
 }
 
-static mditab_item_t*
-mditab_item_by_x(mditab_t* mditab, int x, BOOL relaxed)
-{
-    mditab_item_t* item;
-    WORD i, n;
-
-    n = mditab_count(mditab);
-    if(n == 0)
-        return NULL;
-
-    x += mditab->scroll_x - mditab->main_rect.left;
-    if(x >= mditab->scroll_x_max)
-        return NULL;
-
-    i = (x * n) / mditab->scroll_x_max;
-    MDITAB_TRACE("mditab_item_by_x(%p, %d) --> 1st guess %d", mditab, x, i);
-    if(i >= n)
-        i = n-1;
-    item = mditab_item(mditab, i);
-    if(x < item->left) {
-        while(i > 0  &&  mditab_item(mditab, i-1)->right >= x)
-            i--;
-        item = mditab_item(mditab, i);
-    } else if(x >= item->right) {
-        while(TRUE) {
-            if(i == n-1)
-                return NULL;
-            i++;
-            item = mditab_item(mditab, i);
-            if(x < item->right)
-                break;
-        }
-    }
-
-    MC_ASSERT(item != NULL);
-    MC_ASSERT(i < n);
-    if(!relaxed  &&  x < item->left)
-        return NULL;
-    return item;
-}
-
 static int
-mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti)
+mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_flags)
 {
-    mditab_item_t* item;
+    static const UINT btn_map[] = {
+        MC_MTHT_ONLEFTSCROLLBUTTON, MC_MTHT_ONRIGHTSCROLLBUTTON,
+        MC_MTHT_ONLISTBUTTON, MC_MTHT_ONCLOSEBUTTON
+    };
 
-    MDITAB_TRACE("mditab_hit_test(%p, %p): x = %d, y = %d",
-                 mditab, hti, hti->pt.x, hti->pt.y);
+    RECT client;
+    int area_x0;
+    int area_x1;
+    int r;
+    int btn_id;
+    int i;
 
-    if(!mc_rect_contains_pt(&mditab->main_rect, &hti->pt))
-        goto nowhere;
+    GetClientRect(mditab->win, &client);
 
-    item = mditab_item_by_x(mditab, hti->pt.x, FALSE);
-    if(item == NULL)
-        goto nowhere;
+    /* Handle if outside client. */
+    if(!mc_rect_contains_pt(&client, &hti->pt)) {
+        hti->flags = 0;
+        if(hti->pt.x < client.left)
+            hti->flags |= MC_MTHT_TOLEFT;
+        else if(hti->pt.x >= client.right)
+            hti->flags |= MC_MTHT_TORIGHT;
+        if(hti->pt.y < client.top)
+            hti->flags |= MC_MTHT_ABOVE;
+        else if(hti->pt.y >= client.bottom)
+            hti->flags |= MC_MTHT_BELOW;
+        return -1;
+    }
 
-    if(mditab->img_list != NULL) {
-        RECT r;
-        RECT contents;
-        RECT ico_rect;
-        int ico_w, ico_h;
-
-        ImageList_GetIconSize(mditab->img_list, &ico_w, &ico_h);
-        mc_rect_set(&r, item->left, mditab->main_rect.top,
-                        item->right, mditab->main_rect.bottom);
-        mditab_calc_contents_rect(&contents, &r);
-        mditab_calc_ico_rect(&ico_rect, &contents, ico_w, ico_h);
-
-        if(mc_rect_contains_pt(&ico_rect, &hti->pt)) {
-            hti->flags = MC_MTHT_ONITEMICON;
-            goto found;
+    /* Hit test items. */
+    /* FIXME: This can be optimized, we can guess the right item given the X
+     *        coordinate and start the right item from there. */
+    area_x0 = mditab->area_margin0;
+    area_x1 = client.right - mditab->area_margin1;
+    r = (mc_height(&client) - MDITAB_ITEM_TOP_MARGIN + 1) / 2;
+    if(mditab->scroll_x <= 0)
+        area_x0 -= r;
+    if(mditab->scroll_x >= mditab->scroll_x_max)
+        area_x1 += r;
+    if(area_x0 <= hti->pt.x  &&  hti->pt.x < area_x1) {
+        if(mditab->item_selected >= 0) {
+            i = mditab->item_selected;
+            if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_flags))
+                return i;
+        }
+        for(i = mditab_count(mditab) - 1; i >= 0; i--) {
+            if(i == mditab->item_selected)
+                continue;
+            if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_flags))
+                return i;
         }
     }
 
-    /* TODO: check for MC_MTHT_ONITEMCLOSEBUTTON */
+    /* Hit test auxiliary buttons. */
+    for(btn_id = 0; btn_id < MC_ARRAY_SIZE(btn_map); btn_id++) {
+        if(mditab->btn_mask & (1 << btn_id)) {
+            RECT btn_rect;
 
-    hti->flags = MC_MTHT_ONITEMLABEL;
+            mditab_button_rect(mditab, btn_id, &btn_rect);
+            if(mc_rect_contains_pt(&btn_rect, &hti->pt)) {
+                hti->flags = btn_map[btn_id];
+                return -1;
+            }
+        }
+    }
 
-found:
-    return dsa_index(&mditab->items, item);
-
-nowhere:
     hti->flags = MC_MTHT_NOWHERE;
     return -1;
 }
 
 static void
-mditab_invalidate_item(mditab_t* mditab, int index)
+mditab_invalidate_item(mditab_t* mditab, WORD index)
 {
-    RECT r;
+    mditab_item_t* item;
+    RECT rect;
+    int r;
 
-    if(mditab->no_redraw  ||  !mditab_is_item_visible(mditab, index))
+    if(mditab->no_redraw)
         return;
 
-    mditab_calc_item_rect(mditab, index, &r);
+    item = mditab_item(mditab, index);
 
-    /* Invalidate a bit more to avoid artifacts for item loosing the selected
-     * state. */
-    if(mditab->item_selected != index)
-        mditab_inflate_selected_item_rect(&r);
+    GetClientRect(mditab->win, &rect);
+    r = mc_height(&rect) - MDITAB_ITEM_TOP_MARGIN;
 
-    InvalidateRect(mditab->win, &r, TRUE);
+    rect.left = mditab->area_margin0 + item->x0 - mditab->scroll_x - r;
+    rect.right = mditab->area_margin0 + item->x1 - mditab->scroll_x + r;
+
+    InvalidateRect(mditab->win, &rect, TRUE);
 }
+
+static void
+mditab_invalidate_button(mditab_t* mditab, int btn_id)
+{
+    RECT rect;
+
+    if(mditab->no_redraw  ||  !(mditab->btn_mask & (1 << btn_id)))
+        return;
+
+    mditab_button_rect(mditab, btn_id, &rect);
+    InvalidateRect(mditab->win, &rect, TRUE);
+}
+
+static void
+mditab_set_hot(mditab_t* mditab, SHORT hot, BOOL is_pressed)
+{
+    if(hot == mditab->item_hot  &&  is_pressed == mditab->btn_pressed)
+        return;
+
+    if(mditab->item_hot != ITEM_HOT_NONE) {
+        if(mditab->item_hot >= 0)
+            mditab_invalidate_item(mditab, mditab->item_hot);
+        else
+            mditab_invalidate_button(mditab, mditab_hot_button(mditab));
+    }
+
+    mditab->item_hot = hot;
+    mditab->btn_pressed = is_pressed;
+
+    if(mditab->item_hot != ITEM_HOT_NONE) {
+        if(mditab->item_hot >= 0)
+            mditab_invalidate_item(mditab, mditab->item_hot);
+        else
+            mditab_invalidate_button(mditab, mditab_hot_button(mditab));
+    }
+}
+
+static inline void mditab_set_hot_item(mditab_t* mditab, WORD hot_item)
+        { mditab_set_hot(mditab, hot_item, FALSE); }
+static inline void mditab_set_hot_button(mditab_t* mditab, int btn_id, BOOL is_pressed)
+        { mditab_set_hot(mditab, -(SHORT)btn_id - 1, is_pressed); }
+static inline void mditab_reset_hot(mditab_t* mditab)
+        { mditab_set_hot(mditab, ITEM_HOT_NONE, FALSE); }
 
 static void
 mditab_mouse_move(mditab_t* mditab, int x, int y)
@@ -351,596 +570,836 @@ mditab_mouse_move(mditab_t* mditab, int x, int y)
     int index;
     MC_MTHITTESTINFO hti;
 
-    MDITAB_TRACE("mditab_mouse_move(%p, %d, %d)", mditab, x, y);
+    if(mditab->btn_pressed)
+        return;
 
     hti.pt.x = x;
     hti.pt.y = y;
-    index = mditab_hit_test(mditab, &hti);
+    index = mditab_hit_test(mditab, &hti, FALSE);
 
-    if(index != mditab->item_hot) {
-        /* Redraw old hot tab */
-        if(mditab->item_hot >= 0)
-            mditab_invalidate_item(mditab, mditab->item_hot);
+    if(index >= 0) {
+        mditab_set_hot_item(mditab, index);
+    } else {
+        int btn_id = -1;
 
-        mditab->item_hot = index;
-
-        /* Redraw the new hot tab */
-        if(index >= 0) {
-            mditab_invalidate_item(mditab, index);
-            if(!mditab->tracking_leave) {
-                mc_track_mouse(mditab->win, TME_LEAVE);
-                mditab->tracking_leave = TRUE;
-            }
+        switch(hti.flags & MC_MTHT_ONBUTTON) {
+            case MC_MTHT_ONLEFTSCROLLBUTTON:    btn_id = BTNID_LSCROLL; break;
+            case MC_MTHT_ONRIGHTSCROLLBUTTON:   btn_id = BTNID_RSCROLL; break;
+            case MC_MTHT_ONLISTBUTTON:          btn_id = BTNID_LIST; break;
+            case MC_MTHT_ONCLOSEBUTTON:         btn_id = BTNID_CLOSE; break;
         }
+
+        if(btn_id >= 0)
+            mditab_set_hot_button(mditab, btn_id, FALSE);
+        else
+            mditab_reset_hot(mditab);
+    }
+
+    /* Ask for WM_MOUSELEAVE. */
+    if(mditab->item_hot != ITEM_HOT_NONE  &&  !mditab->tracking_leave) {
+        mc_track_mouse(mditab->win, TME_LEAVE);
+        mditab->tracking_leave = TRUE;
     }
 }
 
 static void
 mditab_mouse_leave(mditab_t* mditab)
 {
-    if(mditab->item_hot >= 0) {
-        mditab_invalidate_item(mditab, mditab->item_hot);
-        mditab->item_hot = -1;
-    }
+    if(mditab->btn_pressed)
+        return;
+
+    mditab_reset_hot(mditab);
     mditab->tracking_leave = FALSE;
 }
 
-static BOOL
-mditab_setup_all_desired_widths(mditab_t* mditab)
-{
-    mditab_item_t* item;
-    int desired_width;
-    int i, n;
-    BOOL changed = FALSE;
-
-    MDITAB_TRACE("mditab_setup_all_desired_widths(%p)", mditab);
-
-    n = mditab_count(mditab);
-    if(n == 0)
-        return FALSE;
-
-    if(mditab->item_def_width > 0) {
-        /* All items have the same width */
-        item = mditab_item(mditab, 0);
-        desired_width = mditab_calc_desired_width(mditab, 0);
-        for(i = 0; i < n; i++) {
-            if(desired_width != item->desired_width) {
-                item->desired_width = desired_width;
-                changed = TRUE;
-            }
-        }
-    } else {
-        for(i = 0; i < n; i++) {
-            item = mditab_item(mditab, i);
-            desired_width = mditab_calc_desired_width(mditab, i);
-            if(desired_width != item->desired_width) {
-                item->desired_width = desired_width;
-                changed = TRUE;
-            }
-        }
-    }
-
-    return changed;
-}
-
+/* Helper for mditab_update_layout() */
 static void
-mditab_setup_toolbar_states(mditab_t* mditab)
+mditab_update_item_widths(mditab_t* mditab, WORD index, WORD n, USHORT width)
 {
-    if(mditab->btn_mask & BTN_SCROLL) {
-        MC_SEND(mditab->tb1_win, TB_ENABLEBUTTON, IDC_SCROLL_LEFT,
-               MAKELPARAM((mditab->scroll_x > 0), 0));
-        MC_SEND(mditab->tb2_win, TB_ENABLEBUTTON, IDC_SCROLL_RIGHT,
-               MAKELPARAM((mditab->scroll_x < mditab->scroll_x_max - mc_width(&mditab->main_rect)), 0));
-    }
-    if(mditab->btn_mask & BTN_LIST) {
-        MC_SEND(mditab->tb2_win, TB_ENABLEBUTTON, IDC_LIST_ITEMS,
-               MAKELPARAM((mditab_count(mditab) > 0), 0));
-    }
-    if(mditab->btn_mask & BTN_CLOSE) {
-        MC_SEND(mditab->tb2_win, TB_ENABLEBUTTON, IDC_CLOSE_ITEM,
-               MAKELPARAM((mditab->item_selected >= 0), 0));
-    }
-}
+    USHORT i;
+    USHORT x;
 
-/* Forward declaration */
-static void mditab_animate(mditab_t* mditab);
-
-static int
-mditab_anim_next_value(int value, int desired_value)
-{
-    if(value < desired_value)
-        value = MC_MIN(value + ANIM_DELTA, desired_value);
-    else if(value > desired_value)
-        value = MC_MAX(value - ANIM_DELTA, desired_value);
-    return value;
-}
-
-static void
-mditab_do_scroll(mditab_t* mditab, int scroll, BOOL animate, BOOL refresh)
-{
-    int max_scroll = mditab->scroll_x_max - mc_width(&mditab->main_rect);
-    int old_scroll;
-
-    if(scroll > max_scroll)
-        scroll = max_scroll;
-    if(scroll < 0)
-        scroll = 0;
-    if(mditab->scroll_x == scroll) {
-        mditab->dirty_scroll = FALSE;
-        return;
-    }
-
-    mditab->scroll_x_desired = scroll;
-    old_scroll = mditab->scroll_x;
-
-    if(mditab->style & MC_MTS_ANIMATE) {
-        mditab->scroll_x = mditab_anim_next_value(mditab->scroll_x, mditab->scroll_x_desired);
-        mditab->dirty_scroll = (mditab->scroll_x != mditab->scroll_x_desired);
-        if(mditab->dirty_scroll)
-            mditab_animate(mditab);
-    } else {
-        mditab->scroll_x = mditab->scroll_x_desired;
-        mditab->dirty_scroll = FALSE;
-    }
-
-    mditab_setup_toolbar_states(mditab);
-    if(refresh  &&  !mditab->no_redraw) {
-        RECT r;
-        GetClientRect(mditab->win, &r);
-        r.left = mditab->main_rect.left;
-        r.right = mditab->main_rect.right;
-        ScrollWindowEx(mditab->win, old_scroll - mditab->scroll_x, 0, &r, &r,
-                       NULL, NULL, SW_ERASE | SW_INVALIDATE);
-
-        /* There may be more painted outside the ->main_rect if the active tab
-         * is at the edge. */
-        r.left = mditab->main_rect.left - SELECTED_EXTRA_LEFT;
-        r.right = mditab->main_rect.left;
-        InvalidateRect(mditab->win, &r, TRUE);
-        r.left = mditab->main_rect.right;
-        r.right = mditab->main_rect.right + SELECTED_EXTRA_RIGHT;
-        InvalidateRect(mditab->win, &r, TRUE);
-    }
-}
-
-static inline void
-mditab_do_scroll_rel(mditab_t* mditab, int delta, BOOL animate, BOOL refresh)
-{
-    mditab_do_scroll(mditab, mditab->scroll_x_desired + delta, animate, refresh);
-}
-
-static inline void
-mditab_scroll(mditab_t* mditab, int scroll, BOOL refresh)
-{
-    mditab_do_scroll(mditab, scroll, (mditab->style & MC_MTS_ANIMATE), refresh);
-}
-
-static inline void
-mditab_scroll_rel(mditab_t* mditab, int delta, BOOL refresh)
-{
-    mditab_scroll(mditab, mditab->scroll_x_desired + delta, refresh);
-}
-
-static void
-mditab_scroll_to_item(mditab_t* mditab, int index)
-{
-    mditab_item_t* item;
-    int scroll;
-
-    item = mditab_item(mditab, index);
-
-    if(item->left < mditab->scroll_x  ||
-       (item->right - item->left) > mc_width(&mditab->main_rect))
-        scroll = item->left;
-    else if(item->right > mditab->scroll_x + mc_width(&mditab->main_rect))
-        scroll = item->right - mc_width(&mditab->main_rect);
+    if(index > 0)
+        x = mditab_item(mditab, index-1)->x1;
     else
-        return;
+        x = 0;
 
-    mditab_scroll(mditab, scroll, TRUE);
+    for(i = index; i < n; i++) {
+        mditab_item_t* item = mditab_item(mditab, i);
+        USHORT w = (width == 0 ? mditab_item_ideal_width(mditab, i) : width);
+
+        item->x0 = x;
+        item->x1 = x + w;
+        x += w;
+    }
 }
 
-static inline void
-mditab_add_button(HWND tb_win, int cmd_id, int bmp_id, BYTE style)
+static inline int
+mditab_animate(int value_current, int value_desired, int max_delta,
+               BOOL* continue_animation)
 {
-    TBBUTTON btn = {0};
+    if(value_current < value_desired  &&  value_current + max_delta < value_desired) {
+        *continue_animation = TRUE;
+        return value_current + max_delta;
+    } else if(value_current > value_desired  &&  value_current - max_delta > value_desired) {
+        *continue_animation = TRUE;
+        return value_current - max_delta;
+    }
 
-    btn.iBitmap = bmp_id;
-    btn.idCommand = cmd_id;
-    btn.fsStyle = style;
-    MC_SEND(tb_win, TB_ADDBUTTONS, 1, &btn);
+    return value_desired;
 }
 
 static void
-mditab_do_layout(mditab_t* mditab, BOOL animate, BOOL refresh)
+mditab_update_layout(mditab_t* mditab, BOOL refresh)
 {
-    RECT rect;
-    DWORD btn_mask;
-    int tb1_width, tb2_width;
-    int i, n;
+    typedef struct curr_geom_tag { USHORT x0; USHORT x1; } curr_geom_t;
+    curr_geom_t* curr_geom = NULL;
+    BOOL animate = (mditab->style & MC_MTS_ANIMATE);
+    USHORT def_width = mditab->item_def_width;
+    USHORT min_width = mditab->item_min_width;
+    int btn_size;
+    RECT client;
     BOOL need_scroll = FALSE;
-    BOOL scrolled_to_max = FALSE;
-    mditab_item_t* item;
-    int old_space;
-    POINT pt;
+    DWORD btn_mask = 0;
+    USHORT area_margin0, area_margin1;
+    USHORT area_width;
+    int scroll_x_desired;
+    int scroll_x;
+    int i, n;
+    BOOL continue_animation = FALSE;
+    int anim_max_distance = 0;
 
-    MDITAB_TRACE("mditab_do_layout(%p, %d)", mditab, refresh);
+    if(mditab->no_redraw)
+        refresh = FALSE;
 
-    GetClientRect(mditab->win, &rect);
+    GetClientRect(mditab->win, &client);
+    btn_size = mditab_button_size(&client);
     n = mditab_count(mditab);
 
-    if(mditab->scroll_x_desired + mc_width(&mditab->main_rect) >= mditab->scroll_x_max)
-        scrolled_to_max = TRUE;
-
-    /* Detect what buttons we need */
-    btn_mask = 0;
-    tb1_width = 0;
-    tb2_width = 0;
-    if(need_scroll || (mditab->style &  MC_MTS_SCROLLALWAYS)) {
-        btn_mask |= BTN_SCROLL;
-        tb1_width += TOOLBAR_BTN_WIDTH;
-        tb2_width += TOOLBAR_BTN_WIDTH;
-    }
-    if(((mditab->style & MC_MTS_TLBMASK) == MC_MTS_TLBALWAYS) ||
-       ((mditab->style & MC_MTS_TLBMASK) == MC_MTS_TLBONSCROLL && need_scroll)) {
-        btn_mask |= BTN_LIST;
-        tb2_width += TOOLBAR_BTN_WIDTH;
-    }
-    if((mditab->style & MC_MTS_CBMASK) == MC_MTS_CBONTOOLBAR) {
-        btn_mask |= BTN_CLOSE;
-        tb2_width += TOOLBAR_BTN_WIDTH;
-    }
-
-    if(!(btn_mask & BTN_SCROLL)) {
-        int space;
-        int needed_space;
-
-        space = mc_width(&rect) - 4 * MARGIN_H;
-        if(tb1_width > 0)
-            space -= tb1_width + MARGIN_H;
-        if(tb2_width > 0)
-            space -= tb2_width + MARGIN_H;
-
-        if(mditab->style & MC_MTS_ANIMATE) {
-            /* Strictly speaking, this is wrong. We would need oraculum to
-             * get the new ->scroll_x_max after the calculations below
-             * (or perform those calculations twice). But instead we make sure
-             * that when the animation ends, mditab_animate_timer_proc() calls
-             * whole this function once more, syncing the toolbars to the
-             * expected state. The impact to user experience is negligible, and
-             * it saves some CPU cycles and simplifies the code very much. */
-            needed_space = mditab->scroll_x_max;
-        } else {
-            needed_space = n * mditab->item_min_width;
-        }
-
-        if(needed_space > space) {
-            btn_mask |= BTN_SCROLL;
-            tb1_width += TOOLBAR_BTN_WIDTH;
-            tb2_width += TOOLBAR_BTN_WIDTH;
-        }
-    }
-
-    /* Calculate ->main_rect */
-    old_space = mc_width(&mditab->main_rect);
-
-    mditab->main_rect.left = rect.left + 2 * MARGIN_H;
-    mditab->main_rect.right = rect.right - 2 * MARGIN_H;
-    if(tb1_width > 0)
-        mditab->main_rect.left += tb1_width + MARGIN_H;
-    if(tb2_width > 0)
-        mditab->main_rect.right -= tb2_width + MARGIN_H;
-    mditab->main_rect.top = rect.top + 5;
-    mditab->main_rect.bottom = rect.bottom;
-
-    if(old_space != mc_width(&mditab->main_rect))
-        mditab_setup_all_desired_widths(mditab);
-
-    /* Layout items */
-    mditab->dirty_layout = FALSE;
+    /* When animating, compute how many pixels we can move an item, or
+     * scroll all items. (Those two movements are independent on each other,
+     * but they share the same max. speed.) */
     if(animate) {
-        int desired_x = 0;
+        DWORD frame_time;
 
-        for(i = 0; i < n; i++) {
-            item = mditab_item(mditab, i);
-            item->left = mditab_anim_next_value(item->left, desired_x);
-            if(item->left != desired_x)
-                mditab->dirty_layout = TRUE;
-            desired_x += item->desired_width;
-            item->right = mditab_anim_next_value(item->right, desired_x);
-            if(item->right != desired_x)
-                mditab->dirty_layout = TRUE;
-        }
+        if(mditab->animation != NULL)
+            frame_time = anim_frame_time(mditab->animation);
+        else
+            frame_time = 1000 / ANIM_DEFAULT_FREQUENCY;
 
-        if(mditab->dirty_layout)
-            mditab_animate(mditab);
-    } else {
-        int x = 0;
+        /* Lets move the stuff maximally at 1000 pixels per second. */
+        anim_max_distance = (frame_time * ANIM_MAX_PIXELS_PER_SECOND) / 1000;
 
-        for(i = 0; i < n; i++) {
-            item = mditab_item(mditab, i);
-            item->left = x;
-            x += item->desired_width;
-            item->right = x;
+        /* For animating we need the current (old) geometry to compute new
+         * animation frame. */
+        curr_geom = _malloca(n * sizeof(curr_geom_t));
+        if(curr_geom != NULL) {
+            for(i = 0; i < n; i++) {
+                mditab_item_t* item = mditab_item(mditab, i);
+                curr_geom[i].x0 = item->x0;
+                curr_geom[i].x1 = item->x1;
+            }
+        } else {
+            MC_TRACE("mditab_update_layout: _malloca() failed. Using worse code path.");
+            animate = FALSE;
         }
     }
 
-    /* Ensure we are scrolled in the allowed range of the ->main_rect */
-    if(n > 0)
-        mditab->scroll_x_max = mditab_item(mditab, n-1)->right;
+    /* Determine what auxiliary buttons we need. */
+    if((mditab->style & MC_MTS_CBMASK) == MC_MTS_CBONTOOLBAR)
+        btn_mask |= BTNMASK_CLOSE;
+
+    if(((mditab->style & MC_MTS_TLBMASK) == MC_MTS_TLBALWAYS)  ||
+       ((mditab->style & MC_MTS_TLBMASK) == MC_MTS_TLBONSCROLL  &&  need_scroll))
+        btn_mask |= BTNMASK_LIST;
+
+again_with_scroll:
+    if((mditab->style & MC_MTS_SCROLLALWAYS)  ||  need_scroll)
+        btn_mask |= BTNMASK_SCROLL;
+
+    /* Determine what item area we need */
+    area_margin0 = mc_height(&client) / 2;
+    if(btn_mask & BTNMASK_LSCROLL)
+        area_margin0 += btn_size;
+
+    area_margin1 = mc_height(&client) / 2;
+    if(btn_mask & BTNMASK_RSCROLL)
+        area_margin1 += btn_size;
+    if(btn_mask & BTNMASK_LIST)
+        area_margin1 += btn_size;
+    if(btn_mask & BTNMASK_CLOSE)
+        area_margin1 += btn_size;
+
+    area_width = mc_width(&client) - area_margin0 - area_margin1;
+
+    /* Check whether we need scrolling. */
+    if(!need_scroll  &&  n > 0) {
+        if(min_width != 0) {
+            need_scroll = (n * min_width > area_width);
+        } else if(mditab->item_def_width != 0) {
+            need_scroll = (n * def_width > area_width);
+        } else {
+            int width_sum = 0;
+            for(i = 0; i < n; i++) {
+                width_sum += mditab_item_ideal_width(mditab, i);
+                if(width_sum > area_width) {
+                    need_scroll = TRUE;
+                    break;
+                }
+            }
+        }
+
+        /* If need scrolling, ensure the button mask involves scroll buttons. */
+        if(need_scroll  &&  (btn_mask & BTNMASK_SCROLL) != BTNMASK_SCROLL)
+            goto again_with_scroll;
+    }
+
+again_without_animation:
+    /* Compute TARGET geometry of all items:
+     *
+     *     min_width  def_width  need_scroll  Behavior
+     * ========================================================================
+     * #1  == 0       == 0       FALSE        All items use ideal widths.
+     * #2  == 0       == 0       TRUE         All items use ideal widths.
+     * #3  == 0       != 0       FALSE        All items use def_width.
+     * #4  == 0       != 0       TRUE         All items use def_width.
+     * #5  != 0       == 0       FALSE        Try ideal width but may need some shrinking.
+     * #6  != 0       == 0       TRUE         All items use min_width.
+     * #7  != 0       != 0       FALSE        Try def_width but may need some shrinking.
+     * #8  != 0       != 0       TRUE         All items use min_width.
+     */
+    if(n > 0) {
+        if(min_width == 0) {            /* Cases #1, #2, #3, #4 */
+            mditab_update_item_widths(mditab, 0, n, def_width);
+        } else if(need_scroll) {        /* Cases #6, #8 */
+            mditab_update_item_widths(mditab, 0, n, min_width);
+        } else if(def_width == 0) {     /* Case #5 */
+            USHORT w_sum = 0;
+
+            for(i = 0; i < n; i++)
+                w_sum += mditab_item_ideal_width(mditab, i);
+
+            if(w_sum <= area_width) {
+                /* All items fit in comfortably. */
+                mditab_update_item_widths(mditab, 0, n, 0);
+            } else {
+                /* We still may make all items visible by some shrinking. So
+                 * we reserve the min_width for each item and all the remaining
+                 * space in the area_w is allocated proportionally among all
+                 * the items.
+                 *
+                 * I.e. we project points excess_x (corresponding to the item
+                 * boundaries) from the range <0, excess_sum> into the range
+                 * <0, excess_target> in the linear fashion (with rounding to
+                 * the closest integer). */
+                UINT excess_sum = w_sum - n * min_width;
+                UINT excess_target = area_width - n * min_width;
+                UINT excess_x = 0;
+                UINT excess_x_projection;
+                UINT x = 0;
+
+                for(i = 0; i < n; i++) {
+                    mditab_item_t* item = mditab_item(mditab, i);
+                    excess_x += mditab_item_ideal_width(mditab, i) - min_width;
+                    excess_x_projection = (excess_x * excess_target + excess_sum/2) / excess_sum;
+                    item->x0 = x;
+                    item->x1 = (i+1) * min_width + excess_x_projection;
+                    x = item->x1;
+                }
+            }
+        } else {                        /* Case #7 */
+            if(n * def_width <= area_width) {
+                /* All items fit in comfortably. */
+                mditab_update_item_widths(mditab, 0, n, def_width);
+            } else {
+                /* We still may make all items visible by some shrinking. */
+                USHORT w_base = area_width / n;
+                USHORT w_extra = area_width % n;
+                MC_ASSERT(w_base >= min_width);
+                mditab_update_item_widths(mditab, 0, w_extra, w_base + 1);
+                mditab_update_item_widths(mditab, w_extra, n, w_base);
+            }
+        }
+    }
+
+    /* Animate, i.e. compute geometry for a new animation frame. */
+    if(animate) {
+        MC_ASSERT(curr_geom != NULL);
+
+        area_margin0 = mditab_animate(mditab->area_margin0, area_margin0,
+                            anim_max_distance, &continue_animation);
+        area_margin1 = mditab_animate(mditab->area_margin1, area_margin1,
+                            anim_max_distance, &continue_animation);
+        area_width = mc_width(&client) - area_margin0 - area_margin1;
+
+        for(i = 0; i < n; i++) {
+            mditab_item_t* item = mditab_item(mditab, i);
+
+            item->x0 = mditab_animate(curr_geom[i].x0, item->x0,
+                            anim_max_distance, &continue_animation);
+            item->x1 = mditab_animate(curr_geom[i].x1, item->x1,
+                            anim_max_distance, &continue_animation);
+        }
+    }
+
+    /* Scrolling */
+    scroll_x = mditab->scroll_x;
+    if(n > 0  &&  mditab_item(mditab, n-1)->x1 > area_width)
+        mditab->scroll_x_max = mditab_item(mditab, n-1)->x1 - area_width;
     else
         mditab->scroll_x_max = 0;
-    if(!mditab->dirty_scroll) {
-        if(mditab->scroll_x > mditab->scroll_x_max - mc_width(&mditab->main_rect))
-            mditab_do_scroll_rel(mditab, 0, animate, FALSE);
-        else if(scrolled_to_max)
-            mditab_do_scroll(mditab, mditab->scroll_x_max, FALSE, FALSE);
+
+    if(mditab->scrolling_to_item) {
+        mditab_item_t* item = mditab_item(mditab, mditab->scroll_x_desired);
+        if(item->x0 < scroll_x)
+            scroll_x_desired = item->x0;
+        else if(item->x1 > scroll_x + area_width)
+            scroll_x_desired = item->x1 - area_width;
+        else
+            scroll_x_desired = mditab->scroll_x;
+    } else {
+        if(mditab->scroll_x_desired > mditab->scroll_x_max)
+            mditab->scroll_x_desired = mditab->scroll_x_max;
+        scroll_x_desired = mditab->scroll_x_desired;
     }
 
-    /* Update ->hot_item */
-    GetCursorPos(&pt);
-    MapWindowPoints(NULL, mditab->win, &pt, 1);
-    if(mc_rect_contains_pt(&mditab->main_rect, &pt))
-        mditab_mouse_move(mditab, pt.x, pt.y);
-
-    /* Setup the toolbars */
-    if(mditab->btn_mask != btn_mask) {
-        while(MC_SEND(mditab->tb1_win, TB_DELETEBUTTON, 0, 0) == TRUE);
-        while(MC_SEND(mditab->tb2_win, TB_DELETEBUTTON, 0, 0) == TRUE);
-
-        if(btn_mask & BTN_SCROLL) {
-            mditab_add_button(mditab->tb1_win, IDC_SCROLL_LEFT, MC_BMP_GLYPH_CHEVRON_L, TBSTYLE_BUTTON);
-            mditab_add_button(mditab->tb2_win, IDC_SCROLL_RIGHT, MC_BMP_GLYPH_CHEVRON_R, TBSTYLE_BUTTON);
-        }
-        if(btn_mask & BTN_LIST)
-            mditab_add_button(mditab->tb2_win, IDC_LIST_ITEMS, MC_BMP_GLYPH_MORE_OPTIONS, TBSTYLE_DROPDOWN);
-        if(btn_mask & BTN_CLOSE)
-            mditab_add_button(mditab->tb2_win, IDC_CLOSE_ITEM, MC_BMP_GLYPH_CLOSE, TBSTYLE_BUTTON);
-        mditab->btn_mask = btn_mask;
+    scroll_x = scroll_x_desired;
+    if(animate) {
+        scroll_x = mditab_animate(mditab->scroll_x, scroll_x,
+                            anim_max_distance, &continue_animation);
     }
-
-    mditab_setup_toolbar_states(mditab);
+    if(scroll_x == scroll_x_desired) {
+        mditab->scrolling_to_item = FALSE;
+        mditab->scroll_x_desired = scroll_x;
+    } else {
+        continue_animation = TRUE;
+    }
 
     /* Refresh */
-    SetWindowPos(mditab->tb1_win, NULL, MARGIN_H, mditab->main_rect.top,
-                 tb1_width, TOOLBAR_BTN_WIDTH,
-                 SWP_NOZORDER | (tb1_width > 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
-    SetWindowPos(mditab->tb2_win, NULL, rect.right - MARGIN_H - tb2_width,
-                 mditab->main_rect.top, tb2_width, TOOLBAR_BTN_WIDTH,
-                 SWP_NOZORDER | (tb2_width > 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
-    if(refresh  &&  !mditab->no_redraw)
+    if(refresh)
         InvalidateRect(mditab->win, NULL, TRUE);
-}
 
-static inline void
-mditab_layout(mditab_t* mditab, BOOL refresh)
-{
-    mditab_do_layout(mditab, (mditab->style & MC_MTS_ANIMATE), refresh);
-}
+    /* Commit the new values. */
+    mditab->btn_mask = btn_mask;
+    mditab->area_margin0 = area_margin0;
+    mditab->area_margin1 = area_margin1;
+    mditab->scroll_x = scroll_x;
 
-static void CALLBACK
-mditab_animate_timer_proc(HWND win, UINT msg, UINT_PTR id, DWORD time)
-{
-    mditab_t* mditab = (mditab_t*) GetWindowLongPtr(win, 0);
-    BOOL do_layout = mditab->dirty_layout;
-    BOOL do_scroll = mditab->dirty_scroll;
-
-    if(!do_layout  &&  do_scroll) {
-        /* Path for optimized refresh via ScrollWindowEx() */
-        mditab_do_scroll_rel(mditab, 0, TRUE, TRUE);
+    /* Manage the animation */
+    if(continue_animation) {
+        if(mditab->animation == NULL) {
+            MDITAB_TRACE("mditab_update_layout: Starting animation.");
+            mditab->animation = anim_start(mditab->win, ANIM_TIMER_ID,
+                    ANIM_UNLIMITED_DURATION, ANIM_DEFAULT_FREQUENCY);
+            if(MC_ERR(mditab->animation == NULL)) {
+                MC_TRACE("mditab_update_layout: anim_start() failed.");
+                /* Retry with animation disabled. */
+                animate = FALSE;
+                goto again_without_animation;
+            }
+        }
     } else {
-        if(do_layout) {
-            mditab_do_layout(mditab, TRUE, FALSE);
-            if(!mditab->dirty_layout) {
-                /* This is a bit ugly hack. The animated layout change could
-                 * lead to new ->scroll_x_max, which may require to show/hide
-                 * scroll buttons. If we reached the desired state, we need
-                 * to make sure the toolbar is synced. */
-                mditab_do_layout(mditab, FALSE, FALSE);
-            }
-        }
-        if(do_scroll)
-            mditab_do_scroll_rel(mditab, 0, TRUE, FALSE);
-
-        if(!mditab->no_redraw)
-            InvalidateRect(mditab->win, NULL, TRUE);
-    }
-
-    /* Stop the timer if we reached the desired state */
-    if(!mditab->dirty_scroll  &&  !mditab->dirty_layout) {
-        KillTimer(mditab->win, ANIM_TIMER_ID);
-        mditab->is_animating = FALSE;
-    }
-}
-
-static void
-mditab_animate_abort(mditab_t* mditab)
-{
-    if(mditab->is_animating) {
-        KillTimer(mditab->win, ANIM_TIMER_ID);
-        mditab->is_animating = FALSE;
-    }
-
-    if(mditab->dirty_layout)
-        mditab_do_layout(mditab, FALSE, TRUE);
-    if(mditab->dirty_scroll)
-        mditab_do_scroll_rel(mditab, 0, FALSE, TRUE);
-}
-
-static void
-mditab_animate(mditab_t* mditab)
-{
-    int timer_id;
-
-    if(mditab->is_animating)
-        return;
-
-    timer_id = SetTimer(mditab->win, ANIM_TIMER_ID, ANIM_TIMER_INTERVAL,
-                        mditab_animate_timer_proc);
-    if(MC_ERR(timer_id == 0)) {
-        MC_TRACE("mditab_animate: SetTimer() failed.");
-        mditab_animate_abort(mditab);
-        return;
-    }
-
-    mditab->is_animating = TRUE;
-}
-
-static void
-mditab_paint_item(mditab_t* mditab, HDC dc, UINT index, RECT* rect)
-{
-    mditab_item_t* item;
-    RECT contents;
-    UINT flags;
-    RECT r;
-
-    item = mditab_item(mditab, index);
-
-    MDITAB_TRACE("mditab_paint_item(%p, %p, %u, { %d, %d, %d, %d })",
-                 mditab, dc, index, rect->left, rect->top, rect->right, rect->bottom);
-
-    /* Draw tab background */
-    SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
-    DrawEdge(dc, rect, EDGE_RAISED, BF_SOFT | BF_LEFT | BF_TOP | BF_RIGHT);
-
-    /* Make left corner rounded */
-    mc_rect_set(&r, rect->left, rect->top, rect->left + ITEM_CORNER_SIZE,
-                rect->top + ITEM_CORNER_SIZE);
-    ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, 0);
-    DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_DIAGONAL_ENDTOPRIGHT);
-
-    /* Make right corner rounded */
-    mc_rect_set(&r, rect->right - ITEM_CORNER_SIZE + 1, rect->top, rect->right,
-                rect->top + ITEM_CORNER_SIZE);
-    ExtTextOut(dc, 0, 0, ETO_OPAQUE, &r, NULL, 0, 0);
-    r.top++;
-    DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_DIAGONAL_ENDBOTTOMRIGHT);
-
-    /* If needed, draw focus rect */
-    if(mditab->win == GetFocus()  &&  index == mditab->item_selected) {
-        if((mditab->style & MC_MTS_FOCUSMASK) != MC_MTS_FOCUSNEVER) {
-            if(!(mditab->ui_state & UISF_HIDEFOCUS)) {
-                mc_rect_set(&contents, rect->left + 3, rect->top + 3,
-                            rect->right - 3, rect->bottom - 2);
-                DrawFocusRect(dc, &contents);
-            }
+        if(mditab->animation != NULL) {
+            MDITAB_TRACE("mditab_update_layout: Stopping animation.");
+            anim_stop(mditab->animation);
+            mditab->animation = NULL;
         }
     }
 
-    mditab_calc_contents_rect(&contents, rect);
-
-    /* Draw tab icon */
-    if(mditab->img_list != NULL  &&  item->img != (SHORT) I_IMAGENONE) {
-        int ico_w, ico_h;
-        RECT rect_ico;
-
-        /* Compute where to draw the icon */
-        ImageList_GetIconSize(mditab->img_list, &ico_w, &ico_h);
-        mditab_calc_ico_rect(&rect_ico, &contents, ico_w, ico_h);
-
-        /* Do the draw */
-        ImageList_Draw(mditab->img_list, item->img, dc,
-                       rect_ico.left, rect_ico.top, ILD_TRANSPARENT);
-
-        /* Adjust the contents rect, where the text will be drawn */
-        contents.left += ico_w + 3;
-    }
-
-    /* Draw text */
-    SetBkMode(dc, TRANSPARENT);
-    SelectObject(dc, mditab->font);
-    flags = 0;
-    if(mditab->ui_state & UISF_HIDEACCEL)
-        flags |= DT_HIDEPREFIX;
-    if(index == mditab->item_selected)
-        contents.bottom -= 2;
-    DrawText(dc, item->text, -1, &contents, flags | DT_SINGLELINE | DT_VCENTER);
+    if(curr_geom != NULL)
+        _freea(curr_geom);
 }
 
 static void
-mditab_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
+mditab_paint_ctx_init(mditab_paint_t* ctx, xdraw_canvas_t* canvas, HFONT font)
 {
-    mditab_t* mditab = (mditab_t*) control;
-    mditab_item_t* item;
+    ctx->canvas = canvas;
+    ctx->solid_brush = xdraw_brush_solid_create(canvas, 0);
+    ctx->font = xdraw_font_create_with_HFONT(canvas, font);
+}
+
+static void
+mditab_paint_ctx_fini(mditab_paint_t* ctx)
+{
+    if(ctx->font != NULL)
+        xdraw_font_destroy(ctx->font);
+    if(ctx->solid_brush != NULL)
+        xdraw_brush_destroy(ctx->solid_brush);
+    if(ctx->canvas != NULL)
+        xdraw_canvas_destroy(ctx->canvas);
+}
+
+static void
+mditab_free_cached_paint_ctx(mditab_t* mditab)
+{
+    if(mditab->paint_ctx != NULL) {
+        mditab_paint_ctx_fini(mditab->paint_ctx);
+        free(mditab->paint_ctx);
+        mditab->paint_ctx = NULL;
+    }
+}
+
+#define BTNSTATE_NORMAL     0
+#define BTNSTATE_HOT        1
+#define BTNSTATE_PRESSED    2
+#define BTNSTATE_DISABLED   3
+
+static void
+mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
+                       xdraw_rect_t* rect, int state)
+{
+    static const struct {
+        const xdraw_line_t lines[2];
+    } dies[] = {
+        { { { 0.6f, 0.3f, 0.4f, 0.5f }, { 0.4f, 0.5f, 0.6f, 0.7f } } },
+        { { { 0.4f, 0.3f, 0.6f, 0.5f }, { 0.6f, 0.5f, 0.4f, 0.7f } } },
+        { { { 0.3f, 0.4f, 0.5f, 0.6f }, { 0.5f, 0.6f, 0.7f, 0.4f } } },
+        { { { 0.3f, 0.3f, 0.7f, 0.7f }, { 0.3f, 0.7f, 0.7f, 0.3f } } }
+    };
+
+    const xdraw_line_t* die_lines = dies[btn_id].lines;
+    float w = rect->x1 - rect->x0;
+    float h = rect->y1 - rect->y0;
+    xdraw_color_t c;
+    xdraw_line_t line;
+    int i;
+
+    if(state == BTNSTATE_HOT  ||  state == BTNSTATE_PRESSED) {
+        xdraw_circle_t circle = { rect->x0 + w/2.0f, rect->y0 + h/2.0f, MC_MIN(w, h) / 2.0f - 1.0f };
+
+        c = (state == BTNSTATE_HOT ? XDRAW_ACOLORREF(191, GetSysColor(COLOR_BTNFACE))
+                                   : XDRAW_ACOLORREF(127, GetSysColor(COLOR_BTNFACE)));
+        xdraw_brush_solid_set_color(ctx->solid_brush, c);
+        xdraw_fill_circle(ctx->canvas, ctx->solid_brush, &circle);
+
+    }
+
+    c = (state == BTNSTATE_DISABLED ? XDRAW_ACOLORREF(63, GetSysColor(COLOR_BTNTEXT))
+                                    : XDRAW_COLORREF(GetSysColor(COLOR_BTNTEXT)));
+
+    xdraw_brush_solid_set_color(ctx->solid_brush, c);
+    for(i = 0; i < 2; i++) {
+        float stroke_width = (mc_win_version >= MC_WIN_10 ? 1.0f : 2.0f);
+
+        line.x0 = rect->x0 + w * die_lines[i].x0;
+        line.y0 = rect->y0 + h * die_lines[i].y0;
+        line.x1 = rect->x0 + w * die_lines[i].x1;
+        line.y1 = rect->y0 + h * die_lines[i].y1;
+        xdraw_draw_line(ctx->canvas, ctx->solid_brush, &line, stroke_width);
+    }
+}
+
+static void
+mditab_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id, BOOL enabled)
+{
     RECT rect;
-    HFONT old_font;
-    int old_bk_mode;
-    COLORREF old_text_color;
-    int dirty_left;
-    int dirty_right;
-    HRGN old_clip;
-    RECT r;
+    xdraw_rect_t r;
+    int state;
 
-    MDITAB_TRACE("mditab_paint(%p, %p, %p, %d)", mditab, dc, dirty, erase);
+    /* Determine button state */
+    if(!enabled)
+        state = BTNSTATE_DISABLED;
+    else if(btn_id == mditab_hot_button(mditab))
+        state = (mditab->btn_pressed ? BTNSTATE_PRESSED : BTNSTATE_HOT);
+    else
+        state = BTNSTATE_NORMAL;
 
-    old_font = SelectObject(dc, mditab->font);
-    old_bk_mode = GetBkMode(dc);
-    old_text_color = GetTextColor(dc);
+    /* Calculate button rect */
+    mditab_button_rect(mditab, btn_id, &rect);
+    r.x0 = (float) rect.left;
+    r.y0 = (float) rect.top;
+    r.x1 = (float) rect.right - 1;
+    r.y1 = (float) rect.bottom - 1;
+
+    mditab_do_paint_button(mditab, ctx, btn_id, &r, state);
+}
+
+static void
+mditab_paint_scroll_block(mditab_t* mditab, mditab_paint_t* ctx,
+                          float x, float y0, float y1, int direction)
+{
+    xdraw_line_t line;
+    BYTE a = 0xff;
+    BYTE r = XDRAW_REDVALUE(MDITAB_COLOR_BORDER);
+    BYTE g = XDRAW_GREENVALUE(MDITAB_COLOR_BORDER);
+    BYTE b = XDRAW_BLUEVALUE(MDITAB_COLOR_BORDER);
+    int i;
+    int ydiff = 1;
+
+    line.x0 = x;
+    line.y0 = y0 - MDITAB_ITEM_TOP_MARGIN / 2;
+    line.x1 = x;
+    line.y1 = y1;
+
+    for(i = 0; i < 8; i++) {
+        xdraw_brush_solid_set_color(ctx->solid_brush, XDRAW_ARGB(a, r, g, b));
+        xdraw_draw_line(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+
+        line.x0 += direction;
+        line.y0 += ydiff;
+        line.x1 += direction;
+        a /= 2;
+        ydiff *= 2;
+    }
+}
+
+static void
+mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
+                  mditab_item_t* item, const xdraw_rect_t* item_rect,
+                  int area_x0, int area_x1,
+                  const xdraw_image_t* background_image,
+                  BOOL is_selected, BOOL is_hot)
+{
+    float x0 = item_rect->x0;
+    float y0 = item_rect->y0;
+    float x1 = item_rect->x1;
+    float y1 = item_rect->y1;
+    float r;
+    xdraw_path_t* path;
+    xdraw_path_sink_t sink;
+    xdraw_point_t pt;
+    BOOL left_block;
+    BOOL right_block;
+    xdraw_rect_t clip_rect;
+    xdraw_rect_t blit_rect;
+    xdraw_line_t line;
+    mditab_item_layout_t layout;
+    BOOL degenerate_shape = FALSE;
+
+    mditab_setup_item_layout(mditab, item, x0, y0, x1, y1, &layout);
+
+    /* Construct a path defining shape of the item. */
+    path = xdraw_path_create(ctx->canvas);
+    if(MC_ERR(path == NULL)) {
+        MC_TRACE("mditab_paint_item: xdraw_path_create() failed.");
+        return;
+    }
+    if(MC_ERR(xdraw_path_open_sink(&sink, path) != 0)) {
+        MC_TRACE("mditab_paint_item: xdraw_path_open_sink() failed.");
+        xdraw_path_destroy(path);
+        return;
+    }
+    r = (y1 - y0 - 1.0f) / 2.0f;
+    if(2.0f * r > x1 - x0) {
+        /* The item is too small, so we degenerate only to the curved shape
+         * with decreased radius. As this should happen only during animation
+         * and for very short time, hit testing and other code ignores this
+         * problem altogether. But here, it would make the animation visually
+         * disruptive if ignoring it.
+         */
+        r = (x1 - x0) / 2.0f;
+        degenerate_shape = TRUE;
+    }
+    pt.x = x0 - r - 5.0f;
+    pt.y = y1;
+    xdraw_path_begin_figure(&sink, &pt);
+    pt.x = x0 - r;
+    pt.y = y1 - 1.0f;
+    xdraw_path_add_line(&sink, &pt);
+    pt.x = x0 - r;
+    pt.y = y1 - r;
+    xdraw_path_add_arc(&sink, &pt, -90.0f);
+    pt.x = x0 + r;
+    pt.y = y1 - r;
+    xdraw_path_add_arc(&sink, &pt, 90.0f);
+    if(!degenerate_shape) {
+        pt.x = x1 - r;
+        pt.y = y0;
+        xdraw_path_add_line(&sink, &pt);
+    }
+    pt.x = x1 - r;
+    pt.y = y1 - r;
+    xdraw_path_add_arc(&sink, &pt, 90.0f);
+    pt.x = x1 + r;
+    pt.y = y1 - r;
+    xdraw_path_add_arc(&sink, &pt, -90.0f);
+    pt.x = x1 + r + 5.0f;
+    pt.y = y1;
+    xdraw_path_add_line(&sink, &pt);
+    xdraw_path_end_figure(&sink, TRUE);
+    xdraw_path_close_sink(&sink);
+
+    /* Determine if we need to paint scroll blocks. */
+    left_block = (mditab->scroll_x > 0  &&  x0 < area_x0);
+    right_block = (mditab->scroll_x < mditab->scroll_x_max  &&  x1 > area_x1);
+
+    /* Clip to the item geometry. */
+    clip_rect.x0 = (left_block ? area_x0 - r : 0);
+    clip_rect.y0 = 0;
+    clip_rect.x1 = (right_block ? area_x1 + r : area_x1 + 100);
+    clip_rect.y1 = y1;
+    xdraw_canvas_set_clip(ctx->canvas, &clip_rect, path);
+
+    /* Paint background of the item. */
+    blit_rect.x0 = x0 - r;
+    blit_rect.y0 = y0;
+    blit_rect.x1 = x1 + r;
+    blit_rect.y1 = y1;
+    xdraw_blit_image(ctx->canvas, background_image, &blit_rect, &blit_rect);
+
+    /* Colorize non-selected items. */
+    if(!is_selected) {
+        xdraw_brush_solid_set_color(ctx->solid_brush,
+                (is_hot ? MDITAB_COLOR_HOTITEM : MDITAB_COLOR_INACTIVEITEM));
+        xdraw_fill_path(ctx->canvas, ctx->solid_brush, path);
+    }
+
+    /* Paint item icon. */
+    if(mditab->img_list != NULL) {
+        HICON icon;
+
+        icon = ImageList_GetIcon(mditab->img_list, item->img, ILD_NORMAL);
+        if(icon != NULL) {
+            xdraw_blit_HICON(ctx->canvas, icon, &layout.icon_rect);
+            DestroyIcon(icon);
+        }
+    }
+
+    /* Paint item text. */
+    if(item->text != NULL) {
+        xdraw_brush_solid_set_color(ctx->solid_brush, XDRAW_RGB(0,0,0));
+        xdraw_draw_string(ctx->canvas, ctx->font, &layout.text_rect, item->text,
+                _tcslen(item->text), ctx->solid_brush, XDRAW_STRING_NOWRAP |
+                XDRAW_STRING_CLIP | XDRAW_STRING_END_ELLIPSIS);
+    }
+
+    /* Paint border of the item. */
+    xdraw_canvas_set_clip(ctx->canvas, &clip_rect, NULL);
+    xdraw_brush_solid_set_color(ctx->solid_brush, MDITAB_COLOR_BORDER);
+    xdraw_draw_path(ctx->canvas, ctx->solid_brush, path, 1.0f);
+    xdraw_canvas_reset_clip(ctx->canvas);
+
+    /* For the active tab, paint the bottom line. */
+    line.x0 = 0.0f;
+    line.y0 = y1 - 1.0f;
+    line.x1 = blit_rect.x0 - 1.0f;
+    line.y1 = y1 - 1.0f;
+    xdraw_draw_line(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+    line.x0 = blit_rect.x1;
+    line.x1 = client->right;
+    xdraw_draw_line(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+
+    /* Destroy the item shape path. */
+    xdraw_path_destroy(path);
+
+    /* Paint scrolling blocks. */
+    if(left_block)
+        mditab_paint_scroll_block(mditab, ctx, floorf(area_x0 - r), y0, y1, +1);
+    if(right_block)
+        mditab_paint_scroll_block(mditab, ctx, ceilf(area_x1 + r), y0, y1, -1);
+}
+
+static BOOL
+mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
+                      RECT* dirty, BOOL erase)
+{
+    RECT client;
+    int area_x0, area_x1;
+    WORD i, n;
+    BOOL enabled;
+    HWND parent_win;
+    RECT parent_rect;
+    HDC background_dc;
+    HBITMAP background_bmp;
+    HBITMAP old_bmp;
+    POINT old_origin;
+    xdraw_image_t* background_image;
+    BOOL paint_selected_item = FALSE;
+
+    GetClientRect(mditab->win, &client);
+    area_x0 = mditab->area_margin0;
+    area_x1 = client.right - mditab->area_margin1;
+    n = mditab_count(mditab);
+    enabled = IsWindowEnabled(mditab->win);
+
+    xdraw_canvas_begin_paint(ctx->canvas);
+
+    if(erase)
+        xdraw_clear(ctx->canvas, MDITAB_COLOR_BACKGROUND);
+
+    /* Paint auxiliary buttons */
+    if(mditab->btn_mask & BTNMASK_LSCROLL)
+        mditab_paint_button(mditab, ctx, BTNID_LSCROLL, (enabled && mditab->scroll_x > 0));
+    if(mditab->btn_mask & BTNMASK_CLOSE)
+        mditab_paint_button(mditab, ctx, BTNID_CLOSE, (enabled && n > 0));
+    if(mditab->btn_mask & BTNMASK_LIST)
+        mditab_paint_button(mditab, ctx, BTNID_LIST, (enabled && n > 0));
+    if(mditab->btn_mask & BTNMASK_RSCROLL)
+        mditab_paint_button(mditab, ctx, BTNID_RSCROLL, (enabled && mditab->scroll_x < mditab->scroll_x_max));
+
+    if(area_x1 <= area_x0)
+        goto skip_item_painting;
+
+    /* Make parent paint into a temporary bitmap. (Used to paint background
+     * of items.) */
+    parent_win = GetAncestor(mditab->win, GA_ROOT);
+    mc_rect_copy(&parent_rect, &client);
+    MapWindowPoints(mditab->win, parent_win, (POINT*) &parent_rect, 2);
+    background_dc = CreateCompatibleDC(dc);
+    if(MC_ERR(background_dc == NULL)) {
+        MC_TRACE_ERR("mditab_paint_with_ctx: CreateCompatibleDC() failed.");
+        goto err_CreateCompatibleDC;
+    }
+    background_bmp = CreateCompatibleBitmap(dc, mc_width(&parent_rect), mc_height(&parent_rect));
+    if(MC_ERR(background_bmp == NULL)) {
+        MC_TRACE_ERR("mditab_paint_with_ctx: CreateCompatibleBitmap() failed.");
+        goto err_CreateCompatibleBitmap;
+    }
+    old_bmp = SelectObject(background_dc, background_bmp);
+    OffsetViewportOrgEx(background_dc, -parent_rect.left, -parent_rect.top, &old_origin);
+    MC_SEND(parent_win, WM_PRINT, background_dc, PRF_ERASEBKGND | PRF_CLIENT);
+    SetViewportOrgEx(background_dc, old_origin.x, old_origin.y, NULL);
+    SelectObject(background_dc, old_bmp);
+    background_image = xdraw_image_create_from_HBITMAP(background_bmp);
+    if(MC_ERR(background_image == NULL)) {
+        MC_TRACE("mditab_paint_with_ctx: xdraw_image_create_from_HBITMAP() failed.");
+        goto err_xdraw_image_create_from_HBITMAP;
+    }
+
+    /* Paint items */
+    if(n > 0) {
+        xdraw_rect_t sel_rect;
+        int r = (mc_height(&client) - MDITAB_ITEM_TOP_MARGIN + 1) / 2;  /* "+1" to compensate rounding errors */
+
+        for(i = 0; i < n; i++) {
+            mditab_item_t* item = mditab_item(mditab, i);
+            int x0 = area_x0 - mditab->scroll_x + item->x0;
+            int x1 = area_x0 - mditab->scroll_x + item->x1;
+            xdraw_rect_t item_rect;
+
+            if(x1 <= area_x0 - r)
+                continue;
+            if(x0 > area_x1 + r)
+                break;
+
+            if(i == mditab->item_selected) {
+                /* We need to paint the selected item as last one, due to the
+                 * overlaps. Remember its rect. */
+                paint_selected_item = TRUE;
+                sel_rect.x0 = x0;
+                sel_rect.x1 = x1;
+                sel_rect.y0 = (float) MDITAB_ITEM_TOP_MARGIN;
+                sel_rect.y1 = client.bottom;
+                continue;
+            }
+
+            /* Paint an item. */
+            item_rect.x0 = x0;
+            item_rect.x1 = x1;
+            item_rect.y0 = (float) MDITAB_ITEM_TOP_MARGIN;
+            item_rect.y1 = client.bottom;
+            mditab_paint_item(mditab, ctx, &client, item, &item_rect,
+                              area_x0, area_x1, background_image, FALSE,
+                              (i == mditab->item_hot));
+        }
+
+        /* Paint the selected item. */
+        if(paint_selected_item) {
+            mditab_item_t* item = mditab_item(mditab, mditab->item_selected);
+            mditab_paint_item(mditab, ctx, &client, item, &sel_rect,
+                              area_x0, area_x1, background_image, TRUE,
+                              (mditab->item_selected == mditab->item_hot));
+        }
+    }
+
+    /* Painting of selected item does also the bottom border as a side effect.
+     * If there are no items or selected items is out of the view port, we have
+     * to paint it here. */
+    if(!paint_selected_item) {
+        xdraw_line_t line;
+        line.x0 = -1.0f;
+        line.y0 = client.bottom - 1.0f;
+        line.x1 = client.right;
+        line.y1 = client.bottom - 1.0f;
+        xdraw_brush_solid_set_color(ctx->solid_brush, MDITAB_COLOR_BORDER);
+        xdraw_draw_line(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+    }
+
+    /* Clean-up */
+    xdraw_image_destroy(background_image);
+err_xdraw_image_create_from_HBITMAP:
+    DeleteObject(background_bmp);
+err_CreateCompatibleBitmap:
+    DeleteDC(background_dc);
+err_CreateCompatibleDC:
+skip_item_painting:
+    return xdraw_canvas_end_paint(ctx->canvas);
+}
+
+static void
+mditab_paint(mditab_t* mditab)
+{
+    PAINTSTRUCT ps;
+    mditab_paint_t* ctx;
+    mditab_paint_t tmp_ctx;
+
+    BeginPaint(mditab->win, &ps);
+    if(mditab->no_redraw)
+        goto no_paint;
+
+    if(mditab->paint_ctx != NULL) {
+        /* Use the cached paint context. */
+        ctx = mditab->paint_ctx;
+    } else {
+        /* Initialize new context. */
+        DWORD flags;
+        xdraw_canvas_t* c;
+
+        flags = XDRAW_CANVAS_GDICOMPAT;
+        if(mditab->style & MC_MTS_DOUBLEBUFFER)
+            flags |= XDRAW_CANVAS_DOUBLEBUFER;
+
+        c = xdraw_canvas_create_with_paintstruct(mditab->win, &ps, flags);
+        if(MC_ERR(c == NULL))
+            goto no_paint;
+
+        mditab_paint_ctx_init(&tmp_ctx, c, mditab->font);
+        ctx = &tmp_ctx;
+    }
+
+    /* Do the painting itself. */
+    if(mditab_paint_with_ctx(mditab, ps.hdc, ctx, &ps.rcPaint, ps.fErase)) {
+        /* We are allowed to cache the context for reuse. */
+        if(ctx == &tmp_ctx) {
+            ctx = (mditab_paint_t*) malloc(sizeof(mditab_paint_t));
+            if(ctx != NULL) {
+                memcpy(ctx, &tmp_ctx, sizeof(mditab_paint_t));
+                mditab->paint_ctx = ctx;
+            } else {
+                mditab_paint_ctx_fini(&tmp_ctx);
+            }
+        }
+    } else {
+        /* We are instructed to destroy the context. */
+        mditab_paint_ctx_fini(ctx);
+        if(mditab->paint_ctx != NULL) {
+            free(mditab->paint_ctx);
+            mditab->paint_ctx = NULL;
+        }
+    }
+
+no_paint:
+    EndPaint(mditab->win, &ps);
+}
+
+static void
+mditab_printclient(mditab_t* mditab, HDC dc)
+{
+    mditab_paint_t ctx;
+    xdraw_canvas_t* c;
+    RECT rect;
 
     GetClientRect(mditab->win, &rect);
 
-    if(erase)
-        mcDrawThemeParentBackground(mditab->win, dc, &rect);
-
-    dirty_left = MC_MAX(dirty->left, mditab->main_rect.left);
-    dirty_right = MC_MIN(dirty->right, mditab->main_rect.right);
-
-    old_clip = mc_clip_get(dc);
-
-    /* Draw unselected tabs */
-    item = mditab_item_by_x(mditab, dirty_left, TRUE);
-    if(item != NULL) {
-        UINT i, i0, n;
-
-        mc_clip_set(dc, mditab->main_rect.left, 0, mditab->main_rect.right, rect.bottom);
-
-        i0 = dsa_index(&mditab->items, item);
-        n = mditab_count(mditab);
-        for(i = i0; i < n; i++) {
-            RECT r;
-
-            if(i == mditab->item_selected)
-                continue;
-
-            mditab_calc_item_rect(mditab, i, &r);
-            mditab_paint_item(mditab, dc, i, &r);
-            if(r.right >= dirty_right)
-                break;
-        }
-
-        mc_clip_reset(dc, old_clip);
+    c = xdraw_canvas_create_with_dc(dc, &rect, XDRAW_CANVAS_GDICOMPAT);
+    if(MC_ERR(c == NULL)) {
+        MC_TRACE("xdraw_canvas_create_with_dc: xdraw_canvas_create_with_dc() failed.");
+        return;
     }
 
-    /* Draw pane */
-    item = (mditab->item_selected >= 0) ? mditab_item(mditab, mditab->item_selected) : NULL;
-    if(item != NULL) {
-        RECT s;
-        mditab_calc_item_rect(mditab, mditab->item_selected, &s);
-        mc_rect_set(&r, rect.left - 5, rect.bottom - 4, s.left, rect.bottom + 1);
-        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
-        mc_rect_set(&r, s.right, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
-        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
-    } else {
-        mc_rect_set(&r, rect.left - 5, rect.bottom - 4, rect.right + 5, rect.bottom + 1);
-        DrawEdge(dc, &r, EDGE_RAISED, BF_SOFT | BF_TOP);
-    }
-
-    mc_clip_set(dc, mditab->main_rect.left - SELECTED_EXTRA_LEFT, 0,
-                    mditab->main_rect.right + SELECTED_EXTRA_RIGHT, rect.bottom);
-
-    /* Draw the selected tab */
-    if(item != NULL) {
-        RECT r;
-        mditab_calc_item_rect(mditab, mditab->item_selected, &r);
-        if(r.right >= dirty->left  &&  r.left < dirty->right)
-            mditab_paint_item(mditab, dc, mditab->item_selected, &r);
-    }
-
-    mc_clip_reset(dc, old_clip);
-
-    SelectObject(dc, old_font);
-    SetBkMode(dc, old_bk_mode);
-    SetTextColor(dc, old_text_color);
+    mditab_paint_ctx_init(&ctx, c, mditab->font);
+    mditab_paint_with_ctx(mditab, dc, &ctx, &rect, TRUE);
+    mditab_paint_ctx_fini(&ctx);
 }
 
 static void
@@ -1008,9 +1467,9 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     item->text = item_text;
     item->img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : (SHORT)MC_I_IMAGENONE);
     item->lp = ((id->dwMask & MC_MTIF_PARAM) ? id->lParam : 0);
-    item->left = (index > 0  ?  mditab_item(mditab, index-1)->right  :  0);
-    item->right = item->left;
-    item->desired_width = 0;  /* computed in mditab_setup_all_desired_widths() below */
+    item->x0 = (index > 0  ?  mditab_item(mditab, index-1)->x1  :  0);
+    item->x1 = item->x0;
+    item->ideal_width = 0;
 
     /* Update stored item indexes */
     if(index <= mditab->item_selected)
@@ -1022,11 +1481,10 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     if(index <= mditab->item_mclose)
         mditab->item_mclose++;
     /* We don't update ->item_hot. This is determined by mouse and set
-     * in mditab_layout() below anyway... */
+     * in mditab_update_layout() below anyway... */
 
     /* Refresh */
-    mditab_setup_all_desired_widths(mditab);
-    mditab_layout(mditab, TRUE);
+    mditab_update_layout(mditab, TRUE);
     return index;
 }
 
@@ -1034,7 +1492,6 @@ static BOOL
 mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
     mditab_item_t* item;
-    int desired_width;
 
     MDITAB_TRACE("mditab_set_item(%p, %d, %p, %d)", mditab, index, id, unicode);
 
@@ -1064,19 +1521,19 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         if(item->text != NULL)
             free(item->text);
         item->text = item_text;
+
+        /* New text implies new ideal width. */
+        item->ideal_width = 0;
     }
     if(id->dwMask & MC_MTIF_IMAGE)
         item->img = (SHORT)id->iImage;
     if(id->dwMask & MC_MTIF_PARAM)
         item->lp = id->lParam;
 
-    desired_width = mditab_calc_desired_width(mditab, index);
-    if(desired_width != item->desired_width) {
-        item->desired_width = desired_width;
-        mditab_layout(mditab, TRUE);
-    } else {
-        mditab_invalidate_item(mditab, index);
-    }
+    mditab_invalidate_item(mditab, index);
+    if(mditab->item_def_width == 0  &&  (id->dwMask & MC_MTIF_TEXT))
+        mditab_update_layout(mditab, TRUE);
+
     return TRUE;
 }
 
@@ -1137,9 +1594,13 @@ mditab_delete_item(mditab_t* mditab, int index)
         return FALSE;
     }
 
-    /* Perhaps we have to set another tab as selected. We need to do this
-     * before the deletion takes effect as the application still might want
-     * to use it in the notification handler. */
+    /* We may need to change all item indexes referring to the item being
+     * deleted. */
+    if(mditab->scrolling_to_item  &&  index == mditab->scroll_x_desired) {
+        mditab->scrolling_to_item = FALSE;
+        mditab->scroll_x_desired = mditab->scroll_x;
+    }
+
     if(index == mditab->item_selected) {
         int old_item_selected = mditab->item_selected;
         int n = mditab_count(mditab);
@@ -1151,18 +1612,25 @@ mditab_delete_item(mditab_t* mditab, int index)
         mditab_notify_sel_change(mditab, old_item_selected, mditab->item_selected);
     }
 
-    mditab_notify_delete_item(mditab, index);
+    if(index == mditab->item_mclose)
+        mditab->item_mclose = -1;
+
+    /* Do the delete. */
     mditab_invalidate_item(mditab, index);
+    mditab_notify_delete_item(mditab, index);
     dsa_remove(&mditab->items, index, mditab_item_dtor);
 
-    /* Update stored item indexes */
+    /* Update stored item indexes. */
+    if(mditab->scrolling_to_item  &&  index < mditab->scroll_x_desired)
+        mditab->scroll_x_desired--;
     if(index < mditab->item_selected)
         mditab->item_selected--;
-    mditab->item_hot = -1;
+    if(index < mditab->item_mclose)
+        mditab->item_mclose--;
+    mditab_reset_hot(mditab);
 
     /* Refresh */
-    mditab_setup_all_desired_widths(mditab);
-    mditab_layout(mditab, TRUE);
+    mditab_update_layout(mditab, TRUE);
     return TRUE;
 }
 
@@ -1197,10 +1665,14 @@ mditab_delete_all_items(mditab_t* mditab)
     mditab_notify_delete_all_items(mditab);
     dsa_clear(&mditab->items, mditab_item_dtor);
 
-    mditab->item_hot = -1;
+    mditab->item_hot = ITEM_HOT_NONE;
     mditab->item_mclose = -1;
+    mditab->scrolling_to_item = FALSE;
+    mditab->scroll_x_desired = 0;
+    mditab->scroll_x = 0;
+    mditab->scroll_x_max = 0;
 
-    mditab_layout(mditab, FALSE);
+    mditab_update_layout(mditab, FALSE);
     if(!mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);
     return TRUE;
@@ -1219,9 +1691,70 @@ mditab_set_img_list(mditab_t* mditab, HIMAGELIST img_list)
     old_img_list = mditab->img_list;
     mditab->img_list = img_list;
 
+    if(mditab->item_def_width != 0) {
+        int old_icon_cx;
+        int new_icon_cx;
+        int dummy;
+
+        if(old_img_list != NULL)
+            ImageList_GetIconSize(old_img_list, &old_icon_cx, &dummy);
+        else
+            old_icon_cx = 0;
+
+        if(img_list != NULL)
+            ImageList_GetIconSize(img_list, &new_icon_cx, &dummy);
+        else
+            new_icon_cx = 0;
+
+        if(old_icon_cx != new_icon_cx) {
+            mditab_reset_ideal_widths(mditab);
+            mditab_update_layout(mditab, FALSE);
+        }
+    }
+
     if(!mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);
     return old_img_list;
+}
+
+static void
+mditab_scroll_to_item(mditab_t* mditab, int index)
+{
+    mditab->scrolling_to_item = TRUE;
+    mditab->scroll_x_desired = index;
+    mditab_update_layout(mditab, TRUE);
+}
+
+static void
+mditab_scroll_rel(mditab_t* mditab, int dx)
+{
+    int scroll_x_desired;
+
+    scroll_x_desired = mditab->scroll_x + dx;
+
+    if(scroll_x_desired < 0)
+        scroll_x_desired = 0;
+    if(scroll_x_desired > mditab->scroll_x_max)
+        scroll_x_desired = mditab->scroll_x_max;
+
+    if(mditab->scroll_x_desired != scroll_x_desired) {
+        mditab->scrolling_to_item = FALSE;
+        mditab->scroll_x_desired = scroll_x_desired;
+        mditab_update_layout(mditab, TRUE);
+    }
+}
+
+static BOOL
+mditab_ensure_visible(mditab_t* mditab, int index)
+{
+    if(MC_ERR(index < 0  ||  index >= mditab_count(mditab))) {
+        MC_TRACE("mditab_ensure_visible: invalid tab index (%d)", index);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    mditab_scroll_to_item(mditab, index);
+    return TRUE;
 }
 
 static int
@@ -1242,7 +1775,7 @@ mditab_set_cur_sel(mditab_t* mditab, int index)
         return old_sel_index;
 
     mditab->item_selected = index;
-    mditab_scroll_to_item(mditab, index);
+    mditab_ensure_visible(mditab, index);
 
     /* Redraw the tabs with changed status */
     if(old_sel_index >= 0)
@@ -1254,55 +1787,6 @@ mditab_set_cur_sel(mditab_t* mditab, int index)
     mditab_notify_sel_change(mditab, old_sel_index, index);
 
     return old_sel_index;
-}
-
-static void
-mditab_list_items(mditab_t* mditab)
-{
-    HMENU popup;
-    MENUINFO mi;
-    MENUITEMINFO mii;
-    TPMPARAMS tpm_param;
-    int i;
-    DWORD btn_state;
-
-    MDITAB_TRACE("mditab_list_items(%p)", mditab);
-
-    /* Construct the menu */
-    popup = CreatePopupMenu();
-    mii.cbSize = sizeof(MENUITEMINFO);
-    mii.fMask = MIIM_DATA | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_BITMAP;
-    mii.hbmpItem = HBMMENU_CALLBACK;
-    for(i = 0; i < mditab_count(mditab); i++) {
-        mii.dwItemData = i;
-        mii.wID = 1000 + i;
-        mii.fState = (i == mditab->item_selected ? MFS_DEFAULT : 0);
-        mii.dwTypeData = mditab_item(mditab, i)->text;
-        mii.cch = _tcslen(mii.dwTypeData);
-        InsertMenuItem(popup, i, TRUE, &mii);
-    }
-
-    /* Disable the place for checkmarks in the menu as it is never used
-     * and looks ugly. */
-    mi.cbSize = sizeof(MENUINFO);
-    mi.fMask = MIM_STYLE;
-    GetMenuInfo(popup, &mi);
-    mi.dwStyle |= MNS_CHECKORBMP;
-    SetMenuInfo(popup, &mi);
-
-    /* Show the menu */
-    i = MC_SEND(mditab->tb2_win, TB_COMMANDTOINDEX, IDC_LIST_ITEMS, 0);
-    tpm_param.cbSize = sizeof(TPMPARAMS);
-    MC_SEND(mditab->tb2_win, TB_GETITEMRECT, i, &tpm_param.rcExclude);
-    btn_state = MC_SEND(mditab->tb2_win, TB_GETSTATE, IDC_LIST_ITEMS, 0);
-    MC_SEND(mditab->tb2_win, TB_SETSTATE, IDC_LIST_ITEMS,
-                MAKELONG(btn_state | TBSTATE_PRESSED, 0));
-    MapWindowPoints(mditab->tb2_win, HWND_DESKTOP, (POINT*) &tpm_param.rcExclude, 2);
-    TrackPopupMenuEx(popup, TPM_LEFTBUTTON | TPM_RIGHTALIGN,
-                     tpm_param.rcExclude.right, tpm_param.rcExclude.bottom,
-                     mditab->win, &tpm_param);
-    DestroyMenu(popup);
-    MC_SEND(mditab->tb2_win, TB_SETSTATE, IDC_LIST_ITEMS, MAKELONG(btn_state, 0));
 }
 
 static void
@@ -1377,13 +1861,12 @@ mditab_set_item_width(mditab_t* mditab, MC_MTITEMWIDTH* tw)
     if(def_w < min_w)
         def_w = min_w;
 
-    if(def_w != mditab->item_def_width  ||  min_w != mditab->item_min_width) {
-        mditab->item_def_width = def_w;
-        mditab->item_min_width = min_w;
+    if(def_w == mditab->item_def_width  &&  min_w == mditab->item_min_width)
+        return TRUE;
 
-        if(mditab_setup_all_desired_widths(mditab))
-            mditab_layout(mditab, TRUE);
-    }
+    mditab->item_def_width = def_w;
+    mditab->item_min_width = min_w;
+    mditab_update_layout(mditab, TRUE);
     return TRUE;
 }
 
@@ -1396,79 +1879,36 @@ mditab_get_item_width(mditab_t* mditab, MC_MTITEMWIDTH* tw)
 }
 
 static BOOL
-mditab_get_item_rect(mditab_t* mditab, int index, RECT* rect)
+mditab_get_item_rect(mditab_t* mditab, WORD index, RECT* rect, BOOL whole)
 {
-    if(MC_ERR(index < 0  ||  index >= mditab_count(mditab))) {
+    RECT client;
+    mditab_item_t* item;
+
+    if(MC_ERR(index >= mditab_count(mditab))) {
         MC_TRACE("mditab_get_item_rect: invalid tab index (%d)", index);
         SetLastError(ERROR_INVALID_PARAMETER);
         return FALSE;
     }
 
-    mditab_calc_item_rect(mditab, index, rect);
-    if(rect->left < mditab->main_rect.left)
-        rect->left = mditab->main_rect.left;
-    if(rect->right > mditab->main_rect.right)
-        rect->right = mditab->main_rect.right;
+    GetClientRect(mditab->win, &client);
+    item = mditab_item(mditab, index);
 
-    return TRUE;
-}
+    rect->left = mditab->area_margin0 - mditab->scroll_x + item->x0;
+    rect->top = MDITAB_ITEM_TOP_MARGIN;
+    rect->right = mditab->area_margin0 - mditab->scroll_x + item->x1;
+    rect->bottom = client.bottom;
 
-static BOOL
-mditab_ensure_visible(mditab_t* mditab, int index)
-{
-    if(MC_ERR(index < 0  ||  index >= mditab_count(mditab))) {
-        MC_TRACE("mditab_ensure_visible: invalid tab index (%d)", index);
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return FALSE;
-    }
+    if(!whole) {
+        int area_x0 = mditab->area_margin0;
+        int area_x1 = client.right - mditab->area_margin1;
 
-    mditab_scroll_to_item(mditab, index);
-    return TRUE;
-}
-
-static BOOL
-mditab_command(mditab_t* mditab, WORD code, WORD ctrl_id, HWND ctrl)
-{
-    MDITAB_TRACE("mditab_command(%p, %d, %d, %p)", mditab, code, ctrl_id, ctrl);
-
-    switch(ctrl_id) {
-        case IDC_SCROLL_LEFT:
-            mditab_scroll_rel(mditab, -80, TRUE);
-            break;
-
-        case IDC_SCROLL_RIGHT:
-            mditab_scroll_rel(mditab, +80, TRUE);
-            break;
-
-        case IDC_CLOSE_ITEM:
-            mditab_close_item(mditab, mditab->item_selected);
-            break;
-
-        default:
-            if(code == 0  &&  ctrl_id >= 1000) {
-                /* user clicked in tab list popup menu */
-                mditab_set_cur_sel(mditab, ctrl_id - 1000);
-                break;
-            }
-            return FALSE;
+        if(rect->left < area_x0)
+            rect->left = area_x0;
+        if(rect->right > area_x1)
+            rect->right = area_x1;
     }
 
     return TRUE;
-}
-
-static LRESULT
-mditab_notify(mditab_t* mditab, NMHDR* hdr)
-{
-    if(hdr->idFrom == IDC_TBAR_1  ||  hdr->idFrom == IDC_TBAR_2) {
-        if(hdr->code == TBN_DROPDOWN) {
-            NMTOOLBAR* nm = (NMTOOLBAR*) hdr;
-            if(nm->iItem == IDC_LIST_ITEMS)
-                mditab_list_items(mditab);
-            return TBDDRET_DEFAULT;
-        }
-    }
-
-    return 0;
 }
 
 static BOOL
@@ -1496,6 +1936,61 @@ mditab_key_up(mditab_t* mditab, int key_code, DWORD key_data)
 }
 
 static void
+mditab_list_items(mditab_t* mditab)
+{
+    HMENU popup;
+    MENUINFO mi;
+    MENUITEMINFO mii;
+    TPMPARAMS tpm_param;
+    int i, n;
+    int cmd;
+
+    MDITAB_TRACE("mditab_list_items(%p)", mditab);
+
+    /* Construct the menu */
+    popup = CreatePopupMenu();
+    if(MC_ERR(popup == NULL)) {
+        MC_TRACE("mditab_list_items: CreatePopupMenu() failed.");
+        return;
+    }
+
+    /* Disable the place for check marks in the menu as it is never used
+     * and looks ugly. */
+    mi.cbSize = sizeof(MENUINFO);
+    mi.fMask = MIM_STYLE;
+    mi.dwStyle = (mditab->img_list != NULL ? MNS_CHECKORBMP : MNS_NOCHECK);
+    SetMenuInfo(popup, &mi);
+
+    /* Install menu items */
+    mii.cbSize = sizeof(MENUITEMINFO);
+    mii.fMask = MIIM_DATA | MIIM_ID | MIIM_STATE | MIIM_STRING;
+    if(mditab->img_list != NULL) {
+        mii.fMask |= MIIM_BITMAP;
+        mii.hbmpItem = HBMMENU_CALLBACK;
+    }
+    n = mditab_count(mditab);
+    for(i = 0; i < n; i++) {
+        mii.dwItemData = i;
+        mii.wID = 1000 + i;
+        mii.fState = (i == mditab->item_selected ? MFS_DEFAULT : 0);
+        mii.dwTypeData = mditab_item(mditab, i)->text;
+        mii.cch = _tcslen(mii.dwTypeData);
+        InsertMenuItem(popup, i, TRUE, &mii);
+    }
+
+    /* Show the menu */
+    tpm_param.cbSize = sizeof(TPMPARAMS);
+    mditab_button_rect(mditab, BTNID_LIST, &tpm_param.rcExclude);
+    MapWindowPoints(mditab->win, HWND_DESKTOP, (POINT*) &tpm_param.rcExclude, 2);
+    cmd = TrackPopupMenuEx(popup, TPM_LEFTBUTTON | TPM_RIGHTALIGN | TPM_RETURNCMD | TPM_NONOTIFY,
+                     tpm_param.rcExclude.right, tpm_param.rcExclude.bottom,
+                     mditab->win, &tpm_param);
+    DestroyMenu(popup);
+    if(cmd != 0)
+        mditab_set_cur_sel(mditab, cmd - 1000);
+}
+
+static void
 mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
 {
     int index;
@@ -1506,15 +2001,77 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
 
     hti.pt.x = x;
     hti.pt.y = y;
-    index = mditab_hit_test(mditab, &hti);
-    if(index < 0)
-        return;
+    index = mditab_hit_test(mditab, &hti, FALSE);
 
-    if(index == mditab->item_selected) {
-        if((mditab->style & MC_MTS_FOCUSMASK) != MC_MTS_FOCUSNEVER)
-            SetFocus(mditab->win);
+    MDITAB_TRACE("mditab_left_button_down(): hittest index %d, flags 0x%x",
+                 index, hti.flags);
+
+    if(index >= 0) {
+        /* Handle item selection. */
+        if(index == mditab->item_selected) {
+            if((mditab->style & MC_MTS_FOCUSMASK) != MC_MTS_FOCUSNEVER)
+                SetFocus(mditab->win);
+        } else {
+            mditab_set_cur_sel(mditab, index);
+        }
     } else {
-        mditab_set_cur_sel(mditab, index);
+        /* Handle auxiliary buttons */
+        int btn_id = -1;
+
+        switch(hti.flags) {
+            case MC_MTHT_ONLEFTSCROLLBUTTON:   btn_id = BTNID_LSCROLL; break;
+            case MC_MTHT_ONRIGHTSCROLLBUTTON:  btn_id = BTNID_RSCROLL; break;
+            case MC_MTHT_ONLISTBUTTON:         btn_id = BTNID_LIST; break;
+            case MC_MTHT_ONCLOSEBUTTON:        btn_id = BTNID_CLOSE; break;
+        }
+
+        if(btn_id >= 0) {
+            if(btn_id == BTNID_LIST) {
+                /* We handle BTNID_LIST specially because the popup menu is not
+                 * friend with CaptureMouse etc. */
+                RECT btn_rect;
+
+                mditab_button_rect(mditab, BTNID_LIST, &btn_rect);
+                mditab->btn_pressed = TRUE;
+                RedrawWindow(mditab->win, &btn_rect, NULL, RDW_INTERNALPAINT);
+                mditab_list_items(mditab);
+                mditab->btn_pressed = FALSE;
+                mditab_invalidate_button(mditab, btn_id);
+            } else {
+                SetCapture(mditab->win);
+                mditab->btn_pressed = TRUE;
+                mditab_invalidate_button(mditab, btn_id);
+
+                switch(btn_id) {
+                    case BTNID_LSCROLL:
+                        mditab_scroll_rel(mditab, -DEFAULT_ITEM_MIN_WIDTH);
+                        break;
+
+                    case BTNID_RSCROLL:
+                        mditab_scroll_rel(mditab, +DEFAULT_ITEM_MIN_WIDTH);
+                        break;
+                }
+            }
+        }
+    }
+}
+
+static void
+mditab_left_button_up(mditab_t* mditab, UINT keys, short x, short y)
+{
+    if(mditab->item_hot < 0  &&  mditab->item_hot != ITEM_HOT_NONE  &&  mditab->btn_pressed) {
+        int btn_id = mditab_hot_button(mditab);
+        if(btn_id == BTNID_CLOSE  &&  mditab->item_selected >= 0)
+            mditab_close_item(mditab, mditab->item_selected);
+        mditab_invalidate_button(mditab, btn_id);
+    } else {
+        mc_send_notify(mditab->notify_win, mditab->win, NM_CLICK);
+    }
+
+   if(GetCapture() == mditab->win) {
+        mditab->btn_pressed = FALSE;
+        ReleaseCapture();
+        mc_send_notify(mditab->notify_win, mditab->win, NM_RELEASEDCAPTURE);
     }
 }
 
@@ -1523,13 +2080,15 @@ mditab_middle_button_down(mditab_t* mditab, UINT keys, short x, short y)
 {
     MC_MTHITTESTINFO hti;
 
-    if((mditab->style & MC_MTS_CLOSEONMCLICK) == 0)
+    if(!(mditab->style & MC_MTS_CLOSEONMCLICK))
         return;
 
     hti.pt.x = x;
     hti.pt.y = y;
-    mditab->item_mclose = mditab_hit_test(mditab, &hti);
-    SetCapture(mditab->win);
+    mditab->item_mclose = mditab_hit_test(mditab, &hti, FALSE);
+
+    if(mditab->item_mclose >= 0)
+        SetCapture(mditab->win);
 }
 
 static void
@@ -1548,7 +2107,7 @@ mditab_middle_button_up(mditab_t* mditab, UINT keys, short x, short y)
 
     hti.pt.x = x;
     hti.pt.y = y;
-    index = mditab_hit_test(mditab, &hti);
+    index = mditab_hit_test(mditab, &hti, FALSE);
 
     if(index == mditab->item_mclose)
         mditab_close_item(mditab, index);
@@ -1567,16 +2126,28 @@ mditab_change_focus(mditab_t* mditab)
 static void
 mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 {
+    static const DWORD style_mask_for_layout =
+                (MC_MTS_CBMASK | MC_MTS_TLBMASK | MC_MTS_SCROLLALWAYS);
+    BOOL do_update_layout = FALSE;
+
     mditab->style = ss->styleNew;
 
-    if(mditab->is_animating  &&  !(mditab->style & MC_MTS_ANIMATE))
-        mditab_animate_abort(mditab);
+    if((ss->styleOld & style_mask_for_layout) != (ss->styleNew & style_mask_for_layout))
+        do_update_layout = TRUE;
 
-    mditab_layout(mditab, FALSE);
-    if(!mditab->no_redraw) {
-        RedrawWindow(mditab->win, NULL, NULL,
-                     RDW_INVALIDATE | RDW_FRAME | RDW_ERASE | RDW_ALLCHILDREN);
+    if((ss->styleOld & MC_MTS_ANIMATE) && !(ss->styleNew & MC_MTS_ANIMATE)) {
+        if(mditab->animation != NULL) {
+            anim_stop(mditab->animation);
+            mditab->animation = NULL;
+            do_update_layout = TRUE;
+        }
     }
+
+    if(do_update_layout)
+        mditab_update_layout(mditab, FALSE);
+
+    if(!mditab->no_redraw)
+        InvalidateRect(mditab->win, NULL, TRUE);
 }
 
 static mditab_t*
@@ -1596,55 +2167,40 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
     mditab->notify_win = cs->hwndParent;
     dsa_init(&mditab->items, sizeof(mditab_item_t));
     mditab->item_selected = -1;
-    mditab->item_hot = -1;
+    mditab->item_hot = ITEM_HOT_NONE;
     mditab->item_mclose = -1;
     mditab->item_min_width = DEFAULT_ITEM_MIN_WIDTH;
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
 
-    doublebuffer_init();
+    /* This initializes mditab_t::btn_mask, area_margin0, area_margin1 */
+    mditab_update_layout(mditab, FALSE);
 
     return mditab;
 }
 
 static int
-mditab_create(mditab_t* mditab)
+mditab_create(mditab_t* mditab, CREATESTRUCT* cs)
 {
-    mditab->tb1_win = CreateWindow(toolbar_wc, NULL,
-                WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
-                0, 0, 0, 0, mditab->win, (HMENU) IDC_TBAR_1, NULL, NULL);
-    mditab->tb2_win = CreateWindow(toolbar_wc,
-                NULL, WS_CHILD | TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER,
-                0, 0, 0, 0, mditab->win, (HMENU) IDC_TBAR_2, NULL, NULL);
-    if(MC_ERR(mditab->tb1_win == NULL  ||  mditab->tb2_win == NULL)) {
-        MC_TRACE("mditab_create: CreateWindow() failed.");
-        return -1;
-    }
-
-    MC_SEND(mditab->tb1_win, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    MC_SEND(mditab->tb1_win, TB_SETIMAGELIST, 0, mc_bmp_glyphs);
-    MC_SEND(mditab->tb1_win, TB_SETBUTTONSIZE, 0,
-           MAKELPARAM(TOOLBAR_BTN_WIDTH, TOOLBAR_BTN_WIDTH));
-    MC_SEND(mditab->tb2_win, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    MC_SEND(mditab->tb2_win, TB_SETIMAGELIST, 0, mc_bmp_glyphs);
-    MC_SEND(mditab->tb2_win, TB_SETBUTTONSIZE, 0,
-           MAKELPARAM(TOOLBAR_BTN_WIDTH, TOOLBAR_BTN_WIDTH));
-
-    mditab_layout(mditab, FALSE);
+    /* noop */
     return 0;
 }
 
 static void
 mditab_destroy(mditab_t* mditab)
 {
-    mditab_notify_delete_all_items(mditab);
-    dsa_fini(&mditab->items, mditab_item_dtor);
+    /* noop */
 }
 
 static void
 mditab_ncdestroy(mditab_t* mditab)
 {
-    doublebuffer_fini();
+    mditab_notify_delete_all_items(mditab);
+    dsa_fini(&mditab->items, mditab_item_dtor);
+
+    if(mditab->animation != NULL)
+        anim_stop(mditab->animation);
+
     free(mditab);
 }
 
@@ -1655,16 +2211,29 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            return generic_paint(win, mditab->no_redraw,
-                                 (mditab->style & MC_MTS_DOUBLEBUFFER),
-                                 mditab_paint, mditab);
+            mditab_paint(mditab);
+            return 0;
 
         case WM_PRINTCLIENT:
-            return generic_printclient(win, (HDC) wp, mditab_paint, mditab);
+            mditab_printclient(mditab, (HDC) wp);
+            return 0;
+
+        case WM_DISPLAYCHANGE:
+            mditab_free_cached_paint_ctx(mditab);
+            InvalidateRect(win, NULL, FALSE);
+            break;
 
         case WM_ERASEBKGND:
             /* Keep it on WM_PAINT */
             return FALSE;
+
+        case WM_TIMER:
+            if(wp == ANIM_TIMER_ID) {
+                anim_step(mditab->animation);
+                mditab_update_layout(mditab, TRUE);
+                return 0;
+            }
+            break;
 
         case MC_MTM_GETITEMCOUNT:
             return mditab_count(mditab);
@@ -1688,7 +2257,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return mditab_close_item(mditab, wp);
 
         case MC_MTM_HITTEST:
-            return mditab_hit_test(mditab, (MC_MTHITTESTINFO*)lp);
+            return mditab_hit_test(mditab, (MC_MTHITTESTINFO*)lp, TRUE);
 
         case MC_MTM_SETCURSEL:
             return mditab_set_cur_sel(mditab, wp);
@@ -1715,7 +2284,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (dsa_reserve(&mditab->items, (UINT)wp) == 0 ? TRUE : FALSE);
 
         case MC_MTM_GETITEMRECT:
-            return mditab_get_item_rect(mditab, wp, (RECT*) lp);
+            return mditab_get_item_rect(mditab, LOWORD(wp), (RECT*) lp, (HIWORD(wp)) != 0);
 
         case MC_MTM_ENSUREVISIBLE:
             return mditab_ensure_visible(mditab, wp);
@@ -1724,16 +2293,16 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             mditab_left_button_down(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
+        case WM_LBUTTONUP:
+            mditab_left_button_up(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
+
         case WM_MBUTTONDOWN:
             mditab_middle_button_down(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
 
         case WM_MBUTTONUP:
             mditab_middle_button_up(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
-            return 0;
-
-        case WM_LBUTTONUP:
-            mc_send_notify(mditab->notify_win, win, NM_CLICK);
             return 0;
 
         case WM_RBUTTONUP:
@@ -1748,24 +2317,25 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             mditab_mouse_leave(mditab);
             return 0;
 
-        case WM_COMMAND:
-            if(mditab_command(mditab, HIWORD(wp), LOWORD(wp), (HWND)lp))
-                return 0;
-            break;
-
-        case WM_NOTIFY:
-            return mditab_notify(mditab, (NMHDR*) lp);
-
         case WM_SIZE:
-            mditab_layout(mditab, FALSE);
-            if(!mditab->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
+            if(mditab->paint_ctx != NULL)
+                xdraw_canvas_resize(mditab->paint_ctx->canvas, LOWORD(lp), HIWORD(lp));
+            mditab_update_layout(mditab, TRUE);
             return 0;
 
         case WM_KEYUP:
             if(mditab_key_up(mditab, (int)wp, (DWORD)lp))
                 return 0;
             break;
+
+        case WM_CAPTURECHANGED:
+            if(mditab->btn_pressed) {
+                if(mditab->item_hot < 0  &&  mditab->item_hot != ITEM_HOT_NONE)
+                    mditab_invalidate_button(mditab, mditab_hot_button(mditab));
+                mditab->btn_pressed = FALSE;
+                mditab->item_hot = ITEM_HOT_NONE;
+            }
+            return 0;
 
         case WM_SETFOCUS:
         case WM_KILLFOCUS:
@@ -1777,8 +2347,10 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETFONT:
             mditab->font = (HFONT) wp;
-            if(mditab->item_def_width == 0)
-                mditab_setup_all_desired_widths(mditab);
+            if(mditab->item_def_width == 0) {
+                mditab_reset_ideal_widths(mditab);
+                mditab_update_layout(mditab, FALSE);
+            }
             if((BOOL) lp  &&  !mditab->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
             return 0;
@@ -1813,16 +2385,6 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 RedrawWindow(win, NULL, NULL, RDW_INVALIDATE);
             break;
 
-        case WM_UPDATEUISTATE:
-            switch(LOWORD(wp)) {
-                case UIS_CLEAR:       mditab->ui_state &= ~HIWORD(wp); break;
-                case UIS_SET:         mditab->ui_state |= HIWORD(wp); break;
-                case UIS_INITIALIZE:  mditab->ui_state = HIWORD(wp); break;
-            }
-            if(!mditab->no_redraw)
-                InvalidateRect(win, NULL, FALSE);
-            break;
-
         case CCM_SETNOTIFYWINDOW:
         {
             HWND old = mditab->notify_win;
@@ -1838,7 +2400,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return TRUE;
 
         case WM_CREATE:
-            return (mditab_create(mditab) == 0 ? 0 : -1);
+            return (mditab_create(mditab, (CREATESTRUCT*)lp) == 0 ? 0 : -1);
 
         case WM_DESTROY:
             mditab_destroy(mditab);
@@ -1859,8 +2421,6 @@ mditab_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    mc_init_common_controls(ICC_BAR_CLASSES);
-
     wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = mditab_proc;
     wc.cbWndExtra = sizeof(mditab_t*);
@@ -1879,4 +2439,5 @@ mditab_fini_module(void)
 {
     UnregisterClass(mditab_wc, NULL);
 }
+
 

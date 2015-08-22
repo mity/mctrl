@@ -203,8 +203,28 @@ void MCTRL_API mcMditab_Terminate(void);
 /** @brief The coordinates hit the tab on its close button. */
 #define MC_MTHT_ONITEMCLOSEBUTTON    (1 << 3)
 /** @brief The coordinates hit the tab anywhere in its rectangle. */
-#define MC_MTHT_ONITEM               \
-    (MC_MTHT_ONITEMICON | MC_MTHT_ONITEMLABEL | MC_MTHT_ONITEMCLOSEBUTTON)
+#define MC_MTHT_ONITEM                                                        \
+        (MC_MTHT_ONITEMICON | MC_MTHT_ONITEMLABEL | MC_MTHT_ONITEMCLOSEBUTTON)
+/** @brief The coordinates hit the auxiliary button for scrolling to the left. */
+#define MC_MTHT_ONLEFTSCROLLBUTTON   (1 << 4)
+/** @brief The coordinates hit the auxiliary button for scrolling to the right. */
+#define MC_MTHT_ONRIGHTSCROLLBUTTON  (1 << 5)
+/** @brief The coordinates hit the auxiliary button for listing all items. */
+#define MC_MTHT_ONLISTBUTTON         (1 << 6)
+/** @brief The coordinates hit the auxiliary button for closing current item. */
+#define MC_MTHT_ONCLOSEBUTTON        (1 << 7)
+/** @brief The coordinates hit any auxiliary button. */
+#define MC_MTHT_ONBUTTON                                                      \
+        (MC_MTHT_ONLEFTSCROLLBUTTON | MC_MTHT_ONRIGHTSCROLLBUTTON |           \
+         MC_MTHT_ONLISTBUTTON | MC_MTHT_ONCLOSEBUTTON)
+/** @brief Above the client area. */
+#define MC_MTHT_ABOVE                (1 << 8)
+/** @brief Below the client area. */
+#define MC_MTHT_BELOW                (1 << 9)
+/** @brief To right of the client area. */
+#define MC_MTHT_TORIGHT              (1 << 10)
+/** @brief To left of the client area. */
+#define MC_MTHT_TOLEFT               (1 << 11)
 /*@}*/
 
 
@@ -526,10 +546,11 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 
 /**
  * @brief Get item rectangle.
- * @details If the item is not currently visible, the returned rectangle is
- * empty. If it is only partially visible, only the rectangle of the visible
- * item part is retrieved.
- * @param[in] wParam (@c int) Index of the item.
+ * @details The shape of items is curved so the returned rectangle is only
+ * approximation of its geometry.
+ * @param[in] wParam (@c DWORD) Low word specifies index of the item. High word
+ * specifies whether whole rectangle (non-zero) or only visible part (zero)
+ * is requested.
  * @param[out] lParam (@c RECT*) Pointer to rectangle.
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */

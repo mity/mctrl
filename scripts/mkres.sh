@@ -116,6 +116,11 @@ if [ -a "$tmpfile" ] ; then
     exit 1
 fi
 
+if [ -a "$outfile" ] ; then
+    echo "'$outfile' already exists. Giving up."
+    exit 1
+fi
+
 # Trap exit to remove the temporary file.
 trap "rm -f \"$tmpfile\"" EXIT
 

@@ -25,19 +25,42 @@ static HWND hwndBtn;         /* A button for creating new tabs */
 #define MINIMAL_HEIGHT     300
 
 
+static TCHAR* pszTabNames[] = {
+    _T("Lorem"),
+    _T("ipsum"),
+    _T("dolor"),
+    _T("sit"),
+    _T("amet"),
+    _T("consectetur"),
+    _T("adipiscing"),
+    _T("elit"),
+    _T("Ut"),
+    _T("tristique"),
+    _T("dui"),
+    _T("ex"),
+    _T("ut"),
+    _T("facilisis"),
+    _T("nisl"),
+    _T("consequat"),
+    _T("sed")
+};
+
+static const UINT uTabNames = sizeof(pszTabNames) / sizeof(pszTabNames[0]);
+
+
 /* Adds new tab */
 static void
 AddNewTab(void)
 {
     static UINT uCounter = 0;
     int i, n;
-    TCHAR buffer[32];
-    MC_MTITEM item = {MC_MTIF_TEXT | MC_MTIF_IMAGE, buffer, 0, 0, 0};
+    MC_MTITEM item;
 
     /* Setup tab icon and label */
-    uCounter++;
+    item.dwMask = MC_MTIF_TEXT | MC_MTIF_IMAGE;
     item.iImage = uCounter % 11; /* we have 11 icons in the image list */
-    _sntprintf(buffer, 32, _T("Tab %u"), uCounter);
+    item.pszText = pszTabNames[uCounter % uTabNames];
+    uCounter++;
 
     /* Add the new tab as last tab */
     n = SendMessage(hwndMdiTab, MC_MTM_GETITEMCOUNT, 0, 0);
@@ -47,12 +70,38 @@ AddNewTab(void)
     SendMessage(hwndMdiTab, MC_MTM_SETCURSEL, (WPARAM) i, 0);
 }
 
+static void
+WndPaint(HWND hWnd, HDC dc)
+{
+    RECT client;
+    GetClientRect(hWnd, &client);
+
+    MoveToEx(dc, client.left + 50, client.top, NULL);
+    LineTo(dc, client.right - 50, client.bottom);
+    MoveToEx(dc, client.right - 50, client.top, NULL);
+    LineTo(dc, client.left + 50, client.bottom);
+}
 
 /* Main window procedure */
 static LRESULT CALLBACK
 WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {
+        case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            BeginPaint(hWnd, &ps);
+            WndPaint(hWnd, ps.hdc);
+            EndPaint(hWnd, &ps);
+            break;
+        }
+
+        case WM_PRINTCLIENT:
+        {
+            WndPaint(hWnd, (HDC) wParam);
+            break;
+        }
+
         case WM_COMMAND:
             /* Handle clicks to the button: create new tab. */
             if(LOWORD(wParam) == IDC_BUTTON_NEW) {
@@ -122,7 +171,7 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nC
     hInst = hInstance;
 
     /* Register main window class */
-    wc.style = 0;
+    wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
