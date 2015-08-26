@@ -69,7 +69,7 @@ your C/C++ compiler to search for header files in the 'include' directory and
 use the 'mCtrl' in your preprocessor #include directives, e.g.:
 
 ```
-    #include <mCtrl/version.h>
+#include <mCtrl/version.h>
 ```
 
 Import libraries are located under the `lib` (32-bit libs) and `lib64` (64-bit)
@@ -85,7 +85,7 @@ the prebuilt package.
 Documentation for application developers is bundled within the pre-built
 package, or you can also find the documentation online:
 
-    http://mctrl.sourceforge.net/doc.php
+* http://mctrl.sourceforge.net/doc.php
 
 
 ## Building mCtrl from Sources
@@ -99,22 +99,19 @@ or whatever for the development tool-chain of your choice. mCtrl is known to
 successfully build within following environments.
 
 To build with MSYS + mingw-w64 + Make:
-
 ```
-        $ cmake -G "MSYS Makefiles" path/to/mctrl
+$ cmake -G "MSYS Makefiles" path/to/mctrl
 ```
 
 To build with MSYS + mingw-w64 + Ninja:
-
 ```C
-        $ cmake -G "Ninja" path/to/mctrl
+$ cmake -G "Ninja" path/to/mctrl
 ```
 
 To build with Microsoft Visual Studio 2013:
-
 ```
-        $ cmake -G "Visual Studio 12 2013" path/to/mctrl
-        $ cmake -G "Visual Studio 12 2013 Win64" path/to/mctrl  # 64-bit build
+$ cmake -G "Visual Studio 12 2013" path/to/mctrl
+$ cmake -G "Visual Studio 12 2013 Win64" path/to/mctrl  # 64-bit build
 ```
 
 Other CMake generators may or may not work. If they do not, then one or more
@@ -122,7 +119,7 @@ Other CMake generators may or may not work. If they do not, then one or more
 
 Use
 ```
-    $ cmake --help
+$ cmake --help
 ```
 and refer to CMake documentation to learn more about CMake, its options and
 capabilities.
