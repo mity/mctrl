@@ -16,26 +16,6 @@ function, the control can be normally created with the Win32API's `CreateWindow(
 or `CreateWindowEx()` functions and controlled with `SendMessage()`.
 
 
-## License
-
-mCtrl itself is covered with the GNU Lesser General Public License 2.1 or
-(at your option) any later version. See file `COPYING.lib` for more info.
-
-In brief, this generally means that:
-
-* Any program or library, even commercial, covered with any proprietary
-  license, is allowed to link against the mCtrl's import libraries and
-  distribute `MCTRL.DLL` along with the program.
-
-* You can modify `MCTRL.DLL` (or its source code) and distribute such modified
-  `MCTRL.DLL` only if the modifications are also licensed under the terms of
-  the LGPL 2.1 (or any later version); or under the terms of GPL 2 (or any
-  later version).
-
-Source code of all examples, i.e. contents of the directory 'examples' within
-the source package (see below), are in public domain.
-
-
 ## Getting mCtrl
 
 You can always get the latest version and most actual information on project
@@ -130,6 +110,26 @@ or by running the make or other tool corresponding to the used CMake generator.
 Finally, consider running a mCtrl test-suite to verify correctness of your
 build. The test suite, as well as some examples demonstrating mCtrl, are built
 as part of the mCtrl build process.
+
+
+## License
+
+mCtrl itself is covered with the GNU Lesser General Public License 2.1 or
+(at your option) any later version. See file `COPYING.lib` for more info.
+
+In brief, this generally means that:
+
+* Any program or library, even commercial, covered with any proprietary
+  license, is allowed to link against the mCtrl's import libraries and
+  distribute `MCTRL.DLL` along with the program.
+
+* You can modify `MCTRL.DLL` (or its source code) and distribute such modified
+  `MCTRL.DLL` only if the modifications are also licensed under the terms of
+  the LGPL 2.1 (or any later version); or under the terms of GPL 2 (or any
+  later version).
+
+Source code of all examples, i.e. contents of the directory 'examples' within
+the source package (see below), are in public domain.
 
 
 ## Reporting Bugs
