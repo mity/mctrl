@@ -1,5 +1,5 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/d3ypc0ot57u47itw/branch/master?svg=true)](https://ci.appveyor.com/project/mity/mctrl/branch/master)
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/mctrl/badge.svg)](https://scan.coverity.com/projects/mctrl)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/mctrl/badge.svg?flat=1)](https://scan.coverity.com/projects/mctrl)
 
 # mCtrl Readme
 
