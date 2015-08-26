@@ -24,3 +24,7 @@ configuration:
 platform:
   - x64    # 64-bit build
   - win32  # 32-bit build
+
+artifacts:
+  - $(configuration)/*.exe
+  - $(configuration)/*.dll
