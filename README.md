@@ -26,10 +26,10 @@ webpages:
 
 There are usually two packages for each release version available:
 
-* `mCtrl-x.y.z-bin.zip` ... pre-built binary package
-* `mCtrl-x.y.z-src.zip` ... source package
+* `mCtrl-x.y.z-bin.zip`: pre-built binary package
+* `mCtrl-x.y.z-src.zip`: source package
 
-The pre-built package contains 32-bit as well as 64-bit binaries of MCTRL.DLL
+The pre-built package contains 32-bit as well as 64-bit binaries of `MCTRL.DLL`
 and examples, and also documentation for application developers. The source
 package is direct export of source tree from version control system repository.
 
@@ -58,7 +58,7 @@ subdirectory:
 * `libmCtrl.dll.a` for gcc-based tool chains (e.g. mingw, mingw-w64)
 * `mCtrl.lib` for MSVC
 
-And finally deploy your application with the MCTRL.DLL which is located
+And finally deploy your application with the `MCTRL.DLL` which is located
 in the 'bin' (32-bit binaries) and 'bin64' (64-bit) subdirectories in
 the prebuilt package.
 
@@ -70,7 +70,7 @@ package, or you can also find the documentation online:
 
 ## Building mCtrl from Sources
 
-Disclaimer: If you want to just use MCTRL.DLL you should probably stick with
+Disclaimer: If you want to just use `MCTRL.DLL` you should probably stick with
 the pre-built package.
 
 To build mCtrl yourself from the source package or cloned git repository, first
