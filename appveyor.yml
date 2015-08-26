@@ -4,7 +4,7 @@
 before_build:
   - 'cmake --version'
   - 'if %PLATFORM%==x64 cmake -G "Visual Studio 12 Win64"'
-  - 'if %PLATFORM%==x86 cmake -G "Visual Studio 12"'
+  - 'if not %PLATFORM%==x64 cmake -G "Visual Studio 12"'
 
 build:
   project: mCtrl.sln
@@ -23,4 +23,4 @@ configuration:
 
 platform:
   - x64
-  - x86
+  - Any CPU
