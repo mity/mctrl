@@ -26,5 +26,5 @@ platform:
   - win32  # 32-bit build
 
 artifacts:
-  - $(configuration)/*.exe
-  - $(configuration)/*.dll
+  - path: $(configuration)/*.exe
+  - path: $(configuration)/*.dll
