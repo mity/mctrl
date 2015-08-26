@@ -632,10 +632,10 @@ rgn16_do_xor(rgn16_complex_t* c,
  ***  Simple unit tests of the above  ***
  ****************************************/
 
-#ifdef DEBUG
+#if DEBUG >= 2
 
 /* Note the functions are not exposed from the MCTRL.DLL hence we cannot use
- * normal unit tests here. To enable these tests, build with -DMDITAB_DEBUG.
+ * normal unit tests here. To enable these tests, build with -DDEBUG=2.
  */
 
 static void
@@ -771,7 +771,7 @@ rgn16_test(void)
     }
 }
 
-#endif  /* DEBUG */
+#endif  /* #if DEBUG >= 2 */
 
 
 /**************************
