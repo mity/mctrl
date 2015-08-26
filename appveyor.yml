@@ -22,5 +22,5 @@ configuration:
   - Release
 
 platform:
-  - x64  # 64-bit build
-  - ''   # 32-bit build
+  - x64    # 64-bit build
+  - win32  # 32-bit build
