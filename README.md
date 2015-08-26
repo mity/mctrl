@@ -19,10 +19,9 @@ or `CreateWindowEx()` functions and controlled with `SendMessage()`.
 ## Getting mCtrl
 
 You can always get the latest version and most actual information on project
-webpages:
+home site:
 
-* http://mctrl.sourceforge.net
-* http://sourceforge.net/projects/mctrl
+* http://mctrl.org
 
 There are usually two packages for each release version available:
 
@@ -65,7 +64,7 @@ the prebuilt package.
 Documentation for application developers is bundled within the pre-built
 package, or you can also find the documentation online:
 
-* http://mctrl.sourceforge.net/doc.php
+* http://mctrl.org/doc.php
 
 
 ## Building mCtrl from Sources

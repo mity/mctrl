@@ -5,9 +5,8 @@
  * interface controls, that complement the standard set as offered by @c
  * USER32.DLL and @c COMCTL32.DLL libraries.
  *
- * Please check project homepage http://mctrl.sourceforge.net and
- * https://sourceforge.net/projects/mctrl for newer versions and more actual
- * information.
+ * Please check project homepage http://mctrl.org for newer versions and more
+ * actual information.
  *
  *
  * @section sec_license License

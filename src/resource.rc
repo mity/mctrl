@@ -73,7 +73,7 @@ BEGIN
 #pragma code_page(1250)
             VALUE "LegalCopyright",    "© 2008-2013 Martin Mitáš"
 #pragma code_page(DEFAULT)
-            VALUE "WWW",               "http://mctrl.sourceforge.net"
+            VALUE "WWW",               "http://mctrl.org"
         END
     END
     BLOCK "VarFileInfo"
