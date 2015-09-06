@@ -83,7 +83,6 @@ typedef struct xdraw_brush_tag xdraw_brush_t;
 typedef struct xdraw_font_tag xdraw_font_t;
 typedef struct xdraw_image_tag xdraw_image_t;
 typedef struct xdraw_path_tag xdraw_path_t;
-typedef struct xdraw_path_sink_tag xdraw_path_sink_t;
 
 
 /*************************
@@ -166,6 +165,19 @@ void xdraw_canvas_transform_with_rotation(xdraw_canvas_t* canvas, float angle);
 void xdraw_canvas_transform_with_translation(xdraw_canvas_t* canvas, float dx, float dy);
 void xdraw_canvas_transform_reset(xdraw_canvas_t* canvas);
 
+void xdraw_canvas_set_clip_rect(xdraw_canvas_t* canvas, const xdraw_rect_t* rect);
+void xdraw_canvas_set_clip_path(xdraw_canvas_t* canvas, const xdraw_path_t* path);
+void xdraw_canvas_reset_clip(xdraw_canvas_t* canvas);
+
+
+/*********************************
+ ***  Miscellaneous Functions  ***
+ *********************************/
+
+/* Whether the implementation is using implicit double-buffer when painting
+ * to any canvas on screen. */
+BOOL xdraw_is_always_doublebuffered(void);
+
 
 /**************************
  ***  Brush Management  ***
@@ -182,9 +194,18 @@ void xdraw_brush_solid_set_color(xdraw_brush_t* solidbrush, xdraw_color_t color)
  *************************/
 
 xdraw_path_t* xdraw_path_create(xdraw_canvas_t* canvas);
+xdraw_path_t* xdraw_path_create_with_polygon(xdraw_canvas_t* canvas,
+                                             const xdraw_point_t* points, UINT n);
 void xdraw_path_destroy(xdraw_path_t* path);
 
-xdraw_path_sink_t* xdraw_path_open_sink(xdraw_path_t* path);
+/* Helper structure for creation of new path. */
+typedef struct xdraw_path_sink_tag xdraw_path_sink_t;
+struct xdraw_path_sink_tag {
+    void* data;
+    xdraw_point_t end;
+};
+
+int xdraw_path_open_sink(xdraw_path_sink_t* sink, xdraw_path_t* path);
 void xdraw_path_close_sink(xdraw_path_sink_t* sink);
 
 void xdraw_path_begin_figure(xdraw_path_sink_t* sink, const xdraw_point_t* start_point);
@@ -216,6 +237,7 @@ void xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metr
  ***  Image Management  ***
  **************************/
 
+xdraw_image_t* xdraw_image_create_from_HBITMAP(HBITMAP bmp);
 xdraw_image_t* xdraw_image_load_from_file(const TCHAR* path);
 xdraw_image_t* xdraw_image_load_from_stream(IStream* stream);
 void xdraw_image_destroy(xdraw_image_t* image);
@@ -223,24 +245,29 @@ void xdraw_image_destroy(xdraw_image_t* image);
 void xdraw_image_get_size(xdraw_image_t* image, float* w, float* h);
 
 
-/**********************************
- ***  Draw and fill operations  ***
- **********************************/
+/*************************
+ ***  Draw Operations  ***
+ *************************/
 
 void xdraw_clear(xdraw_canvas_t* canvas, xdraw_color_t color);
 
 void xdraw_draw_arc(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                     const xdraw_circle_t* circle, float base_angle,
                     float sweep_angle, float stroke_width);
-void xdraw_draw_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
-                      const xdraw_rect_t* dst, const xdraw_rect_t* src);
 void xdraw_draw_line(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                      const xdraw_line_t* line, float stroke_width);
+void xdraw_draw_path(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
+                     const xdraw_path_t* path, float stroke_width);
 void xdraw_draw_pie(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                     const xdraw_circle_t* circle, float base_angle,
                     float sweep_angle, float stroke_width);
 void xdraw_draw_rect(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                      const xdraw_rect_t* rect, float stroke_width);
+
+
+/*************************
+ ***  Fill Operations  ***
+ *************************/
 
 void xdraw_fill_circle(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                        const xdraw_circle_t* circle);
@@ -251,6 +278,14 @@ void xdraw_fill_pie(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                     float sweep_angle);
 void xdraw_fill_rect(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
                      const xdraw_rect_t* rect);
+
+
+/*************************
+ ***  Blit Operations  ***
+ *************************/
+
+void xdraw_blit_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
+                      const xdraw_rect_t* dst, const xdraw_rect_t* src);
 
 
 /***********************

@@ -1249,7 +1249,7 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
     if(is_area  &&  geom.min_count > 1) {
         for(set_ix = 0; set_ix < n; set_ix++) {
             xdraw_path_t* path;
-            xdraw_path_sink_t* sink;
+            xdraw_path_sink_t sink;
             float ry0;
             xdraw_point_t pt;
             BYTE alpha;
@@ -1259,9 +1259,9 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
                 MC_TRACE("line_paint: xdraw_path_create() failed.");
                 continue;
             }
-            sink = xdraw_path_open_sink(path);
-            if(MC_ERR(sink == NULL)) {
-                MC_TRACE("line_paint: xdraw_path_open() failed.");
+
+            if(MC_ERR(xdraw_path_open_sink(&sink, path) != 0)) {
+                MC_TRACE("line_paint: xdraw_path_open_sink() failed.");
                 xdraw_path_destroy(path);
                 continue;
             }
@@ -1270,7 +1270,7 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
             pt.x = line_map_x(0, &geom);
             pt.y = ry0;
 
-            xdraw_path_begin_figure(sink, &pt);
+            xdraw_path_begin_figure(&sink, &pt);
 
             for(x = 0; x < geom.min_count; x++) {
                 if(is_stacked)
@@ -1279,23 +1279,23 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
                     y = CACHE_VALUE(&cache, set_ix, x);
                 pt.x = line_map_x(x, &geom);
                 pt.y = line_map_y(y, &geom);
-                xdraw_path_add_line(sink, &pt);
+                xdraw_path_add_line(&sink, &pt);
             }
 
             if(!is_stacked || set_ix == 0) {
                 pt.y = ry0;
-                xdraw_path_add_line(sink, &pt);
+                xdraw_path_add_line(&sink, &pt);
             } else {
                 for(x = geom.min_count - 1; x >= 0; x--) {
                     y = cache_stack(&cache, set_ix-1, x);
                     pt.x = line_map_x(x, &geom);
                     pt.y = line_map_y(y, &geom);
-                    xdraw_path_add_line(sink, &pt);
+                    xdraw_path_add_line(&sink, &pt);
                 }
             }
 
-            xdraw_path_end_figure(sink, TRUE);
-            xdraw_path_close_sink(sink);
+            xdraw_path_end_figure(&sink, TRUE);
+            xdraw_path_close_sink(&sink);
 
             if(set_ix == chart->hot_set_ix  &&  chart->hot_i < 0)
                 alpha = 0x60;

@@ -107,7 +107,7 @@ imgview_paint_to_canvas(imgview_t* iv, xdraw_canvas_t* canvas,
             }
         }
 
-        xdraw_draw_image(canvas, iv->image, &dst, &src);
+        xdraw_blit_image(canvas, iv->image, &dst, &src);
     }
 
     return xdraw_canvas_end_paint(canvas);
