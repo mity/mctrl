@@ -132,7 +132,7 @@ In brief, this generally means that:
   the LGPL 2.1 (or any later version); or under the terms of GPL 2 (or any
   later version).
 
-Source code of all examples, i.e. contents of the directory 'examples' within
+Source code of all examples, i.e. contents of the directory `examples` within
 the source package (see below), are in public domain.
 
 
