@@ -61,7 +61,7 @@ subdirectory:
 * `mCtrl.lib` for MSVC
 
 And finally deploy your application with the `MCTRL.DLL` which is located
-in the 'bin' (32-bit binaries) and 'bin64' (64-bit) subdirectories in
+in the `bin` (32-bit binaries) and `bin64` (64-bit) subdirectories in
 the prebuilt package.
 
 Documentation for application developers is bundled within the pre-built
