@@ -3,6 +3,9 @@
 
 # mCtrl Readme
 
+* Home website: http://mctrl.org
+* Main code repo: http://github.com/mity/mctrl
+
 
 ## What is mCtrl
 
