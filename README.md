@@ -76,17 +76,17 @@ Disclaimer: If you want to just use `MCTRL.DLL` you should probably stick with
 the pre-built package.
 
 To build mCtrl yourself from the source package or cloned git repository, first
-of all you need to use CMake 3.1 (or newer) to generate project files, Makefile
-or whatever for the development tool-chain of your choice. mCtrl is known to
-successfully build within following environments.
+of all you need to use [CMake](http://www.cmake.org) 3.1 (or newer) to generate
+project files, Makefile or whatever the development tool-chain of your choice
+expects. mCtrl is known to successfully build within following environments.
 
-To build with MSYS + mingw-w64 + Make:
+To build with MSYS + [mingw-w64](http://mingw-w64.org) + Make:
 ```
 $ cmake -G "MSYS Makefiles" path/to/mctrl
 ```
 
-To build with MSYS + mingw-w64 + Ninja:
-```C
+To build with MSYS + mingw-w64 + [Ninja](http://martine.github.io/ninja):
+```
 $ cmake -G "Ninja" path/to/mctrl
 ```
 
@@ -95,6 +95,8 @@ To build with Microsoft Visual Studio 2013:
 $ cmake -G "Visual Studio 12 2013" path/to/mctrl
 $ cmake -G "Visual Studio 12 2013 Win64" path/to/mctrl  # 64-bit build
 ```
+(Unfortunaly, CMake does not support generating MSVC projects targetting
+multiple architectures.)
 
 Other CMake generators may or may not work. If they do not, then one or more
 `CMakeLists.txt` files within mCtrl directory tree may need some tuning.
