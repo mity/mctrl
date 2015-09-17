@@ -1,4 +1,4 @@
-    /*
+/*
  * Copyright (c) 2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -21,7 +21,7 @@
 
 /* Who is responsible for COM initialization? Note it is "almost" constant
  * during process lifetime. It only changes once from UNKNOWN to either APP
- * or MCRTRL. */
+ * or MCTRL. */
 #define XCOM_MODE_UNKNOWN       0
 #define XCOM_MODE_APP           1
 #define XCOM_MODE_MCTRL         2
