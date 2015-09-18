@@ -526,6 +526,7 @@ get_win_name(BYTE type)
             case MC_WIN_7:          return "Windows 7";
             case MC_WIN_8:          return "Windows 8";
             case MC_WIN_8_1:        return "Windows 8.1";
+            case MC_WIN_10:         return "Windows 10";
             default:                return "Windows ???";
         }
     } else {

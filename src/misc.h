@@ -144,6 +144,7 @@ extern HINSTANCE mc_instance_kernel32;
 #define MC_WIN_S2008R2     MC_WIN_VER(2, 6, 1)
 #define MC_WIN_8           MC_WIN_VER(2, 6, 2)
 #define MC_WIN_8_1         MC_WIN_VER(2, 6, 3)
+#define MC_WIN_10          MC_WIN_VER(2, 10, 0)
 
 extern DWORD mc_win_version;
 
