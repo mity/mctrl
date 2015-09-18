@@ -123,6 +123,7 @@
  ***************/
 
 extern HINSTANCE mc_instance;
+extern HINSTANCE mc_instance_kernel32;
 
 
 /* Checking OS version (compare with normal operators: ==, <, <= etc.) */

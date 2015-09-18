@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
+
 #include "compat.h"
 #include "misc.h"
 
@@ -165,3 +166,31 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
 }
 #endif  /* COMPAT_NEED_WCSTOUI64 */
 
+
+
+#undef InitializeCriticalSection
+
+static BOOL (WINAPI* compat_InitializeCriticalSectionEx)(CRITICAL_SECTION*, DWORD, DWORD);
+
+void WINAPI
+compat_InitializeCriticalSection(CRITICAL_SECTION* cs)
+{
+    if(compat_InitializeCriticalSectionEx != NULL)
+        compat_InitializeCriticalSectionEx(cs, 0, CRITICAL_SECTION_NO_DEBUG_INFO);
+    else
+        InitializeCriticalSection(cs);
+}
+
+
+void
+compat_init(void)
+{
+    compat_InitializeCriticalSectionEx = (BOOL (WINAPI*)(CRITICAL_SECTION*, DWORD, DWORD))
+                GetProcAddress(mc_instance_kernel32, "InitializeCriticalSectionEx");
+}
+
+void
+compat_fini(void)
+{
+    /* noop */
+}

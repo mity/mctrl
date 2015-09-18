@@ -17,6 +17,7 @@
  */
 
 #include "misc.h"
+#include "compat.h"
 #include "module.h"
 #include "theme.h"
 #include "xcom.h"
@@ -27,6 +28,7 @@
  ***************/
 
 HINSTANCE mc_instance;
+HINSTANCE mc_instance_kernel32;
 DWORD mc_win_version;
 DWORD mc_comctl32_version;
 
@@ -289,29 +291,25 @@ static HMODULE (WINAPI* mc_LoadLibraryEx)(const TCHAR*, HANDLE, DWORD) = NULL;
 static void
 setup_load_sys_dll(void)
 {
-    HMODULE dll_kernel32;
-
     /* Win 2000 does not have LoadLibraryEx(); Win XP does have LoadLibraryEx()
      * but it does not support LOAD_LIBRARY_SEARCH_SYSTEM32. */
     if(mc_win_version <= MC_WIN_XP)
         return;
-
-    dll_kernel32 = GetModuleHandle(_T("KERNEL32.DLL"));
-    MC_ASSERT(dll_kernel32 != NULL);
 
     /* Win Vista/7 prior the security update KB2533623 does not support
      * the flag LOAD_LIBRARY_SEARCH_SYSTEM32 either. The update KB2533623
      * also added AddDllDirectory() so we use that as the indicator whether
      * we can use the flag. */
     if(mc_win_version < MC_WIN_8) {
-        if(GetProcAddress(dll_kernel32, "AddDllDirectory") == NULL)
+        if(GetProcAddress(mc_instance_kernel32, "AddDllDirectory") == NULL)
             return;
     }
 
     /* Both LoadLibraryEx() and the flag LOAD_LIBRARY_SEARCH_SYSTEM32
      * should be available. */
     mc_LoadLibraryEx = (HMODULE (WINAPI*)(const TCHAR*, HANDLE, DWORD))
-                GetProcAddress(dll_kernel32, MC_STRINGIZE(MCTRL_NAME_AW(LoadLibraryEx)));
+                GetProcAddress(mc_instance_kernel32,
+                               MC_STRINGIZE(MCTRL_NAME_AW(LoadLibraryEx)));
 }
 
 HMODULE
@@ -718,10 +716,28 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
                      MC_VERSION_STR, 8 * sizeof(void*));
 
             mc_instance = instance;
+
+            /* This is somewhat scary to do within DllMain() context because of
+             * all the limitations DllMain() imposes. But I believe it's valid
+             * because system DLL loader lock is reentrant and "KERNEL32.DLL"
+             * must already be mapped into the process memory and initialized
+             * (Otherwise InitializeCriticalSection() would not be allowed
+             * to work).
+             *
+             * Unfortunately we need it this early for compat_init() below.
+             */
+            mc_instance_kernel32 = GetModuleHandle(_T("KERNEL32.DLL"));
+            if(MC_ERR(mc_instance_kernel32 == NULL)) {
+                MC_TRACE_ERR("DllMain: GetModuleHandle(KERNEL32.DLL) failed.");
+                return FALSE;
+            }
+
+            DisableThreadLibraryCalls(instance);
+
+            compat_init();
             debug_init();
             module_init();
             xcom_init();
-            DisableThreadLibraryCalls(instance);
             break;
 
         case DLL_PROCESS_DETACH:
@@ -729,6 +745,7 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
             xcom_fini();
             module_fini();
             debug_fini();
+            compat_fini();
             MC_TRACE("DllMain(DLL_PROCESS_DETACH)");
             break;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -233,6 +233,35 @@ mc_clz(uint32_t val)
     return (32 - n);
 #endif
 }
+
+
+/****************************************
+ *** InitializeCriticalSection() hack ***
+ ****************************************/
+
+/* Since Windows Vista, InitializeCriticalSection() is leaking memory on
+ * purpose because Microsoft made it to allocate some debug info block
+ * which is NOT released in DeleteCriticalSection().
+ *
+ * So lets do this hack to replace InitializeCriticalSection() with
+ * InitializeCriticalSectionEx() (available since Vista), which allows to
+ * suppress the silly behavior.
+ */
+
+#include <windows.h>
+
+void WINAPI compat_InitializeCriticalSection(CRITICAL_SECTION* cs);
+
+#undef InitializeCriticalSection
+#define InitializeCriticalSection   compat_InitializeCriticalSection
+
+
+/**********************
+ *** Initialization ***
+ **********************/
+
+void compat_init(void);
+void compat_fini(void);
 
 
 #endif  /* MC_COMPAT_H */

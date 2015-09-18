@@ -492,7 +492,7 @@ d2d_init(void)
      * available since Vista (which covers all systems with Direct2D and
      * DirectWrite). */
     fn_GetUserDefaultLocaleName = (int (WINAPI*)(WCHAR*, int))
-            GetProcAddress(GetModuleHandle(_T("KERNEL32.DLL")), "GetUserDefaultLocaleName");
+            GetProcAddress(mc_instance_kernel32, "GetUserDefaultLocaleName");
     if(MC_ERR(fn_GetUserDefaultLocaleName == NULL)) {
         MC_TRACE_ERR("d2d_init: GetProcAddress('GetUserDefaultLocaleName') failed.");
         goto err_kernel_GetProcAddress;
