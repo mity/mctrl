@@ -128,30 +128,33 @@ extern HINSTANCE mc_instance_kernel32;
 
 /* Checking OS version (compare with normal operators: ==, <, <= etc.) */
 
-#define MC_WIN_VER(platform, major, minor)                               \
-    (((platform) << 16) | ((major) << 8) | ((minor) << 0))
+#define MC_WIN_VER(major, minor, sp)                                      \
+    (((major) << 16) | ((minor) << 8) | (sp) << 0)
 
-#define MC_WIN_95          MC_WIN_VER(1, 4, 0)
-#define MC_WIN_98          MC_WIN_VER(1, 4, 10)
-#define MC_WIN_ME          MC_WIN_VER(1, 4, 90)
-#define MC_WIN_NT4         MC_WIN_VER(2, 4, 0)
-#define MC_WIN_2000        MC_WIN_VER(2, 5, 0)
-#define MC_WIN_XP          MC_WIN_VER(2, 5, 1)
-#define MC_WIN_S2003       MC_WIN_VER(2, 5, 2)
-#define MC_WIN_VISTA       MC_WIN_VER(2, 6, 0)
-#define MC_WIN_S2008       MC_WIN_VER(2, 6, 0)
-#define MC_WIN_7           MC_WIN_VER(2, 6, 1)
-#define MC_WIN_S2008R2     MC_WIN_VER(2, 6, 1)
-#define MC_WIN_8           MC_WIN_VER(2, 6, 2)
-#define MC_WIN_8_1         MC_WIN_VER(2, 6, 3)
-#define MC_WIN_10          MC_WIN_VER(2, 10, 0)
+#define MC_WIN_10          MC_WIN_VER(10, 0, 0)
+#define MC_WIN_8_1         MC_WIN_VER(6, 3, 0)
+#define MC_WIN_8           MC_WIN_VER(6, 2, 0)
+#define MC_WIN_S2008R2     MC_WIN_VER(6, 1, 0)
+#define MC_WIN_7_SP1       MC_WIN_VER(6, 1, 1)
+#define MC_WIN_7           MC_WIN_VER(6, 1, 0)
+#define MC_WIN_S2008       MC_WIN_VER(6, 0, 0)
+#define MC_WIN_VISTA_SP2   MC_WIN_VER(6, 0, 2)
+#define MC_WIN_VISTA_SP1   MC_WIN_VER(6, 0, 1)
+#define MC_WIN_VISTA       MC_WIN_VER(6, 0, 0)
+#define MC_WIN_S2003       MC_WIN_VER(5, 2, 0)
+#define MC_WIN_XP_SP3      MC_WIN_VER(5, 1, 3)
+#define MC_WIN_XP_SP2      MC_WIN_VER(5, 1, 2)
+#define MC_WIN_XP_SP1      MC_WIN_VER(5, 1, 1)
+#define MC_WIN_XP          MC_WIN_VER(5, 1, 0)
+#define MC_WIN_2000        MC_WIN_VER(5, 0, 0)
+#define MC_WIN_NT4         MC_WIN_VER(4, 0, 0)
 
 extern DWORD mc_win_version;
 
 
 /* Checking version of COMCTRL32.DLL */
 
-#define MC_DLL_VER(major, minor)                                         \
+#define MC_DLL_VER(major, minor)                                          \
     (((major) << 16) | ((minor) << 0))
 
 extern DWORD mc_comctl32_version;

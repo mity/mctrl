@@ -508,55 +508,64 @@ perform_unit_tests(void)
 
 
 #ifdef DEBUG
+    #define DEFINE_WIN_VERSION(id, name)    { id, name }
+#else
+    #define DEFINE_WIN_VERSION(id, name)    { id }
+#endif
 
-static const char*
-get_win_name(BYTE type)
-{
-    BOOL is_server = (type == VER_NT_DOMAIN_CONTROLLER || type == VER_NT_SERVER);
-
-    if(!is_server) {
-        switch(mc_win_version) {
-            case MC_WIN_95:         return "Windows 95";
-            case MC_WIN_98:         return "Windows 98";
-            case MC_WIN_ME:         return "Windows ME";
-            case MC_WIN_NT4:        return "Windows NT 4.0";
-            case MC_WIN_2000:       return "Windows 2000";
-            case MC_WIN_XP:         return "Windows XP";
-            case MC_WIN_VISTA:      return "Windows Vista";
-            case MC_WIN_7:          return "Windows 7";
-            case MC_WIN_8:          return "Windows 8";
-            case MC_WIN_8_1:        return "Windows 8.1";
-            case MC_WIN_10:         return "Windows 10";
-            default:                return "Windows ???";
-        }
-    } else {
-        switch(mc_win_version) {
-            case MC_WIN_S2003:      return "Windows Server 2003";
-            case MC_WIN_S2008:      return "Windows Server 2008";
-            case MC_WIN_S2008R2:    return "Windows Server 2008 R2";
-            default:                return "Windows Server ???";
-        }
-    }
-}
-
-#endif  /* #ifdef DEBUG */
+static const struct {
+    DWORD version;
+#ifdef DEBUG
+    const char* name;
+#endif
+} win_versions[] = {
+    { MC_WIN_10,        "Windows 10" },
+    { MC_WIN_8_1,       "Windows 8.1" },
+    { MC_WIN_8,         "Windows 8" },
+    { MC_WIN_S2008R2,   "Windows Server 2008 R2" },
+    { MC_WIN_7_SP1,     "Windows 7 (SP1)" },
+    { MC_WIN_7,         "Windows 7" },
+    { MC_WIN_S2008,     "Windows Server 2008" },
+    { MC_WIN_VISTA_SP2, "Windows Vista (SP2)" },
+    { MC_WIN_VISTA_SP1, "Windows Vista (SP1)" },
+    { MC_WIN_VISTA,     "Windows Vista" },
+    { MC_WIN_S2003,     "Windows Server 2003" },
+    { MC_WIN_XP_SP3,    "Windows XP (SP2)" },
+    { MC_WIN_XP_SP2,    "Windows XP (SP2)" },
+    { MC_WIN_XP_SP1,    "Windows XP (SP1)" },
+    { MC_WIN_XP,        "Windows XP" },
+    { MC_WIN_2000,      "Windows 2000" },
+    { MC_WIN_NT4,       "Windows NT4" }
+};
 
 static void
 setup_win_version(void)
 {
     OSVERSIONINFOEX ver;
+    DWORDLONG cond_mask;
+    int i;
+
+    cond_mask = 0;
+    cond_mask = VerSetConditionMask(cond_mask, VER_MAJORVERSION, VER_GREATER_EQUAL);
+    cond_mask = VerSetConditionMask(cond_mask, VER_MINORVERSION, VER_GREATER_EQUAL);
+    cond_mask = VerSetConditionMask(cond_mask, VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL);
 
     ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-    GetVersionEx((OSVERSIONINFO*) &ver);
-    mc_win_version = MC_WIN_VER(ver.dwPlatformId,
-                                ver.dwMajorVersion, ver.dwMinorVersion);
 
-    MC_TRACE("setup_win_version: Detected %hs "
-             "(%u.%u.%u, service pack %u.%u, build %u)",
-            get_win_name(ver.wProductType),
-            ver.dwPlatformId, ver.dwMajorVersion, ver.dwMinorVersion,
-            ver.wServicePackMajor, ver.wServicePackMinor,
-            ver.dwBuildNumber);
+    for(i = 0; i < MC_ARRAY_SIZE(win_versions); i++) {
+        ver.dwMajorVersion = (win_versions[i].version & 0x00ff0000) >> 16;
+        ver.dwMinorVersion = (win_versions[i].version & 0x0000ff00) >> 8;
+        ver.wServicePackMajor = (win_versions[i].version & 0x000000ff) >> 0;
+        if(VerifyVersionInfo(&ver, VER_MAJORVERSION | VER_MINORVERSION |
+                             VER_SERVICEPACKMAJOR, cond_mask)) {
+            MC_TRACE("setup_win_version: Detected %hs.", win_versions[i].name);
+            mc_win_version = win_versions[i].version;
+            return;
+        }
+    }
+
+    MC_TRACE("setup_win_version: Failed to detect Windows version.");
+    mc_win_version = 0;
 }
 
 static void
