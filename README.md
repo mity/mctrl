@@ -78,28 +78,57 @@ the pre-built package.
 To build mCtrl yourself from the source package or cloned git repository, first
 of all you need to use [CMake](http://www.cmake.org) 3.1 (or newer) to generate
 project files, Makefile or whatever the development tool-chain of your choice
-expects. mCtrl is known to successfully build within following environments.
+expects.
+
+It's recommended to use out-of-source-tree builds, so create e.g. a directory
+`build` in the main mCtrl directory. (If you choose to build in other
+directory, replace the `..` with path pointing to the main mCtrl root.)
+
+mCtrl is known to successfully build within following environments.
 
 To build with MSYS + [mingw-w64](http://mingw-w64.org) + Make:
 ```
-$ cmake -G "MSYS Makefiles" path/to/mctrl
+$ cd `build`
+$ cmake -G "MSYS Makefiles" ..
 ```
 
 To build with MSYS + mingw-w64 + [Ninja](http://martine.github.io/ninja):
 ```
-$ cmake -G "Ninja" path/to/mctrl
+$ cd `build`
+$ cmake -G "Ninja" ..
 ```
 
 To build with Microsoft Visual Studio 2013:
 ```
-$ cmake -G "Visual Studio 12 2013" path/to/mctrl
-$ cmake -G "Visual Studio 12 2013 Win64" path/to/mctrl  # 64-bit build
+$ cd `build`
+$ cmake -G "Visual Studio 12 2013" ..
+$ cmake -G "Visual Studio 12 2013 Win64" ..  # 64-bit build
 ```
-(Unfortunaly, CMake does not support generating MSVC projects targetting
-multiple architectures.)
+
+To build with Microsoft Visual Studio 2015:
+```
+$ cd `build`
+$ cmake -G "Visual Studio 14 2015" ..
+$ cmake -G "Visual Studio 14 2015 Win64" ..  # 64-bit build
+```
 
 Other CMake generators may or may not work. If they do not, then one or more
 `CMakeLists.txt` files within mCtrl directory tree may need some tuning.
+
+Notes:
+
+* Unfortunately, CMake does not support generating projects targetting multiple
+  architectures. To make build both 32 and 64-bit binaries, you have to
+  generate project files or Makefiles twice and build them separately.
+
+* For gcc tool-chains, you may need to specify path to `gcc` if you want to
+  use other gcc version then the one in the `$PATH` (e.g. if you have multiple
+  mingw-w64 variants installed, one targeting 32-bit and one 64-bit build).
+  Prior using CMake, you may specify path to the `gcc` and CMake will derive
+  all other tool paths accordingly:
+```
+export CC=/path/to/the/desired/gcc
+```
 
 Use
 ```
