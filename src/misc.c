@@ -519,23 +519,23 @@ static const struct {
     const char* name;
 #endif
 } win_versions[] = {
-    { MC_WIN_10,        "Windows 10" },
-    { MC_WIN_8_1,       "Windows 8.1" },
-    { MC_WIN_8,         "Windows 8" },
-    { MC_WIN_S2008R2,   "Windows Server 2008 R2" },
-    { MC_WIN_7_SP1,     "Windows 7 (SP1)" },
-    { MC_WIN_7,         "Windows 7" },
-    { MC_WIN_S2008,     "Windows Server 2008" },
-    { MC_WIN_VISTA_SP2, "Windows Vista (SP2)" },
-    { MC_WIN_VISTA_SP1, "Windows Vista (SP1)" },
-    { MC_WIN_VISTA,     "Windows Vista" },
-    { MC_WIN_S2003,     "Windows Server 2003" },
-    { MC_WIN_XP_SP3,    "Windows XP (SP2)" },
-    { MC_WIN_XP_SP2,    "Windows XP (SP2)" },
-    { MC_WIN_XP_SP1,    "Windows XP (SP1)" },
-    { MC_WIN_XP,        "Windows XP" },
-    { MC_WIN_2000,      "Windows 2000" },
-    { MC_WIN_NT4,       "Windows NT4" }
+    DEFINE_WIN_VERSION( MC_WIN_10,        "Windows 10" ),
+    DEFINE_WIN_VERSION( MC_WIN_8_1,       "Windows 8.1" ),
+    DEFINE_WIN_VERSION( MC_WIN_8,         "Windows 8" ),
+    DEFINE_WIN_VERSION( MC_WIN_S2008R2,   "Windows Server 2008 R2" ),
+    DEFINE_WIN_VERSION( MC_WIN_7_SP1,     "Windows 7 (SP1)" ),
+    DEFINE_WIN_VERSION( MC_WIN_7,         "Windows 7" ),
+    DEFINE_WIN_VERSION( MC_WIN_S2008,     "Windows Server 2008" ),
+    DEFINE_WIN_VERSION( MC_WIN_VISTA_SP2, "Windows Vista (SP2)" ),
+    DEFINE_WIN_VERSION( MC_WIN_VISTA_SP1, "Windows Vista (SP1)" ),
+    DEFINE_WIN_VERSION( MC_WIN_VISTA,     "Windows Vista" ),
+    DEFINE_WIN_VERSION( MC_WIN_S2003,     "Windows Server 2003" ),
+    DEFINE_WIN_VERSION( MC_WIN_XP_SP3,    "Windows XP (SP2)" ),
+    DEFINE_WIN_VERSION( MC_WIN_XP_SP2,    "Windows XP (SP2)" ),
+    DEFINE_WIN_VERSION( MC_WIN_XP_SP1,    "Windows XP (SP1)" ),
+    DEFINE_WIN_VERSION( MC_WIN_XP,        "Windows XP" ),
+    DEFINE_WIN_VERSION( MC_WIN_2000,      "Windows 2000" ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4,       "Windows NT4" )
 };
 
 static void
