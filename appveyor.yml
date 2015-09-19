@@ -1,6 +1,8 @@
 # YAML definition for Appveyor.com continuous integration.
 # See http://www.appveyor.com/docs/appveyor-yml
 
+version: '{build}'
+
 before_build:
   - 'cmake --version'
   - 'if "%PLATFORM%"=="x64" cmake -G "Visual Studio 12 Win64"'
