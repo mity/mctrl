@@ -506,34 +506,47 @@ perform_unit_tests(void)
 
 
 #ifdef DEBUG
-    #define DEFINE_WIN_VERSION(id, name)    { id, name }
+    #define DEFINE_WIN_VERSION(id, workstation_name, server_name)           \
+                { id, workstation_name, server_name }
 #else
-    #define DEFINE_WIN_VERSION(id, name)    { id }
+    #define DEFINE_WIN_VERSION(id, workstation_name, server_name)           \
+                { id }
 #endif
 
 static const struct {
     DWORD version;
 #ifdef DEBUG
     const char* name;
+    const char* server_name;    /* optional */
 #endif
 } win_versions[] = {
-    DEFINE_WIN_VERSION( MC_WIN_10,        "Windows 10" ),
-    DEFINE_WIN_VERSION( MC_WIN_8_1,       "Windows 8.1" ),
-    DEFINE_WIN_VERSION( MC_WIN_8,         "Windows 8" ),
-    DEFINE_WIN_VERSION( MC_WIN_S2008R2,   "Windows Server 2008 R2" ),
-    DEFINE_WIN_VERSION( MC_WIN_7_SP1,     "Windows 7 (SP1)" ),
-    DEFINE_WIN_VERSION( MC_WIN_7,         "Windows 7" ),
-    DEFINE_WIN_VERSION( MC_WIN_S2008,     "Windows Server 2008" ),
-    DEFINE_WIN_VERSION( MC_WIN_VISTA_SP2, "Windows Vista (SP2)" ),
-    DEFINE_WIN_VERSION( MC_WIN_VISTA_SP1, "Windows Vista (SP1)" ),
-    DEFINE_WIN_VERSION( MC_WIN_VISTA,     "Windows Vista" ),
-    DEFINE_WIN_VERSION( MC_WIN_S2003,     "Windows Server 2003" ),
-    DEFINE_WIN_VERSION( MC_WIN_XP_SP3,    "Windows XP (SP2)" ),
-    DEFINE_WIN_VERSION( MC_WIN_XP_SP2,    "Windows XP (SP2)" ),
-    DEFINE_WIN_VERSION( MC_WIN_XP_SP1,    "Windows XP (SP1)" ),
-    DEFINE_WIN_VERSION( MC_WIN_XP,        "Windows XP" ),
-    DEFINE_WIN_VERSION( MC_WIN_2000,      "Windows 2000" ),
-    DEFINE_WIN_VERSION( MC_WIN_NT4,       "Windows NT4" )
+    DEFINE_WIN_VERSION( MC_WIN_10,        "Windows 10",         "Windows Server 2016" ),
+    DEFINE_WIN_VERSION( MC_WIN_8_1,       "Windows 8.1",        "Windows Server 2012R2" ),
+    DEFINE_WIN_VERSION( MC_WIN_8,         "Windows 8",          "Windows Server 2012" ),
+    DEFINE_WIN_VERSION( MC_WIN_7_SP1,     "Windows 7 SP1",      "Windows Server 2008R2 SP1" ),
+    DEFINE_WIN_VERSION( MC_WIN_7,         "Windows 7",          "Windows Server 2008R2" ),
+    DEFINE_WIN_VERSION( MC_WIN_VISTA_SP2, "Windows Vista SP2",  "Windows Server 2008 SP2" ),
+    DEFINE_WIN_VERSION( MC_WIN_VISTA_SP1, "Windows Vista SP1",  "Windows Server 2008 SP1" ),
+    DEFINE_WIN_VERSION( MC_WIN_VISTA,     "Windows Vista",      "Windows Server 2008" ),
+    DEFINE_WIN_VERSION( MC_WIN_S2003_SP2, "Windows XP x64 SP2", "Windows Server 2003 SP2" ),
+    DEFINE_WIN_VERSION( MC_WIN_S2003_SP1, "Windows XP x64 SP1", "Windows Server 2003 SP1" ),
+    DEFINE_WIN_VERSION( MC_WIN_S2003,     "Windows XP x64",     "Windows Server 2003" ),
+    DEFINE_WIN_VERSION( MC_WIN_XP_SP3,    "Windows XP SP3",     NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_XP_SP2,    "Windows XP SP2",     NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_XP_SP1,    "Windows XP SP1",     NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_XP,        "Windows XP",         NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_2000_SP4,  "Windows 2000 SP4",   NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_2000_SP3,  "Windows 2000 SP3",   NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_2000_SP2,  "Windows 2000 SP2",   NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_2000_SP1,  "Windows 2000 SP1",   NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_2000,      "Windows 2000",       NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4_SP6,   "Windows NT4 SP6",    NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4_SP5,   "Windows NT4 SP5",    NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4_SP4,   "Windows NT4 SP4",    NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4_SP3,   "Windows NT4 SP3",    NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4_SP2,   "Windows NT4 SP2",    NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4_SP1,   "Windows NT4 SP1",    NULL ),
+    DEFINE_WIN_VERSION( MC_WIN_NT4,       "Windows NT4",        NULL )
 };
 
 static void
@@ -556,7 +569,26 @@ setup_win_version(void)
         ver.wServicePackMajor = (win_versions[i].version & 0x000000ff) >> 0;
         if(VerifyVersionInfo(&ver, VER_MAJORVERSION | VER_MINORVERSION |
                              VER_SERVICEPACKMAJOR, cond_mask)) {
-            MC_TRACE("setup_win_version: Detected %hs.", win_versions[i].name);
+#ifdef DEBUG
+            BOOL is_server;
+            const char* name;
+            const char* extra;
+
+            cond_mask = VerSetConditionMask(0, VER_PRODUCT_TYPE, VER_EQUAL);
+            ver.wProductType = VER_NT_WORKSTATION;
+            is_server = !VerifyVersionInfo(&ver, VER_PRODUCT_TYPE, cond_mask);
+
+            name = win_versions[i].name;
+            extra = "";
+            if(is_server) {
+                if(win_versions[i].server_name != NULL)
+                    name = win_versions[i].server_name;
+                else
+                    extra = " (server)";
+            }
+
+            MC_TRACE("setup_win_version: Detected %s%s.", name, extra);
+#endif
             mc_win_version = win_versions[i].version;
             return;
         }
