@@ -35,9 +35,6 @@ DWORD mc_comctl32_version;
 HIMAGELIST mc_bmp_glyphs;
 
 
-static void (WINAPI *fn_InitCommonControlsEx)(INITCOMMONCONTROLSEX*) = NULL;
-
-
 /************************
  *** String Utilities ***
  ************************/
@@ -285,7 +282,6 @@ out:
  *** Loading System DLLs ***
  ***************************/
 
-
 static HMODULE (WINAPI* mc_LoadLibraryEx)(const TCHAR*, HANDLE, DWORD) = NULL;
 
 static void
@@ -380,14 +376,16 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta, int lines_per_page)
  *** Assorted Utilities ***
  **************************/
 
+static void (WINAPI *mc_InitCommonControlsEx)(INITCOMMONCONTROLSEX*) = NULL;
+
 void
 mc_init_common_controls(DWORD icc)
 {
-    if(fn_InitCommonControlsEx != NULL) {
+    if(mc_InitCommonControlsEx != NULL) {
         INITCOMMONCONTROLSEX icce = { 0 };
         icce.dwSize = sizeof(INITCOMMONCONTROLSEX);
         icce.dwICC = icc;
-        fn_InitCommonControlsEx(&icce);
+        mc_InitCommonControlsEx(&icce);
     } else {
         InitCommonControls();
     }
@@ -569,22 +567,10 @@ setup_win_version(void)
 }
 
 static void
-setup_comctl32_version(void)
+setup_comctl32_version(HMODULE dll)
 {
-    HMODULE dll;
     DLLGETVERSIONPROC fn_DllGetVersion;
     DLLVERSIONINFO vi;
-
-    /* GetModuleHandle() is safe here instead of LoadLibrary() because
-     * MCTRL.DLL is linked with COMCTL32.DLL. Hence it already has been
-     * mapped in memory of the process when we come here.
-     */
-    dll = GetModuleHandle(_T("COMCTL32.DLL"));
-    MC_ASSERT(dll != NULL);
-
-    /* Remember InitCommonControlsEx address for mc_init_common_controls(). */
-    fn_InitCommonControlsEx = (void (WINAPI *)(INITCOMMONCONTROLSEX*))
-                GetProcAddress(dll, "InitCommonControlsEx");
 
     /* Detect COMCTL32.DLL version */
     fn_DllGetVersion = (DLLGETVERSIONPROC) GetProcAddress(dll, "DllGetVersion");
@@ -607,6 +593,15 @@ setup_comctl32_version(void)
 int
 mc_init_module(void)
 {
+    HMODULE dll_comctl32;
+
+    /* GetModuleHandle() is safe here instead of LoadLibrary() because
+     * MCTRL.DLL is linked with COMCTL32.DLL. Hence it already has been
+     * mapped in memory of the process when we come here.
+     */
+    dll_comctl32 = GetModuleHandle(_T("COMCTL32.DLL"));
+    MC_ASSERT(dll_comctl32 != NULL);
+
     /* Load set of helper symbols used for helper buttons of more complex
      * controls */
     mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance, MAKEINTRESOURCE(
@@ -619,7 +614,11 @@ mc_init_module(void)
     /* Retrieve version of Windows and COMCTL32.DLL */
     setup_win_version();
     setup_load_sys_dll();
-    setup_comctl32_version();
+    setup_comctl32_version(dll_comctl32);
+
+    /* For mc_init_common_controls(). */
+    mc_InitCommonControlsEx = (void (WINAPI *)(INITCOMMONCONTROLSEX*))
+                GetProcAddress(dll_comctl32, "InitCommonControlsEx");
 
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
@@ -635,6 +634,7 @@ mc_fini_module(void)
 {
     ImageList_Destroy(mc_bmp_glyphs);
 }
+
 
 /****************
  *** Tooltips ***

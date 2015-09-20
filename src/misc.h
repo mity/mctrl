@@ -479,6 +479,7 @@ mc_track_mouse(HWND win, DWORD flags)
     TrackMouseEvent(&tme);
 }
 
+
 /****************
  *** Tooltips ***
  ****************/
