@@ -27,7 +27,7 @@ foreach(SOURCE ${EXAMPLE_SOURCES})
     if(EXISTS ${BASENAME}.rc)
         set(RESOURCE ${BASENAME}.rc)
     else()
-        set(RESOURCE example-manifest.rc)
+        set(RESOURCE example-default.rc)
     endif()
 
 

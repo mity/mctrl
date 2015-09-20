@@ -12,6 +12,9 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
+/* Application icon */
+2 ICON res/app.ico
+
 
 LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 

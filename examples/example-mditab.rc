@@ -12,5 +12,9 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 /* Manifest enabling XP themes */
 1 RT_MANIFEST res/manifest.xml
 
+/* Application icon */
+2 ICON res/app.ico
+
+
 /* Image list */
 IDL_IMGLIST BITMAP res/img_list.bmp

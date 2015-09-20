@@ -12,6 +12,9 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 /* Manifest enabling XP theme on Win XP */
 1 RT_MANIFEST res/manifest.xml
 
+/* Application icon */
+2 ICON res/app.ico
+
 
 /* Some icon we show in one of the grid cells */
 IDI_BEAR ICON res/bear.ico
