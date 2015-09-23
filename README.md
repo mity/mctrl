@@ -145,9 +145,6 @@ $ cmake --help
 and refer to CMake documentation to learn more about CMake, its options and
 capabilities.
 
-Then proceed to actually build mCtrl by opening the project files in your IDE
-or by running the make or other tool corresponding to the used CMake generator.
-
 Finally, consider running a mCtrl test-suite to verify correctness of your
 build. The test suite, as well as some examples demonstrating mCtrl, are built
 as part of the mCtrl build process.
