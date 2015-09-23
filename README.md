@@ -88,27 +88,35 @@ mCtrl is known to successfully build within following environments.
 
 To build with MSYS + [mingw-w64](http://mingw-w64.org) + Make:
 ```
-$ cd `build`
+$ mkdir build
+$ cd build
 $ cmake -G "MSYS Makefiles" ..
 ```
 
 To build with MSYS + mingw-w64 + [Ninja](http://martine.github.io/ninja):
 ```
-$ cd `build`
+$ mkdir build
+$ cd build
 $ cmake -G "Ninja" ..
 ```
 
 To build with Microsoft Visual Studio 2013:
 ```
-$ cd `build`
-$ cmake -G "Visual Studio 12 2013" ..
+$ mkdir build
+$ cd build
+$ cmake -G "Visual Studio 12 2013" ..        # 32-bit build
+$ mkdir build64
+$ cd build64
 $ cmake -G "Visual Studio 12 2013 Win64" ..  # 64-bit build
 ```
 
 To build with Microsoft Visual Studio 2015:
 ```
-$ cd `build`
-$ cmake -G "Visual Studio 14 2015" ..
+$ mkdir build
+$ cd build
+$ cmake -G "Visual Studio 14 2015" ..        # 32-bit build
+$ mkdir build64
+$ cd build64
 $ cmake -G "Visual Studio 14 2015 Win64" ..  # 64-bit build
 ```
 
