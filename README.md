@@ -91,6 +91,7 @@ To build with MSYS + [mingw-w64](http://mingw-w64.org) + Make:
 $ mkdir build
 $ cd build
 $ cmake -G "MSYS Makefiles" ..
+$ make
 ```
 
 To build with MSYS + mingw-w64 + [Ninja](http://martine.github.io/ninja):
@@ -98,26 +99,25 @@ To build with MSYS + mingw-w64 + [Ninja](http://martine.github.io/ninja):
 $ mkdir build
 $ cd build
 $ cmake -G "Ninja" ..
+$ ninja
 ```
 
 To build with Microsoft Visual Studio 2013:
 ```
 $ mkdir build
 $ cd build
-$ cmake -G "Visual Studio 12 2013" ..        # 32-bit build
-$ mkdir build64
-$ cd build64
-$ cmake -G "Visual Studio 12 2013 Win64" ..  # 64-bit build
+$ cmake -G "Visual Studio 12 2013" ..         # for 32-bit build
+$ cmake -G "Visual Studio 12 2013 Win64" ..   # for 64-bit build
+(open the build/mCtrl.sln in Visual Studio and build the target ALL_BUILD)
 ```
 
 To build with Microsoft Visual Studio 2015:
 ```
 $ mkdir build
 $ cd build
-$ cmake -G "Visual Studio 14 2015" ..        # 32-bit build
-$ mkdir build64
-$ cd build64
-$ cmake -G "Visual Studio 14 2015 Win64" ..  # 64-bit build
+$ cmake -G "Visual Studio 14 2015" ..         # for 32-bit build
+$ cmake -G "Visual Studio 14 2015 Win64" ..   # for 64-bit build
+(open the build/mCtrl.sln in Visual Studio and build the target ALL_BUILD)
 ```
 
 Other CMake generators may or may not work. If they do not, then one or more
