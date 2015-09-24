@@ -48,386 +48,16 @@ xdraw_default_font_family(void)
 }
 
 
-/**************************
- ***  Dummy <dwrite.h>  ***
- **************************/
-
-/* <dwrite.h> as in MS SDK is unfortunately usable only from C++. Therefore we
- * declare needed interfaces manually here. Why? Just tell me why? */
-
-
-/* LOGFONT::lfWeight and DWRITE_FONT_WEIGHT have the same values for each
- * font weight. */
-typedef LONG dw_DWRITE_FONT_WEIGHT;
-
-typedef enum dw_DWRITE_FONT_STYLE_tag dw_DWRITE_FONT_STYLE;
-enum dw_DWRITE_FONT_STYLE_tag {
-    dw_DWRITE_FONT_STYLE_NORMAL = 0,
-    dw_DWRITE_FONT_STYLE_OBLIQUE,
-    dw_DWRITE_FONT_STYLE_ITALIC
-};
-
-typedef enum dw_DWRITE_FONT_STRETCH_tag dw_DWRITE_FONT_STRETCH;
-enum dw_DWRITE_FONT_STRETCH_tag {
-    dw_DWRITE_FONT_STRETCH_UNDEFINED = 0,
-    dw_DWRITE_FONT_STRETCH_ULTRA_CONDENSED,
-    dw_DWRITE_FONT_STRETCH_EXTRA_CONDENSED,
-    dw_DWRITE_FONT_STRETCH_CONDENSED,
-    dw_DWRITE_FONT_STRETCH_SEMI_CONDENSED,
-    dw_DWRITE_FONT_STRETCH_NORMAL,
-    dw_DWRITE_FONT_STRETCH_MEDIUM = dw_DWRITE_FONT_STRETCH_NORMAL,
-    dw_DWRITE_FONT_STRETCH_SEMI_EXPANDED,
-    dw_DWRITE_FONT_STRETCH_EXPANDED,
-    dw_DWRITE_FONT_STRETCH_EXTRA_EXPANDED,
-    dw_DWRITE_FONT_STRETCH_ULTRA_EXPANDED
-};
-
-typedef enum dw_DWRITE_WORD_WRAPPING_tag dw_DWRITE_WORD_WRAPPING;
-enum dw_DWRITE_WORD_WRAPPING_tag {
-    dw_DWRITE_WORD_WRAPPING_WRAP = 0,
-    dw_DWRITE_WORD_WRAPPING_NO_WRAP
-};
-
-typedef enum dw_DWRITE_TEXT_ALIGNMENT_tag dw_DWRITE_TEXT_ALIGNMENT;
-enum dw_DWRITE_TEXT_ALIGNMENT_tag {
-    dw_DWRITE_TEXT_ALIGNMENT_LEADING = 0,
-    dw_DWRITE_TEXT_ALIGNMENT_TRAILING,
-    dw_DWRITE_TEXT_ALIGNMENT_CENTER
-};
-
-typedef enum dw_DWRITE_TRIMMING_GRANULARITY_tag dw_DWRITE_TRIMMING_GRANULARITY;
-enum dw_DWRITE_TRIMMING_GRANULARITY_tag {
-    dw_DWRITE_TRIMMING_GRANULARITY_NONE = 0,
-    dw_DWRITE_TRIMMING_GRANULARITY_CHARACTER,
-    dw_DWRITE_TRIMMING_GRANULARITY_WORD
-};
-
-typedef struct dw_DWRITE_TRIMMING_tag dw_DWRITE_TRIMMING;
-struct dw_DWRITE_TRIMMING_tag {
-  dw_DWRITE_TRIMMING_GRANULARITY granularity;
-  UINT32 delimiter;
-  UINT32 delimiterCount;
-};
-
-typedef struct dw_DWRITE_FONT_METRICS_tag dw_DWRITE_FONT_METRICS;
-struct dw_DWRITE_FONT_METRICS_tag {
-    UINT16 designUnitsPerEm;
-    UINT16 ascent;
-    UINT16 descent;
-    INT16 lineGap;
-    UINT16 capHeight;
-    UINT16 xHeight;
-    INT16 underlinePosition;
-    UINT16 underlineThickness;
-    INT16 strikethroughPosition;
-    UINT16 strikethroughThickness;
-};
-
-typedef struct dw_DWRITE_TEXT_METRICS_tag dw_DWRITE_TEXT_METRICS;
-struct dw_DWRITE_TEXT_METRICS_tag {
-    FLOAT left;
-    FLOAT top;
-    FLOAT width;
-    FLOAT widthIncludingTrailingWhitespace;
-    FLOAT height;
-    FLOAT layoutWidth;
-    FLOAT layoutHeight;
-    UINT32 maxBidiReorderingDepth;
-    UINT32 lineCount;
-};
-
-
-static const GUID dw_IID_IDWriteFactory = {0xb859ee5a,0xd838,0x4b5b,{0xa2,0xe8,0x1a,0xdc,0x7d,0x93,0xdb,0x48}};
-
-
-typedef struct dw_IDWriteFactory_tag        dw_IDWriteFactory;
-typedef struct dw_IDWriteFont_tag           dw_IDWriteFont;
-typedef struct dw_IDWriteFontCollection_tag dw_IDWriteFontCollection;
-typedef struct dw_IDWriteFontFamily_tag     dw_IDWriteFontFamily;
-typedef struct dw_IDWriteTextFormat_tag     dw_IDWriteTextFormat;
-typedef struct dw_IDWriteTextLayout_tag     dw_IDWriteTextLayout;
-
-
-typedef struct dw_IDWriteFactoryVtbl_tag dw_IDWriteFactoryVtbl;
-struct dw_IDWriteFactoryVtbl_tag {
-    /* IUknown methods */
-    STDMETHOD(QueryInterface)(dw_IDWriteFactory*, REFIID, void**);
-    STDMETHOD_(ULONG, AddRef)(dw_IDWriteFactory*);
-    STDMETHOD_(ULONG, Release)(dw_IDWriteFactory*);
-
-    /* IDWriteFactory methods */
-    STDMETHOD(dummy_GetSystemFontCollection)(void);
-    STDMETHOD(dummy_CreateCustomFontCollection)(void);
-    STDMETHOD(dummy_RegisterFontCollectionLoader)(void);
-    STDMETHOD(dummy_UnregisterFontCollectionLoader)(void);
-    STDMETHOD(dummy_CreateFontFileReference)(void);
-    STDMETHOD(dummy_CreateCustomFontFileReference)(void);
-    STDMETHOD(dummy_CreateFontFace)(void);
-    STDMETHOD(dummy_CreateRenderingParams)(void);
-    STDMETHOD(dummy_CreateMonitorRenderingParams)(void);
-    STDMETHOD(dummy_CreateCustomRenderingParams)(void);
-    STDMETHOD(dummy_RegisterFontFileLoader)(void);
-    STDMETHOD(dummy_UnregisterFontFileLoader)(void);
-    STDMETHOD(CreateTextFormat)(dw_IDWriteFactory*, WCHAR const*, void*,
-            dw_DWRITE_FONT_WEIGHT, dw_DWRITE_FONT_STYLE, dw_DWRITE_FONT_STRETCH,
-            FLOAT, WCHAR const*, dw_IDWriteTextFormat**);
-    STDMETHOD(dummy_CreateTypography)(void);
-    STDMETHOD(dummy_GetGdiInterop)(void);
-    STDMETHOD(CreateTextLayout)(dw_IDWriteFactory*, WCHAR const*, UINT32,
-            dw_IDWriteTextFormat*, FLOAT, FLOAT, dw_IDWriteTextLayout**);
-    STDMETHOD(dummy_CreateGdiCompatibleTextLayout)(void);
-    STDMETHOD(CreateEllipsisTrimmingSign)(dw_IDWriteFactory*, dw_IDWriteTextFormat*, void**);
-    STDMETHOD(dummy_CreateTextAnalyzer)(void);
-    STDMETHOD(dummy_CreateNumberSubstitution)(void);
-    STDMETHOD(dummy_CreateGlyphRunAnalysis)(void);
-};
-
-struct dw_IDWriteFactory_tag {
-    dw_IDWriteFactoryVtbl* vtbl;
-};
-
-#define IDWriteFactory_QueryInterface(self,a,b)                 (self)->vtbl->QueryInterface(self,a,b)
-#define IDWriteFactory_AddRef(self)                             (self)->vtbl->AddRef(self)
-#define IDWriteFactory_Release(self)                            (self)->vtbl->Release(self)
-#define IDWriteFactory_GetSystemFontCollection(self,a,b)        (self)->vtbl->GetSystemFontCollection(self,a,b)
-#define IDWriteFactory_CreateTextFormat(self,a,b,c,d,e,f,g,h)   (self)->vtbl->CreateTextFormat(self,a,b,c,d,e,f,g,h)
-#define IDWriteFactory_CreateTextLayout(self,a,b,c,d,e,f)       (self)->vtbl->CreateTextLayout(self,a,b,c,d,e,f)
-#define IDWriteFactory_CreateEllipsisTrimmingSign(self,a,b)     (self)->vtbl->CreateEllipsisTrimmingSign(self,a,b)
-
-
-typedef struct dw_IDWriteFontVtbl_tag dw_IDWriteFontVtbl;
-struct dw_IDWriteFontVtbl_tag {
-    /* IUnknown methods */
-    STDMETHOD(QueryInterface)(dw_IDWriteFont*, REFIID, void**);
-    STDMETHOD_(ULONG, AddRef)(dw_IDWriteFont*);
-    STDMETHOD_(ULONG, Release)(dw_IDWriteFont*);
-
-    /* IDWriteFont methods */
-    STDMETHOD(dummy_GetFontFamily)(void);
-    STDMETHOD(dummy_GetWeight)(void);
-    STDMETHOD(dummy_GetStretch)(void);
-    STDMETHOD(dummy_GetStyle)(void);
-    STDMETHOD(dummy_IsSymbolFont)(void);
-    STDMETHOD(dummy_GetFaceNames)(void);
-    STDMETHOD(dummy_GetInformationalStrings)(void);
-    STDMETHOD(dummy_GetSimulations)(void);
-    STDMETHOD_(void, GetMetrics)(dw_IDWriteFont*, dw_DWRITE_FONT_METRICS*);
-    STDMETHOD(dummy_HasCharacter)(void);
-    STDMETHOD(dummy_CreateFontFace)(void);
-};
-
-struct dw_IDWriteFont_tag {
-    dw_IDWriteFontVtbl* vtbl;
-};
-
-#define IDWriteFont_QueryInterface(self,a,b)                    (self)->vtbl->QueryInterface(self,a,b)
-#define IDWriteFont_AddRef(self)                                (self)->vtbl->AddRef(self)
-#define IDWriteFont_Release(self)                               (self)->vtbl->Release(self)
-#define IDWriteFont_GetMetrics(self,a)                          (self)->vtbl->GetMetrics(self,a)
-
-
-typedef struct dw_IDWriteFontCollectionVtbl_tag dw_IDWriteFontCollectionVtbl;
-struct dw_IDWriteFontCollectionVtbl_tag {
-    /* IUnknown methods */
-    STDMETHOD(QueryInterface)(dw_IDWriteFontCollection*, REFIID, void**);
-    STDMETHOD_(ULONG, AddRef)(dw_IDWriteFontCollection*);
-    STDMETHOD_(ULONG, Release)(dw_IDWriteFontCollection*);
-
-    /* IDWriteFontCollection methods */
-    STDMETHOD(dummy_GetFontFamilyCount)(void);
-    STDMETHOD(GetFontFamily)(dw_IDWriteFontCollection*, UINT32, dw_IDWriteFontFamily**);
-    STDMETHOD(FindFamilyName)(dw_IDWriteFontCollection*, WCHAR*, UINT32*, BOOL*);
-    STDMETHOD(dummy_GetFontFromFontFace)(void);
-};
-
-struct dw_IDWriteFontCollection_tag {
-    dw_IDWriteFontCollectionVtbl* vtbl;
-};
-
-#define IDWriteFontCollection_QueryInterface(self,a,b)          (self)->vtbl->QueryInterface(self,a,b)
-#define IDWriteFontCollection_AddRef(self)                      (self)->vtbl->AddRef(self)
-#define IDWriteFontCollection_Release(self)                     (self)->vtbl->Release(self)
-#define IDWriteFontCollection_GetFontFamilyCount(self)          (self)->vtbl->GetFontFamilyCount(self)
-#define IDWriteFontCollection_GetFontFamily(self,a,b)           (self)->vtbl->GetFontFamily(self,a,b)
-#define IDWriteFontCollection_FindFamilyName(self,a,b,c)        (self)->vtbl->FindFamilyName(self,a,b,c)
-
-
-typedef struct dw_IDWriteFontFamilyVtbl_tag dw_IDWriteFontFamilyVtbl;
-struct dw_IDWriteFontFamilyVtbl_tag {
-    /* IUnknown methods */
-    STDMETHOD(QueryInterface)(dw_IDWriteFontFamily*, REFIID, void**);
-    STDMETHOD_(ULONG, AddRef)(dw_IDWriteFontFamily*);
-    STDMETHOD_(ULONG, Release)(dw_IDWriteFontFamily*);
-
-    /* IDWriteFontList methods */
-    STDMETHOD(dummy_GetFontCollection)(void);
-    STDMETHOD(dummy_GetFontCount)(void);
-    STDMETHOD(dummy_GetFont)(void);
-
-    /* IDWriteFontFamily methods */
-    STDMETHOD(dummy_GetFamilyNames)(void);
-    STDMETHOD(GetFirstMatchingFont)(dw_IDWriteFontFamily*, dw_DWRITE_FONT_WEIGHT,
-            dw_DWRITE_FONT_STRETCH, dw_DWRITE_FONT_STYLE, dw_IDWriteFont**);
-    STDMETHOD(dummy_GetMatchingFonts)(void);
-};
-
-struct dw_IDWriteFontFamily_tag {
-    dw_IDWriteFontFamilyVtbl* vtbl;
-};
-
-#define IDWriteFontFamily_QueryInterface(self,a,b)              (self)->vtbl->QueryInterface(self,a,b)
-#define IDWriteFontFamily_AddRef(self)                          (self)->vtbl->AddRef(self)
-#define IDWriteFontFamily_Release(self)                         (self)->vtbl->Release(self)
-#define IDWriteFontFamily_GetFirstMatchingFont(self,a,b,c,d)    (self)->vtbl->GetFirstMatchingFont(self,a,b,c,d)
-
-
-typedef struct dw_IDWriteTextFormatVtbl_tag dw_IDWriteTextFormatVtbl;
-struct dw_IDWriteTextFormatVtbl_tag {
-    /* IUnknown methods */
-    STDMETHOD(QueryInterface)(dw_IDWriteTextFormat*, REFIID, void**);
-    STDMETHOD_(ULONG, AddRef)(dw_IDWriteTextFormat*);
-    STDMETHOD_(ULONG, Release)(dw_IDWriteTextFormat*);
-
-    /* IDWriteTextFormat methods */
-    STDMETHOD(dummy_SetTextAlignment)(void);
-    STDMETHOD(dummy_SetParagraphAlignment)(void);
-    STDMETHOD(dummy_SetWordWrapping)(void);
-    STDMETHOD(dummy_SetReadingDirection)(void);
-    STDMETHOD(dummy_SetFlowDirection)(void);
-    STDMETHOD(dummy_SetIncrementalTabStop)(void);
-    STDMETHOD(dummy_SetTrimming)(void);
-    STDMETHOD(dummy_SetLineSpacing)(void);
-    STDMETHOD(dummy_GetTextAlignment)(void);
-    STDMETHOD(dummy_GetParagraphAlignment)(void);
-    STDMETHOD(dummy_GetWordWrapping)(void);
-    STDMETHOD(dummy_GetReadingDirection)(void);
-    STDMETHOD(dummy_GetFlowDirection)(void);
-    STDMETHOD(dummy_GetIncrementalTabStop)(void);
-    STDMETHOD(dummy_GetTrimming)(void);
-    STDMETHOD(dummy_GetLineSpacing)(void);
-    STDMETHOD(GetFontCollection)(dw_IDWriteTextFormat*, dw_IDWriteFontCollection**);
-    STDMETHOD_(UINT32, GetFontFamilyNameLength)(dw_IDWriteTextFormat*);
-    STDMETHOD(GetFontFamilyName)(dw_IDWriteTextFormat*, WCHAR*, UINT32);
-    STDMETHOD_(dw_DWRITE_FONT_WEIGHT, GetFontWeight)(dw_IDWriteTextFormat*);
-    STDMETHOD_(dw_DWRITE_FONT_STYLE, GetFontStyle)(dw_IDWriteTextFormat*);
-    STDMETHOD_(dw_DWRITE_FONT_STRETCH, GetFontStretch)(dw_IDWriteTextFormat*);
-    STDMETHOD_(FLOAT, GetFontSize)(dw_IDWriteTextFormat*);
-    STDMETHOD(dummy_GetLocaleNameLength)(void);
-    STDMETHOD(dummy_GetLocaleName)(void);
-};
-
-struct dw_IDWriteTextFormat_tag {
-    dw_IDWriteTextFormatVtbl* vtbl;
-};
-
-#define IDWriteTextFormat_QueryInterface(self,a,b)              (self)->vtbl->QueryInterface(self,a,b)
-#define IDWriteTextFormat_AddRef(self)                          (self)->vtbl->AddRef(self)
-#define IDWriteTextFormat_Release(self)                         (self)->vtbl->Release(self)
-#define IDWriteTextFormat_GetFontCollection(self,a)             (self)->vtbl->GetFontCollection(self,a)
-#define IDWriteTextFormat_GetFontFamilyNameLength(self)         (self)->vtbl->GetFontFamilyNameLength(self)
-#define IDWriteTextFormat_GetFontFamilyName(self,a,b)           (self)->vtbl->GetFontFamilyName(self,a,b)
-#define IDWriteTextFormat_GetFontWeight(self)                   (self)->vtbl->GetFontWeight(self)
-#define IDWriteTextFormat_GetFontStretch(self)                  (self)->vtbl->GetFontStretch(self)
-#define IDWriteTextFormat_GetFontStyle(self)                    (self)->vtbl->GetFontStyle(self)
-#define IDWriteTextFormat_GetFontSize(self)                     (self)->vtbl->GetFontSize(self)
-
-
-typedef struct dw_IDWriteTextLayoutVtbl_tag dw_IDWriteTextLayoutVtbl;
-struct dw_IDWriteTextLayoutVtbl_tag {
-    /* IUnknown methods */
-    STDMETHOD(QueryInterface)(dw_IDWriteTextLayout*, REFIID, void**);
-    STDMETHOD_(ULONG, AddRef)(dw_IDWriteTextLayout*);
-    STDMETHOD_(ULONG, Release)(dw_IDWriteTextLayout*);
-
-    /* IDWriteTextFormat methods */
-    STDMETHOD(SetTextAlignment)(dw_IDWriteTextLayout*, dw_DWRITE_TEXT_ALIGNMENT);
-    STDMETHOD(dummy_SetParagraphAlignment)(void);
-    STDMETHOD(SetWordWrapping)(dw_IDWriteTextLayout*, dw_DWRITE_WORD_WRAPPING);
-    STDMETHOD(dummy_SetReadingDirection)(void);
-    STDMETHOD(dummy_SetFlowDirection)(void);
-    STDMETHOD(dummy_SetIncrementalTabStop)(void);
-    STDMETHOD(SetTrimming)(dw_IDWriteTextLayout*, const dw_DWRITE_TRIMMING*, void*);
-    STDMETHOD(dummy_SetLineSpacing)(void);
-    STDMETHOD(dummy_GetTextAlignment)(void);
-    STDMETHOD(dummy_GetParagraphAlignment)(void);
-    STDMETHOD(dummy_GetWordWrapping)(void);
-    STDMETHOD(dummy_GetReadingDirection)(void);
-    STDMETHOD(dummy_GetFlowDirection)(void);
-    STDMETHOD(dummy_GetIncrementalTabStop)(void);
-    STDMETHOD(dummy_GetTrimming)(void);
-    STDMETHOD(dummy_GetLineSpacing)(void);
-    STDMETHOD(dummy_GetFontCollection)(void);
-    STDMETHOD(dummy_GetFontFamilyNameLength)(void);
-    STDMETHOD(dummy_GetFontFamilyName)(void);
-    STDMETHOD(dummy_GetFontWeight)(void);
-    STDMETHOD(dummy_GetFontStyle)(void);
-    STDMETHOD(dummy_GetFontStretch)(void);
-    STDMETHOD(dummy_GetFontSize)(void);
-    STDMETHOD(dummy_GetLocaleNameLength)(void);
-    STDMETHOD(dummy_GetLocaleName)(void);
-
-    /* IDWriteTextLayout methods */
-    STDMETHOD(dummy_SetMaxWidth)(void);
-    STDMETHOD(dummy_SetMaxHeight)(void);
-    STDMETHOD(dummy_SetFontCollection)(void);
-    STDMETHOD(dummy_SetFontFamilyName)(void);
-    STDMETHOD(dummy_SetFontWeight)(void);
-    STDMETHOD(dummy_SetFontStyle)(void);
-    STDMETHOD(dummy_SetFontStretch)(void);
-    STDMETHOD(dummy_SetFontSize)(void);
-    STDMETHOD(dummy_SetUnderline)(void);
-    STDMETHOD(dummy_SetStrikethrough)(void);
-    STDMETHOD(dummy_SetDrawingEffect)(void);
-    STDMETHOD(dummy_SetInlineObject)(void);
-    STDMETHOD(dummy_SetTypography)(void);
-    STDMETHOD(dummy_SetLocaleName)(void);
-    STDMETHOD(dummy_GetMaxWidth)(void);
-    STDMETHOD(dummy_GetMaxHeight)(void);
-    STDMETHOD(dummy_GetFontCollection2)(void);
-    STDMETHOD(dummy_GetFontFamilyNameLength2)(void);
-    STDMETHOD(dummy_GetFontFamilyName2)(void);
-    STDMETHOD(dummy_GetFontWeight2)(void);
-    STDMETHOD(dummy_GetFontStyle2)(void);
-    STDMETHOD(dummy_GetFontStretch2)(void);
-    STDMETHOD(dummy_GetFontSize2)(void);
-    STDMETHOD(dummy_GetUnderline)(void);
-    STDMETHOD(dummy_GetStrikethrough)(void);
-    STDMETHOD(dummy_GetDrawingEffect)(void);
-    STDMETHOD(dummy_GetInlineObject)(void);
-    STDMETHOD(dummy_GetTypography)(void);
-    STDMETHOD(dummy_GetLocaleNameLength2)(void);
-    STDMETHOD(dummy_GetLocaleName2)(void);
-    STDMETHOD(dummy_Draw)(void);
-    STDMETHOD(dummy_GetLineMetrics)(void);
-    STDMETHOD(GetMetrics)(dw_IDWriteTextLayout*, dw_DWRITE_TEXT_METRICS*);
-    STDMETHOD(dummy_GetOverhangMetrics)(void);
-    STDMETHOD(dummy_GetClusterMetrics)(void);
-    STDMETHOD(dummy_DetermineMinWidth)(void);
-    STDMETHOD(dummy_HitTestPoint)(void);
-    STDMETHOD(dummy_HitTestTextPosition)(void);
-    STDMETHOD(dummy_HitTestTextRange)(void);
-};
-
-struct dw_IDWriteTextLayout_tag {
-    dw_IDWriteTextLayoutVtbl* vtbl;
-};
-
-#define IDWriteTextLayout_QueryInterface(self,a,b)              (self)->vtbl->QueryInterface(self,a,b)
-#define IDWriteTextLayout_AddRef(self)                          (self)->vtbl->AddRef(self)
-#define IDWriteTextLayout_Release(self)                         (self)->vtbl->Release(self)
-#define IDWriteTextLayout_SetTextAlignment(self,a)              (self)->vtbl->SetTextAlignment(self,a)
-#define IDWriteTextLayout_SetWordWrapping(self,a)               (self)->vtbl->SetWordWrapping(self,a)
-#define IDWriteTextLayout_SetTrimming(self,a,b)                 (self)->vtbl->SetTrimming(self,a,b)
-#define IDWriteTextLayout_GetMetrics(self,a)                    (self)->vtbl->GetMetrics(self,a)
-
-
 /*************************
  ***  Direct2D Driver  ***
  *************************/
 
 #include <d2d1.h>
 #include <wincodec.h>
+#include "dummy/dwrite.h"
 
+
+/* Mingw-w64 compatibility hacks. */
 #ifdef MC_TOOLCHAIN_MINGW64
     /* In mingw-w64, these IIDs are missing in libuuid.a. */
     static const GUID xdraw_IID_ID2D1Factory = 
@@ -448,7 +78,7 @@ static HMODULE d2d_dll = NULL;  /* D2D1.DLL */
 static ID2D1Factory* d2d_factory;
 
 static HMODULE dw_dll = NULL;   /* DWRITE.DLL */
-static dw_IDWriteFactory* dw_factory;
+static dummy_IDWriteFactory* dw_factory;
 
 static int (WINAPI* fn_GetUserDefaultLocaleName)(WCHAR*, int);
 
@@ -505,14 +135,14 @@ d2d_init(void)
         goto err_dw_GetProcAddress;
     }
 
-    hr = fn_DWriteCreateFactory(0/*DWRITE_FACTORY_TYPE_SHARED*/,
-                &dw_IID_IDWriteFactory, (void**) &dw_factory);
+    hr = fn_DWriteCreateFactory(dummy_DWRITE_FACTORY_TYPE_SHARED,
+                &dummy_IID_IDWriteFactory, (void**) &dw_factory);
     if(MC_ERR(hr != S_OK)) {
         MC_TRACE("d2d_init: DWriteCreateFactory() failed. [0x%lx]", hr);
         goto err_dw_CreateFactory;
     }
 
-    /* We need locale name for creation of IDWriteTextFormat. This functions is
+    /* We need locale name for creation of dummy_IDWriteTextFormat. This functions is
      * available since Vista (which covers all systems with Direct2D and
      * DirectWrite). */
     fn_GetUserDefaultLocaleName = (int (WINAPI*)(WCHAR*, int))
@@ -527,7 +157,7 @@ d2d_init(void)
 
     /* Error path unwinding */
 err_kernel_GetProcAddress:
-    IDWriteFactory_Release(dw_factory);
+    dummy_IDWriteFactory_Release(dw_factory);
 err_dw_CreateFactory:
 err_dw_GetProcAddress:
     FreeLibrary(dw_dll);
@@ -549,7 +179,7 @@ d2d_fini(void)
     FreeLibrary(d2d_dll);
     dw_dll = NULL;
 
-    IDWriteFactory_Release(dw_factory);
+    dummy_IDWriteFactory_Release(dw_factory);
     FreeLibrary(dw_dll);
     d2d_dll = NULL;
 }
@@ -770,18 +400,18 @@ d2d_create_arc_geometry(const xdraw_circle_t* circle, float base_angle,
     return (ID2D1Geometry*) g;
 }
 
-static dw_IDWriteTextLayout*
-d2d_create_text_layout(dw_IDWriteTextFormat* tf, const xdraw_rect_t* rect,
+static dummy_IDWriteTextLayout*
+d2d_create_text_layout(dummy_IDWriteTextFormat* tf, const xdraw_rect_t* rect,
                        const TCHAR* str, int len, DWORD flags)
 {
-    dw_IDWriteTextLayout* layout;
+    dummy_IDWriteTextLayout* layout;
     HRESULT hr;
     int tla;
 
     if(len < 0)
         len = _tcslen(str);
 
-    hr = IDWriteFactory_CreateTextLayout(dw_factory, str, len, tf,
+    hr = dummy_IDWriteFactory_CreateTextLayout(dw_factory, str, len, tf,
                 rect->x1 - rect->x0, rect->y1 - rect->y0, &layout);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE("d2d_create_text_layout: "
@@ -790,24 +420,24 @@ d2d_create_text_layout(dw_IDWriteTextFormat* tf, const xdraw_rect_t* rect,
     }
 
     if(flags & XDRAW_STRING_RIGHT)
-        tla = dw_DWRITE_TEXT_ALIGNMENT_TRAILING;
+        tla = dummy_DWRITE_TEXT_ALIGNMENT_TRAILING;
     else if(flags & XDRAW_STRING_CENTER)
-        tla = dw_DWRITE_TEXT_ALIGNMENT_CENTER;
+        tla = dummy_DWRITE_TEXT_ALIGNMENT_CENTER;
     else
-        tla = dw_DWRITE_TEXT_ALIGNMENT_LEADING;
-    IDWriteTextLayout_SetTextAlignment(layout, tla);
+        tla = dummy_DWRITE_TEXT_ALIGNMENT_LEADING;
+    dummy_IDWriteTextLayout_SetTextAlignment(layout, tla);
 
     if(flags & XDRAW_STRING_NOWRAP)
-        IDWriteTextLayout_SetWordWrapping(layout, dw_DWRITE_WORD_WRAPPING_NO_WRAP);
+        dummy_IDWriteTextLayout_SetWordWrapping(layout, dummy_DWRITE_WORD_WRAPPING_NO_WRAP);
 
     if((flags & XDRAW_STRING_ELLIPSIS_MASK) != 0) {
-        static const dw_DWRITE_TRIMMING trim_end = { dw_DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
-        static const dw_DWRITE_TRIMMING trim_word = { dw_DWRITE_TRIMMING_GRANULARITY_WORD, 0, 0 };
-        static const dw_DWRITE_TRIMMING trim_path = { dw_DWRITE_TRIMMING_GRANULARITY_WORD, L'\\', 1 };
-        const dw_DWRITE_TRIMMING* trim_options;
+        static const dummy_DWRITE_TRIMMING trim_end = { dummy_DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+        static const dummy_DWRITE_TRIMMING trim_word = { dummy_DWRITE_TRIMMING_GRANULARITY_WORD, 0, 0 };
+        static const dummy_DWRITE_TRIMMING trim_path = { dummy_DWRITE_TRIMMING_GRANULARITY_WORD, L'\\', 1 };
+        const dummy_DWRITE_TRIMMING* trim_options;
         void* trim_sign;
 
-        hr = IDWriteFactory_CreateEllipsisTrimmingSign(dw_factory, tf, &trim_sign);
+        hr = dummy_IDWriteFactory_CreateEllipsisTrimmingSign(dw_factory, tf, &trim_sign);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("d2d_create_text_layout: "
                      "IDWriteFactory::CreateEllipsisTrimmingSign() failed. [0x%lx]", hr);
@@ -821,7 +451,7 @@ d2d_create_text_layout(dw_IDWriteTextFormat* tf, const xdraw_rect_t* rect,
             default:                            MC_UNREACHABLE; break;
         }
 
-        IDWriteTextLayout_SetTrimming(layout, trim_options, trim_sign);
+        dummy_IDWriteTextLayout_SetTrimming(layout, trim_options, trim_sign);
     }
 
 err_CreateEllipsisTrimmingSign:
@@ -833,116 +463,87 @@ err_CreateEllipsisTrimmingSign:
  ***  Dummy <gdiplus/gdiplusflat.h>  ***
  ***************************************/
 
-/* Most GDI+ headers provide only C++ wrapper classes over the functions
- * from <gdiplus/gdiplusflat.h> so they are unusable for us (not just for the
- * language itself but also because we load GDIPLUS.DLL via LoadLibrary().
- * However for no apparent reasons, even the header <gdiplus/gdiplusflat.h>
- * requires C++ and does not compile with plain C, at least as of MS SDK for
- * Windows 8.1.
- */
+#include "dummy/gdiplus.h"
 
 /* MSDN documentation for <gdiplus/gdiplusflat.h> sucks. This one is better:
  * http://www.jose.it-berater.org/gdiplus/iframe/index.htm
  */
 
-typedef struct gdix_PointF_tag gdix_PointF;
-struct gdix_PointF_tag {
-    float x;
-    float y;
-};
-
-typedef struct gdix_RectF_tag gdix_RectF;
-struct gdix_RectF_tag {
-    float x;
-    float y;
-    float w;
-    float h;
-};
-
 /* Graphics functions */
-static int (WINAPI* gdix_CreateFromHDC)(HDC, void**);
-static int (WINAPI* gdix_DeleteGraphics)(void*);
-static int (WINAPI* gdix_GraphicsClear)(void*, DWORD);
-static int (WINAPI* gdix_GetDC)(void*, HDC*);
-static int (WINAPI* gdix_ReleaseDC)(void*, HDC);
-static int (WINAPI* gdix_ResetWorldTransform)(void*);
-static int (WINAPI* gdix_RotateWorldTransform)(void*, float, int);
-static int (WINAPI* gdix_SetPixelOffsetMode)(void*, int);
-static int (WINAPI* gdix_SetSmoothingMode)(void*, int);
-static int (WINAPI* gdix_TranslateWorldTransform)(void*, float, float, int);
-static int (WINAPI* gdix_SetClipRect)(void*, float, float, float, float, int);
-static int (WINAPI* gdix_SetClipPath)(void*, void*, int);
-static int (WINAPI* gdix_ResetClip)(void*);
+static int (WINAPI* gdix_CreateFromHDC)(HDC, dummy_GpGraphics**);
+static int (WINAPI* gdix_DeleteGraphics)(dummy_GpGraphics*);
+static int (WINAPI* gdix_GraphicsClear)(dummy_GpGraphics*, dummy_ARGB);
+static int (WINAPI* gdix_GetDC)(dummy_GpGraphics*, HDC*);
+static int (WINAPI* gdix_ReleaseDC)(dummy_GpGraphics*, HDC);
+static int (WINAPI* gdix_ResetWorldTransform)(dummy_GpGraphics*);
+static int (WINAPI* gdix_RotateWorldTransform)(dummy_GpGraphics*, float, dummy_GpMatrixOrder);
+static int (WINAPI* gdix_SetPixelOffsetMode)(dummy_GpGraphics*, dummy_GpPixelOffsetMode);
+static int (WINAPI* gdix_SetSmoothingMode)(dummy_GpGraphics*, dummy_GpSmoothingMode);
+static int (WINAPI* gdix_TranslateWorldTransform)(dummy_GpGraphics*, float, float, dummy_GpMatrixOrder);
+static int (WINAPI* gdix_SetClipRect)(dummy_GpGraphics*, float, float, float, float, dummy_GpCombineMode);
+static int (WINAPI* gdix_SetClipPath)(dummy_GpGraphics*, dummy_GpPath*, dummy_GpCombineMode);
+static int (WINAPI* gdix_ResetClip)(dummy_GpGraphics*);
 
 /* Brush functions */
-static int (WINAPI* gdix_CreateSolidFill)(DWORD, void**);
-static int (WINAPI* gdix_DeleteBrush)(void*);
-static int (WINAPI* gdix_SetSolidFillColor)(void*, DWORD);
+static int (WINAPI* gdix_CreateSolidFill)(dummy_ARGB, dummy_GpSolidFill**);
+static int (WINAPI* gdix_DeleteBrush)(dummy_GpBrush*);
+static int (WINAPI* gdix_SetSolidFillColor)(dummy_GpSolidFill*, dummy_ARGB);
 
 /* Pen functions */
-static int (WINAPI* gdix_CreatePen1)(DWORD, float, int, void**);
-static int (WINAPI* gdix_DeletePen)(void*);
-static int (WINAPI* gdix_SetPenBrushFill)(void*, void*);
-static int (WINAPI* gdix_SetPenWidth)(void*, float);
+static int (WINAPI* gdix_CreatePen1)(dummy_ARGB, float, dummy_GpUnit, dummy_GpPen**);
+static int (WINAPI* gdix_DeletePen)(dummy_GpPen*);
+static int (WINAPI* gdix_SetPenBrushFill)(dummy_GpPen*, dummy_GpBrush*);
+static int (WINAPI* gdix_SetPenWidth)(dummy_GpPen*, float);
 
 /* Path functions */
-static int (WINAPI* gdix_CreatePath)(int, void**);
-static int (WINAPI* gdix_DeletePath)(void*);
-static int (WINAPI* gdix_ClosePathFigure)(void*);
-static int (WINAPI* gdix_StartPathFigure)(void*);
-static int (WINAPI* gdix_GetPathLastPoint)(void*, void*);
-static int (WINAPI* gdix_AddPathArc)(void*, float, float, float, float, float, float);
-static int (WINAPI* gdix_AddPathLine)(void*, float, float, float, float);
+static int (WINAPI* gdix_CreatePath)(dummy_GpFillMode, dummy_GpPath**);
+static int (WINAPI* gdix_DeletePath)(dummy_GpPath*);
+static int (WINAPI* gdix_ClosePathFigure)(dummy_GpPath*);
+static int (WINAPI* gdix_StartPathFigure)(dummy_GpPath*);
+static int (WINAPI* gdix_GetPathLastPoint)(dummy_GpPath*, dummy_GpPointF*);
+static int (WINAPI* gdix_AddPathArc)(dummy_GpPath*, float, float, float, float, float, float);
+static int (WINAPI* gdix_AddPathLine)(dummy_GpPath*, float, float, float, float);
 
 /* Font functions */
-static int (WINAPI* gdix_CreateFontFromLogfontW)(HDC, const LOGFONTW*, void**);
-static int (WINAPI* gdix_DeleteFont)(void*);
-static int (WINAPI* gdix_DeleteFontFamily)(void*);
-static int (WINAPI* gdix_GetCellAscent)(const void*, int, UINT16*);
-static int (WINAPI* gdix_GetCellDescent)(const void*, int, UINT16*);
-static int (WINAPI* gdix_GetEmHeight)(const void*, int, UINT16*);
-static int (WINAPI* gdix_GetFamily)(void*, void**);
-static int (WINAPI* gdix_GetFontSize)(void*, float*);
-static int (WINAPI* gdix_GetFontStyle)(void*, int*);
-static int (WINAPI* gdix_GetLineSpacing)(const void*, int, UINT16*);
+static int (WINAPI* gdix_CreateFontFromLogfontW)(HDC, const LOGFONTW*, dummy_GpFont**);
+static int (WINAPI* gdix_DeleteFont)(dummy_GpFont*);
+static int (WINAPI* gdix_DeleteFontFamily)(dummy_GpFont*);
+static int (WINAPI* gdix_GetCellAscent)(const dummy_GpFont*, int, UINT16*);
+static int (WINAPI* gdix_GetCellDescent)(const dummy_GpFont*, int, UINT16*);
+static int (WINAPI* gdix_GetEmHeight)(const dummy_GpFont*, int, UINT16*);
+static int (WINAPI* gdix_GetFamily)(dummy_GpFont*, void**);
+static int (WINAPI* gdix_GetFontSize)(dummy_GpFont*, float*);
+static int (WINAPI* gdix_GetFontStyle)(dummy_GpFont*, int*);
+static int (WINAPI* gdix_GetLineSpacing)(const dummy_GpFont*, int, UINT16*);
 
 /* Image & bitmap functions */
-static int (WINAPI* gdix_LoadImageFromFile)(const WCHAR*, void**);
-static int (WINAPI* gdix_LoadImageFromStream)(IStream*, void**);
-static int (WINAPI* gdix_CreateBitmapFromHBITMAP)(HBITMAP, HPALETTE, void**);
-static int (WINAPI* gdix_CreateBitmapFromHICON)(HICON, void**);
-static int (WINAPI* gdix_DisposeImage)(void*);
-static int (WINAPI* gdix_GetImageBounds)(void*, gdix_RectF*, int*);
+static int (WINAPI* gdix_LoadImageFromFile)(const WCHAR*, dummy_GpImage**);
+static int (WINAPI* gdix_LoadImageFromStream)(IStream*, dummy_GpImage**);
+static int (WINAPI* gdix_CreateBitmapFromHBITMAP)(HBITMAP, HPALETTE, dummy_GpBitmap**);
+static int (WINAPI* gdix_CreateBitmapFromHICON)(HICON, dummy_GpBitmap**);
+static int (WINAPI* gdix_DisposeImage)(dummy_GpImage*);
+static int (WINAPI* gdix_GetImageBounds)(dummy_GpImage*, dummy_GpRectF*, dummy_GpUnit*);
 
 /* String format functions */
-static int (WINAPI* gdix_CreateStringFormat)(int, LANGID, void**);
-static int (WINAPI* gdix_DeleteStringFormat)(void*);
-static int (WINAPI* gdix_SetStringFormatAlign)(void*, int);
-static int (WINAPI* gdix_SetStringFormatFlags)(void*, int);
-static int (WINAPI* gdix_SetStringFormatTrimming)(void*, int);
+static int (WINAPI* gdix_CreateStringFormat)(int, LANGID, dummy_GpStringFormat**);
+static int (WINAPI* gdix_DeleteStringFormat)(dummy_GpStringFormat*);
+static int (WINAPI* gdix_SetStringFormatAlign)(dummy_GpStringFormat*, dummy_GpStringAlignment);
+static int (WINAPI* gdix_SetStringFormatFlags)(dummy_GpStringFormat*, int);
+static int (WINAPI* gdix_SetStringFormatTrimming)(dummy_GpStringFormat*, dummy_GpStringTrimming);
 
 /* Draw/fill functions */
-static int (WINAPI* gdix_DrawArc)(void*, void*, float, float, float, float, float, float);
-static int (WINAPI* gdix_DrawImageRectRect)(void*, void*, float, float, float, float, float, float, float, float, int, const void*, void*, void*);
-static int (WINAPI* gdix_DrawLine)(void*, void*, float, float, float, float);
-static int (WINAPI* gdix_DrawPath)(void*, void*, void*);
-static int (WINAPI* gdix_DrawPie)(void*, void*, float, float, float, float, float, float);
-static int (WINAPI* gdix_DrawRectangle)(void*, void*, float, float, float, float);
-static int (WINAPI* gdix_DrawString)(void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, const void*);
-static int (WINAPI* gdix_FillEllipse)(void*, void*, float, float, float, float);
-static int (WINAPI* gdix_FillPath)(void*, void*, void*);
-static int (WINAPI* gdix_FillPie)(void*, void*, float, float, float, float, float, float);
-static int (WINAPI* gdix_FillRectangle)(void*, void*, float, float, float, float);
-static int (WINAPI* gdix_MeasureString)(void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, gdix_RectF*, int*, int*);
-
-
-typedef struct gdix_StartupInput_tag gdix_StartupInput;
-struct gdix_StartupInput_tag {
-    UINT32 GdiplusVersion;
-    void* DebugEventCallback;  /* DebugEventProc */
-    BOOL SuppressBackgroundThread;
-    BOOL SuppressExternalCodecs;
-};
+static int (WINAPI* gdix_DrawArc)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float);
+static int (WINAPI* gdix_DrawImageRectRect)(dummy_GpGraphics*, dummy_GpImage*, float, float, float, float, float, float, float, float, dummy_GpUnit, const void*, void*, void*);
+static int (WINAPI* gdix_DrawLine)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float);
+static int (WINAPI* gdix_DrawPath)(dummy_GpGraphics*, dummy_GpPen*, dummy_GpPath*);
+static int (WINAPI* gdix_DrawPie)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float);
+static int (WINAPI* gdix_DrawRectangle)(dummy_GpGraphics*, void*, float, float, float, float);
+static int (WINAPI* gdix_DrawString)(dummy_GpGraphics*, const WCHAR*, int, const dummy_GpFont*, const dummy_GpRectF*, const dummy_GpStringFormat*, const dummy_GpBrush*);
+static int (WINAPI* gdix_FillEllipse)(dummy_GpGraphics*, dummy_GpBrush*, float, float, float, float);
+static int (WINAPI* gdix_FillPath)(dummy_GpGraphics*, dummy_GpBrush*, dummy_GpPath*);
+static int (WINAPI* gdix_FillPie)(dummy_GpGraphics*, dummy_GpBrush*, float, float, float, float, float, float);
+static int (WINAPI* gdix_FillRectangle)(dummy_GpGraphics*, void*, float, float, float, float);
+static int (WINAPI* gdix_MeasureString)(dummy_GpGraphics*, const WCHAR*, int, const dummy_GpFont*, const dummy_GpRectF*, const dummy_GpStringFormat*, dummy_GpRectF*, int*, int*);
 
 
 /*********************
@@ -956,8 +557,8 @@ static void (WINAPI* gdix_Shutdown)(ULONG_PTR);
 static int
 gdix_init(void)
 {
-    int(WINAPI* gdix_Startup)(ULONG_PTR*,const gdix_StartupInput*,void*);
-    gdix_StartupInput input = { 0 };
+    int (WINAPI* gdix_Startup)(ULONG_PTR*, const dummy_GpStartupInput*, void*);
+    dummy_GpStartupInput input = { 0 };
     int status;
 
     gdix_dll = mc_load_sys_dll(_T("GDIPLUS.DLL"));
@@ -966,7 +567,7 @@ gdix_init(void)
         goto err_LoadLibrary;
     }
 
-    gdix_Startup = (int(WINAPI*)(ULONG_PTR*,const gdix_StartupInput*,void*))
+    gdix_Startup = (int (WINAPI*)(ULONG_PTR*, const dummy_GpStartupInput*, void*))
                         GetProcAddress(gdix_dll, "GdiplusStartup");
     if(MC_ERR(gdix_Startup == NULL)) {
         MC_TRACE_ERR("gdix_init: GetProcAddress(GdiplusStartup) failed");
@@ -991,80 +592,80 @@ gdix_init(void)
         } while(0)
 
     /* Graphics functions */
-    GPA(CreateFromHDC, (HDC, void**));
-    GPA(DeleteGraphics, (void*));
-    GPA(GraphicsClear, (void*, DWORD));
-    GPA(GetDC, (void*, HDC*));
-    GPA(ReleaseDC, (void*, HDC));
-    GPA(ResetWorldTransform, (void*));
-    GPA(RotateWorldTransform, (void*, float, int));
-    GPA(SetPixelOffsetMode, (void*, int));
-    GPA(SetSmoothingMode, (void*, int));
-    GPA(TranslateWorldTransform, (void*, float, float, int));
-    GPA(SetClipRect, (void*, float, float, float, float, int));
-    GPA(SetClipPath, (void*, void*, int));
-    GPA(ResetClip, (void*));
+    GPA(CreateFromHDC, (HDC, dummy_GpGraphics**));
+    GPA(DeleteGraphics, (dummy_GpGraphics*));
+    GPA(GraphicsClear, (dummy_GpGraphics*, dummy_ARGB));
+    GPA(GetDC, (dummy_GpGraphics*, HDC*));
+    GPA(ReleaseDC, (dummy_GpGraphics*, HDC));
+    GPA(ResetWorldTransform, (dummy_GpGraphics*));
+    GPA(RotateWorldTransform, (dummy_GpGraphics*, float, dummy_GpMatrixOrder));
+    GPA(SetPixelOffsetMode, (dummy_GpGraphics*, dummy_GpPixelOffsetMode));
+    GPA(SetSmoothingMode, (dummy_GpGraphics*, dummy_GpSmoothingMode));
+    GPA(TranslateWorldTransform, (dummy_GpGraphics*, float, float, dummy_GpMatrixOrder));
+    GPA(SetClipRect, (dummy_GpGraphics*, float, float, float, float, dummy_GpCombineMode));
+    GPA(SetClipPath, (dummy_GpGraphics*, dummy_GpPath*, dummy_GpCombineMode));
+    GPA(ResetClip, (dummy_GpGraphics*));
 
     /* Brush functions */
-    GPA(CreateSolidFill, (DWORD, void**));
-    GPA(DeleteBrush, (void*));
-    GPA(SetSolidFillColor, (void*, DWORD));
+    GPA(CreateSolidFill, (dummy_ARGB, dummy_GpSolidFill**));
+    GPA(DeleteBrush, (dummy_GpBrush*));
+    GPA(SetSolidFillColor, (dummy_GpSolidFill*, dummy_ARGB));
 
     /* Pen functions */
-    GPA(CreatePen1, (DWORD, float, int, void**));
-    GPA(DeletePen, (void*));
-    GPA(SetPenBrushFill, (void*, void*));
-    GPA(SetPenWidth, (void*, float));
+    GPA(CreatePen1, (DWORD, float, dummy_GpUnit, dummy_GpPen**));
+    GPA(DeletePen, (dummy_GpPen*));
+    GPA(SetPenBrushFill, (dummy_GpPen*, dummy_GpBrush*));
+    GPA(SetPenWidth, (dummy_GpPen*, float));
 
     /* Path functions */
-    GPA(CreatePath, (int, void**));
-    GPA(DeletePath, (void*));
-    GPA(ClosePathFigure, (void*));
-    GPA(StartPathFigure, (void*));
-    GPA(GetPathLastPoint, (void*, void*));
-    GPA(AddPathArc, (void*, float, float, float, float, float, float));
-    GPA(AddPathLine, (void*, float, float, float, float));
+    GPA(CreatePath, (dummy_GpFillMode, dummy_GpPath**));
+    GPA(DeletePath, (dummy_GpPath*));
+    GPA(ClosePathFigure, (dummy_GpPath*));
+    GPA(StartPathFigure, (dummy_GpPath*));
+    GPA(GetPathLastPoint, (dummy_GpPath*, dummy_GpPointF*));
+    GPA(AddPathArc, (dummy_GpPath*, float, float, float, float, float, float));
+    GPA(AddPathLine, (dummy_GpPath*, float, float, float, float));
 
     /* Font functions */
-    GPA(CreateFontFromLogfontW, (HDC,const LOGFONTW*,void**));
-    GPA(DeleteFont, (void*));
-    GPA(DeleteFontFamily, (void*));
-    GPA(GetCellAscent, (const void*, int, UINT16*));
-    GPA(GetCellDescent, (const void*, int, UINT16*));
-    GPA(GetEmHeight, (const void*, int, UINT16*));
-    GPA(GetFamily, (void*, void**));
-    GPA(GetFontSize, (void*, float*));
-    GPA(GetFontStyle, (void*, int*));
-    GPA(GetLineSpacing, (const void*, int, UINT16*));
+    GPA(CreateFontFromLogfontW, (HDC, const LOGFONTW*, dummy_GpFont**));
+    GPA(DeleteFont, (dummy_GpFont*));
+    GPA(DeleteFontFamily, (dummy_GpFont*));
+    GPA(GetCellAscent, (const dummy_GpFont*, int, UINT16*));
+    GPA(GetCellDescent, (const dummy_GpFont*, int, UINT16*));
+    GPA(GetEmHeight, (const dummy_GpFont*, int, UINT16*));
+    GPA(GetFamily, (dummy_GpFont*, void**));
+    GPA(GetFontSize, (dummy_GpFont*, float*));
+    GPA(GetFontStyle, (dummy_GpFont*, int*));
+    GPA(GetLineSpacing, (const dummy_GpFont*, int, UINT16*));
 
     /* Image & bitmap functions */
-    GPA(LoadImageFromFile, (const WCHAR*, void**));
-    GPA(LoadImageFromStream, (IStream*, void**));
-    GPA(CreateBitmapFromHBITMAP, (HBITMAP, HPALETTE, void**));
-    GPA(CreateBitmapFromHICON, (HICON, void**));
-    GPA(DisposeImage, (void*));
-    GPA(GetImageBounds, (void*, gdix_RectF*, int*));
+    GPA(LoadImageFromFile, (const WCHAR*, dummy_GpImage**));
+    GPA(LoadImageFromStream, (IStream*, dummy_GpImage**));
+    GPA(CreateBitmapFromHBITMAP, (HBITMAP, HPALETTE, dummy_GpBitmap**));
+    GPA(CreateBitmapFromHICON, (HICON, dummy_GpBitmap**));
+    GPA(DisposeImage, (dummy_GpImage*));
+    GPA(GetImageBounds, (dummy_GpImage*, dummy_GpRectF*, dummy_GpUnit*));
 
     /* String format functions */
-    GPA(CreateStringFormat, (int, LANGID, void**));
-    GPA(DeleteStringFormat, (void*));
-    GPA(SetStringFormatAlign, (void*, int));
-    GPA(SetStringFormatFlags, (void*, int));
-    GPA(SetStringFormatTrimming, (void*, int));
+    GPA(CreateStringFormat, (int, LANGID, dummy_GpStringFormat**));
+    GPA(DeleteStringFormat, (dummy_GpStringFormat*));
+    GPA(SetStringFormatAlign, (dummy_GpStringFormat*, dummy_GpStringAlignment));
+    GPA(SetStringFormatFlags, (dummy_GpStringFormat*, int));
+    GPA(SetStringFormatTrimming, (dummy_GpStringFormat*, dummy_GpStringTrimming));
 
     /* Draw/fill functions */
-    GPA(DrawArc, (void*, void*, float, float, float, float, float, float));
-    GPA(DrawImageRectRect, (void*, void*, float, float, float, float, float, float, float, float, int, const void*, void*, void*));
-    GPA(DrawLine, (void*, void*, float, float, float, float));
-    GPA(DrawPath, (void*, void*, void*));
-    GPA(DrawPie, (void*, void*, float, float, float, float, float, float));
-    GPA(DrawRectangle, (void*, void*, float, float, float, float));
-    GPA(DrawString, (void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, const void*));
-    GPA(FillEllipse, (void*, void*, float, float, float, float));
-    GPA(FillPath, (void*, void*, void*));
-    GPA(FillPie, (void*, void*, float, float, float, float, float, float));
-    GPA(FillRectangle, (void*, void*, float, float, float, float));
-    GPA(MeasureString, (void*, const WCHAR*, int, const void*, const gdix_RectF*, const void*, gdix_RectF*, int*, int*));
+    GPA(DrawArc, (dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float));
+    GPA(DrawImageRectRect, (dummy_GpGraphics*, dummy_GpImage*, float, float, float, float, float, float, float, float, dummy_GpUnit, const void*, void*, void*));
+    GPA(DrawLine, (dummy_GpGraphics*, dummy_GpPen*, float, float, float, float));
+    GPA(DrawPath, (dummy_GpGraphics*, dummy_GpPen*, dummy_GpPath*));
+    GPA(DrawPie, (dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float));
+    GPA(DrawRectangle, (dummy_GpGraphics*, void*, float, float, float, float));
+    GPA(DrawString, (dummy_GpGraphics*, const WCHAR*, int, const dummy_GpFont*, const dummy_GpRectF*, const dummy_GpStringFormat*, const dummy_GpBrush*));
+    GPA(FillEllipse, (dummy_GpGraphics*, dummy_GpBrush*, float, float, float, float));
+    GPA(FillPath, (dummy_GpGraphics*, dummy_GpBrush*, dummy_GpPath*));
+    GPA(FillPie, (dummy_GpGraphics*, dummy_GpBrush*, float, float, float, float, float, float));
+    GPA(FillRectangle, (dummy_GpGraphics*, void*, float, float, float, float));
+    GPA(MeasureString, (dummy_GpGraphics*, const WCHAR*, int, const dummy_GpFont*, const dummy_GpRectF*, const dummy_GpStringFormat*, dummy_GpRectF*, int*, int*));
 
 #undef GPA
 
@@ -1101,9 +702,9 @@ gdix_fini(void)
 typedef struct gdix_canvas_tag gdix_canvas_t;
 struct gdix_canvas_tag {
     HDC dc;
-    void* graphics;
-    void* pen;
-    void* string_format;
+    dummy_GpGraphics* graphics;
+    dummy_GpPen* pen;
+    dummy_GpStringFormat* string_format;
     BOOL use_dblbuf;
     doublebuffer_t dblbuf;
 };
@@ -1501,7 +1102,7 @@ xdraw_canvas_transform_with_rotation(xdraw_canvas_t* canvas, float angle)
         ID2D1RenderTarget_SetTransform(c->target, &new_transform);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_RotateWorldTransform(c->graphics, angle, 0/*MatrixOrderPrepend*/);
+        gdix_RotateWorldTransform(c->graphics, angle, dummy_MatrixOrderPrepend);
     }
 }
 
@@ -1521,7 +1122,7 @@ xdraw_canvas_transform_with_translation(xdraw_canvas_t* canvas, float dx, float 
         ID2D1RenderTarget_SetTransform(c->target, &transform);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_TranslateWorldTransform(c->graphics, dx, dy, 0/*MatrixOrderPrepend*/);
+        gdix_TranslateWorldTransform(c->graphics, dx, dy, dummy_MatrixOrderPrepend);
     }
 }
 
@@ -1603,7 +1204,7 @@ xdraw_canvas_set_clip(xdraw_canvas_t* canvas, const xdraw_rect_t* rect,
         }
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        int combine_mode = 0;  /*CombineModeReplace*/
+        int combine_mode = dummy_CombineModeReplace;
 
         if(rect == NULL  &&  path == NULL)
             gdix_ResetClip(c->graphics);
@@ -1611,7 +1212,7 @@ xdraw_canvas_set_clip(xdraw_canvas_t* canvas, const xdraw_rect_t* rect,
         if(rect != NULL) {
             gdix_SetClipRect(c->graphics, rect->x0, rect->y0,
                              rect->x1, rect->y1, combine_mode);
-            combine_mode = 1;  /*CombineModeIntersect*/
+            combine_mode = dummy_CombineModeIntersect;
         }
 
         if(path != NULL)
@@ -1656,7 +1257,7 @@ xdraw_brush_solid_create(xdraw_canvas_t* canvas, xdraw_color_t color)
         }
         return (xdraw_brush_t*) b;
     } else {
-        void* b;
+        dummy_GpSolidFill* b;
         int status;
 
         status = gdix_CreateSolidFill(color, &b);
@@ -1696,7 +1297,7 @@ xdraw_brush_solid_set_color(xdraw_brush_t* solidbrush, xdraw_color_t color)
 
         ID2D1SolidColorBrush_SetColor((ID2D1SolidColorBrush*) solidbrush, &clr);
     } else {
-        gdix_SetSolidFillColor(solidbrush, color);
+        gdix_SetSolidFillColor((dummy_GpSolidFill*) solidbrush, (dummy_ARGB) color);
     }
 }
 
@@ -1715,10 +1316,10 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
         static WCHAR enus_locale[] = L"en-us";
         WCHAR* locales[] = { user_locale, no_locale, enus_locale };
         int i;
-        dw_IDWriteTextFormat* tf;
+        dummy_IDWriteTextFormat* tf;
         float size;
-        dw_DWRITE_FONT_STYLE style;
-        dw_DWRITE_FONT_WEIGHT weight;
+        dummy_DWRITE_FONT_STYLE style;
+        dummy_DWRITE_FONT_WEIGHT weight;
         HRESULT hr;
 
         if(fn_GetUserDefaultLocaleName(user_locale, LOCALE_NAME_MAX_LENGTH) == 0) {
@@ -1731,24 +1332,24 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
         size = (logfont->lfHeight != 0 ? MC_ABS(logfont->lfHeight) : 12);
 
         if(logfont->lfItalic)
-            style = dw_DWRITE_FONT_STYLE_ITALIC;
+            style = dummy_DWRITE_FONT_STYLE_ITALIC;
         else
-            style = dw_DWRITE_FONT_STYLE_NORMAL;
+            style = dummy_DWRITE_FONT_STYLE_NORMAL;
 
         /* FIXME: Right now, we ignore some LOGFONT members here.
          *        For example:
          *          -- LOGFONT::lfUnderline should propagate into
-         *             dw_IDWriteTextLayout::SetUnderline()
+         *             dummy_IDWriteTextLayout::SetUnderline()
          *          -- LOGFONT::lfStrikeOut should propagate into
-         *             dw_IDWriteTextLayout::SetStrikethrough()
+         *             dummy_IDWriteTextLayout::SetStrikethrough()
          */
 
         /* DirectWrite does not support FW_DONTCARE */
         weight = (logfont->lfWeight != FW_DONTCARE ? logfont->lfWeight : FW_REGULAR);
 
         for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
-            hr = IDWriteFactory_CreateTextFormat(dw_factory, logfont->lfFaceName,
-                    NULL, weight, style, dw_DWRITE_FONT_STRETCH_NORMAL, size,
+            hr = dummy_IDWriteFactory_CreateTextFormat(dw_factory, logfont->lfFaceName,
+                    NULL, weight, style, dummy_DWRITE_FONT_STRETCH_NORMAL, size,
                     locales[i], &tf);
             if(SUCCEEDED(hr))
                 return (xdraw_font_t*) tf;
@@ -1757,9 +1358,9 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
         /* In case of a failure, try to fall back to a reasonable the default
          * font. */
         for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
-            hr = IDWriteFactory_CreateTextFormat(dw_factory,
+            hr = dummy_IDWriteFactory_CreateTextFormat(dw_factory,
                     xdraw_default_font_family(), NULL, weight, style,
-                    dw_DWRITE_FONT_STRETCH_NORMAL, size, locales[i], &tf);
+                    dummy_DWRITE_FONT_STRETCH_NORMAL, size, locales[i], &tf);
             if(SUCCEEDED(hr))
                 return (xdraw_font_t*) tf;
         }
@@ -1770,7 +1371,7 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
         return NULL;
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        void* f;
+        dummy_GpFont* f;
         int status;
 
         status = gdix_CreateFontFromLogfontW(c->dc, logfont, &f);
@@ -1819,10 +1420,10 @@ xdraw_font_destroy(xdraw_font_t* font)
     XDRAW_TRACE("xdraw_font_destroy(%p)", font);
 
     if(d2d_dll != NULL) {
-        dw_IDWriteTextFormat* tf = (dw_IDWriteTextFormat*) font;
-        IDWriteTextFormat_Release(tf);
+        dummy_IDWriteTextFormat* tf = (dummy_IDWriteTextFormat*) font;
+        dummy_IDWriteTextFormat_Release(tf);
     } else {
-        gdix_DeleteFont(font);
+        gdix_DeleteFont((dummy_GpFont*) font);
     }
 }
 
@@ -1843,49 +1444,49 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
     }
 
     if(d2d_dll != NULL) {
-        dw_IDWriteTextFormat* tf = (dw_IDWriteTextFormat*) font;
-        dw_IDWriteFontCollection* fc;
-        dw_IDWriteFontFamily* ff;
-        dw_IDWriteFont* f;
+        dummy_IDWriteTextFormat* tf = (dummy_IDWriteTextFormat*) font;
+        dummy_IDWriteFontCollection* fc;
+        dummy_IDWriteFontFamily* ff;
+        dummy_IDWriteFont* f;
         WCHAR* name;
         UINT32 name_len;
-        dw_DWRITE_FONT_WEIGHT weight;
-        dw_DWRITE_FONT_STRETCH stretch;
-        dw_DWRITE_FONT_STYLE style;
+        dummy_DWRITE_FONT_WEIGHT weight;
+        dummy_DWRITE_FONT_STRETCH stretch;
+        dummy_DWRITE_FONT_STYLE style;
         UINT32 ix;
         BOOL exists;
-        dw_DWRITE_FONT_METRICS fm;
+        dummy_DWRITE_FONT_METRICS fm;
         float factor;
         HRESULT hr;
         BOOL ok = FALSE;
 
-        /* Getting dw_DWRITE_FONT_METRICS.
+        /* Getting DWRITE_FONT_METRICS.
          * (Based on http://stackoverflow.com/a/5610139/917880) */
-        name_len = IDWriteTextFormat_GetFontFamilyNameLength(tf) + 1;
+        name_len = dummy_IDWriteTextFormat_GetFontFamilyNameLength(tf) + 1;
         name = _malloca(name_len * sizeof(WCHAR));
         if(MC_ERR(name == NULL)) {
             MC_TRACE("xdraw_font_get_metrics: _malloca() failed.");
             goto err_malloca;
         }
-        hr = IDWriteTextFormat_GetFontFamilyName(tf, name, name_len);
+        hr = dummy_IDWriteTextFormat_GetFontFamilyName(tf, name, name_len);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("xdraw_font_get_metrics: "
                      "IDWriteTextFormat::GetFontFamilyName() failed. [0x%lx]", hr);
             goto err_GetFontFamilyName;
         }
 
-        weight = IDWriteTextFormat_GetFontWeight(tf);
-        stretch = IDWriteTextFormat_GetFontStretch(tf);
-        style = IDWriteTextFormat_GetFontStyle(tf);
+        weight = dummy_IDWriteTextFormat_GetFontWeight(tf);
+        stretch = dummy_IDWriteTextFormat_GetFontStretch(tf);
+        style = dummy_IDWriteTextFormat_GetFontStyle(tf);
 
-        hr = IDWriteTextFormat_GetFontCollection(tf, &fc);
+        hr = dummy_IDWriteTextFormat_GetFontCollection(tf, &fc);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("xdraw_font_get_metrics: "
                      "IDWriteTextFormat::GetFontCollection() failed. [0x%lx]", hr);
             goto err_GetFontCollection;
         }
 
-        hr = IDWriteFontCollection_FindFamilyName(fc, name, &ix, &exists);
+        hr = dummy_IDWriteFontCollection_FindFamilyName(fc, name, &ix, &exists);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("xdraw_font_get_metrics: "
                      "IDWriteFontCollection::FindFamilyName() failed. [0x%lx]", hr);
@@ -1898,36 +1499,36 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
             goto err_exists;
         }
 
-        hr = IDWriteFontCollection_GetFontFamily(fc, ix, &ff);
+        hr = dummy_IDWriteFontCollection_GetFontFamily(fc, ix, &ff);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("xdraw_font_get_metrics: "
                      "IDWriteFontCollection::GetFontFamily() failed. [0x%lx]", hr);
             goto err_GetFontFamily;
         }
 
-        hr = IDWriteFontFamily_GetFirstMatchingFont(ff, weight, stretch, style, &f);
+        hr = dummy_IDWriteFontFamily_GetFirstMatchingFont(ff, weight, stretch, style, &f);
         if(MC_ERR(FAILED(hr))) {
             MC_TRACE("xdraw_font_get_metrics: "
                      "IDWriteFontFamily::GetFirstMatchingFont() failed. [0x%lx]", hr);
             goto err_GetFirstMatchingFont;
         }
 
-        IDWriteFont_GetMetrics(f, &fm);
+        dummy_IDWriteFont_GetMetrics(f, &fm);
         ok = TRUE;
 
-        IDWriteFont_Release(f);
+        dummy_IDWriteFont_Release(f);
 err_GetFirstMatchingFont:
-        IDWriteFontFamily_Release(ff);
+        dummy_IDWriteFontFamily_Release(ff);
 err_GetFontFamily:
 err_exists:
 err_FindFamilyName:
-        IDWriteFontCollection_Release(fc);
+        dummy_IDWriteFontCollection_Release(fc);
 err_GetFontCollection:
 err_GetFontFamilyName:
         _freea(name);
 err_malloca:
 
-        metrics->em_height = IDWriteTextFormat_GetFontSize(tf);
+        metrics->em_height = dummy_IDWriteTextFormat_GetFontSize(tf);
         if(ok) {
             factor = (metrics->em_height / fm.designUnitsPerEm);
             metrics->cell_ascent = fm.ascent * factor;
@@ -2006,17 +1607,17 @@ err_CreateBitmapFromHBITMAP:
 err_xcom_init_create:
         return NULL;
     } else {
-        void* img;
+        dummy_GpBitmap* b;
         int status;
 
-        status = gdix_CreateBitmapFromHBITMAP(bmp, NULL, &img);
+        status = gdix_CreateBitmapFromHBITMAP(bmp, NULL, &b);
         if(MC_ERR(status != 0)) {
             MC_TRACE("xdraw_image_create_from_HBITMAP: "
                      "gdix_CreateBitmapFromHBITMAP() failed. [%d]", status);
             return NULL;
         }
 
-        return (xdraw_image_t*) img;
+        return (xdraw_image_t*) b;
     }
 }
 
@@ -2041,7 +1642,7 @@ xdraw_image_load_from_file(const TCHAR* path)
 
         return (xdraw_image_t*) source;
     } else {
-        void* img;
+        dummy_GpImage* img;
         int status;
 
         status = gdix_LoadImageFromFile(path, &img);
@@ -2072,7 +1673,7 @@ xdraw_image_load_from_stream(IStream* stream)
 
         return (xdraw_image_t*) source;
     } else {
-        void* img;
+        dummy_GpImage* img;
         int status;
 
         status = gdix_LoadImageFromStream(stream, &img);
@@ -2096,7 +1697,7 @@ xdraw_image_destroy(xdraw_image_t* image)
         IWICBitmapSource_Release(source);
         xcom_fini();
     } else {
-        gdix_DisposeImage((void*) image);
+        gdix_DisposeImage((dummy_GpImage*) image);
     }
 }
 
@@ -2113,8 +1714,8 @@ xdraw_image_get_size(xdraw_image_t* image, float* w, float* h)
         *w = iw;
         *h = ih;
     } else {
-        gdix_RectF bounds;
-        int unit;
+        dummy_GpRectF bounds;
+        dummy_GpUnit unit;
 
         gdix_GetImageBounds((void*) image, &bounds, &unit);
         MC_ASSERT(unit == 2/*UnitPixel*/);
@@ -2143,10 +1744,10 @@ xdraw_path_create(xdraw_canvas_t* canvas)
 
         return (xdraw_path_t*) g;
     } else {
-        void* p;
+        dummy_GpPath* p;
         int status;
 
-        status = gdix_CreatePath(0/*FillModeAlternate*/, &p);
+        status = gdix_CreatePath(dummy_FillModeAlternate, &p);
         if(MC_ERR(status != 0)) {
             MC_TRACE("xdraw_path_create: GdipCreatePath() failed. [%d]", status);
             return NULL;
@@ -2198,7 +1799,7 @@ xdraw_path_destroy(xdraw_path_t* path)
         ID2D1PathGeometry* g = (ID2D1PathGeometry*) path;
         ID2D1PathGeometry_Release(g);
     } else {
-        gdix_DeletePath(path);
+        gdix_DeletePath((dummy_GpPath*) path);
     }
 }
 
@@ -2642,7 +2243,7 @@ err_CreateBitmapFromHICON:
 err_xcom_init_create:
         ;  /* noop */
     } else {
-        void* b;
+        dummy_GpBitmap* b;
         int status;
 
         status = gdix_CreateBitmapFromHICON(icon, &b);
@@ -2667,8 +2268,8 @@ xdraw_draw_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
         D2D1_POINT_2F origin = { rect->x0, rect->y0 };
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Brush* b = (ID2D1Brush*) brush;
-        dw_IDWriteTextFormat* tf = (dw_IDWriteTextFormat*) font;
-        dw_IDWriteTextLayout* layout;
+        dummy_IDWriteTextFormat* tf = (dummy_IDWriteTextFormat*) font;
+        dummy_IDWriteTextLayout* layout;
 
         layout = d2d_create_text_layout(tf, rect, str, len, flags);
         if(MC_ERR(layout == NULL)) {
@@ -2680,13 +2281,15 @@ xdraw_draw_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
                 (IDWriteTextLayout*) layout, b,
                 (flags & XDRAW_STRING_CLIP) ? D2D1_DRAW_TEXT_OPTIONS_CLIP : 0);
 
-        IDWriteTextLayout_Release(layout);
+        dummy_IDWriteTextLayout_Release(layout);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_RectF r = { rect->x0, rect->y0, rect->x1 - rect->x0, rect->y1 - rect->y0 };
+        dummy_GpRectF r = { rect->x0, rect->y0, rect->x1 - rect->x0, rect->y1 - rect->y0 };
+        dummy_GpFont* f = (dummy_GpFont*) font;
+        dummy_GpBrush* b = (dummy_GpBrush*) brush;
 
         gdix_canvas_apply_string_flags(c, flags);
-        gdix_DrawString(c->graphics, str, len, font, &r, c->string_format, brush);
+        gdix_DrawString(c->graphics, str, len, f, &r, c->string_format, b);
     }
 }
 
@@ -2698,9 +2301,9 @@ xdraw_measure_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
     XDRAW_TRACE("xdraw_measure_string(%p, %.*s)", canvas, len, str);
 
     if(d2d_dll != NULL) {
-        dw_IDWriteTextFormat* tf = (dw_IDWriteTextFormat*) font;
-        dw_IDWriteTextLayout* layout;
-        dw_DWRITE_TEXT_METRICS tm;
+        dummy_IDWriteTextFormat* tf = (dummy_IDWriteTextFormat*) font;
+        dummy_IDWriteTextLayout* layout;
+        dummy_DWRITE_TEXT_METRICS tm;
 
         layout = d2d_create_text_layout(tf, rect, str, len, flags);
         if(MC_ERR(layout == NULL)) {
@@ -2708,21 +2311,22 @@ xdraw_measure_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
             return;
         }
 
-        IDWriteTextLayout_GetMetrics(layout, &tm);
+        dummy_IDWriteTextLayout_GetMetrics(layout, &tm);
 
         measure->bound.x0 = rect->x0 + tm.left;
         measure->bound.y0 = rect->y0 + tm.top;
         measure->bound.x1 = measure->bound.x0 + tm.width;
         measure->bound.y1 = measure->bound.y0 + tm.height;
 
-        IDWriteTextLayout_Release(layout);
+        dummy_IDWriteTextLayout_Release(layout);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
-        gdix_RectF r = { rect->x0, rect->y0, rect->x1 - rect->x0, rect->y1 - rect->y0 };
-        gdix_RectF br;
+        dummy_GpRectF r = { rect->x0, rect->y0, rect->x1 - rect->x0, rect->y1 - rect->y0 };
+        dummy_GpFont* f = (dummy_GpFont*) font;
+        dummy_GpRectF br;
 
         gdix_canvas_apply_string_flags(c, flags);
-        gdix_MeasureString(c->graphics, str, len, font, &r, c->string_format,
+        gdix_MeasureString(c->graphics, str, len, f, &r, c->string_format,
                            &br, NULL, NULL);
 
         measure->bound.x0 = br.x;
