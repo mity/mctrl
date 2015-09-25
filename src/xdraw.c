@@ -35,17 +35,11 @@
 #endif
 
 
+#define XDRAW_DEFAULT_FONT_FAMILY                                           \
+        (mc_win_version >= MC_WIN_VISTA ? _T("Segoe UI") : _T("Tahoma"))
+
+
 static CRITICAL_SECTION xdraw_lock;
-
-
-static const TCHAR*
-xdraw_default_font_family(void)
-{
-    if(mc_win_version >= MC_WIN_VISTA)
-        return _T("Segoe UI");
-    else
-        return _T("Tahoma");
-}
 
 
 /*************************
@@ -1359,7 +1353,7 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
          * font. */
         for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
             hr = dummy_IDWriteFactory_CreateTextFormat(dw_factory,
-                    xdraw_default_font_family(), NULL, weight, style,
+                    XDRAW_DEFAULT_FONT_FAMILY, NULL, weight, style,
                     dummy_DWRITE_FONT_STRETCH_NORMAL, size, locales[i], &tf);
             if(SUCCEEDED(hr))
                 return (xdraw_font_t*) tf;
@@ -1381,7 +1375,7 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
             LOGFONT fallback_logfont;
 
             memcpy(&fallback_logfont, logfont, sizeof(LOGFONT));
-            _tcscpy(fallback_logfont.lfFaceName, xdraw_default_font_family());
+            _tcscpy(fallback_logfont.lfFaceName, XDRAW_DEFAULT_FONT_FAMILY);
             status = gdix_CreateFontFromLogfontW(c->dc, &fallback_logfont, &f);
         }
 
