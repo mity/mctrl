@@ -283,21 +283,17 @@ treelist_subitems_alloc(treelist_t* tl, treelist_item_t* item, WORD col_count)
         return -1;
     }
 
-    if(item->callback_map == 0) {
-        memset(subitems, 0, sizeof(TCHAR*) * count);
-    } else {
+    memset(subitems, 0, sizeof(TCHAR*) * count);
+
+    /* Convert the item->callback_map into allocated subitems. */
+    if(item->callback_map != 0) {
         int i;
         int n = MC_MIN(count, CALLBACK_MAP_SIZE);
 
         for(i = 0; i < n; i++) {
             if(item->callback_map & CALLBACK_MAP_BIT(i))
                 subitems[i] = MC_LPSTR_TEXTCALLBACK;
-            else
-                subitems[i] = NULL;
         }
-
-        if(count > CALLBACK_MAP_SIZE)
-            memset(subitems + CALLBACK_MAP_SIZE, 0, sizeof(TCHAR*) * (count - CALLBACK_MAP_SIZE));
     }
 
     item->subitems = subitems;
