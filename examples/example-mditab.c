@@ -70,38 +70,11 @@ AddNewTab(void)
     SendMessage(hwndMdiTab, MC_MTM_SETCURSEL, (WPARAM) i, 0);
 }
 
-static void
-WndPaint(HWND hWnd, HDC dc)
-{
-    RECT client;
-    GetClientRect(hWnd, &client);
-
-    MoveToEx(dc, client.left + 50, client.top, NULL);
-    LineTo(dc, client.right - 50, client.bottom);
-    MoveToEx(dc, client.right - 50, client.top, NULL);
-    LineTo(dc, client.left + 50, client.bottom);
-}
-
 /* Main window procedure */
 static LRESULT CALLBACK
 WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {
-        case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            BeginPaint(hWnd, &ps);
-            WndPaint(hWnd, ps.hdc);
-            EndPaint(hWnd, &ps);
-            break;
-        }
-
-        case WM_PRINTCLIENT:
-        {
-            WndPaint(hWnd, (HDC) wParam);
-            break;
-        }
-
         case WM_COMMAND:
             /* Handle clicks to the button: create new tab. */
             if(LOWORD(wParam) == IDC_BUTTON_NEW) {
@@ -171,7 +144,6 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nC
     hInst = hInstance;
 
     /* Register main window class */
-    wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
