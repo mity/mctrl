@@ -1652,6 +1652,9 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     html_t* html = (html_t*) GetWindowLongPtr(win, 0);
 
+    /* This shuts up Coverity issue CID989764. */
+    MC_ASSERT(html != NULL  ||  msg == WM_NCCREATE  ||  msg == WM_NCDESTROY);
+
     if(html != NULL  &&  html->ie_win == NULL) {
         /* Let's try to subclass IE window. This is very dirty hack,
          * which allows us to forward keyboard messages properly to
@@ -1796,7 +1799,7 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_NCDESTROY:
-            if(html)
+            if(html != NULL)
                 html_ncdestroy(html);
             return 0;
     }
