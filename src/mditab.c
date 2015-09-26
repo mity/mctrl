@@ -2163,6 +2163,8 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
     if((ss->styleOld & MC_MTS_EXTENDWINDOWFRAME) != (ss->styleNew & MC_MTS_EXTENDWINDOWFRAME)) {
         mditab->dwm_extend_frame = ((mditab->style & MC_MTS_EXTENDWINDOWFRAME)
                                     &&  dwm_is_composition_enabled());
+        if(mditab->dwm_extend_frame)
+            mditab_dwm_extend_frame(mditab);
     }
 
     if(do_update_layout)
