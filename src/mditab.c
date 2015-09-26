@@ -22,6 +22,7 @@
 #include "dsa.h"
 #include "theme.h"
 #include "xdraw.h"
+#include "dwm.h"
 
 #include <math.h>
 
@@ -145,6 +146,7 @@ struct mditab_tag {
     DWORD dirty_scroll      :  1;
     DWORD btn_pressed       :  1;  /* Button ABS(item_hot) is pressed. */
     DWORD scrolling_to_item :  1;  /* If set, scroll_x_desired is item index. */
+    DWORD dwm_extend_frame  :  1;
     int scroll_x;
     int scroll_x_desired;
     int scroll_x_max;
@@ -1214,8 +1216,10 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
 
     xdraw_canvas_begin_paint(ctx->canvas);
 
-    if(erase)
-        xdraw_clear(ctx->canvas, MDITAB_COLOR_BACKGROUND);
+    if(erase) {
+        xdraw_clear(ctx->canvas, (mditab->dwm_extend_frame ?
+                    XDRAW_ARGB(0,0,0,0) : MDITAB_COLOR_BACKGROUND));
+    }
 
     /* Paint auxiliary buttons */
     if(mditab->btn_mask & BTNMASK_LSCROLL)
@@ -1400,6 +1404,19 @@ mditab_printclient(mditab_t* mditab, HDC dc)
     mditab_paint_ctx_init(&ctx, c, mditab->font);
     mditab_paint_with_ctx(mditab, dc, &ctx, &rect, TRUE);
     mditab_paint_ctx_fini(&ctx);
+}
+
+static void
+mditab_dwm_extend_frame(mditab_t* mditab)
+{
+    RECT rect;
+    HWND root_win;
+
+    root_win = GetAncestor(mditab->win, GA_ROOT);
+
+    GetWindowRect(mditab->win, &rect);
+    MapWindowPoints(HWND_DESKTOP, root_win, (POINT*) &rect, 2);
+    dwm_extend_frame(root_win, 0, rect.bottom, 0, 0);
 }
 
 static void
@@ -2143,6 +2160,11 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
         }
     }
 
+    if((ss->styleOld & MC_MTS_EXTENDWINDOWFRAME) != (ss->styleNew & MC_MTS_EXTENDWINDOWFRAME)) {
+        mditab->dwm_extend_frame = ((mditab->style & MC_MTS_EXTENDWINDOWFRAME)
+                                    &&  dwm_is_composition_enabled());
+    }
+
     if(do_update_layout)
         mditab_update_layout(mditab, FALSE);
 
@@ -2182,7 +2204,8 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
 static int
 mditab_create(mditab_t* mditab, CREATESTRUCT* cs)
 {
-    /* noop */
+    mditab->dwm_extend_frame = ((cs->style & MC_MTS_EXTENDWINDOWFRAME)
+                                &&  dwm_is_composition_enabled());
     return 0;
 }
 
@@ -2320,7 +2343,14 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SIZE:
             if(mditab->paint_ctx != NULL)
                 xdraw_canvas_resize(mditab->paint_ctx->canvas, LOWORD(lp), HIWORD(lp));
+            if(mditab->dwm_extend_frame)
+                mditab_dwm_extend_frame(mditab);
             mditab_update_layout(mditab, TRUE);
+            return 0;
+
+        case WM_MOVE:
+            if(mditab->dwm_extend_frame)
+                mditab_dwm_extend_frame(mditab);
             return 0;
 
         case WM_KEYUP:
@@ -2335,6 +2365,15 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 mditab->btn_pressed = FALSE;
                 mditab->item_hot = ITEM_HOT_NONE;
             }
+            return 0;
+
+        case WM_DWMCOMPOSITIONCHANGED:
+            mditab->dwm_extend_frame = ((mditab->style & MC_MTS_EXTENDWINDOWFRAME)
+                                        &&  dwm_is_composition_enabled());
+            if(mditab->dwm_extend_frame)
+                mditab_dwm_extend_frame(mditab);
+            if(!mditab->no_redraw)
+                InvalidateRect(win, NULL, TRUE);
             return 0;
 
         case WM_SETFOCUS:

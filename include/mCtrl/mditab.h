@@ -36,7 +36,8 @@ extern "C" {
  * modern GUI requirements.
  *
  * Instead this control provides user experience similar to the web browsers
- * with tabbing support.
+ * with tabbing support. Actually the control was designed after the successful
+ * user experience provide by modern browsers ("tabbed browsing").
  *
  * The control is very similar to the standard tab control from
  * @c COMCTL32.DLL, both visually and from developer's point of view.
@@ -51,31 +52,60 @@ extern "C" {
  *   many.
  *
  * Styles, messages and notifications the control supports mostly correspond
- * to subset of messages and styles of the standard tab control. The
- * counterparts have generally also the same names (differing only in prefix
- * of the identifiers). If you are familiar with the standard tab control,
- * you should be able to adopt @c MC_WC_MDITAB very quickly.
- * However please note that the messages and styles are not interchangeable:
- * The constants of styles and messages generally differ in their values.
+ * to subset of messages and styles of the standard tab control. They even
+ * usually have the same names (differing only in prefix of the identifiers).
  *
- * Although the purpose of the control is to provide a replacement for the
- * MDI, the programmatic interfaces very differs. If you want to replace MDI
- * with this control in an existing application, expect it will take some
- * time.
+ * So if you are familiar with the standard tab control, you should be able
+ * to adopt @c MC_WC_MDITAB very quickly. However please note that the messages
+ * and styles are not interchangeable: The constants of styles and messages
+ * differ in their values.
+ *
+ *
+ * @section mditab_mdi_migration Migration from MDI
+ *
+ * Although the purpose of the control is to provide a replacement for the MDI,
+ * the programmatic interfaces substantially differs. If you want to migrate
+ * your application from MDI to the MDI tab control, expect it will take some
+ * time and even philosophy how the application should manage the opened
+ * documents:
+ *
  * - In MDI, the child MDI windows can be minimized or restored so they
  *   would not cover whole MDI client window. @c MC_WC_MDITAB control does
  *   not provide any replacement for this (anyway only very few users rarely
  *   used this feature of MDI). If your application needs to allow access
- *   to multiple documents simultaneously, you need to develop in other way
- *   with the @c MC_WC_MDITAB (e.g. to allow having multiple top level windows,
- *   each with the @c MC_WC_MDITAB to manage the documents open in each
- *   particular window).
+ *   to multiple documents simultaneously, you need to provide that in other
+ *   way with the @c MC_WC_MDITAB (e.g. to allow having multiple top level
+ *   windows, each with the @c MC_WC_MDITAB to manage the documents open in
+ *   each particular window).
+ *
  * - MDI absolutely expects that the application has its sub-menu Window, with
  *   all the commands like Tile horizontally or vertically, or too select
  *   another MDI document. @c MC_WC_MDITAB control does not expect that
  *   (still you are free to implement any menu you like ;-)
  *
+ *
+ * @section mditab_wdm MDI tab control and Desktop Window Manager
+ *
+ * Since Windows Vista, it is possible to extend window frame into window
+ * client and in specific cases it can provide much nicer visual effect.
+ *
+ * @image html mditab.png
+ *
+ * To use with the MDI tab control, use the style @ref MC_MTS_EXTENDWINDOWFRAME.
+ * When the control has this style (and DWM is available and DWM composition
+ * is enabled as of the function @c DwmIsCompositionEnabled()), the control
+ * extends the top level window frame so that the upper border of it reaches
+ * as far as the bottom of the MDI tab control.
+ *
+ * To keep consistency with the system settings though, application is also
+ * responsible to forward the message @c WM_DWMCOMPOSITIONCHANGED to the
+ * MDI tab control from the window procedure of the top level window.
+ *
+ *
+ * @section mditab_std_msgs Standard Messages
+ *
  * These standard messages are handled by the control:
+ * - @c WM_DWMCOMPOSITIONCHANGED (see @ref mditab_wdm)
  * - @c WM_GETFONT
  * - @c WM_SETFONT
  * - @c WM_SETREDRAW
@@ -169,6 +199,17 @@ void MCTRL_API mcMditab_Terminate(void);
  * or removal of items, are animated when this style is set.
  */
 #define MC_MTS_ANIMATE               0x0200
+
+/**
+ * @brief Extend top window frame down to the bottom of the tab control.
+ *
+ * @details Note this style is ignored on older Windows or when DWM composition
+ * is disabled (when @c DwmIsCompositionEnabled() returns @c FALSE).
+ *
+ * @note When the style is used, the Application should forward the message
+ * @c WM_DWMCOMPOSITIONCHANGED from top level window procedure to the control.
+ */
+#define MC_MTS_EXTENDWINDOWFRAME     0x0400
 
 /*@}*/
 

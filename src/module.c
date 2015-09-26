@@ -146,6 +146,7 @@ module_fini_modules(module_t** modules, int n)
 DEFINE_MODULE(mc);
 DEFINE_MODULE(button);
 DEFINE_MODULE(chart);
+DEFINE_MODULE(dwm);
 DEFINE_MODULE(expand);
 DEFINE_MODULE(grid);
 DEFINE_MODULE(html);
@@ -177,7 +178,7 @@ DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 static module_t* mod_imgview_deps[] = { &mod_mc, &mod_xdraw, &mod_imgview };
 DEFINE_PUBLIC_IFACE(imgview, ImgView, mod_imgview_deps)
 
-static module_t* mod_mditab_deps[] = { &mod_mc, &mod_xdraw, &mod_mditab };
+static module_t* mod_mditab_deps[] = { &mod_mc, &mod_dwm, &mod_xdraw, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
 static module_t* mod_menubar_deps[] = { &mod_mc, &mod_theme, &mod_menubar };
