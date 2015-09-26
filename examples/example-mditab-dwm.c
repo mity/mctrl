@@ -169,13 +169,13 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nC
         BOOL bEnabled;
         funcDwmIsCompositionEnabled(&bEnabled);
         if(!bEnabled) {
-            MessageBox(NULL, _T("DWM composition is disabled. The style "
-                    "MC_MTS_EXTENDWINDOWFRAME has no effect."), WINDOW_TITLE,
+            MessageBox(NULL, _T("DWM composition is disabled. The style ")
+                    _T("MC_MTS_EXTENDWINDOWFRAME has no effect."), WINDOW_TITLE,
                     MB_OK | MB_ICONINFORMATION);
         }
     } else {
-        MessageBox(NULL, _T("DWM composition is not available. The style "
-                "MC_MTS_EXTENDWINDOWFRAME has no effect."), WINDOW_TITLE,
+        MessageBox(NULL, _T("DWM composition is not available. The style ")
+                _T("MC_MTS_EXTENDWINDOWFRAME has no effect."), WINDOW_TITLE,
                 MB_OK | MB_ICONINFORMATION);
     }
 
