@@ -249,12 +249,8 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
                 }
             }
 
-            w += xdraw_measure_string_width(canvas, font, text);
+            w += ceilf(xdraw_measure_string_width(canvas, font, text));
             w += MDITAB_ITEM_PADDING;
-
-            /* FIXME: Not sure why this is needed so that the text fits in.
-             *        Would be better to fix in xdraw.c */
-            w += 1.0f;
 
             if(mditab->paint_ctx == NULL) {
                 xdraw_font_destroy(font);
