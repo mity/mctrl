@@ -211,6 +211,17 @@ void MCTRL_API mcMditab_Terminate(void);
  */
 #define MC_MTS_EXTENDWINDOWFRAME     0x0400
 
+/**
+ * @brief Disables a tooltip window.
+ *
+ * When having a tooltip window associated, the control uses to show additional
+ * information about the pointed item. By default the control creates its own
+ * control when this style is not set.
+ *
+ * @sa MC_CHM_SETTOOLTIPS
+ */
+#define MC_MTS_NOTOOLTIPS            0x0800
+
 /*@}*/
 
 
@@ -605,6 +616,25 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_MTM_ENSUREVISIBLE      (MC_MTM_FIRST + 19)
+
+/**
+ * @brief Associate a tooltip window with the chart control.
+ * @param[in] wParam (@c HWND) Handle of the tooltip window.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of previous tooltip window or @c NULL if no tooltip
+ * was associated with the control.
+ * @sa MC_CHS_NOTOOLTIPS
+ */
+#define MC_MTM_SETTOOLTIPS        (MC_MTM_FIRST + 20)
+
+/**
+ * @brief Get tooltip associated with the control
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of the tooltip window or @c NULL if no tooltip
+ * is associated with the control.
+ */
+#define MC_MTM_GETTOOLTIPS        (MC_MTM_FIRST + 21)
 
 /*@}*/
 

@@ -17,19 +17,19 @@
  */
 
 #include "mditab.h"
-#include "generic.h"
 #include "anim.h"
 #include "dsa.h"
-#include "theme.h"
-#include "xdraw.h"
 #include "dwm.h"
+#include "generic.h"
+#include "theme.h"
+#include "tooltip.h"
+#include "xdraw.h"
 
 #include <math.h>
 
 
 /* Uncomment this to have more verbose traces from this module. */
 /*#define MDITAB_DEBUG     1*/
-#define MDITAB_DEBUG     1
 
 #ifdef MDITAB_DEBUG
     #define MDITAB_TRACE       MC_TRACE
@@ -133,6 +133,7 @@ typedef struct mditab_tag mditab_t;
 struct mditab_tag {
     HWND win;
     HWND notify_win;
+    HWND tooltip_win;
     HIMAGELIST img_list;
     HFONT font;
     mditab_paint_t* paint_ctx;
@@ -164,6 +165,7 @@ struct mditab_item_layout_tag {
     xdraw_rect_t icon_rect;
     xdraw_rect_t text_rect;
 };
+
 
 
 static inline int
@@ -351,6 +353,9 @@ mditab_setup_item_layout(mditab_t* mditab,mditab_item_t* item, int x0, int y0,
         layout->text_rect.y0 = (y0 + y1 - size.cy) / 2;
         layout->text_rect.x1 = x1 - MDITAB_ITEM_PADDING;
         layout->text_rect.y1 = layout->text_rect.y0 + size.cy;
+
+        if(layout->text_rect.x0 >= layout->text_rect.x1)
+            layout->text_rect.x1 = layout->text_rect.x0;
     }
 }
 
@@ -531,6 +536,9 @@ mditab_invalidate_button(mditab_t* mditab, int btn_id)
     InvalidateRect(mditab->win, &rect, TRUE);
 }
 
+/* Forward declaration. */
+static void mditab_set_tooltip_pos(mditab_t* mditab);
+
 static void
 mditab_set_hot(mditab_t* mditab, SHORT hot, BOOL is_pressed)
 {
@@ -552,6 +560,11 @@ mditab_set_hot(mditab_t* mditab, SHORT hot, BOOL is_pressed)
             mditab_invalidate_item(mditab, mditab->item_hot);
         else
             mditab_invalidate_button(mditab, mditab_hot_button(mditab));
+    }
+
+    if(mditab->tooltip_win != NULL) {
+        tooltip_update_text(mditab->tooltip_win, mditab->win, LPSTR_TEXTCALLBACK);
+        mditab_set_tooltip_pos(mditab);
     }
 }
 
@@ -2163,11 +2176,61 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
             mditab_dwm_extend_frame(mditab);
     }
 
+    if((ss->styleOld & MC_MTS_NOTOOLTIPS) != (ss->styleNew & MC_MTS_NOTOOLTIPS)) {
+        if(!(ss->styleNew & MC_MTS_NOTOOLTIPS)) {
+            mditab->tooltip_win = tooltip_create(mditab->win, mditab->notify_win, FALSE);
+        } else {
+            tooltip_destroy(mditab->tooltip_win);
+            mditab->tooltip_win = NULL;
+        }
+    }
+
     if(do_update_layout)
         mditab_update_layout(mditab, FALSE);
 
     if(!mditab->no_redraw)
         InvalidateRect(mditab->win, NULL, TRUE);
+}
+
+static void
+mditab_set_tooltip_pos(mditab_t* mditab)
+{
+    RECT item_rect;
+    SIZE tip_size;
+
+    if(mditab->item_hot < 0)
+        return;
+
+    mditab_get_item_rect(mditab, mditab->item_hot, &item_rect, TRUE);
+    MapWindowPoints(mditab->win, HWND_DESKTOP, (POINT*) &item_rect, 2);
+    tooltip_size(mditab->tooltip_win, mditab->win, &tip_size);
+    SetWindowPos(mditab->tooltip_win, NULL,
+                 (item_rect.left + item_rect.right - tip_size.cx) / 2,
+                 item_rect.bottom + 10, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    return TRUE;
+}
+
+static LRESULT
+mditab_notify_from_tooltip(mditab_t* mditab, NMHDR* hdr)
+{
+    switch(hdr->code) {
+        case TTN_SHOW:
+            mditab_set_tooltip_pos(mditab);
+            return TRUE;
+
+        case TTN_GETDISPINFO:
+        {
+            NMTTDISPINFO* dispinfo = (NMTTDISPINFO*) hdr;
+
+            if(mditab->item_hot >= 0)
+                dispinfo->lpszText = mditab_item(mditab, mditab->item_hot)->text;
+            else
+                dispinfo->lpszText = NULL;
+            break;
+        }
+    }
+
+    return 0;
 }
 
 static mditab_t*
@@ -2204,13 +2267,22 @@ mditab_create(mditab_t* mditab, CREATESTRUCT* cs)
 {
     mditab->dwm_extend_frame = ((cs->style & MC_MTS_EXTENDWINDOWFRAME)
                                 &&  dwm_is_composition_enabled());
+
+    if(!(mditab->style & MC_MTS_NOTOOLTIPS))
+        mditab->tooltip_win = tooltip_create(mditab->win, mditab->notify_win, FALSE);
+
     return 0;
 }
 
 static void
 mditab_destroy(mditab_t* mditab)
 {
-    /* noop */
+    if(mditab->tooltip_win != NULL) {
+        if(!(mditab->style & MC_MTS_NOTOOLTIPS))
+            tooltip_destroy(mditab->tooltip_win);
+        else
+            tooltip_uninstall(mditab->tooltip_win, mditab->win);
+    }
 }
 
 static void
@@ -2229,6 +2301,9 @@ static LRESULT CALLBACK
 mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     mditab_t* mditab = (mditab_t*) GetWindowLongPtr(win, 0);
+
+    if(mditab != NULL  &&  mditab->tooltip_win != NULL)
+        tooltip_forward_msg(mditab->tooltip_win, win, msg, wp, lp);
 
     switch(msg) {
         case WM_PAINT:
@@ -2310,6 +2385,12 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_MTM_ENSUREVISIBLE:
             return mditab_ensure_visible(mditab, wp);
 
+        case MC_MTM_SETTOOLTIPS:
+            return generic_settooltips(win, &mditab->tooltip_win, (HWND) wp, FALSE);
+
+        case MC_MTM_GETTOOLTIPS:
+            return (LRESULT) mditab->tooltip_win;
+
         case WM_LBUTTONDOWN:
             mditab_left_button_down(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
@@ -2354,6 +2435,11 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_KEYUP:
             if(mditab_key_up(mditab, (int)wp, (DWORD)lp))
                 return 0;
+            break;
+
+        case WM_NOTIFY:
+            if(((NMHDR*) lp)->hwndFrom == mditab->tooltip_win)
+                return mditab_notify_from_tooltip(mditab, (NMHDR*) lp);
             break;
 
         case WM_CAPTURECHANGED:
