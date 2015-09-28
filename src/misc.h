@@ -494,21 +494,4 @@ mc_track_mouse(HWND win, DWORD flags)
 }
 
 
-/****************
- *** Tooltips ***
- ****************/
-
-/* Creates a tooltip window that is optionally a tracked tooltip */
-HWND mc_tooltip_create(HWND parent, HWND notify, BOOL track);
-
-/* Activates a tracking tooltip */
-void mc_tooltip_track_activate(HWND parent, HWND tooltip, BOOL show);
-
-/* Sets the position of our tracking tooltip */
-void mc_tooltip_set_track_pos(HWND parent, HWND tooltip, int x, int y);
-
-/* Update the text of a tooltip */
-void mc_tooltip_set_text(HWND parent, HWND tooltip, const TCHAR* str);
-
-
 #endif  /* MC_MISC_H  */

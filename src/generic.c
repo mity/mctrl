@@ -17,6 +17,7 @@
  */
 
 #include "generic.h"
+#include "tooltip.h"
 
 
 LRESULT
@@ -73,4 +74,18 @@ generic_erasebkgnd(HWND win, HTHEME theme, HDC dc)
     FillRect(dc, &rect, brush);
     DeleteObject(brush);
     return TRUE;
+}
+
+LRESULT
+generic_settooltips(HWND win, HWND* tooltip_storage, HWND tooltip_win, BOOL tracking)
+{
+    HWND old_tooltip = *tooltip_storage;
+
+    if(old_tooltip != NULL)
+        tooltip_uninstall(old_tooltip, win);
+    if(tooltip_win != NULL)
+        tooltip_install(tooltip_win, win, tracking);
+
+    *tooltip_storage = tooltip_win;
+    return (LRESULT) old_tooltip;
 }

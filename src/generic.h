@@ -58,5 +58,7 @@ generic_printclient(HWND win, HDC dc,
 LRESULT generic_ncpaint(HWND win, HTHEME theme, HRGN orig_clip);
 LRESULT generic_erasebkgnd(HWND win, HTHEME theme, HDC dc);
 
+LRESULT generic_settooltips(HWND win, HWND* tooltip_storage, HWND tooltip_win, BOOL tracking);
+
 
 #endif  /* MC_GENERIC_H */

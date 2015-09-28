@@ -21,6 +21,7 @@
 #include "dsa.h"
 #include "color.h"
 #include "xdraw.h"
+#include "tooltip.h"
 
 #include <math.h>
 
@@ -306,43 +307,6 @@ chart_draw_vert_string(xdraw_canvas_t* canvas, const xdraw_font_t* font,
     xdraw_draw_string(canvas, font, &r, str, len, brush,
                       XDRAW_STRING_NOWRAP | XDRAW_STRING_CENTER);
     xdraw_canvas_transform_reset(canvas);
-}
-
-
-/***************
- *** Tooltip ***
- ***************/
-
-static void
-tooltip_create(chart_t* chart)
-{
-    chart->tooltip_win = mc_tooltip_create(chart->win, chart->notify_win, TRUE);
-}
-
-static void
-tooltip_activate(chart_t* chart, BOOL show)
-{
-    mc_tooltip_track_activate(chart->win, chart->tooltip_win, show);
-    chart->tooltip_active = show;
-}
-
-static void
-tooltip_set_pos(chart_t* chart, int x, int y)
-{
-    mc_tooltip_set_track_pos(chart->win, chart->tooltip_win, x, y);
-}
-
-static void
-tooltip_set_text(chart_t* chart, const TCHAR* str)
-{
-    mc_tooltip_set_text(chart->win, chart->tooltip_win, str);
-}
-
-static void
-tooltip_destroy(chart_t* chart)
-{
-    DestroyWindow(chart->tooltip_win);
-    chart->tooltip_win = NULL;
 }
 
 
@@ -2659,51 +2623,50 @@ chart_update_tooltip(chart_t* chart)
     if(chart->tooltip_win == NULL)
         return;
 
-    if(chart->hot_set_ix < 0) {
-        if(chart->tooltip_active)
-            tooltip_activate(chart, FALSE);
-        return;
-    }
-
     buffer[0] = _T('\0');
 
-    switch(chart->style & MC_CHS_TYPEMASK) {
-        case MC_CHS_PIE:
-            pie_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
-            break;
+    if(chart->hot_set_ix >= 0) {
+        switch(chart->style & MC_CHS_TYPEMASK) {
+            case MC_CHS_PIE:
+                pie_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                break;
 
-        case MC_CHS_SCATTER:
-            scatter_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
-            break;
+            case MC_CHS_SCATTER:
+                scatter_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                break;
 
-        case MC_CHS_LINE:
-        case MC_CHS_STACKEDLINE:
-        case MC_CHS_AREA:
-        case MC_CHS_STACKEDAREA:
-            line_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
-            break;
+            case MC_CHS_LINE:
+            case MC_CHS_STACKEDLINE:
+            case MC_CHS_AREA:
+            case MC_CHS_STACKEDAREA:
+                line_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                break;
 
-        case MC_CHS_COLUMN:
-        case MC_CHS_STACKEDCOLUMN:
-            column_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
-            break;
+            case MC_CHS_COLUMN:
+            case MC_CHS_STACKEDCOLUMN:
+                column_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                break;
 
-        case MC_CHS_BAR:
-        case MC_CHS_STACKEDBAR:
-            bar_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
-            break;
+            case MC_CHS_BAR:
+            case MC_CHS_STACKEDBAR:
+                bar_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                break;
+        }
     }
 
-    if(buffer[0] == _T('\0')) {
-        if(chart->tooltip_active)
-            tooltip_activate(chart, FALSE);
-        return;
+    if(buffer[0] != _T('\0')) {
+        tooltip_update_text(chart->tooltip_win, chart->win, buffer);
+
+        if(!chart->tooltip_active) {
+            tooltip_show_tracking(chart->tooltip_win, chart->win, TRUE);
+            chart->tooltip_active = TRUE;
+        }
+    } else {
+        if(chart->tooltip_active) {
+            tooltip_show_tracking(chart->tooltip_win, chart->win, FALSE);
+            chart->tooltip_active = FALSE;
+        }
     }
-
-    tooltip_set_text(chart, buffer);
-
-    if(!chart->tooltip_active)
-        tooltip_activate(chart, TRUE);
 }
 
 static void
@@ -2730,8 +2693,13 @@ chart_mouse_move(chart_t* chart, int x, int y)
             InvalidateRect(chart->win, NULL, TRUE);
     }
 
-    if(chart->tooltip_win != NULL  &&  chart->tooltip_active)
-        tooltip_set_pos(chart, x, y);
+    if(chart->tooltip_win != NULL) {//  &&  chart->tooltip_active) {
+        SIZE tip_size;
+
+        tooltip_size(chart->tooltip_win, chart->win, &tip_size);
+        tooltip_move_tracking(chart->tooltip_win, chart->win,
+                    x - tip_size.cx / 2, y - tip_size.cy - 5);
+    }
 }
 
 static void
@@ -3158,12 +3126,14 @@ static void
 chart_style_changed(chart_t* chart, STYLESTRUCT* ss)
 {
     if((chart->style & MC_CHS_NOTOOLTIPS) != (ss->styleNew & MC_CHS_NOTOOLTIPS)) {
-        if(chart->tooltip_active)
-            tooltip_activate(chart, FALSE);
-        if(!(ss->styleNew & MC_CHS_NOTOOLTIPS))
-            tooltip_create(chart);
-        else
-            tooltip_destroy(chart);
+
+        if(!(ss->styleNew & MC_CHS_NOTOOLTIPS)) {
+            chart->tooltip_win = tooltip_create(chart->win, chart->notify_win, TRUE);
+        } else {
+            tooltip_destroy(chart->tooltip_win);
+            chart->tooltip_win = NULL;
+            chart->tooltip_active = FALSE;
+        }
     }
 
     if((chart->style & MC_CHS_DOUBLEBUFFER) != (ss->styleNew & MC_CHS_DOUBLEBUFFER))
@@ -3206,7 +3176,7 @@ chart_create(chart_t* chart)
     chart_setup_hot(chart);
 
     if(!(chart->style & MC_CHS_NOTOOLTIPS))
-        tooltip_create(chart);
+        chart->tooltip_win = tooltip_create(chart->win, chart->notify_win, TRUE);
 
     return 0;
 }
@@ -3215,10 +3185,10 @@ static void
 chart_destroy(chart_t* chart)
 {
     if(chart->tooltip_win != NULL) {
-        if(chart->tooltip_active)
-            tooltip_activate(chart, FALSE);
         if(!(chart->style & MC_CHS_NOTOOLTIPS))
-            tooltip_destroy(chart);
+            tooltip_destroy(chart->tooltip_win);
+        else
+            tooltip_uninstall(chart->tooltip_win, chart->win);
     }
 }
 
@@ -3319,11 +3289,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return chart_set_axis_offset(chart, wp, lp);
 
         case MC_CHM_SETTOOLTIPS:
-        {
-            HWND old_tooltip = chart->tooltip_win;
-            chart->tooltip_win = (HWND) wp;
-            return (LRESULT) old_tooltip;
-        }
+            return generic_settooltips(win, &chart->tooltip_win, (HWND) wp, TRUE);
 
         case MC_CHM_GETTOOLTIPS:
             return (LRESULT) chart->tooltip_win;
