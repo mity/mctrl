@@ -87,6 +87,7 @@ EXPORTS
     mcIsThemeBackgroundPartiallyTransparent
     mcIsThemeDialogTextureEnabled
     mcIsThemePartDefined
+    mcMditab_DefWindowProc
     mcMditab_Initialize
     mcMditab_Terminate
     mcMenubar_HandleRebarChevronPushed

@@ -91,15 +91,15 @@ extern "C" {
  *
  * @image html mditab.png
  *
- * To use with the MDI tab control, use the style @ref MC_MTS_EXTENDWINDOWFRAME.
- * When the control has this style (and DWM is available and DWM composition
- * is enabled as of the function @c DwmIsCompositionEnabled()), the control
- * extends the top level window frame so that the upper border of it reaches
- * as far as the bottom of the MDI tab control.
+ * To take use of this feature with the MDI tab control, use the style
+ * @ref MC_MTS_EXTENDWINDOWFRAME. When the control has this style (and
+ * DWM is available and DWM composition is enabled as of the function
+ * @c DwmIsCompositionEnabled()), the control extends the top level window
+ * frame so that the upper border of it reaches as far as the bottom of the
+ * MDI tab control.
  *
- * To keep consistency with the system settings though, application is also
- * responsible to forward the message @c WM_DWMCOMPOSITIONCHANGED to the
- * MDI tab control from the window procedure of the top level window.
+ * However note that when using the style, the application should also call
+ * function @ref mcMditab_DefWindowProc() from its main window procedure.
  *
  *
  * @section mditab_std_msgs Standard Messages
@@ -133,6 +133,56 @@ BOOL MCTRL_API mcMditab_Initialize(void);
  * Unregisters window class of the control.
  */
 void MCTRL_API mcMditab_Terminate(void);
+
+/*@}*/
+
+
+/**
+ * @name Other Functions
+ */
+/*@{*/
+
+/**
+ * Application should call this message from its main window procedure when
+ * it uses MDI tab control with the style @ref MC_MTS_EXTENDWINDOWFRAME.
+ *
+ * @param hwndMain Handle of the main window hosting the MDI tab control.
+ * @param hwndMditab Handle of the MDI tab control.
+ * @param uMsg Message code.
+ * @param wParam Message @c WPARAM parameter.
+ * @param lParam Message @c LPARAM parameter.
+ * @param[out] plResult Result of the message processing the application should
+ * return from the window procedure if the functions returns @c TRUE.
+ * @returns @c TRUE if the function processed the message, @c FALSE if it did
+ * not and the application should handle it on its own (or call @c DefWindowProc()).
+ *
+ * Thus the typical window procedure using this function looks like this
+ * snippet of code:
+ *
+ * @code
+ * LRESULT AppWndProc(HWND hwndMain, UINT uMsg, WPARAM wParam, LPARAM lParam)
+ * {
+ *     LRESULT lResult;
+ *
+ *     // Give mcMditab_DefWindowProc() the first chance to handle the message
+ *     // and if it handles it, return the result of its processing.
+ *     if(mcMditab_DefWindowProc(hwndMain, hwndMditab, uMsg, wParam, lParam, &lResult))
+ *         return lResult;
+ *
+ *     switch(uMsg) {
+ *         // Normal message handling as in ordinary window procedure.
+ *         ...
+ *
+ *         // Pass unhandled messages to DefWindowProc().
+ *         default:
+ *             return DefWindowProc(hwndMain, uMsg, wParam, lParam);
+ *     }
+ *
+ * }
+ * @endcode
+ */
+BOOL MCTRL_API mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
+                WPARAM wParam, LPARAM lParam, LRESULT* plResult);
 
 /*@}*/
 

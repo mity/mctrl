@@ -361,7 +361,7 @@ mditab_setup_item_layout(mditab_t* mditab,mditab_item_t* item, int x0, int y0,
 
 static BOOL
 mditab_hit_test_item(mditab_t* mditab, MC_MTHITTESTINFO* hti,
-                     const RECT* client, WORD index, BOOL want_hti_flags)
+                     const RECT* client, WORD index, BOOL want_hti_item_flags)
 {
     int x = hti->pt.x;
     int y = hti->pt.y;
@@ -415,7 +415,7 @@ mditab_hit_test_item(mditab_t* mditab, MC_MTHITTESTINFO* hti,
         }
     }
 
-    if(want_hti_flags) {
+    if(want_hti_item_flags) {
         mditab_item_layout_t layout;
 
         mditab_setup_item_layout(mditab, item, x0, y0, x1, y1, &layout);
@@ -432,7 +432,7 @@ mditab_hit_test_item(mditab_t* mditab, MC_MTHITTESTINFO* hti,
 }
 
 static int
-mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_flags)
+mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_item_flags)
 {
     static const UINT btn_map[] = {
         MC_MTHT_ONLEFTSCROLLBUTTON, MC_MTHT_ONRIGHTSCROLLBUTTON,
@@ -475,13 +475,13 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_flags)
     if(area_x0 <= hti->pt.x  &&  hti->pt.x < area_x1) {
         if(mditab->item_selected >= 0) {
             i = mditab->item_selected;
-            if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_flags))
+            if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_item_flags))
                 return i;
         }
         for(i = mditab_count(mditab) - 1; i >= 0; i--) {
             if(i == mditab->item_selected)
                 continue;
-            if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_flags))
+            if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_item_flags))
                 return i;
         }
     }
@@ -501,6 +501,24 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_flags)
 
     hti->flags = MC_MTHT_NOWHERE;
     return -1;
+}
+
+static LRESULT
+mditab_nchittest(mditab_t* mditab, int x, int y)
+{
+    if(mditab->dwm_extend_frame) {
+        MC_MTHITTESTINFO hti;
+
+        hti.pt.x = x;
+        hti.pt.y = y;
+        MapWindowPoints(HWND_DESKTOP, mditab->win, &hti.pt, 1);
+        if(mditab_hit_test(mditab, &hti, FALSE) >= 0)
+            return HTCLIENT;
+        if(hti.flags & (MC_MTHT_NOWHERE | MC_MTHT_ABOVE | MC_MTHT_BELOW | MC_MTHT_TORIGHT | MC_MTHT_TOLEFT))
+            return HTTRANSPARENT;
+    }
+
+    return HTCLIENT;
 }
 
 static void
@@ -1418,11 +1436,10 @@ mditab_printclient(mditab_t* mditab, HDC dc)
 static void
 mditab_dwm_extend_frame(mditab_t* mditab)
 {
-    RECT rect;
     HWND root_win;
+    RECT rect;
 
     root_win = GetAncestor(mditab->win, GA_ROOT);
-
     GetWindowRect(mditab->win, &rect);
     MapWindowPoints(HWND_DESKTOP, root_win, (POINT*) &rect, 2);
     dwm_extend_frame(root_win, 0, rect.bottom, 0, 0);
@@ -2391,6 +2408,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_MTM_GETTOOLTIPS:
             return (LRESULT) mditab->tooltip_win;
 
+        case WM_NCHITTEST:
+            return mditab_nchittest(mditab, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+
         case WM_LBUTTONDOWN:
             mditab_left_button_down(mditab, wp, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             return 0;
@@ -2539,6 +2559,58 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 }
 
 
+BOOL MCTRL_API
+mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
+                       WPARAM wParam, LPARAM lParam, LRESULT* plResult)
+{
+    if(hwndMditab == NULL) {
+        /* It is legally possible, the window did not yet create the MDI tab
+         * control. */
+        return FALSE;
+    }
+
+    /* Propagate WM_DWMCOMPOSITIONCHANGED to the control so it can decide
+     * whether it wants to extend the frame. */
+    if(uMsg == WM_DWMCOMPOSITIONCHANGED) {
+        MC_SEND(hwndMditab, uMsg, wParam, lParam);
+        return TRUE;
+    }
+
+    /* Handle the standard non-client stuff. */
+    if(dwm_def_window_proc(hwndMain, uMsg, wParam, lParam, plResult))
+        return TRUE;
+
+    /* Handle the area of the expanded frame into the client area. */
+    if(uMsg == WM_NCHITTEST) {
+        mditab_t* mditab;
+        RECT rect;
+        int y = GET_Y_LPARAM(lParam);
+
+        /* Check whether the frame is expanded. */
+        mditab = (mditab_t*) GetWindowLongPtr(hwndMditab, 0);
+        if(!mditab->dwm_extend_frame)
+            return FALSE;
+
+        GetWindowRect(hwndMditab, &rect);
+
+        /* The position is below the MDI tab control and we do not care
+         * about it. */
+        if(y >= rect.bottom)
+            return FALSE;
+
+        /* The position is within MDI tab control. If it propagated here
+         * from mditab_proc(WM_NCHITTEST) through HTTRANSPARENT, we tell the
+         * system to treat it as window caption. */
+        if(y >= rect.top) {
+            *plResult = HTCAPTION;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+
 int
 mditab_init_module(void)
 {
@@ -2562,5 +2634,4 @@ mditab_fini_module(void)
 {
     UnregisterClass(mditab_wc, NULL);
 }
-
 

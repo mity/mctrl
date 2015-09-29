@@ -25,7 +25,9 @@
 BOOL dwm_is_composition_enabled(void);
 
 void dwm_extend_frame(HWND win, int margin_left, int margin_top,
-                      int margin_right, int margin_bottom);
+                                int margin_right, int margin_bottom);
+
+BOOL dwm_def_window_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp, LRESULT* res);
 
 
 #endif  /* MC_DWM_H */

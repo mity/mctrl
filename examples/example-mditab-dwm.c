@@ -76,6 +76,12 @@ AddNewTab(void)
 static LRESULT CALLBACK
 WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    LRESULT lResult;
+
+    /* Let mCtrl to process all the stuff on the extended frame. */
+    if(mcMditab_DefWindowProc(hWnd, hwndMdiTab, uMsg, wParam, lParam, &lResult))
+        return lResult;
+
     switch(uMsg) {
         case WM_COMMAND:
             /* Handle clicks to the button: create new tab. */
@@ -101,12 +107,6 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             lpMmi->ptMinTrackSize.y = MINIMAL_HEIGHT;
             return 0;
         }
-
-        case WM_DWMCOMPOSITIONCHANGED:
-            /* With the style MC_MTS_EXTENDWINDOWFRAME, we have to forward the
-             * message WM_DWMCOMPOSITIONCHANGED to the MDI tab control. */
-            SendMessage(hwndMdiTab, WM_DWMCOMPOSITIONCHANGED, wParam, lParam);
-            break;
 
         case WM_CREATE:
             /* Create mditab child window  */

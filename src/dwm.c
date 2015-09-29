@@ -25,6 +25,7 @@ static HMODULE dwm_dll;
 
 static HRESULT (WINAPI* dwm_DwmIsCompositionEnabled)(BOOL*);
 static HRESULT (WINAPI* dwm_DwmExtendFrameIntoClientArea)(HWND, const MARGINS*);
+static BOOL    (WINAPI* dwm_DwmDefWindowProc)(HWND, UINT, WPARAM, LPARAM, LRESULT*);
 
 
 BOOL
@@ -55,6 +56,15 @@ dwm_extend_frame(HWND win, int margin_left, int margin_top,
     dwm_DwmExtendFrameIntoClientArea(win, &margins);
 }
 
+BOOL
+dwm_def_window_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp, LRESULT* res)
+{
+    if(dwm_DwmDefWindowProc == NULL)
+        return FALSE;
+
+    return dwm_DwmDefWindowProc(win, msg, wp, lp, res);
+}
+
 
 int
 dwm_init_module(void)
@@ -65,10 +75,22 @@ dwm_init_module(void)
 
     dwm_DwmIsCompositionEnabled = (HRESULT (WINAPI*)(BOOL*))
                 GetProcAddress(dwm_dll, "DwmIsCompositionEnabled");
+    if(MC_ERR(dwm_DwmIsCompositionEnabled == NULL)) {
+        MC_TRACE_ERR("dwm_init_module: GetProcAddress(DwmIsCompositionEnabled) failed.");
+        goto no_dwm;
+    }
     dwm_DwmExtendFrameIntoClientArea = (HRESULT (WINAPI*)(HWND, const MARGINS*))
                 GetProcAddress(dwm_dll, "DwmExtendFrameIntoClientArea");
-    if(dwm_DwmIsCompositionEnabled == NULL  ||  dwm_DwmExtendFrameIntoClientArea == NULL)
+    if(MC_ERR(dwm_DwmExtendFrameIntoClientArea == NULL)) {
+        MC_TRACE_ERR("dwm_init_module: GetProcAddress(DwmExtendFrameIntoClientArea) failed.");
         goto no_dwm;
+    }
+    dwm_DwmDefWindowProc = (BOOL (WINAPI*)(HWND, UINT, WPARAM, LPARAM, LRESULT*))
+                GetProcAddress(dwm_dll, "DwmDefWindowProc");
+    if(MC_ERR(dwm_DwmDefWindowProc == NULL)) {
+        MC_TRACE_ERR("dwm_init_module: GetProcAddress(DwmDefWindowProc) failed.");
+        goto no_dwm;
+    }
 
     /* Success. */
     return 0;
@@ -76,6 +98,8 @@ dwm_init_module(void)
     /* "Error" path. */
 no_dwm:
     dwm_DwmIsCompositionEnabled = NULL;
+    dwm_DwmExtendFrameIntoClientArea = NULL;
+    dwm_DwmDefWindowProc = NULL;
     FreeLibrary(dwm_dll);
     dwm_dll = NULL;
 done:
