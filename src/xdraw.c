@@ -111,7 +111,7 @@ d2d_init(void)
     hr = fn_D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
                 &IID_ID2D1Factory, &factory_options, (void**) &d2d_factory);
     if(MC_ERR(hr != S_OK)) {
-        MC_TRACE("d2d_init: D2D1CreateFactory() failed. [0x%lx]", hr);
+        MC_TRACE_HR("d2d_init: D2D1CreateFactory() failed.");
         goto err_d2d_CreateFactory;
     }
 
@@ -132,7 +132,7 @@ d2d_init(void)
     hr = fn_DWriteCreateFactory(dummy_DWRITE_FACTORY_TYPE_SHARED,
                 &dummy_IID_IDWriteFactory, (void**) &dw_factory);
     if(MC_ERR(hr != S_OK)) {
-        MC_TRACE("d2d_init: DWriteCreateFactory() failed. [0x%lx]", hr);
+        MC_TRACE_HR("d2d_init: DWriteCreateFactory() failed.");
         goto err_dw_CreateFactory;
     }
 
@@ -261,34 +261,30 @@ d2d_create_wic_source(const WCHAR* path, IStream* stream)
         hr = IWICImagingFactory_CreateDecoderFromFilename(wic_factory, path,
                 NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wic_decoder);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("d2d_create_wic_source: "
-                     "IWICImagingFactory::CreateDecoderFromFilename() failed. "
-                     "[0x%lx]", hr);
+            MC_TRACE_HR("d2d_create_wic_source: "
+                        "IWICImagingFactory::CreateDecoderFromFilename() failed.");
             goto err_CreateDecoder;
         }
     } else {
         hr = IWICImagingFactory_CreateDecoderFromStream(wic_factory, stream,
                 NULL, WICDecodeMetadataCacheOnLoad, &wic_decoder);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("d2d_create_wic_source: "
-                     "IWICImagingFactory::CreateDecoderFromStream() failed. "
-                     "[0x%lx]", hr);
+            MC_TRACE_HR("d2d_create_wic_source: "
+                        "IWICImagingFactory::CreateDecoderFromStream() failed.");
             goto err_CreateDecoder;
         }
     }
 
     hr = IWICBitmapDecoder_GetFrame(wic_decoder, 0, &wic_source);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_wic_source: "
-                 "IWICBitmapDecoder::GetFrame() failed. [0x%lx]", hr);
+        MC_TRACE_HR("d2d_create_wic_source: IWICBitmapDecoder::GetFrame() failed.");
         goto err_GetFrame;
     }
 
     hr = IWICImagingFactory_CreateFormatConverter(wic_factory, &wic_converter);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_wic_source: "
-                 "IWICImagingFactory::CreateFormatConverter() failed. "
-                 "[0x%lx]", hr);
+        MC_TRACE_HR("d2d_create_wic_source: "
+                    "IWICImagingFactory::CreateFormatConverter() failed.");
         goto err_CreateFormatConverter;
     }
 
@@ -296,8 +292,8 @@ d2d_create_wic_source(const WCHAR* path, IStream* stream)
             (IWICBitmapSource*) wic_source, &GUID_WICPixelFormat32bppPBGRA,
             WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_wic_source: "
-                 "IWICFormatConverter::Initialize() failed. [0x%lx]", hr);
+        MC_TRACE_HR("d2d_create_wic_source: "
+                    "IWICFormatConverter::Initialize() failed.");
         goto err_Initialize;
     }
 
@@ -360,14 +356,13 @@ d2d_create_arc_geometry(const xdraw_circle_t* circle, float base_angle,
     hr = ID2D1Factory_CreatePathGeometry(d2d_factory, &g);
     LeaveCriticalSection(&xdraw_lock);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_arc_geometry: "
-                 "ID2D1Factory::CreatePathGeometry() failed. [0x%lx]", hr);
+        MC_TRACE_HR("d2d_create_arc_geometry: "
+                    "ID2D1Factory::CreatePathGeometry() failed.");
         return NULL;
     }
     hr = ID2D1PathGeometry_Open(g, &s);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_arc_geometry: "
-                 "ID2D1PathGeometry::Open() failed. [0x%lx]", hr);
+        MC_TRACE_HR("d2d_create_arc_geometry: ID2D1PathGeometry::Open() failed.");
         ID2D1PathGeometry_Release(g);
         return NULL;
     }
@@ -408,8 +403,8 @@ d2d_create_text_layout(dummy_IDWriteTextFormat* tf, const xdraw_rect_t* rect,
     hr = dummy_IDWriteFactory_CreateTextLayout(dw_factory, str, len, tf,
                 rect->x1 - rect->x0, rect->y1 - rect->y0, &layout);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("d2d_create_text_layout: "
-                 "IDWriteFactory::CreateTextLayout() failed. [0x%lx]", hr);
+        MC_TRACE_HR("d2d_create_text_layout: "
+                    "IDWriteFactory::CreateTextLayout() failed.");
         return NULL;
     }
 
@@ -433,8 +428,8 @@ d2d_create_text_layout(dummy_IDWriteTextFormat* tf, const xdraw_rect_t* rect,
 
         hr = dummy_IDWriteFactory_CreateEllipsisTrimmingSign(dw_factory, tf, &trim_sign);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("d2d_create_text_layout: "
-                     "IDWriteFactory::CreateEllipsisTrimmingSign() failed. [0x%lx]", hr);
+            MC_TRACE_HR("d2d_create_text_layout: "
+                        "IDWriteFactory::CreateEllipsisTrimmingSign() failed.");
             goto err_CreateEllipsisTrimmingSign;
         }
 
@@ -841,8 +836,8 @@ xdraw_canvas_create_with_paintstruct(HWND win, PAINTSTRUCT* ps, DWORD flags)
         hr = ID2D1Factory_CreateHwndRenderTarget(d2d_factory, &props, &props2, &target);
         LeaveCriticalSection(&xdraw_lock);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_canvas_create_with_paintstruct: "
-                     "ID2D1Factory::CreateHwndRenderTarget() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_canvas_create_with_paintstruct: "
+                        "ID2D1Factory::CreateHwndRenderTarget() failed.");
             return NULL;
         }
 
@@ -883,15 +878,15 @@ xdraw_canvas_create_with_dc(HDC dc, const RECT* rect, DWORD flags)
         hr = ID2D1Factory_CreateDCRenderTarget(d2d_factory, &props, &target);
         LeaveCriticalSection(&xdraw_lock);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_canvas_create_with_dc: "
-                     "ID2D1Factory::CreateDCRenderTarget() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_canvas_create_with_dc: "
+                        "ID2D1Factory::CreateDCRenderTarget() failed.");
             goto err_CreateDCRenderTarget;
         }
 
         hr = ID2D1DCRenderTarget_BindDC(target, dc, rect);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_canvas_create_with_dc: "
-                     "ID2D1Factory::BindDC() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_canvas_create_with_dc: "
+                        "ID2D1Factory::BindDC() failed.");
             goto err_BindDC;
         }
 
@@ -950,7 +945,8 @@ xdraw_canvas_resize(xdraw_canvas_t* canvas, UINT width, UINT height)
 
             hr = ID2D1HwndRenderTarget_Resize(c->hwnd_target, &size);
             if(MC_ERR(FAILED(hr))) {
-                MC_TRACE("xdraw_canvas_resize: ID2D1HwndRenderTarget_Resize() failed. [0x%lx]", hr);
+                MC_TRACE_HR("xdraw_canvas_resize: "
+                            "ID2D1HwndRenderTarget_Resize() failed.");
                 return -1;
             }
             return 0;
@@ -1023,9 +1019,8 @@ xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents)
         hr = ID2D1RenderTarget_QueryInterface(c->target,
                     &IID_ID2D1GdiInteropRenderTarget, (void**) &gdi_interop);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_canvas_acquire_dc: "
-                     "ID2D1RenderTarget::QueryInterface(IID_ID2D1GdiInteropRenderTarget) "
-                     "failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_canvas_acquire_dc: ID2D1RenderTarget::"
+                        "QueryInterface(IID_ID2D1GdiInteropRenderTarget) failed.");
             return NULL;
         }
 
@@ -1033,8 +1028,8 @@ xdraw_canvas_acquire_dc(xdraw_canvas_t* canvas, BOOL retain_contents)
                                      : D2D1_DC_INITIALIZE_MODE_CLEAR);
         hr = ID2D1GdiInteropRenderTarget_GetDC(gdi_interop, init_mode, &dc);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_canvas_acquire_dc: "
-                     "ID2D1GdiInteropRenderTarget::GetDC() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_canvas_acquire_dc: "
+                        "ID2D1GdiInteropRenderTarget::GetDC() failed.");
             ID2D1GdiInteropRenderTarget_Release(gdi_interop);
             return NULL;
         }
@@ -1167,8 +1162,8 @@ xdraw_canvas_set_clip(xdraw_canvas_t* canvas, const xdraw_rect_t* rect,
 
             hr = ID2D1RenderTarget_CreateLayer(c->target, NULL, &c->clip_layer);
             if(MC_ERR(FAILED(hr))) {
-                MC_TRACE("xdraw_canvas_set_clip_path: "
-                         "ID2D1RenderTarget::CreateLayer() failed. [0x%lx]", hr);
+                MC_TRACE_HR("xdraw_canvas_set_clip_path: "
+                            "ID2D1RenderTarget::CreateLayer() failed.");
                 return;
             }
 
@@ -1245,8 +1240,8 @@ xdraw_brush_solid_create(xdraw_canvas_t* canvas, xdraw_color_t color)
         hr = ID2D1RenderTarget_CreateSolidColorBrush(
                         c->target, &clr, NULL, &b);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_brush_create_solid: "
-                     "ID2D1RenderTarget::CreateSolidColorBrush() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_brush_create_solid: "
+                        "ID2D1RenderTarget::CreateSolidColorBrush() failed.");
             return NULL;
         }
         return (xdraw_brush_t*) b;
@@ -1464,8 +1459,8 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
         }
         hr = dummy_IDWriteTextFormat_GetFontFamilyName(tf, name, name_len);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_font_get_metrics: "
-                     "IDWriteTextFormat::GetFontFamilyName() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_font_get_metrics: "
+                        "IDWriteTextFormat::GetFontFamilyName() failed.");
             goto err_GetFontFamilyName;
         }
 
@@ -1475,15 +1470,15 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
 
         hr = dummy_IDWriteTextFormat_GetFontCollection(tf, &fc);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_font_get_metrics: "
-                     "IDWriteTextFormat::GetFontCollection() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_font_get_metrics: "
+                        "IDWriteTextFormat::GetFontCollection() failed.");
             goto err_GetFontCollection;
         }
 
         hr = dummy_IDWriteFontCollection_FindFamilyName(fc, name, &ix, &exists);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_font_get_metrics: "
-                     "IDWriteFontCollection::FindFamilyName() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_font_get_metrics: "
+                        "IDWriteFontCollection::FindFamilyName() failed.");
             goto err_FindFamilyName;
         }
 
@@ -1495,15 +1490,15 @@ xdraw_font_get_metrics(const xdraw_font_t* font, xdraw_font_metrics_t* metrics)
 
         hr = dummy_IDWriteFontCollection_GetFontFamily(fc, ix, &ff);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_font_get_metrics: "
-                     "IDWriteFontCollection::GetFontFamily() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_font_get_metrics: "
+                        "IDWriteFontCollection::GetFontFamily() failed.");
             goto err_GetFontFamily;
         }
 
         hr = dummy_IDWriteFontFamily_GetFirstMatchingFont(ff, weight, stretch, style, &f);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_font_get_metrics: "
-                     "IDWriteFontFamily::GetFirstMatchingFont() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_font_get_metrics: "
+                        "IDWriteFontFamily::GetFirstMatchingFont() failed.");
             goto err_GetFirstMatchingFont;
         }
 
@@ -1586,8 +1581,8 @@ xdraw_image_create_from_HBITMAP(HBITMAP bmp)
         hr = IWICImagingFactory_CreateBitmapFromHBITMAP(wic_factory, bmp, NULL,
                 WICBitmapIgnoreAlpha, &b);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_image_create_from_HBITMAP: "
-                     "IWICImagingFactory::CreateBitmapFromHBITMAP() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_image_create_from_HBITMAP: "
+                        "IWICImagingFactory::CreateBitmapFromHBITMAP() failed.");
             goto err_CreateBitmapFromHBITMAP;
         }
 
@@ -1731,8 +1726,8 @@ xdraw_path_create(xdraw_canvas_t* canvas)
         hr = ID2D1Factory_CreatePathGeometry(d2d_factory, &g);
         LeaveCriticalSection(&xdraw_lock);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_path_create: "
-                     "ID2D1Factory::CreatePathGeometry() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_path_create: "
+                        "ID2D1Factory::CreatePathGeometry() failed.");
             return NULL;
         }
 
@@ -1809,8 +1804,7 @@ xdraw_path_open_sink(xdraw_path_sink_t* sink, xdraw_path_t* path)
 
         hr = ID2D1PathGeometry_Open(g, &s);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_path_open_sink: "
-                     "ID2D1PathGeometry::Open() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_path_open_sink: ID2D1PathGeometry::Open() failed.");
             return -1;
         }
 
@@ -2163,9 +2157,8 @@ xdraw_blit_image(xdraw_canvas_t* canvas, const xdraw_image_t* image,
 
         hr = ID2D1RenderTarget_CreateBitmapFromWicBitmap(c->target, source, NULL, &b);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_blit_image: "
-                     "ID2D1RenderTarget::CreateBitmapFromWicBitmap() failed. "
-                     "[0x%lx]", hr);
+            MC_TRACE_HR("xdraw_blit_image: "
+                        "ID2D1RenderTarget::CreateBitmapFromWicBitmap() failed.");
             return;
         }
         ID2D1RenderTarget_DrawBitmap(c->target, b, &dst_fix, 1.0f,
@@ -2202,17 +2195,15 @@ xdraw_blit_HICON(xdraw_canvas_t* canvas, HICON icon, const xdraw_rect_t* rect)
 
         hr = IWICImagingFactory_CreateBitmapFromHICON(wic_factory, icon, &wic_bitmap);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_blit_HICON: "
-                     "IWICImagingFactory::CreateBitmapFromHICON() failed. "
-                     "[0x%lx]", hr);
+            MC_TRACE_HR("xdraw_blit_HICON: "
+                        "IWICImagingFactory::CreateBitmapFromHICON() failed.");
             goto err_CreateBitmapFromHICON;
         }
 
         hr = IWICImagingFactory_CreateFormatConverter(wic_factory, &wic_converter);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_blit_HICON: "
-                     "IWICImagingFactory::CreateFormatConverter() failed. "
-                     "[0x%lx]", hr);
+            MC_TRACE_HR("xdraw_blit_HICON: "
+                        "IWICImagingFactory::CreateFormatConverter() failed.");
             goto err_CreateFormatConverter;
         }
 
@@ -2220,8 +2211,8 @@ xdraw_blit_HICON(xdraw_canvas_t* canvas, HICON icon, const xdraw_rect_t* rect)
                 (IWICBitmapSource*) wic_bitmap, &GUID_WICPixelFormat32bppPBGRA,
                 WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
         if(MC_ERR(FAILED(hr))) {
-            MC_TRACE("xdraw_blit_HICON: "
-                     "IWICFormatConverter::Initialize() failed. [0x%lx]", hr);
+            MC_TRACE_HR("xdraw_blit_HICON: "
+                        "IWICFormatConverter::Initialize() failed.");
             goto err_Initialize;
         }
 

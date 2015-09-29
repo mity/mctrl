@@ -45,9 +45,11 @@
     #define MC_DUMP(...)                 do { } while(0)
 #endif
 
-/* Helper for tracing message with GetLastError() */
-#define MC_TRACE_ERR(msg)                                                     \
-    MC_TRACE(msg " [%lu]", GetLastError())
+/* Helper for tracing message with GetLastError() or HRESULT */
+#define MC_TRACE_ERR_(msg, err)          MC_TRACE(msg " [%lu]", (err))
+#define MC_TRACE_ERR(msg)                MC_TRACE(msg " [%lu]", GetLastError())
+#define MC_TRACE_HR_(msg, hr)            MC_TRACE(msg " [0x%lx]", (hr))
+#define MC_TRACE_HR(msg)                 MC_TRACE(msg " [0x%lx]", hr)
 
 /* Helper for tracing GUIDs */
 #define MC_TRACE_GUID(msg, guid)                                              \

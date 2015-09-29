@@ -43,7 +43,7 @@ redo:
              * at all and just reuse app's apartment. */
             hr = CoCreateInstance(clsid, NULL, context, iid, &obj);
             if(MC_ERR(FAILED(hr))) {
-                MC_TRACE("xcom_create_init: CoCreateInstance(1) failed. [0x%lx]", hr);
+                MC_TRACE_HR("xcom_create_init: CoCreateInstance(1) failed.");
                 return NULL;
             }
             return obj;
@@ -53,12 +53,12 @@ redo:
              * it. */
             hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
             if(MC_ERR(FAILED(hr))) {
-                MC_TRACE("xcom_create_init: CoInitializeEx() failed. [0x%lx]", hr);
+                MC_TRACE_HR("xcom_create_init: CoInitializeEx() failed.");
                 return NULL;
             }
             hr = CoCreateInstance(clsid, NULL, context, iid, &obj);
             if(MC_ERR(FAILED(hr))) {
-                MC_TRACE("xcom_create_init: CoCreateInstance(2) failed. [0x%lx]", hr);
+                MC_TRACE_HR("xcom_create_init: CoCreateInstance(2) failed.");
                 CoUninitialize();
                 return NULL;
             }
@@ -76,7 +76,7 @@ redo:
             } else if(hr == CO_E_NOTINITIALIZED) {
                 xcom_mode = XCOM_MODE_MCTRL;
             } else {
-                MC_TRACE("xcom_create_init: CoCreateInstance(3) failed. [0x%lx]", hr);
+                MC_TRACE_HR("xcom_create_init: CoCreateInstance(3) failed.");
                 obj = NULL;
             }
             LeaveCriticalSection(&xcom_lock);

@@ -39,7 +39,7 @@ dwm_is_composition_enabled(void)
 
     hr = dwm_DwmIsCompositionEnabled(&enabled);
     if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("dwm_is_composition_enabled: DwmIsCompositionEnabled(). [0x%lx]", hr);
+        MC_TRACE_HR("dwm_is_composition_enabled: DwmIsCompositionEnabled().");
         return FALSE;
     }
 
