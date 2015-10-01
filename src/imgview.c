@@ -187,7 +187,7 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
             }
         }
 
-        for(i = 0; i < MC_ARRAY_SIZE(allowed_res_types); i++) {
+        for(i = 0; i < MC_SIZEOF_ARRAY(allowed_res_types); i++) {
             stream = memstream_create_from_resource(instance, allowed_res_types[i], tmp);
             if(stream != NULL)
                 break;

@@ -61,12 +61,12 @@ expand_get_glyph(LONG size)
 {
     int i;
 
-    for(i = 1; i < MC_ARRAY_SIZE(expand_glyphs); i++) {
+    for(i = 1; i < MC_SIZEOF_ARRAY(expand_glyphs); i++) {
         if(size < expand_glyphs[i].size)
             return &expand_glyphs[i - 1];
     }
 
-    return &expand_glyphs[MC_ARRAY_SIZE(expand_glyphs) - 1];
+    return &expand_glyphs[MC_SIZEOF_ARRAY(expand_glyphs) - 1];
 }
 
 /* expand_t::state bits */
@@ -240,7 +240,7 @@ expand_paint_state(expand_t* expand, DWORD state, HDC dc, RECT* dirty, BOOL eras
         }
 
         old_brush = SelectObject(dc, GetSysColorBrush(COLOR_BTNTEXT));
-        Polygon(dc, pt, MC_ARRAY_SIZE(pt));
+        Polygon(dc, pt, MC_SIZEOF_ARRAY(pt));
         SelectObject(dc, old_brush);
     }
 
@@ -952,7 +952,7 @@ expand_init_module(void)
     int i;
     WNDCLASS wc = { 0 };
 
-    for(i = 0; i < MC_ARRAY_SIZE(expand_glyphs); i++) {
+    for(i = 0; i < MC_SIZEOF_ARRAY(expand_glyphs); i++) {
         expand_glyphs[i].bmp = LoadImage(mc_instance,
                     MAKEINTRESOURCE(expand_glyphs[i].res_id), IMAGE_BITMAP,
                     0, 0, LR_SHARED | LR_CREATEDIBSECTION);
@@ -978,6 +978,6 @@ expand_fini_module(void)
 
     UnregisterClass(expand_wc, NULL);
 
-    for(i = 0; i < MC_ARRAY_SIZE(expand_glyphs); i++)
+    for(i = 0; i < MC_SIZEOF_ARRAY(expand_glyphs); i++)
         DeleteObject(expand_glyphs[i].bmp);
 }

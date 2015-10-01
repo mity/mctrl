@@ -3044,7 +3044,7 @@ grid_init_module(void)
     int i;
     WNDCLASS wc = { 0 };
 
-    for(i = 0; i < MC_ARRAY_SIZE(grid_cursor); i++) {
+    for(i = 0; i < MC_SIZEOF_ARRAY(grid_cursor); i++) {
         grid_cursor[i].cur = LoadCursor(mc_instance,
                                         MAKEINTRESOURCE(grid_cursor[i].res_id));
         if(MC_ERR(grid_cursor[i].cur == NULL)) {
@@ -3081,6 +3081,6 @@ grid_fini_module(void)
 
     UnregisterClass(grid_wc, NULL);
 
-    for(i = 0; i < MC_ARRAY_SIZE(grid_cursor); i++)
+    for(i = 0; i < MC_SIZEOF_ARRAY(grid_cursor); i++)
         DestroyCursor(grid_cursor[i].cur);
 }

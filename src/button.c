@@ -408,7 +408,7 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         if(button->hide_accel)
             flags |= DT_HIDEPREFIX;
 
-        n = MC_SEND(win, WM_GETTEXT, MC_ARRAY_SIZE(buffer), buffer);
+        n = MC_SEND(win, WM_GETTEXT, MC_SIZEOF_ARRAY(buffer), buffer);
 
         if(button->theme) {
             mcDrawThemeText(button->theme, dc, BP_PUSHBUTTON,

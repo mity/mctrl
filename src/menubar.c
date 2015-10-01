@@ -347,7 +347,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
                     btn.cbSize = sizeof(TBBUTTONINFO);
                     btn.dwMask = TBIF_TEXT;
                     btn.pszText = buffer;
-                    btn.cchText = MC_ARRAY_SIZE(buffer);
+                    btn.cchText = MC_SIZEOF_ARRAY(buffer);
                     MENUBAR_SENDMSG(mb->win, TB_GETBUTTONINFO, info->nmcd.dwItemSpec, &btn);
 
                     if(MENUBAR_SENDMSG(mb->win, WM_QUERYUISTATE, 0, 0) & UISF_HIDEACCEL)
@@ -448,7 +448,7 @@ menubar_nccreate(HWND win, CREATESTRUCT *cs)
      * as ReBar really is not interested in it, and embedding the menubar
      * in the ReBar is actually main advantage of this control in comparison
      * with the standard window menu. */
-    GetClassName(cs->hwndParent, parent_class, MC_ARRAY_SIZE(parent_class));
+    GetClassName(cs->hwndParent, parent_class, MC_SIZEOF_ARRAY(parent_class));
     if(_tcscmp(parent_class, _T("ReBarWindow32")) == 0)
         mb->notify_win = GetAncestor(cs->hwndParent, GA_PARENT);
     else
@@ -967,7 +967,7 @@ mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
     mii.cbSize = sizeof(MENUITEMINFO);
     mii.fMask = MIIM_STRING | MIIM_STATE | MIIM_ID | MIIM_SUBMENU;
     mii.dwTypeData = buffer;
-    mii.cch = MC_ARRAY_SIZE(buffer);
+    mii.cch = MC_SIZEOF_ARRAY(buffer);
     n = MENUBAR_SENDMSG(hwndMenubar, TB_BUTTONCOUNT, 0, 0);
     for(i = n-1; i >= 0; i--) {
         RECT item_rect;
@@ -976,7 +976,7 @@ mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
         if(item_rect.right < rect.right)
             break;
 
-        mii.cch = MC_ARRAY_SIZE(buffer);
+        mii.cch = MC_SIZEOF_ARRAY(buffer);
         GetMenuItemInfo(mb->menu, i, TRUE, &mii);
         InsertMenuItem(menu, 0, TRUE, &mii);
     }

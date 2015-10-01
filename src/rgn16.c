@@ -686,9 +686,9 @@ void
 rgn16_test(void)
 {
 #define TEST_UNION() rgn16_test_check(rgn16_do_union,                        \
-                                      vec1, MC_ARRAY_SIZE(vec1),             \
-                                      vec2, MC_ARRAY_SIZE(vec2),             \
-                                      vecR, MC_ARRAY_SIZE(vecR))
+                                      vec1, MC_SIZEOF_ARRAY(vec1),           \
+                                      vec2, MC_SIZEOF_ARRAY(vec2),           \
+                                      vecR, MC_SIZEOF_ARRAY(vecR))
 
     {   /* Union with no overlap. */
         const rgn16_rect_t vec1[] = { {10,10,20,20} };
@@ -719,9 +719,9 @@ rgn16_test(void)
     }
 
 #define TEST_SUBTRACT() rgn16_test_check(rgn16_do_subtract,                  \
-                                      vec1, MC_ARRAY_SIZE(vec1),             \
-                                      vec2, MC_ARRAY_SIZE(vec2),             \
-                                      vecR, MC_ARRAY_SIZE(vecR))
+                                      vec1, MC_SIZEOF_ARRAY(vec1),           \
+                                      vec2, MC_SIZEOF_ARRAY(vec2),           \
+                                      vecR, MC_SIZEOF_ARRAY(vecR))
 
     {   /* Subtract with no overlap. */
         const rgn16_rect_t vec1[] = { {10,10,20,20} };
@@ -745,9 +745,9 @@ rgn16_test(void)
     }
 
 #define TEST_XOR() rgn16_test_check(rgn16_do_xor,                            \
-                                    vec1, MC_ARRAY_SIZE(vec1),               \
-                                    vec2, MC_ARRAY_SIZE(vec2),               \
-                                    vecR, MC_ARRAY_SIZE(vecR))
+                                    vec1, MC_SIZEOF_ARRAY(vec1),             \
+                                    vec2, MC_SIZEOF_ARRAY(vec2),             \
+                                    vecR, MC_SIZEOF_ARRAY(vecR))
 
     {   /* Xor with no overlap */
         const rgn16_rect_t vec1[] = { {10,10,20,20} };

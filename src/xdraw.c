@@ -1336,7 +1336,7 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
         /* DirectWrite does not support FW_DONTCARE */
         weight = (logfont->lfWeight != FW_DONTCARE ? logfont->lfWeight : FW_REGULAR);
 
-        for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
+        for(i = 0; i < MC_SIZEOF_ARRAY(locales); i++) {
             hr = dummy_IDWriteFactory_CreateTextFormat(dw_factory, logfont->lfFaceName,
                     NULL, weight, style, dummy_DWRITE_FONT_STRETCH_NORMAL, size,
                     locales[i], &tf);
@@ -1346,7 +1346,7 @@ xdraw_font_create_with_LOGFONT(xdraw_canvas_t* canvas, const LOGFONT* logfont)
 
         /* In case of a failure, try to fall back to a reasonable the default
          * font. */
-        for(i = 0; i < MC_ARRAY_SIZE(locales); i++) {
+        for(i = 0; i < MC_SIZEOF_ARRAY(locales); i++) {
             hr = dummy_IDWriteFactory_CreateTextFormat(dw_factory,
                     XDRAW_DEFAULT_FONT_FAMILY, NULL, weight, style,
                     dummy_DWRITE_FONT_STRETCH_NORMAL, size, locales[i], &tf);

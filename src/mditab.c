@@ -487,7 +487,7 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_item_flag
     }
 
     /* Hit test auxiliary buttons. */
-    for(btn_id = 0; btn_id < MC_ARRAY_SIZE(btn_map); btn_id++) {
+    for(btn_id = 0; btn_id < MC_SIZEOF_ARRAY(btn_map); btn_id++) {
         if(mditab->btn_mask & (1 << btn_id)) {
             RECT btn_rect;
 

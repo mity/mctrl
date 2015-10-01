@@ -67,7 +67,7 @@
 #define MC_SIGN(a)             ((a) > 0 ? +1 : ((a) < 0 ? -1 : 0))
 
 /* Get count of records in an array */
-#define MC_ARRAY_SIZE(array)   (sizeof((array)) / sizeof((array)[0]))
+#define MC_SIZEOF_ARRAY(array)   (sizeof((array)) / sizeof((array)[0]))
 
 /* Specifier of flexible array member size */
 #if __STDC_VERSION__ >= 199901L  ||  defined MC_COMPILER_MSVC

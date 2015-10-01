@@ -155,7 +155,7 @@ chart_round_value(int value, BOOL up)
          100000000,  120000000,  150000000,  200000000,  300000000,  500000000,  600000000,  800000000,
         1000000000, 1200000000, 1500000000, 2000000000
     };
-    static int count = MC_ARRAY_SIZE(nice_numbers);
+    static int count = MC_SIZEOF_ARRAY(nice_numbers);
     int i;
 
     if(value == 0)
@@ -219,7 +219,7 @@ chart_str_value(chart_axis_t* axis, int value, WCHAR buffer[CHART_STR_VALUE_MAX_
             factor *= 10;
 
         dec_delim_len = GetLocaleInfoW(GetThreadLocale(), LOCALE_SDECIMAL,
-                                       dec_delim, MC_ARRAY_SIZE(dec_delim));
+                                       dec_delim, MC_SIZEOF_ARRAY(dec_delim));
         if(MC_ERR(dec_delim_len == 0)) {
             dec_delim[0] = L'.';
             dec_delim_len = 1;
@@ -2199,7 +2199,7 @@ chart_calc_layout(chart_t* chart, chart_layout_t* layout)
 
     layout->margin = (layout->font_size.cy+1) / 2;
 
-    GetWindowText(chart->win, buf, MC_ARRAY_SIZE(buf));
+    GetWindowText(chart->win, buf, MC_SIZEOF_ARRAY(buf));
     if(buf[0] != _T('\0')) {
         layout->title_rect.left = rect.left + layout->margin;
         layout->title_rect.top = rect.top + layout->margin;
@@ -2409,7 +2409,7 @@ chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase
         xdraw_rect_t rc = { layout.title_rect.left, layout.title_rect.top,
                             layout.title_rect.right, layout.title_rect.bottom };
 
-        GetWindowTextW(chart->win, title, MC_ARRAY_SIZE(title));
+        GetWindowTextW(chart->win, title, MC_SIZEOF_ARRAY(title));
         xdraw_brush_solid_set_color(ctx->solid_brush, XDRAW_RGB(0,0,0));
         xdraw_draw_string(ctx->canvas, ctx->font, &rc, title, -1, ctx->solid_brush,
                           XDRAW_STRING_CENTER | XDRAW_STRING_NOWRAP);
@@ -2628,28 +2628,28 @@ chart_update_tooltip(chart_t* chart)
     if(chart->hot_set_ix >= 0) {
         switch(chart->style & MC_CHS_TYPEMASK) {
             case MC_CHS_PIE:
-                pie_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                pie_tooltip_text(chart, buffer, MC_SIZEOF_ARRAY(buffer));
                 break;
 
             case MC_CHS_SCATTER:
-                scatter_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                scatter_tooltip_text(chart, buffer, MC_SIZEOF_ARRAY(buffer));
                 break;
 
             case MC_CHS_LINE:
             case MC_CHS_STACKEDLINE:
             case MC_CHS_AREA:
             case MC_CHS_STACKEDAREA:
-                line_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                line_tooltip_text(chart, buffer, MC_SIZEOF_ARRAY(buffer));
                 break;
 
             case MC_CHS_COLUMN:
             case MC_CHS_STACKEDCOLUMN:
-                column_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                column_tooltip_text(chart, buffer, MC_SIZEOF_ARRAY(buffer));
                 break;
 
             case MC_CHS_BAR:
             case MC_CHS_STACKEDBAR:
-                bar_tooltip_text(chart, buffer, MC_ARRAY_SIZE(buffer));
+                bar_tooltip_text(chart, buffer, MC_SIZEOF_ARRAY(buffer));
                 break;
         }
     }

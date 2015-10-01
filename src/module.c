@@ -122,7 +122,7 @@ module_fini_modules(module_t** modules, int n)
     BOOL MCTRL_API                                                            \
     mc##PublicName##_Initialize(void)                                         \
     {                                                                         \
-        if(MC_ERR(module_init_modules(deps, MC_ARRAY_SIZE(deps)) != 0)) {     \
+        if(MC_ERR(module_init_modules(deps, MC_SIZEOF_ARRAY(deps)) != 0)) {   \
             MC_TRACE("mc%s_Initialize: module_init_modules() failed.",        \
                      MC_STRINGIZE(PublicName));                               \
             return FALSE;                                                     \
@@ -133,7 +133,7 @@ module_fini_modules(module_t** modules, int n)
     void MCTRL_API                                                            \
     mc##PublicName##_Terminate(void)                                          \
     {                                                                         \
-        module_fini_modules(deps, MC_ARRAY_SIZE(deps));                       \
+        module_fini_modules(deps, MC_SIZEOF_ARRAY(deps));                     \
     }
 
 

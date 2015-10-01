@@ -66,7 +66,7 @@ mc_str_load(UINT id)
     UINT len;
     int i, j;
 
-    for(i = 0; i < MC_ARRAY_SIZE(lang_id); i++) {
+    for(i = 0; i < MC_SIZEOF_ARRAY(lang_id); i++) {
         rsrc = FindResourceEx(mc_instance, RT_STRING, rsrc_id, lang_id[i]);
         if(MC_ERR(rsrc == NULL))
             goto not_found;
@@ -435,7 +435,7 @@ mc_font_size(HFONT font, SIZE* size, BOOL include_external_leading)
 {
     /* See http://support.microsoft.com/kb/125681 */
     static const TCHAR canary_str[] = _T("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    static const int canary_len = MC_ARRAY_SIZE(canary_str) - 1;
+    static const int canary_len = MC_SIZEOF_ARRAY(canary_str) - 1;
     HDC dc;
     HFONT old_font;
     SIZE s;
@@ -573,7 +573,7 @@ setup_win_version(void)
 
     ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 
-    for(i = 0; i < MC_ARRAY_SIZE(win_versions); i++) {
+    for(i = 0; i < MC_SIZEOF_ARRAY(win_versions); i++) {
         ver.dwMajorVersion = (win_versions[i].version & 0x00ff0000) >> 16;
         ver.dwMinorVersion = (win_versions[i].version & 0x0000ff00) >> 8;
         ver.wServicePackMajor = (win_versions[i].version & 0x000000ff) >> 0;
