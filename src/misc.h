@@ -100,8 +100,8 @@
  * in important loops where it really matters. Programmers are often bad in
  * this kind of prediction. */
 #if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 30000
-    #define MC_LIKELY(condition)       __builtin_expect(!!(condition), !0)
-    #define MC_UNLIKELY(condition)     __builtin_expect(!!(condition), 0)
+    #define MC_LIKELY(condition)       __builtin_expect((condition) != 0, TRUE)
+    #define MC_UNLIKELY(condition)     __builtin_expect((condition) != 0, FALSE)
 #else
     #define MC_LIKELY(condition)       (condition)
     #define MC_UNLIKELY(condition)     (condition)
@@ -209,7 +209,7 @@ enum mc_str_type_tag {
 
 /* Loading strings from resources */
 
-TCHAR* mc_str_load(UINT id);
+const TCHAR* mc_str_load(UINT id);
 
 
 /* Copying/converting strings into provided buffer */
@@ -323,7 +323,7 @@ static inline mc_ref_t
 mc_unref(mc_ref_t* i)
 {
 #if defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40700
-    /* See http://stackoverflow.com/questions/10268737/c11-atomics-and-intrusive-shared-pointer-reference-count */
+    /* See http://stackoverflow.com/questions/10268737/ */
     mc_ref_t ref = __atomic_sub_fetch(i, 1, __ATOMIC_RELEASE);
     if(ref == 0)
         __atomic_thread_fence(__ATOMIC_ACQUIRE);

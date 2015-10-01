@@ -39,7 +39,17 @@ HIMAGELIST mc_bmp_glyphs;
  *** String Utilities ***
  ************************/
 
-TCHAR*
+/* We dig into the raw resources instead of using LoadStringW() with nBufferMax
+ * set to zero.
+ *
+ * See http://blogs.msdn.com/b/oldnewthing/archive/2004/01/30/65013.aspx.
+ *
+ * This allows us to do two useful things:
+ *  -- Verify easily the string is zero-terminated (the assertion).
+ *  -- Implement a fall-back to English, as translations can be potentially
+ *     incomplete.
+ */
+const TCHAR*
 mc_str_load(UINT id)
 {
 #ifndef UNICODE
@@ -76,10 +86,10 @@ mc_str_load(UINT id)
         str++;
 
         /* Verify string resources are '\0'-terminated. This is not default
-         * behavior or RC.EXE as well as windres.exe. For windres.exe we
-         * need to have resources in the form "foo bar\0". For RC.EXE, we need
-         * to use option '/n' to terminate the strings as RC.EXE even strips
-         * final '\0' from the string even when explicitly specified. */
+         * behavior of RC.EXE as well as windres.exe. For windres.exe we need
+         * to have resources in the form "foo bar\0". For RC.EXE, we need to
+         * use option '/n' to terminate the strings as RC.EXE even strips final
+         * '\0' from the string even when explicitly specified. */
         MC_ASSERT(str[len - 1] == L'\0');
 
         return str;

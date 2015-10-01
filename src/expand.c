@@ -97,7 +97,7 @@ struct expand_tag {
 };
 
 
-static inline TCHAR*
+static inline const TCHAR*
 expand_text(expand_t* expand)
 {
     UINT ids;
@@ -125,7 +125,7 @@ expand_calc_layout(expand_t* expand, HDC dc, expand_layout_t* layout)
     RECT rect;
     BOOL right_align;
     HFONT old_font = NULL;
-    TCHAR* str;
+    const TCHAR* str;
     SIZE extents;
     int glyph_size;
 
