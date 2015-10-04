@@ -50,7 +50,7 @@ Header files are located in `include\mCtrl` directory. You should instruct
 your C/C++ compiler to search for header files in the `include` directory and
 use the `mCtrl` in your preprocessor `#include` directives, e.g.:
 
-```
+```C
 #include <mCtrl/version.h>
 ```
 
@@ -87,7 +87,7 @@ directory, replace the `..` with path pointing to the main mCtrl root.)
 mCtrl is known to successfully build within following environments.
 
 To build with MSYS + [mingw-w64](http://mingw-w64.org) + Make:
-```
+```sh
 $ mkdir build
 $ cd build
 $ cmake -G "MSYS Makefiles" ..
@@ -95,7 +95,7 @@ $ make
 ```
 
 To build with MSYS + mingw-w64 + [Ninja](http://martine.github.io/ninja):
-```
+```sh
 $ mkdir build
 $ cd build
 $ cmake -G "Ninja" ..
@@ -103,7 +103,7 @@ $ ninja
 ```
 
 To build with Microsoft Visual Studio 2013:
-```
+```sh
 $ mkdir build
 $ cd build
 $ cmake -G "Visual Studio 12 2013" ..         # for 32-bit build
@@ -112,7 +112,7 @@ $ cmake -G "Visual Studio 12 2013 Win64" ..   # for 64-bit build
 Then open the build/mCtrl.sln in Visual Studio and build the target `ALL_BUILD`.
 
 To build with Microsoft Visual Studio 2015:
-```
+```sh
 $ mkdir build
 $ cd build
 $ cmake -G "Visual Studio 14 2015" ..         # for 32-bit build
@@ -134,12 +134,12 @@ Notes:
   mingw-w64 variants installed, one targeting 32-bit and one 64-bit build).
   Prior using CMake, you may specify path to the `gcc` and CMake will derive
   all other tool paths accordingly:
-```
+```sh
 export CC=/path/to/the/desired/gcc
 ```
 
 Use
-```
+```sh
 $ cmake --help
 ```
 and refer to CMake documentation to learn more about CMake, its options and
