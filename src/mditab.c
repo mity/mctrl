@@ -2341,7 +2341,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return FALSE;
 
         case WM_TIMER:
-            if(wp == ANIM_TIMER_ID) {
+            if(wp == ANIM_TIMER_ID  &&  mditab->animation != NULL) {
                 anim_step(mditab->animation);
                 mditab_update_layout(mditab, TRUE);
                 return 0;
