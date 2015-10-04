@@ -761,7 +761,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (expand->state & STATE_EXPANDED) ? TRUE : FALSE;
 
         case WM_TIMER:
-            if(wp == ANIM_TIMER_ID) {
+            if(wp == ANIM_TIMER_ID  &&  expand->anim != NULL) {
                 expand_animate_resize_callback(expand);
                 return 0;
             }
