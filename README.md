@@ -47,8 +47,8 @@ If you have the pre-built package, using mCtrl is as easy as using any other
 DLL.
 
 Header files are located in `include\mCtrl` directory. You should instruct
-your C/C++ compiler to search for header files in the 'include' directory and
-use the 'mCtrl' in your preprocessor #include directives, e.g.:
+your C/C++ compiler to search for header files in the `include` directory and
+use the `mCtrl` in your preprocessor `#include` directives, e.g.:
 
 ```
 #include <mCtrl/version.h>
