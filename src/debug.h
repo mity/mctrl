@@ -69,15 +69,15 @@
     #define MC_ASSERT(cond)                                                   \
         do {                                                                  \
             if(MC_ERR(!(cond))) {                                             \
-                debug_trace(__FILE__ ":" MC_STRINGIZE(__LINE__) ": "          \
-                                   "Assertion '" #cond "' failed.");          \
-                MessageBoxA(NULL, __FILE__ ":" MC_STRINGIZE(__LINE__) ": "    \
-                                   "Assertion '" #cond "' failed.",           \
-                                   "Assert", MB_OK);                          \
-                if(IsDebuggerPresent())                                       \
+                const char msg[] = __FILE__ ":" MC_STRINGIZE(__LINE__) ": "   \
+                            "Assertion '" #cond "' failed.";                  \
+                debug_trace(msg);                                             \
+                if(IsDebuggerPresent()) {                                     \
                     __debugbreak();                                           \
-                else                                                          \
+                } else {                                                      \
+                    MessageBoxA(NULL, msg, "Assert", MB_OK);                  \
                     abort();                                                  \
+                }                                                             \
             }                                                                 \
         } while(0)
 
