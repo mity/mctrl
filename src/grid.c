@@ -923,43 +923,6 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         }
     }
 
-    /* Paint grid lines */
-    if(!(grid->style & MC_GS_NOGRIDLINES)) {
-        HPEN pen, old_pen;
-        int x, y;
-
-        mc_clip_set(dc, header_w, header_h, client.right, client.bottom);
-        pen = CreatePen(PS_SOLID, 0, mcGetThemeSysColor(grid->theme_listview, COLOR_3DFACE));
-        old_pen = SelectObject(dc, pen);
-
-        x = x0 - 1;
-        y = header_h + grid->scroll_y_max - grid->scroll_y;
-        for(col = col0; col < col_count; col++) {
-            x += grid_col_width(grid, col);
-            MoveToEx(dc, x, header_h, NULL);
-            LineTo(dc, x, y);
-            if(x >= client.right)
-                break;
-        }
-
-        x = header_w + grid->scroll_x_max - grid->scroll_x;
-        y = y0 - 1;
-        for(row = row0; row < row_count; row++) {
-            y += grid_row_height(grid, row);
-            MoveToEx(dc, header_w, y, NULL);
-            LineTo(dc, x, y);
-            if(y >= client.bottom)
-                break;
-        }
-
-        SelectObject(dc, old_pen);
-        DeleteObject(pen);
-
-        gridline_w = 1;
-    } else {
-        gridline_w = 0;
-    }
-
     /* Paint the "dead" top left header cell */
     if(header_w > 0  &&  header_h > 0  &&
        dirty->left < header_w  &&  dirty->top < header_h)
@@ -1006,6 +969,61 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             if(rect.bottom >= client.bottom)
                 break;
         }
+    }
+
+    /* Paint grid lines */
+    if(!(grid->style & MC_GS_NOGRIDLINES)) {
+        HPEN pen, old_pen;
+        int max_x = header_w + grid->scroll_x_max - grid->scroll_x;
+        int max_y = header_h + grid->scroll_y_max - grid->scroll_y;
+        int x, y;
+
+        /* Windows 10 is "too flat", we need at least divide headers from
+         * the main body. */
+        if(mc_win_version >= MC_WIN_10)
+            mc_clip_set(dc, 0, 0, client.right, client.bottom);
+        else
+            mc_clip_set(dc, header_w, header_h, client.right, client.bottom);
+
+        pen = CreatePen(PS_SOLID, 0, mcGetThemeSysColor(grid->theme_listview, COLOR_3DFACE));
+        old_pen = SelectObject(dc, pen);
+
+        x = x0 - 1;
+        y = max_y;
+        for(col = col0; col < col_count; col++) {
+            x += grid_col_width(grid, col);
+            MoveToEx(dc, x, 0, NULL);
+            LineTo(dc, x, y);
+            if(x >= client.right)
+                break;
+        }
+
+        x = max_x;
+        y = y0 - 1;
+        for(row = row0; row < row_count; row++) {
+            y += grid_row_height(grid, row);
+            MoveToEx(dc, 0, y, NULL);
+            LineTo(dc, x, y);
+            if(y >= client.bottom)
+                break;
+        }
+
+        /* Windows 10 is "too flat", we need at least divide headers from
+         * the main body. */
+        if(mc_win_version >= MC_WIN_10  &&  (header_w > 0  ||  header_h > 0)) {
+            MoveToEx(dc, header_w - 1, 0, NULL);
+            LineTo(dc, header_w - 1, max_y);
+
+            MoveToEx(dc, 0, header_h - 1, NULL);
+            LineTo(dc, max_x, header_h - 1);
+        }
+
+        SelectObject(dc, old_pen);
+        DeleteObject(pen);
+
+        gridline_w = 1;
+    } else {
+        gridline_w = 0;
     }
 
     /* Paint grid cells */
