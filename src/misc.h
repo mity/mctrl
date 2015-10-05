@@ -118,6 +118,17 @@
             PostMessage((win), (msg), (WPARAM)(wp), (LPARAM)(lp))
 
 
+/***************************
+ *** Miscellaneous Types ***
+ ***************************/
+
+typedef struct mc_point16_tag mc_point16_t;
+struct mc_point16_tag {
+    SHORT x;
+    SHORT y;
+};
+
+
 /***************
  *** Globals ***
  ***************/

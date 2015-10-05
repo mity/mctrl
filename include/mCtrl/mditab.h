@@ -84,7 +84,7 @@ extern "C" {
  *   (still you are free to implement any menu you like ;-)
  *
  *
- * @section mditab_wdm MDI tab control and Desktop Window Manager
+ * @section mditab_wdm MDI Tab Control and Desktop Window Manager
  *
  * Since Windows Vista, it is possible to extend window frame into window
  * client and in specific cases it can provide much nicer visual effect.
@@ -272,6 +272,11 @@ BOOL MCTRL_API mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
  */
 #define MC_MTS_NOTOOLTIPS            0x0800
 
+/**
+ * @brief Allow drag-and-drop reordering of control items.
+ */
+#define MC_MTS_DRAGDROP              0x1000
+
 /*@}*/
 
 
@@ -296,6 +301,7 @@ BOOL MCTRL_API mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
  * @name MC_MTHITTESTINFO::flags bits
  */
 /*@{*/
+
 /** @brief The hit test coordinates are outside of any tabs. */
 #define MC_MTHT_NOWHERE              (1 << 0)
 /** @brief The coordinates hit the tab on its icon. */
@@ -327,6 +333,7 @@ BOOL MCTRL_API mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
 #define MC_MTHT_TORIGHT              (1 << 10)
 /** @brief To left of the client area. */
 #define MC_MTHT_TOLEFT               (1 << 11)
+
 /*@}*/
 
 
@@ -441,9 +448,29 @@ typedef struct MC_NMMTCLOSEITEM_tag {
     NMHDR hdr;
     /** Index of the item being closed. */
     int iItem;
-    /** User data of the control being closed. */
+    /** User data of the item being closed. */
     LPARAM lParam;
 } MC_NMMTCLOSEITEM;
+
+/**
+ * @brief Structure for notifications related to drag-and-drop operations:
+ * @ref MC_MTN_BEGINDRAGITEM, @ref MC_MTN_CANDROPITEM, @ref MC_MTN_DROPPEDITEM.
+ */
+typedef struct MC_NMMTCANDROPITEM_tag {
+    /** Standard notification structure header. */
+    NMHDR hdr;
+    /** Index of the item being dragged. */
+    int iItem;
+    /** User data of the item being dragged. */
+    LPARAM lParam;
+    /** Current mouse position in screen coordinates. */
+    POINT ptPosition;
+    /** Application can create and fill bitmap used as a preview of the item.
+     *  It it does not so, the control creates its own image from the tab.
+     *  Not that if set, the control takes ownership of the bitmap and
+     *  destroys it when no longer needed. */
+    HBITMAP hItemBitmap;
+} MC_NMMTDRAGITEM;
 
 /*@}*/
 
@@ -685,6 +712,16 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  * is associated with the control.
  */
 #define MC_MTM_GETTOOLTIPS        (MC_MTM_FIRST + 21)
+
+/**
+ * @brief Cancel currently ongoing drag-and-drop operation.
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise (e.g. if no
+ * drag-and-drop operation is currently in progress).
+ * @sa mditab_drag_and_drop
+ */
+#define MC_MTM_CANCELDRAGITEM     (MC_MTM_FIRST + 22)
 
 /*@}*/
 

@@ -76,5 +76,8 @@ int dsa_insert(dsa_t* dsa, WORD index, void* item);
 void dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func);
 void dsa_clear(dsa_t* dsa, dsa_dtor_t dtor_func);
 
+/* Move an item to the new position. */
+void dsa_move(dsa_t* dsa, WORD old_index, WORD new_index);
+
 
 #endif  /* MC_DSA_H */

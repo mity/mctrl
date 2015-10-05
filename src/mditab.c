@@ -123,9 +123,9 @@ struct mditab_item_tag {
     TCHAR* text;
     LPARAM lp;
     SHORT img;
-    USHORT x0;           /* Relative to mditab_t::area_margin0. */
-    USHORT x1;
     USHORT ideal_width;  /* Cached result of mditab_item_ideal_width() */
+    int x0;              /* Relative to mditab_t::area_margin0. */
+    int x1;
 };
 
 /* Per-control structure */
@@ -148,14 +148,19 @@ struct mditab_tag {
     DWORD btn_pressed       :  1;  /* Button ABS(item_hot) is pressed. */
     DWORD scrolling_to_item :  1;  /* If set, scroll_x_desired is item index. */
     DWORD dwm_extend_frame  :  1;
+    DWORD considering_drag  :  1;  /* Left mouse button pressed (detecting drag and drop start). */
+    DWORD mouse_captured    :  1;
     int scroll_x;
     int scroll_x_desired;
     int scroll_x_max;
+    mc_point16_t drag_candidate; /* if(considering_drag). Relative to client. */
+    mc_point16_t drag_hotspot;   /* if(item_dragged >= 0). Relative to the item rect. */
     USHORT area_margin0; /* Left and right margins of area where tabs live. */
     USHORT area_margin1;
     SHORT item_selected;
     SHORT item_hot;      /* If negative, ABS(item_hot+1) is BTNID_xxx of hot/pressed button. */
     SHORT item_mclose;   /* Close-by-middle-button candidate. */
+    SHORT item_dragged;
     USHORT item_min_width;
     USHORT item_def_width;
 };
@@ -166,6 +171,12 @@ struct mditab_item_layout_tag {
     xdraw_rect_t text_rect;
 };
 
+
+/* Forward declarations. */
+static void mditab_set_tooltip_pos(mditab_t* mditab);
+static void mditab_mouse_move(mditab_t* mditab, int x, int y);
+static void mditab_update_layout(mditab_t* mditab, BOOL refresh);
+static BOOL mditab_get_item_rect(mditab_t* mditab, WORD index, RECT* rect, BOOL whole);
 
 
 static inline int
@@ -473,6 +484,11 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_item_flag
     if(mditab->scroll_x >= mditab->scroll_x_max)
         area_x1 += r;
     if(area_x0 <= hti->pt.x  &&  hti->pt.x < area_x1) {
+        if(mditab->item_dragged >= 0) {
+            i = mditab->item_dragged;
+            if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_item_flags))
+                return i;
+        }
         if(mditab->item_selected >= 0) {
             i = mditab->item_selected;
             if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_item_flags))
@@ -554,9 +570,6 @@ mditab_invalidate_button(mditab_t* mditab, int btn_id)
     InvalidateRect(mditab->win, &rect, TRUE);
 }
 
-/* Forward declaration. */
-static void mditab_set_tooltip_pos(mditab_t* mditab);
-
 static void
 mditab_set_hot(mditab_t* mditab, SHORT hot, BOOL is_pressed)
 {
@@ -594,6 +607,176 @@ static inline void mditab_reset_hot(mditab_t* mditab)
         { mditab_set_hot(mditab, ITEM_HOT_NONE, FALSE); }
 
 static void
+mditab_set_item_order(mditab_t* mditab, WORD old_index, WORD new_index)
+{
+    int delta;
+    int i0, i1;
+
+    if(new_index == old_index)
+        return;
+
+    /* Update stored item indexes. */
+    if(new_index > old_index) {
+        i0 = old_index + 1;
+        i1 = new_index;
+        delta = -1;
+    }
+    if(new_index < old_index) {
+        i0 = new_index;
+        i1 = old_index - 1;
+        delta = +1;
+    }
+
+    if(i0 <= mditab->item_selected  &&  mditab->item_selected <= i1)
+        mditab->item_selected += delta;
+    else if(old_index == mditab->item_selected)
+        mditab->item_selected = new_index;
+
+    if(i0 <= mditab->item_hot  &&  mditab->item_hot <= i1)
+        mditab_reset_hot(mditab);
+    else if(old_index <= mditab->item_hot)
+        mditab_reset_hot(mditab);
+
+    if(i0 <= mditab->item_mclose  &&  mditab->item_mclose <= i1)
+        mditab->item_mclose += delta;
+    else if(old_index == mditab->item_mclose)
+        mditab->item_mclose = new_index;
+
+    if(i0 <= mditab->item_dragged  &&  mditab->item_dragged <= i1)
+        mditab->item_dragged += delta;
+    else if(old_index == mditab->item_dragged)
+        mditab->item_dragged = new_index;
+
+    /* Swap the data in DSA. */
+    dsa_move(&mditab->items, old_index, new_index);
+}
+
+static void
+mditab_consider_drag(mditab_t* mditab, int x, int y, WORD index)
+{
+    RECT item_rect;
+
+    MDITAB_TRACE("mditab_consider_drag(%p, %d, %d, %d)", mditab, x, y, (int)index);
+
+    MC_ASSERT(!mditab->considering_drag);
+    MC_ASSERT(mditab->item_dragged < 0);
+
+    mditab_get_item_rect(mditab, index, &item_rect, TRUE);
+
+    mditab->considering_drag = TRUE;
+    mditab->drag_candidate.x = x;
+    mditab->drag_candidate.y = y;
+    mditab->drag_hotspot.x = x - item_rect.left;
+    mditab->drag_hotspot.y = y - item_rect.top;
+    mditab->item_dragged = index;
+}
+
+static void
+mditab_start_drag(mditab_t* mditab)
+{
+    MDITAB_TRACE("mditab_start_drag(%p)", mditab);
+
+    MC_ASSERT(mditab->considering_drag);
+    MC_ASSERT(mditab->item_dragged >= 0);
+
+    mditab->considering_drag = FALSE;
+    SetCapture(mditab->win);
+    mditab->mouse_captured = TRUE;
+}
+
+static void
+mditab_do_drag(mditab_t* mditab, int x, int y)
+{
+    RECT client;
+    int area_width;
+    mditab_item_t* item;
+    int new_item_x0, new_item_x1;
+    int w;
+
+    MC_ASSERT(!mditab->considering_drag);
+    MC_ASSERT(mditab->item_dragged >= 0);
+
+    GetClientRect(mditab->win, &client);
+    area_width = mc_width(&client) - mditab->area_margin0 - mditab->area_margin1;
+    item = mditab_item(mditab, mditab->item_dragged);
+    w = item->x1 - item->x0;
+
+    // TODO: consider scroll if mouse too left or too right
+
+    new_item_x0 = MC_MAX(0, x - mditab->area_margin0 - mditab->drag_hotspot.x + mditab->scroll_x);
+    new_item_x1 = new_item_x0 + w;
+
+    /* Ensure the dragged item is in the visible view port. */
+    if(new_item_x1 > mditab->scroll_x + area_width) {
+        new_item_x1 = mditab->scroll_x + area_width;
+        new_item_x0 = new_item_x1 - w;
+    }
+    if(new_item_x0 < mditab->scroll_x) {
+        new_item_x0 = mditab->scroll_x;
+        new_item_x1 = new_item_x0 + w;
+    }
+
+    /* Move the dragged item */
+    if(new_item_x0 != item->x0) {
+        item->x0 = new_item_x0;
+        item->x1 = new_item_x1;
+        mditab_update_layout(mditab, TRUE);
+    }
+}
+
+static void
+mditab_end_drag(mditab_t* mditab, BOOL cancel)
+{
+    if(mditab->item_dragged < 0)
+        return;
+
+    MDITAB_TRACE("mditab_end_drag(%p, %s)", mditab, (cancel ? "cancel" : "success"));
+
+    if(!mditab->considering_drag  &&  !cancel) {
+        mditab_item_t* dragged = mditab_item(mditab, mditab->item_dragged);
+        int i, n;
+
+        /* Find the index where the item should be inserted. */
+        n = mditab_count(mditab);
+        for(i = 0; i < n; i++) {
+            mditab_item_t* item = mditab_item(mditab, i);
+
+            if(item == dragged)
+                continue;
+
+            if((item->x0 + item->x1 + 1) / 2 > dragged->x0)
+                break;
+        }
+
+        if(i > mditab->item_dragged)
+            i--;
+        mditab_set_item_order(mditab, mditab->item_dragged, i);
+    }
+
+    if(mditab->mouse_captured)
+        ReleaseCapture();
+    mc_send_notify(mditab->notify_win, mditab->win, NM_RELEASEDCAPTURE);
+
+    mditab->considering_drag = FALSE;
+    mditab->item_dragged = -1;
+
+    mditab_reset_hot(mditab);
+    mditab_update_layout(mditab, TRUE);
+}
+
+static inline void
+mditab_finish_drag(mditab_t* mditab)
+{
+    mditab_end_drag(mditab, FALSE);
+}
+
+static inline void
+mditab_cancel_drag(mditab_t* mditab)
+{
+    mditab_end_drag(mditab, TRUE);
+}
+
+static void
 mditab_mouse_move(mditab_t* mditab, int x, int y)
 {
     int index;
@@ -601,6 +784,32 @@ mditab_mouse_move(mditab_t* mditab, int x, int y)
 
     if(mditab->btn_pressed)
         return;
+
+    /* Consider start of item dragging. */
+    if(mditab->considering_drag) {
+        int drag_cx, drag_cy;
+        RECT rect;
+
+        drag_cx = GetSystemMetrics(SM_CXDRAG);
+        drag_cy = GetSystemMetrics(SM_CYDRAG);
+        rect.left = mditab->drag_candidate.x - drag_cx;
+        rect.top = mditab->drag_candidate.y - drag_cy;
+        rect.right = mditab->drag_candidate.x + drag_cx;
+        rect.bottom = mditab->drag_candidate.y + drag_cy;
+        if(mc_rect_contains_xy(&rect, x, y)) {
+            /* While not clear whether this is drag-and-drop operation, we
+             * won't change hot item. */
+            return;
+        }
+
+        mditab_start_drag(mditab);
+    }
+
+    /* Handle drag-and-drop. */
+    if(mditab->item_dragged >= 0) {
+        mditab_do_drag(mditab, x, y);
+        return;
+    }
 
     hti.pt.x = x;
     hti.pt.y = y;
@@ -634,11 +843,12 @@ mditab_mouse_move(mditab_t* mditab, int x, int y)
 static void
 mditab_mouse_leave(mditab_t* mditab)
 {
-    if(mditab->btn_pressed)
+    mditab->tracking_leave = FALSE;
+
+    if(mditab->btn_pressed  ||  mditab->item_dragged >= 0)
         return;
 
     mditab_reset_hot(mditab);
-    mditab->tracking_leave = FALSE;
 }
 
 /* Helper for mditab_update_layout() */
@@ -746,7 +956,7 @@ again_with_scroll:
     if((mditab->style & MC_MTS_SCROLLALWAYS)  ||  need_scroll)
         btn_mask |= BTNMASK_SCROLL;
 
-    /* Determine what item area we need */
+    /* Determine what item area we need. */
     area_margin0 = mc_height(&client) / 2;
     if(btn_mask & BTNMASK_LSCROLL)
         area_margin0 += btn_size;
@@ -788,6 +998,7 @@ again_without_animation:
      *
      *     min_width  def_width  need_scroll  Behavior
      * ========================================================================
+     * #0  (special case when dragging)       See below.
      * #1  == 0       == 0       FALSE        All items use ideal widths.
      * #2  == 0       == 0       TRUE         All items use ideal widths.
      * #3  == 0       != 0       FALSE        All items use def_width.
@@ -798,7 +1009,41 @@ again_without_animation:
      * #8  != 0       != 0       TRUE         All items use min_width.
      */
     if(n > 0) {
-        if(min_width == 0) {            /* Cases #1, #2, #3, #4 */
+        if(mditab->item_dragged >= 0) { /* Case #0 */
+            /* When an item is being dragged, we behave specially as follows:
+             * - We do not change width of any item.
+             * - We do not change position of the item being dragged. (It is
+             *   determined by mouse position in mouse_do_drag().)
+             *   just keep it inside the visible area.
+             * - We only move other items out of the way to indicate where the
+             *   dragged item would be dropped.
+             */
+            mditab_item_t* dragged = mditab_item(mditab, mditab->item_dragged);
+            USHORT w_dragged = dragged->x1 - dragged->x0;
+            UINT x = 0;
+            BOOL found_gap = FALSE;
+
+            /* Move all items out of the way. */
+            for(i = 0; i < n; i++) {
+                mditab_item_t* item = mditab_item(mditab, i);
+                USHORT w;
+
+                if(item == dragged)
+                    continue;
+
+                w = item->x1 - item->x0;
+                item->x0 = x;
+                item->x1 = x + w;
+
+                if(!found_gap  &&  x + (w+1)/2 > dragged->x0) {
+                    item->x0 += w_dragged;
+                    item->x1 += w_dragged;
+                    found_gap = TRUE;
+                }
+
+                x = item->x1;
+            }
+        } else if(min_width == 0) {     /* Cases #1, #2, #3, #4 */
             mditab_update_item_widths(mditab, 0, n, def_width);
         } else if(need_scroll) {        /* Cases #6, #8 */
             mditab_update_item_widths(mditab, 0, n, min_width);
@@ -1290,6 +1535,8 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
     /* Paint items */
     if(n > 0) {
         xdraw_rect_t sel_rect;
+        xdraw_rect_t drag_rect;
+        BOOL paint_drag_item = FALSE;
         int r = (mc_height(&client) - MDITAB_ITEM_TOP_MARGIN + 1) / 2;  /* "+1" to compensate rounding errors */
 
         for(i = 0; i < n; i++) {
@@ -1303,14 +1550,22 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
             if(x0 > area_x1 + r)
                 break;
 
+            /* We need to paint the dragged and selected item as last one, due
+             * to the overlaps. Remember its rect. */
             if(i == mditab->item_selected) {
-                /* We need to paint the selected item as last one, due to the
-                 * overlaps. Remember its rect. */
                 paint_selected_item = TRUE;
                 sel_rect.x0 = x0;
                 sel_rect.x1 = x1;
                 sel_rect.y0 = (float) MDITAB_ITEM_TOP_MARGIN;
                 sel_rect.y1 = client.bottom;
+                continue;
+            }
+            if(i == mditab->item_dragged) {
+                paint_drag_item = TRUE;
+                drag_rect.x0 = x0;
+                drag_rect.x1 = x1;
+                drag_rect.y0 = (float) MDITAB_ITEM_TOP_MARGIN;
+                drag_rect.y1 = client.bottom;
                 continue;
             }
 
@@ -1330,6 +1585,14 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
             mditab_paint_item(mditab, ctx, &client, item, &sel_rect,
                               area_x0, area_x1, background_image, TRUE,
                               (mditab->item_selected == mditab->item_hot));
+        }
+
+        /* Paint the dragged item. */
+        if(paint_drag_item) {
+            mditab_item_t* item = mditab_item(mditab, mditab->item_dragged);
+            mditab_paint_item(mditab, ctx, &client, item, &drag_rect,
+                              area_x0, area_x1, background_image, FALSE,
+                              (mditab->item_dragged == mditab->item_hot));
         }
     }
 
@@ -1523,6 +1786,8 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     }
     if(index <= mditab->item_mclose)
         mditab->item_mclose++;
+    if(index <= mditab->item_dragged)
+        mditab->item_dragged++;
     /* We don't update ->item_hot. This is determined by mouse and set
      * in mditab_update_layout() below anyway... */
 
@@ -1655,6 +1920,9 @@ mditab_delete_item(mditab_t* mditab, int index)
         mditab_notify_sel_change(mditab, old_item_selected, mditab->item_selected);
     }
 
+    if(index == mditab->item_dragged)
+        mditab_cancel_drag(mditab);
+
     if(index == mditab->item_mclose)
         mditab->item_mclose = -1;
 
@@ -1670,6 +1938,8 @@ mditab_delete_item(mditab_t* mditab, int index)
         mditab->item_selected--;
     if(index < mditab->item_mclose)
         mditab->item_mclose--;
+    if(index < mditab->item_dragged)
+        mditab->item_dragged--;
     mditab_reset_hot(mditab);
 
     /* Refresh */
@@ -1699,11 +1969,16 @@ mditab_delete_all_items(mditab_t* mditab)
     if(mditab_count(mditab) == 0)
         return TRUE;
 
+    mditab_cancel_drag(mditab);
+
     if(mditab->item_selected >= 0) {
         int old_index = mditab->item_selected;
         mditab->item_selected = -1;
         mditab_notify_sel_change(mditab, old_index, mditab->item_selected);
     }
+
+    if(mditab->item_dragged >= 0)
+        mditab_cancel_drag(mditab);
 
     mditab_notify_delete_all_items(mditab);
     dsa_clear(&mditab->items, mditab_item_dtor);
@@ -1816,6 +2091,8 @@ mditab_set_cur_sel(mditab_t* mditab, int index)
     old_sel_index = mditab->item_selected;
     if(index == old_sel_index)
         return old_sel_index;
+
+    mditab_cancel_drag(mditab);
 
     mditab->item_selected = index;
     mditab_ensure_visible(mditab, index);
@@ -1957,23 +2234,26 @@ mditab_get_item_rect(mditab_t* mditab, WORD index, RECT* rect, BOOL whole)
 static BOOL
 mditab_key_up(mditab_t* mditab, int key_code, DWORD key_data)
 {
-    int index;
-
     MDITAB_TRACE("mditab_key_up(%p, %d, 0x%x)", mditab, key_code, key_data);
 
     switch(key_code) {
         case VK_LEFT:
-            index = mditab->item_selected - 1;
+            if(mditab->item_selected > 0)
+                mditab_set_cur_sel(mditab, mditab->item_selected - 1);
             break;
+
         case VK_RIGHT:
-            index = mditab->item_selected + 1;
+            if(mditab->item_selected < mditab_count(mditab) - 1)
+                mditab_set_cur_sel(mditab, mditab->item_selected + 1);
             break;
+
+        case VK_ESCAPE:
+            mditab_cancel_drag(mditab);
+            break;
+
         default:
             return FALSE;
     }
-
-    if(0 <= index  &&  index < mditab_count(mditab))
-        mditab_set_cur_sel(mditab, index);
 
     return TRUE;
 }
@@ -2039,6 +2319,9 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
     int index;
     MC_MTHITTESTINFO hti;
 
+    MC_ASSERT(!mditab->considering_drag);
+    MC_ASSERT(mditab->item_dragged <= 0);
+
     if((mditab->style & MC_MTS_FOCUSMASK) == MC_MTS_FOCUSONBUTTONDOWN)
         SetFocus(mditab->win);
 
@@ -2057,6 +2340,10 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
         } else {
             mditab_set_cur_sel(mditab, index);
         }
+
+        /* It can also be start of a drag operation. */
+        if(mditab->style & MC_MTS_DRAGDROP)
+            mditab_consider_drag(mditab, x, y, index);
     } else {
         /* Handle auxiliary buttons */
         int btn_id = -1;
@@ -2082,6 +2369,7 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
                 mditab_invalidate_button(mditab, btn_id);
             } else {
                 SetCapture(mditab->win);
+                mditab->mouse_captured = TRUE;
                 mditab->btn_pressed = TRUE;
                 mditab_invalidate_button(mditab, btn_id);
 
@@ -2102,6 +2390,15 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
 static void
 mditab_left_button_up(mditab_t* mditab, UINT keys, short x, short y)
 {
+    if(mditab->item_dragged >= 0) {
+        mditab_finish_drag(mditab);
+        return;
+    }
+    if(mditab->considering_drag) {
+        mditab_cancel_drag(mditab);
+        return;
+    }
+
     if(mditab->item_hot < 0  &&  mditab->item_hot != ITEM_HOT_NONE  &&  mditab->btn_pressed) {
         int btn_id = mditab_hot_button(mditab);
         if(btn_id == BTNID_CLOSE  &&  mditab->item_selected >= 0)
@@ -2130,8 +2427,10 @@ mditab_middle_button_down(mditab_t* mditab, UINT keys, short x, short y)
     hti.pt.y = y;
     mditab->item_mclose = mditab_hit_test(mditab, &hti, FALSE);
 
-    if(mditab->item_mclose >= 0)
+    if(mditab->item_mclose >= 0) {
         SetCapture(mditab->win);
+        mditab->mouse_captured = TRUE;
+    }
 }
 
 static void
@@ -2202,6 +2501,11 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
         }
     }
 
+    if((ss->styleOld & MC_MTS_DRAGDROP) != (ss->styleNew & MC_MTS_DRAGDROP)) {
+        if(!(ss->styleNew & MC_MTS_DRAGDROP))
+            mditab_cancel_drag(mditab);
+    }
+
     if(do_update_layout)
         mditab_update_layout(mditab, FALSE);
 
@@ -2268,6 +2572,7 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
     mditab->item_selected = -1;
     mditab->item_hot = ITEM_HOT_NONE;
     mditab->item_mclose = -1;
+    mditab->item_dragged = -1;
     mditab->item_min_width = DEFAULT_ITEM_MIN_WIDTH;
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
@@ -2462,12 +2767,16 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_CAPTURECHANGED:
+            MDITAB_TRACE("mditab_proc(WM_CAPTURECHANGED)");
+            if(mditab->item_dragged >= 0)
+                mditab_cancel_drag(mditab);
             if(mditab->btn_pressed) {
                 if(mditab->item_hot < 0  &&  mditab->item_hot != ITEM_HOT_NONE)
                     mditab_invalidate_button(mditab, mditab_hot_button(mditab));
                 mditab->btn_pressed = FALSE;
                 mditab->item_hot = ITEM_HOT_NONE;
             }
+            mditab->mouse_captured = FALSE;
             return 0;
 
         case WM_DWMCOMPOSITIONCHANGED:

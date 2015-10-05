@@ -21,6 +21,7 @@
 
 /* Uncomment this to have more verbose traces from this module. */
 /*#define DSA_DEBUG     1*/
+ #define DSA_DEBUG     1
 
 #ifdef DSA_DEBUG
     #define DSA_TRACE         MC_TRACE
@@ -198,3 +199,29 @@ dsa_clear(dsa_t* dsa, dsa_dtor_t dtor_func)
     dsa->capacity = 0;
 }
 
+void
+dsa_move(dsa_t* dsa, WORD old_index, WORD new_index)
+{
+    BYTE tmp[DSA_MAX_ITEM_SIZE];
+    int i0, i1, n;
+
+    DSA_TRACE("dsa_move(%p, %d -> %d)", dsa, (int) old_index, (int) new_index);
+    MC_ASSERT(dsa->item_size <= DSA_MAX_ITEM_SIZE);
+
+    if(old_index == new_index)
+        return;
+
+    if(old_index < new_index) {
+        i0 = old_index + 1;
+        i1 = old_index;
+        n = new_index - old_index;
+    } else {
+        i0 = new_index;
+        i1 = new_index + 1;
+        n = old_index - new_index;
+    }
+
+    memcpy(&tmp, dsa_item(dsa, old_index), dsa->item_size);
+    memmove(dsa_item(dsa, i1), dsa_item(dsa, i0), n * dsa->item_size);
+    memcpy(dsa_item(dsa, new_index), &tmp, dsa->item_size);
+}

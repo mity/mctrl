@@ -112,8 +112,8 @@ WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             /* Create mditab child window  */
             hwndMdiTab = CreateWindow(MC_WC_MDITAB, _T(""), WS_CHILD | WS_VISIBLE |
                 MC_MTS_CLOSEONMCLICK | MC_MTS_DOUBLEBUFFER | MC_MTS_ANIMATE |
-                MC_MTS_EXTENDWINDOWFRAME, 0, 0, 0, 0, hWnd, (HMENU) IDC_MDITAB,
-                hInst, NULL);
+                MC_MTS_EXTENDWINDOWFRAME | MC_MTS_DRAGDROP, 0, 0, 0, 0, hWnd,
+                (HMENU) IDC_MDITAB, hInst, NULL);
 
             /* Set an imagelist */
             SendMessage(hwndMdiTab, MC_MTM_SETIMAGELIST, 0, (LPARAM) hImgList);
