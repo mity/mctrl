@@ -693,15 +693,19 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
                      MC_VERSION_STR, 8 * sizeof(void*));
 
             mc_instance = instance;
+            DisableThreadLibraryCalls(instance);
 
             /* This is somewhat scary to do within DllMain() context because of
-             * all the limitations DllMain() imposes. But I believe it's valid
-             * because system DLL loader lock is reentrant and "KERNEL32.DLL"
-             * must already be mapped into the process memory and initialized
-             * (Otherwise InitializeCriticalSection() would not be allowed
-             * to work).
+             * all the limitations DllMain() imposes. Unfortunately we need it
+             * this early for compat_init() below.
              *
-             * Unfortunately we need it this early for compat_init() below.
+             * I believe it's valid to do here because system DLL loader lock
+             * is reentrant and KERNEL32.DLL has already be mapped into our
+             * process memory and initialized.
+             *
+             * (Otherwise InitializeCriticalSection() would not be usable in
+             * DllMain() but creation of synchronization objects is explicitly
+             * allowed by MSDN docs.)
              */
             mc_instance_kernel32 = GetModuleHandle(_T("KERNEL32.DLL"));
             if(MC_ERR(mc_instance_kernel32 == NULL)) {
@@ -709,10 +713,18 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
                 return FALSE;
             }
 
-            DisableThreadLibraryCalls(instance);
-
-            compat_init();
-            debug_init();
+            /* Perform very minimal initialization. Most complex stuff,
+             * especially any registration of window classes, is deferred into
+             * public functions exposed from the DLL. (See module.c)
+             *
+             * BEWARE when changing this: All these functions are very limited
+             * in what they can do (because of DllMain() context) and their
+             * order is very important (see the comments) because they may
+             * do some cooperation with preprocessor magic replacing some
+             * WinAPI function with our wrapper.
+             */
+            compat_init();  /* <-- must precede any InitializeCriticalSection(). */
+            debug_init();   /* <-- must precede any malloc(). */
             module_init();
             xcom_init();
             break;
