@@ -319,13 +319,13 @@ mc_load_sys_dll(const TCHAR* dll_name)
     if(mc_use_LOAD_LIBRARY_SEARCH_SYSTEM32) {
         return LoadLibraryEx(dll_name, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     } else {
-        TCHAR path[PATH_MAX];
+        TCHAR path[MAX_PATH];
         UINT dllname_len;
         UINT sysdir_len;
 
         dllname_len = _tcslen(dll_name);
-        sysdir_len = GetSystemDirectory(path, PATH_MAX);
-        if(MC_ERR(sysdir_len + 1 + dllname_len >= PATH_MAX)) {
+        sysdir_len = GetSystemDirectory(path, MAX_PATH);
+        if(MC_ERR(sysdir_len + 1 + dllname_len >= MAX_PATH)) {
             MC_TRACE("mc_load_sys_dll: Buffer too small.");
             return NULL;
         }
