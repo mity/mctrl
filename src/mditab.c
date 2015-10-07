@@ -2224,7 +2224,6 @@ mditab_set_tooltip_pos(mditab_t* mditab)
     SetWindowPos(mditab->tooltip_win, NULL,
                  (item_rect.left + item_rect.right - tip_size.cx) / 2,
                  item_rect.bottom + 10, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-    return TRUE;
 }
 
 static LRESULT
