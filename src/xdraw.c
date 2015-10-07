@@ -53,16 +53,16 @@ static CRITICAL_SECTION xdraw_lock;
 
 /* Mingw-w64 compatibility hacks. */
 #ifdef MC_TOOLCHAIN_MINGW64
-    /* In mingw-w64, these IIDs are missing in libuuid.a. */
-    static const GUID xdraw_IID_ID2D1Factory = 
+    /* In some mingw-w64 versions, these are missing from LIBUUID.A */
+    static const GUID xdraw_IID_ID2D1Factory =
             {0x06152247,0x6f50,0x465a,{0x92,0x45,0x11,0x8b,0xfd,0x3b,0x60,0x07}};
     #define IID_ID2D1Factory xdraw_IID_ID2D1Factory
-
-    static const GUID xdraw_IID_ID2D1GdiInteropRenderTarget = 
+    static const GUID xdraw_IID_ID2D1GdiInteropRenderTarget =
             {0xe0db51c3,0x6f77,0x4bae,{0xb3,0xd5,0xe4,0x75,0x09,0xb3,0x58,0x38}};
     #define IID_ID2D1GdiInteropRenderTarget xdraw_IID_ID2D1GdiInteropRenderTarget
 
-    /* In mingw-w64, macro wrapping ID2D1RenderTarget::CreateLayer() is broken. */
+    /* In some mingw-w64 versions, macro wrapping ID2D1RenderTarget::CreateLayer()
+     * is erroneously taking too few parameters. */
     #undef ID2D1RenderTarget_CreateLayer
     #define ID2D1RenderTarget_CreateLayer(self,A,B)   (self)->lpVtbl->CreateLayer(self,A,B)
 #endif

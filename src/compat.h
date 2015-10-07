@@ -169,12 +169,22 @@
  *** Mingw-w64 compatibility hacks ***
  *************************************/
 
-/* various missing constants */
-#ifndef TB_SETBOUNDINGSIZE
-    #define TB_SETBOUNDINGSIZE      (WM_USER + 93)
-#endif
-#ifndef TB_SETPRESSEDIMAGELIST
-    #define TB_SETPRESSEDIMAGELIST  (WM_USER + 104)
+#ifdef MC_TOOLCHAIN_MINGW64
+    /* In some mingw-w64 versions, WM_DWMCOMPOSITIONCHANGED is located in
+     * incorrect header. */
+    #include <winuser.h>
+    #ifndef WM_DWMCOMPOSITIONCHANGED
+        #include <dwmapi.h>
+    #endif
+
+    /* In some mingw-w64 versions, the following constants are missing. */
+    #include <commctrl.h>
+    #ifndef TB_SETBOUNDINGSIZE
+        #define TB_SETBOUNDINGSIZE          (WM_USER + 93)
+    #endif
+    #ifndef TB_SETPRESSEDIMAGELIST
+        #define TB_SETPRESSEDIMAGELIST      (WM_USER + 104)
+    #endif
 #endif
 
 
