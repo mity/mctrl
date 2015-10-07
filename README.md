@@ -15,8 +15,8 @@ MS Windows, intended to be complementary to standard Win32API controls from
 
 API of the library is designed to be similar to the Win32API. I.e. after window
 class of particular control is registered with corresponding initialization
-function, the control can be normally created with the Win32API's `CreateWindow()`
-or `CreateWindowEx()` functions and controlled with `SendMessage()`.
+function, the control can be normally created with the Win32API's functions
+`CreateWindow()` or `CreateWindowEx()` and controlled with `SendMessage()`.
 
 
 ## Getting mCtrl
@@ -82,7 +82,8 @@ expects.
 
 It's recommended to use out-of-source-tree builds, so create e.g. a directory
 `build` in the main mCtrl directory. (If you choose to build in other
-directory, replace the `..` with path pointing to the main mCtrl root.)
+directory, replace the `..` in the following instructions with path pointing
+to the root mCtrl directory.)
 
 mCtrl is known to successfully build within following environments.
 
@@ -102,23 +103,17 @@ $ cmake -G "Ninja" ..
 $ ninja
 ```
 
-To build with Microsoft Visual Studio 2013:
+To build with Microsoft Visual Studio 2013 or 2015:
 ```sh
 $ mkdir build
 $ cd build
-$ cmake -G "Visual Studio 12 2013" ..         # for 32-bit build
-$ cmake -G "Visual Studio 12 2013 Win64" ..   # for 64-bit build
+$ cmake -G "Visual Studio 12 2013" ..           # MSVC 2013, 32-bit build
+$ cmake -G "Visual Studio 12 2013 Win64" ..     # MSVC 2013, 64-bit build
+$ cmake -G "Visual Studio 14 2015" ..           # MSVC 2015, 32-bit build
+$ cmake -G "Visual Studio 14 2015 Win64" ..     # MSVC 2015, 64-bit build
 ```
-Then open the build/mCtrl.sln in Visual Studio and build the target `ALL_BUILD`.
-
-To build with Microsoft Visual Studio 2015:
-```sh
-$ mkdir build
-$ cd build
-$ cmake -G "Visual Studio 14 2015" ..         # for 32-bit build
-$ cmake -G "Visual Studio 14 2015 Win64" ..   # for 64-bit build
-```
-Then open the build/mCtrl.sln in Visual Studio and build the target `ALL_BUILD`.
+Then open the generated solution file `build/mCtrl.sln` in Visual Studio and
+build the target `ALL_BUILD`.
 
 Other CMake generators may or may not work. If they do not, then one or more
 `CMakeLists.txt` files within mCtrl directory tree may need some tuning.
@@ -126,12 +121,13 @@ Other CMake generators may or may not work. If they do not, then one or more
 Notes:
 
 * Unfortunately, CMake does not support generating projects targetting multiple
-  architectures. To make build both 32 and 64-bit binaries, you have to
-  generate project files or Makefiles twice and build them separately.
+  architectures. To build both 32 and 64-bit binaries, you have togenerate
+  project files or Makefiles twice and build them separately in different
+  directories.
 
 * For gcc tool-chains, you may need to specify path to `gcc` if you want to
-  use other gcc version then the one in the `$PATH` (e.g. if you have multiple
-  mingw-w64 variants installed, one targeting 32-bit and one 64-bit build).
+  use other gcc version then the one in the `$PATH`, e.g. if you have multiple
+  mingw-w64 variants installed, one targeting 32-bit and one 64-bit build.
   Prior using CMake, you may specify path to the `gcc` and CMake will derive
   all other tool paths accordingly:
 ```sh
