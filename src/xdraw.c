@@ -550,7 +550,13 @@ gdix_init(void)
     dummy_GpStartupInput input = { 0 };
     int status;
 
-    gdix_dll = mc_load_sys_dll(_T("GDIPLUS.DLL"));
+    if(MC_LIKELY(mc_win_version >= MC_WIN_XP)) {
+        gdix_dll = mc_load_sys_dll(_T("GDIPLUS.DLL"));
+    } else {
+        /* Windows 2000 do not have GDIPLUS.DLL by default. Try whether the
+         * application is equipped with the redistributable version of it. */
+        gdix_dll = mc_load_redist_dll(_T("GDIPLUS.DLL"));
+    }
     if(MC_ERR(gdix_dll == NULL)) {
         MC_TRACE_ERR("gdix_init: LoadLibrary(GDIPLUS.DLL) failed");
         goto err_LoadLibrary;

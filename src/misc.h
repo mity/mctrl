@@ -294,6 +294,9 @@ mc_str(const void* from_str, mc_str_type_t from_type, mc_str_type_t to_type)
 /* Safer way of loading system DLLs. */
 HMODULE mc_load_sys_dll(const TCHAR* dll_name);
 
+/* Safer way of loading DLLs (re)distributed with the application. */
+HMODULE mc_load_redist_dll(const TCHAR* dll_name);
+
 
 /*********************************
  *** Atomic Reference Counting ***

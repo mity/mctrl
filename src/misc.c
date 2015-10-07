@@ -292,13 +292,12 @@ out:
  *** Loading System DLLs ***
  ***************************/
 
-static HMODULE (WINAPI* mc_LoadLibraryEx)(const TCHAR*, HANDLE, DWORD) = NULL;
+static BOOL mc_use_LOAD_LIBRARY_SEARCH_SYSTEM32 = FALSE;
 
 static void
 setup_load_sys_dll(void)
 {
-    /* Win 2000 does not have LoadLibraryEx(); Win XP does have LoadLibraryEx()
-     * but it does not support LOAD_LIBRARY_SEARCH_SYSTEM32. */
+    /* Win 2000 and XP does not support LOAD_LIBRARY_SEARCH_SYSTEM32. */
     if(mc_win_version <= MC_WIN_XP)
         return;
 
@@ -311,20 +310,37 @@ setup_load_sys_dll(void)
             return;
     }
 
-    /* Both LoadLibraryEx() and the flag LOAD_LIBRARY_SEARCH_SYSTEM32
-     * should be available. */
-    mc_LoadLibraryEx = (HMODULE (WINAPI*)(const TCHAR*, HANDLE, DWORD))
-                GetProcAddress(mc_instance_kernel32,
-                               MC_STRINGIZE(MCTRL_NAME_AW(LoadLibraryEx)));
+    mc_use_LOAD_LIBRARY_SEARCH_SYSTEM32 = TRUE;
 }
 
 HMODULE
 mc_load_sys_dll(const TCHAR* dll_name)
 {
-    if(mc_LoadLibraryEx != NULL)
-        return mc_LoadLibraryEx(dll_name, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    else
-        return LoadLibrary(dll_name);
+    if(mc_use_LOAD_LIBRARY_SEARCH_SYSTEM32) {
+        return LoadLibraryEx(dll_name, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    } else {
+        TCHAR path[PATH_MAX];
+        UINT dllname_len;
+        UINT sysdir_len;
+
+        dllname_len = _tcslen(dll_name);
+        sysdir_len = GetSystemDirectory(path, PATH_MAX);
+        if(MC_ERR(sysdir_len + 1 + dllname_len >= PATH_MAX)) {
+            MC_TRACE("mc_load_sys_dll: Buffer too small.");
+            return NULL;
+        }
+
+        path[sysdir_len] = _T('\\');
+        memcpy(path + sysdir_len + 1, dll_name, (dllname_len + 1) * sizeof(TCHAR));
+
+        return LoadLibraryEx(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    }
+}
+
+HMODULE
+mc_load_redist_dll(const TCHAR* dll_name)
+{
+    return LoadLibrary(dll_name);
 }
 
 
