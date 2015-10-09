@@ -209,11 +209,14 @@
  *   using the current theme. Note mCtrl does so only if the application uses
  *   @c COMMCTRL32.DLL version 6 or newer.
  *
- * - In cases, that GDI is insufficient and higher-quality graphics is needed,
- *   mCtrl loads Direct2D (@c D2D1.DLL) & DirectWrite (@c DWRITE.DLL), or
- *   if Direct2D/DirectWrite is not available, it loads GDI+ (@c GDIPLUS.DLL).
- *   Note that Direct2D is only available since MS Vista (with some service
- *   pack or other updates) and newer Windows versions. GDI+ is available since
- *   Windows XP. Windows 2000 does not provide system version of GDI+ but
- *   redistributable version of GDI+ v. 1.0 can be obtained from Microsoft.
+ * - In cases when GDI is insufficient as higher-quality graphics with alpha
+ *   channel or with anti-aliasing support is needed, mCtrl loads Direct2D
+ *   (@c D2D1.DLL) and DirectWrite (@c DWRITE.DLL), or (if not available) GDI+
+ *   (@c GDIPLUS.DLL). Note that Direct2D is only available since MS Vista
+ *   (with some Service Pack or other updates) and newer Windows versions.
+ *   GDI+ is available since Windows 2000 with some Service Packs. To make
+ *   @c MCTRL.DLL working on all Windows 2000, even when the system lacks the
+ *   library, you may need to deploy the redistributable version of GDI+ v. 1.0
+ *   into your application directory, when installing your application. The
+ *   redistributable @c GDIPLUS.DLL can be obtained from Microsoft.
  */

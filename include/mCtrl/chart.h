@@ -35,10 +35,7 @@ extern "C" {
  * visually illustrative way.
  *
  * @attention The chart control requires @c GDIPLUS.DLL version 1.0 or newer to
- * work correctly. This library was introduced in Windows XP and Windows Server
- * 2003. If your application needs to use this control on Windows 2000, you may
- * need to distribute @c GDIPLUS.DLL along with your application. (Microsoft
- * released @c GDIPLUS.DLL 1.0 as a redistributable for this purpose.)
+ * work correctly. See @ref sec_dll_deps for more info.
  *
  * In general, the control is able to hold a multiple series of data (data
  * sets). Each series typically denotes some quantity evolving in time or its
