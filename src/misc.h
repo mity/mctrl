@@ -132,20 +132,16 @@ extern HINSTANCE mc_instance_kernel32;
     (((major) << 16) | ((minor) << 8) | (sp) << 0)
 
 #define MC_WIN_10          MC_WIN_VER(10, 0, 0)
-#define MC_WIN_S2016       MC_WIN_10
 #define MC_WIN_8_1         MC_WIN_VER(6, 3, 0)
 #define MC_WIN_8           MC_WIN_VER(6, 2, 0)
-#define MC_WIN_S2012       MC_WIN_8
 #define MC_WIN_7_SP1       MC_WIN_VER(6, 1, 1)
 #define MC_WIN_7           MC_WIN_VER(6, 1, 0)
-#define MC_WIN_S2008R2     MC_WIN_7
 #define MC_WIN_VISTA_SP2   MC_WIN_VER(6, 0, 2)
 #define MC_WIN_VISTA_SP1   MC_WIN_VER(6, 0, 1)
 #define MC_WIN_VISTA       MC_WIN_VER(6, 0, 0)
-#define MC_WIN_S2008       MC_WIN_VISTA
-#define MC_WIN_S2003_SP2   MC_WIN_VER(5, 2, 2)
-#define MC_WIN_S2003_SP1   MC_WIN_VER(5, 2, 1)
-#define MC_WIN_S2003       MC_WIN_VER(5, 2, 0)
+#define MC_WIN_XP64_SP2    MC_WIN_VER(5, 2, 2)
+#define MC_WIN_XP64_SP1    MC_WIN_VER(5, 2, 1)
+#define MC_WIN_XP64        MC_WIN_VER(5, 2, 0)
 #define MC_WIN_XP_SP3      MC_WIN_VER(5, 1, 3)
 #define MC_WIN_XP_SP2      MC_WIN_VER(5, 1, 2)
 #define MC_WIN_XP_SP1      MC_WIN_VER(5, 1, 1)
@@ -162,6 +158,19 @@ extern HINSTANCE mc_instance_kernel32;
 #define MC_WIN_NT4_SP2     MC_WIN_VER(4, 0, 2)
 #define MC_WIN_NT4_SP1     MC_WIN_VER(4, 0, 1)
 #define MC_WIN_NT4         MC_WIN_VER(4, 0, 0)
+
+/* Server editions */
+#define MC_WIN_S2016       MC_WIN_10
+#define MC_WIN_S2012R2     MC_WIN_8_1
+#define MC_WIN_S2012       MC_WIN_8
+#define MC_WIN_S2008R2_SP1 MC_WIN_7_SP1
+#define MC_WIN_S2008R2     MC_WIN_7
+#define MC_WIN_S2008_SP2   MC_WIN_VISTA_SP2
+#define MC_WIN_S2008_SP1   MC_WIN_VISTA_SP1
+#define MC_WIN_S2008       MC_WIN_VISTA
+#define MC_WIN_S2003_SP2   MC_WIN_XP64_SP2
+#define MC_WIN_S2003_SP1   MC_WIN_XP64_SP1
+#define MC_WIN_S2003       MC_WIN_XP64
 
 extern DWORD mc_win_version;
 
