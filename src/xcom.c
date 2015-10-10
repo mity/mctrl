@@ -50,7 +50,10 @@ redo:
 
         case XCOM_MODE_MCTRL:
             /* We are responsible to initialize COM whenever we want to use
-             * it. */
+             * it. According to Raymond Chen, we should use single-threaded
+             * apartment (COINIT_APARTMENTTHREADED):
+             * http://blogs.msdn.com/b/oldnewthing/archive/2008/04/24/8420242.aspx
+             */
             hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
             if(MC_ERR(FAILED(hr))) {
                 MC_TRACE_HR("xcom_create_init: CoInitializeEx() failed.");
