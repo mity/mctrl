@@ -4,7 +4,7 @@
  */
 
 #include <windows.h>
-#include "example-mditab.h"
+#include "example-mditab-dwm.h"
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
