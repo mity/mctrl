@@ -2395,6 +2395,7 @@ static BOOL
 chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase)
 {
     chart_layout_t layout;
+	DWORD type;
 
     xdraw_canvas_begin_paint(ctx->canvas);
 
@@ -2419,7 +2420,7 @@ chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase
     chart_paint_legend(chart, ctx, &layout);
 
     /* Paint the chart body */
-    DWORD type = (chart->style & MC_CHS_TYPEMASK);
+    type = (chart->style & MC_CHS_TYPEMASK);
     switch(type) {
         case MC_CHS_PIE:
             pie_paint(chart, ctx, &layout);
