@@ -85,15 +85,30 @@
  *** restrict specifier  ***
  ***************************/
 
-/* "restrict" has been introduced in C99, but MSVC and gcc provide __restrict
- * as compiler extension. We use it throughout our code for better
- * optimizations. */
+/* "restrict" has been introduced in C99, but gcc and MSVC (version 2013 and
+ * newer) provide __restrict as compiler extension. We use it throughout our
+ * code for better optimizations. */
 #if !defined(__STDC_VERSION__)  ||  __STDC_VERSION__ < 199901L
-    #if defined MC_COMPILER_MSVC  ||  defined MC_COMPILER_GCC
+    #if defined MC_COMPILER_GCC
+        #define restrict __restrict
+    #elif defined MC_COMPILER_MSVC  &&  MC_COMPILER_MSVC >= 1700
         #define restrict __restrict
     #else
         #define restrict
     #endif
+#endif
+
+
+/**************************
+ *** Old WIndows 7 SDK  ***
+ **************************/
+
+#ifndef TB_SETBOUNDINGSIZE
+    #define TB_SETBOUNDINGSIZE              (WM_USER+93)
+#endif
+
+#ifndef LOAD_LIBRARY_SEARCH_SYSTEM32
+    #define LOAD_LIBRARY_SEARCH_SYSTEM32    0x800
 #endif
 
 
@@ -142,10 +157,16 @@
         #endif
     #endif
 
-    /* MSVC does not know roundf() */
     #include <math.h>
+    /* MSVC does not know roundf() */
     static inline float roundf(float x)
         { return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f); }
+    /* MSVC older then 2013 does not know cbrtf() */
+    #if MC_COMPILER_MSVC < 1700
+    static inline float cbrtf(float x)
+        { return powf(x, 1.0f / 3.0f); }
+    #endif
+
 
     /* With recent SDK versions, <shlwapi.h> started to #undefine COM C wrapper
      * macros IStream_Read and IStream_Write and instead it provides its own
