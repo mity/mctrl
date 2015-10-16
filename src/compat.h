@@ -99,19 +99,6 @@
 #endif
 
 
-/**************************
- *** Old WIndows 7 SDK  ***
- **************************/
-
-#ifndef TB_SETBOUNDINGSIZE
-    #define TB_SETBOUNDINGSIZE              (WM_USER+93)
-#endif
-
-#ifndef LOAD_LIBRARY_SEARCH_SYSTEM32
-    #define LOAD_LIBRARY_SEARCH_SYSTEM32    0x800
-#endif
-
-
 /*********************************
  *** MSVC compatibility hacks  ***
  *********************************/
@@ -161,12 +148,22 @@
     /* MSVC does not know roundf() */
     static inline float roundf(float x)
         { return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f); }
-    /* MSVC older then 2013 does not know cbrtf() */
-    #if MC_COMPILER_MSVC < 1700
-    static inline float cbrtf(float x)
-        { return powf(x, 1.0f / 3.0f); }
-    #endif
 
+    #if MC_COMPILER_MSVC < 1700
+        /* MSVC older then 2013 does not know cbrtf() */
+        static inline float cbrtf(float x)
+            { return powf(x, 1.0f / 3.0f); }
+
+        /* Windows 7.1 SDK lacks some constants. */
+        #include <windows.h>
+        #ifndef LOAD_LIBRARY_SEARCH_SYSTEM32
+            #define LOAD_LIBRARY_SEARCH_SYSTEM32    0x800
+        #endif
+        #include <commctrl.h>
+        #ifndef TB_SETBOUNDINGSIZE
+            #define TB_SETBOUNDINGSIZE              (WM_USER+93)
+        #endif
+    #endif
 
     /* With recent SDK versions, <shlwapi.h> started to #undefine COM C wrapper
      * macros IStream_Read and IStream_Write and instead it provides its own
