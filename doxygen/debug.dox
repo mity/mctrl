@@ -13,7 +13,7 @@
  * and usable as a drop-in replacement of the Release builds of @c MCTRL.DLL.
  *
  * The Debug builds differs from the Release builds in the following ways:
- *  - It is built with most compiler optimizations disabled.
+ *  - It is built with majority of compiler optimizations disabled.
  *  - It is built with debug information so the debugger can provide more info.
  *    (That is as long as using the same toolchain as mCtrl was built with as
  *    Microsoft tools in general do not understand DWARF format as produced
@@ -29,8 +29,8 @@
  *    an invalid parameter), it logs down a debug message explaining the issue.
  *    (See below for more details.)
  *
- * Since version 0.10.0, debug builds (built with @c gcc) are included in the
- * released binary packages.
+ * Since version 0.11.0, debug builds for @c gcc as well as for Visual Studio
+ * are included in the released binary packages.
  *
  *
  * @section dec_debug_log Debug Logging
@@ -39,10 +39,10 @@
  * during the runtime of application linked with @c MCTRL.DLL. The logging
  * is performed via the @c OutputDebugString() function.
  *
- * So this debug output may be seen with any application capable catching it,
- * which includes Microsoft debugger within Microsoft Visual Studio (just
- * run your application within the debugger), @c gdb (ditto), or DebugView
- * utility available from the package of SysInternals utilities (see
+ * So this debug output may be seen with any application capable of catching,
+ * this output which includes Microsoft debugger within Microsoft Visual Studio
+ * (just run your application within the debugger), @c gdb (ditto), or
+ * DebugView utility available from the package of SysInternals utilities (see
  * https://technet.microsoft.com/en-us/sysinternals/).
  *
  * Seeing this debug output may help whenever something with mCtrl goes wrong

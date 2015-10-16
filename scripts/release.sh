@@ -5,6 +5,21 @@
 #  - mCtrl-$VERSION-bin.zip
 #
 # All packages are put in current directory (and overwritten if exist already).
+#
+# The script has to be run from MSYS (or cygwin) environment.
+# Additionally the following stuff has to be installed on the machine:
+#  - CMake 3.1 or newer.
+#       - "cmake" has to be in $PATH
+#  - gcc-based multitarget toolchain:
+#       - Must be capable to target both 32-bit (-m32) and 64-bit (-m64) Windows
+#       - 32-bit mingw-builds from mingw-w64 project provides this feature
+#  - MS Visual Studio 2013 or 2015 (as well as MSBuild tool)
+#       - Must be in the default location
+#  - Doxygen
+#       - "doxygen" has to be in $PATH
+#  - Zip utility (zip or 7zip should work)
+#       - "zip", "7za" or "7z" has to be in $PATH
+
 
 
 # We want to control what's going to stdout/err.
@@ -67,112 +82,155 @@ fi
 echo "$MKZIP" >&3
 
 
-###########################
-# Detect a build back-end #
-###########################
+#########################################
+# Detect build tool for gcc (mingw-w64) #
+#########################################
 
-echo -n "Detected build back-end... " >&3
+echo -n "Detected gcc build tool... " >&3
 if which ninja; then
-    CMAKE_GENERATOR="Ninja"
-    BUILD="ninja -v"
+    CMAKE_GENERATOR_GCC="Ninja"
+    BUILD_GCC="ninja -v"
 elif which make; then
-    CMAKE_GENERATOR="MSYS Makefiles"
-    BUILD="make VERBOSE=1"
+    CMAKE_GENERATOR_GCC="MSYS Makefiles"
+    BUILD_GCC="make VERBOSE=1"
 else
     echo "Not found." >&3
     exit 1
 fi
-echo "$BUILD" >&3
+echo "$BUILD_GCC" >&3
 
 
-#########################
-# Build 64-bit binaries #
-#########################
+########################
+# Detect Visual Studio #
+########################
+
+#echo -n "Detecting MSVC generator... " >&3
+#if [ -d "/c/Program Files/Microsoft Visual Studio 14.0/" -o \
+#     -d "/c/Program Files (x86)/Microsoft Visual Studio 14.0/" ]; then
+#     CMAKE_GENERATOR_MSVC32="Visual Studio 14 2015"
+#     CMAKE_GENERATOR_MSVC64="Visual Studio 14 2015 Win64"
+#elif [ -d "/c/Program Files/Microsoft Visual Studio 12.0/" -o \
+#       -d "/c/Program Files (x86)/Microsoft Visual Studio 12.0/" ]; then
+#     CMAKE_GENERATOR_MSVC32="Visual Studio 12 2013"
+#     CMAKE_GENERATOR_MSVC64="Visual Studio 12 2013 Win64"
+#else
+#    echo "Not found." >&3
+#    exit 1
+#fi
+#echo "$CMAKE_GENERATOR_MSVC32" >&3
+
+echo -n "Detecting MSBuild... " >&3
+if [ -x "/c/Program Files/MSBuild/14.0/bin/msbuild.exe" -o \
+     -x "/c/Program Files (x86)/MSBuild/14.0/bin/msbuild.exe" ]; then
+     CMAKE_GENERATOR_MSVC32="Visual Studio 14 2015"
+     CMAKE_GENERATOR_MSVC64="Visual Studio 14 2015 Win64"
+     if [ -x "/c/Program Files/MSBuild/14.0/bin/msbuild.exe" ]; then
+        BUILD_MSVC="/c/Program Files/MSBuild/14.0/bin/msbuild.exe"
+    else
+        BUILD_MSVC="/c/Program Files (x86)/MSBuild/14.0/bin/msbuild.exe"
+    fi
+elif [ -x "/c/Program Files/MSBuild/12.0/bin/msbuild.exe" -o \
+       -x "/c/Program Files (x86)/MSBuild/12.0/bin/msbuild.exe" ]; then
+     CMAKE_GENERATOR_MSVC32="Visual Studio 12 2013"
+     CMAKE_GENERATOR_MSVC64="Visual Studio 12 2013 Win64"
+     if [ -x "/c/Program Files/MSBuild/12.0/bin/msbuild.exe" ]; then
+        BUILD_MSVC="/c/Program Files/MSBuild/12.0/bin/msbuild.exe"
+    else
+        BUILD_MSVC="/c/Program Files (x86)/MSBuild/12.0/bin/msbuild.exe"
+    fi
+else
+    echo "Not found." >&3
+    exit 1
+fi
+echo "$BUILD_MSVC" >&3
+
+
+############################
+# Prepare clean playground #
+############################
 
 rm -rf $TMP/mCtrl-$VERSION
 git clone . $TMP/mCtrl-$VERSION
 
-echo -n "Building 64-bit binaries (release build)... " >&3
-mkdir -p "$TMP/mCtrl-$VERSION/build64-rel"
 
-(cd "$TMP/mCtrl-$VERSION/build64-rel" && \
- cmake -D CMAKE_BUILD_TYPE=Release \
-       -D CMAKE_C_FLAGS="-m64" \
-       -D CMAKE_EXE_LINKER_FLAGS="-m64" \
-       -D CMAKE_SHARED_LINKER_FLAGS="-m64" \
-       -D CMAKE_RC_FLAGS="--target=pe-x86-64" \
-       -D DLLTOOL_FLAGS="-m;i386:x86-64;-f;--64" \
-       -G "$CMAKE_GENERATOR" .. && \
- $BUILD > $PRJ/build-x86_64-rel.log 2>&1)
-if [ $? -eq 0 ]; then
-    HAVE_X86_64_REL=yes
-    echo "Done." >&3
-else
-    echo "Failed. See build-x86_64-rel.log." >&3
-fi
+##################
+# Build with gcc #
+##################
 
-echo -n "Building 64-bit binaries (debug build)... " >&3
-mkdir -p "$TMP/mCtrl-$VERSION/build64-dbg"
+function build_gcc()
+{
+    ARCH=$1
+    CONFIG=$2
 
-(cd "$TMP/mCtrl-$VERSION/build64-dbg" && \
- cmake -D CMAKE_BUILD_TYPE=Debug \
-       -D CMAKE_C_FLAGS="-m64" \
-       -D CMAKE_EXE_LINKER_FLAGS="-m64" \
-       -D CMAKE_SHARED_LINKER_FLAGS="-m64" \
-       -D CMAKE_RC_FLAGS="--target=pe-x86-64" \
-       -D DLLTOOL_FLAGS="-m;i386:x86-64;-f;--64" \
-       -G "$CMAKE_GENERATOR" .. && \
- $BUILD > $PRJ/build-x86_64-dbg.log 2>&1)
-if [ $? -eq 0 ]; then
-    HAVE_X86_64_DBG=yes
-    echo "Done." >&3
-else
-    echo "Failed. See build-x86_64-dbg.log." >&3
-fi
+    echo -n "Build with gcc $ARCH $CONFIG... " >&3
+    if [ "$ARCH" = "x86_64" ]; then
+        CFLAGS="-m64"
+        LDFLAGS="-m64"
+        RCFLAGS="--target=pe-x86-64"
+        DLLFLAGS="-m;i386:x86-64;-f;--64"
+    else
+        CFLAGS="-m32"
+        LDFLAGS="-m32"
+        RCFLAGS="--target=pe-i386"
+        DLLFLAGS="-m;i386;-f;--32"
+    fi
 
+    BUILDDIR="./build-gcc-$ARCH-$CONFIG"
+    mkdir -p "$BUILDDIR"
+    (cd "$BUILDDIR"  && \
+     cmake -D CMAKE_BUILD_TYPE="$CONFIG" \
+           -D CMAKE_C_FLAGS="$CFLAGS" \
+           -D CMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+           -D CMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+           -D CMAKE_RC_FLAGS="$RCFLAGS" \
+           -D DLLTOOL_FLAGS="$DLLFLAGS" \
+           -G "$CMAKE_GENERATOR_GCC" ..  && \
+     $BUILD_GCC > "$PRJ/build-gcc-$ARCH-$CONFIG.log" 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "Done." >&3
+    else
+        echo "Failed. See $PRJ/build-gcc-$ARCH-$CONFIG.log for more info." >&3
+    fi
+}
 
-#########################
-# Build 32-bit binaries #
-#########################
-
-echo -n "Building 32-bit binaries (release build)... " >&3
-mkdir -p "$TMP/mCtrl-$VERSION/build32-rel"
-
-(cd "$TMP/mCtrl-$VERSION/build32-rel" && \
- cmake -D CMAKE_BUILD_TYPE=Release \
-       -D CMAKE_C_FLAGS="-m32 -march=i586 -mtune=core2" \
-       -D CMAKE_EXE_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
-       -D CMAKE_SHARED_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
-       -D CMAKE_RC_FLAGS="--target=pe-i386" \
-       -D DLLTOOL_FLAGS="-m;i386;-f;--32" \
-       -G "$CMAKE_GENERATOR" .. && \
- $BUILD > $PRJ/build-x86-rel.log 2>&1)
-if [ $? -eq 0 ]; then
-    HAVE_X86_REL=yes
-    echo "Done." >&3
-else
-    echo "Failed. See build-x86-rel.log." >&3
-fi
+(cd $TMP/mCtrl-$VERSION  && \
+ build_gcc x86_64 Release  && \
+ build_gcc x86_64 Debug  && \
+ build_gcc x86 Release  && \
+ build_gcc x86 Debug)
 
 
-echo -n "Building 32-bit binaries (debug build)... " >&3
-mkdir -p "$TMP/mCtrl-$VERSION/build32-dbg"
+###################
+# Build with MSVC #
+###################
 
-(cd "$TMP/mCtrl-$VERSION/build32-dbg" && \
- cmake -D CMAKE_BUILD_TYPE=Debug \
-       -D CMAKE_C_FLAGS="-m32 -march=i586 -mtune=core2" \
-       -D CMAKE_EXE_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
-       -D CMAKE_SHARED_LINKER_FLAGS="-m32 -march=i586 -mtune=core2" \
-       -D CMAKE_RC_FLAGS="--target=pe-i386" \
-       -D DLLTOOL_FLAGS="-m;i386;-f;--32" \
-       -G "$CMAKE_GENERATOR" .. && \
- $BUILD > $PRJ/build-x86-dbg.log 2>&1)
-if [ $? -eq 0 ]; then
-    HAVE_X86_DBG=yes
-    echo "Done." >&3
-else
-    echo "Failed. See build-x86-dbg.log." >&3
-fi
+function build_msvc()
+{
+    ARCH=$1
+
+    echo -n "Build with MSVC $ARCH... " >&3
+    if [ "$ARCH" = "x86_64" ]; then
+        GENERATOR="$CMAKE_GENERATOR_MSVC64"
+    else
+        GENERATOR="$CMAKE_GENERATOR_MSVC32"
+    fi
+
+    BUILDDIR="./build-msvc-$ARCH"
+    mkdir -p "$BUILDDIR"
+    (cd "$BUILDDIR"  && \
+     cmake -G "$GENERATOR" ..  && \
+     "$BUILD_MSVC" /property:Configuration=Release mCtrl.sln > "$PRJ/build-msvc-$ARCH-Release.log" 2>&1  && \
+     "$BUILD_MSVC" /property:Configuration=Debug mCtrl.sln > "$PRJ/build-msvc-$ARCH-Debug.log" 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "Done." >&3
+    else
+        echo "Failed. See $PRJ/build-msvc-$ARCH.log for more info." >&3
+    fi
+}
+
+(cd $TMP/mCtrl-$VERSION  && \
+ build_msvc x86_64  && \
+ build_msvc x86)
 
 
 ##########################
@@ -201,35 +259,40 @@ echo -n "Packing binary package... " >&3
 rm -rf $TMP/mCtrl-$VERSION-src
 mv $TMP/mCtrl-$VERSION $TMP/mCtrl-$VERSION-src
 mkdir $TMP/mCtrl-$VERSION
-if [ x$HAVE_X86_REL != x ]; then
-    mkdir -p $TMP/mCtrl-$VERSION/bin
-    cp $TMP/mCtrl-$VERSION-src/build32-rel/mCtrl.dll $TMP/mCtrl-$VERSION/bin/
-    cp $TMP/mCtrl-$VERSION-src/build32-rel/example-*.exe $TMP/mCtrl-$VERSION/bin/
-    cp $TMP/mCtrl-$VERSION-src/build32-rel/test-*.exe $TMP/mCtrl-$VERSION/bin/
-    mkdir -p $TMP/mCtrl-$VERSION/lib
-    cp $TMP/mCtrl-$VERSION-src/build32-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/libmCtrl.dll.a
-    cp $TMP/mCtrl-$VERSION-src/build32-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/mCtrl.lib
-fi
-if [ x$HAVE_X86_DBG != x ]; then
-    mkdir -p $TMP/mCtrl-$VERSION/bin/debug
-    cp $TMP/mCtrl-$VERSION-src/build32-dbg/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug/
-fi
-if [ x$HAVE_X86_64_REL != x ]; then
-    mkdir -p $TMP/mCtrl-$VERSION/bin64
-    cp $TMP/mCtrl-$VERSION-src/build64-rel/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/
-    cp $TMP/mCtrl-$VERSION-src/build64-rel/example-*.exe $TMP/mCtrl-$VERSION/bin64/
-    cp $TMP/mCtrl-$VERSION-src/build64-rel/test-*.exe $TMP/mCtrl-$VERSION/bin64/
-    mkdir -p $TMP/mCtrl-$VERSION/lib64
-    cp $TMP/mCtrl-$VERSION-src/build64-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/libmCtrl.dll.a
-    cp $TMP/mCtrl-$VERSION-src/build64-rel/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/mCtrl.lib
-fi
-if [ x$HAVE_X86_64_DBG != x ]; then
-    mkdir -p $TMP/mCtrl-$VERSION/bin64/debug
-    cp $TMP/mCtrl-$VERSION-src/build64-dbg/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/debug/
-fi
-if [ x$HAVE_DOC != x ]; then
-    cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
-fi
+
+# x86_64 Release
+mkdir -p $TMP/mCtrl-$VERSION/bin64
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Release/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Release/example-*.exe $TMP/mCtrl-$VERSION/bin64/
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Release/test-*.exe $TMP/mCtrl-$VERSION/bin64/
+mkdir -p $TMP/mCtrl-$VERSION/lib64
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Release/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x86_64/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib64/
+
+# x86_64 Debug
+mkdir -p $TMP/mCtrl-$VERSION/bin64/debug-gcc
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/debug-gcc/
+mkdir -p $TMP/mCtrl-$VERSION/bin64/debug-msvc
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x86_64/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x86_64/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin64/debug-msvc/
+
+# x86 Release
+mkdir -p $TMP/mCtrl-$VERSION/bin
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Release/mCtrl.dll $TMP/mCtrl-$VERSION/bin/
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Release/example-*.exe $TMP/mCtrl-$VERSION/bin/
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Release/test-*.exe $TMP/mCtrl-$VERSION/bin/
+mkdir -p $TMP/mCtrl-$VERSION/lib
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Release/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib/
+
+# x86 Debug
+mkdir -p $TMP/mCtrl-$VERSION/bin/debug-gcc
+cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-gcc/
+mkdir -p $TMP/mCtrl-$VERSION/bin/debug-msvc
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin/debug-msvc/
+
+cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
 cp -r $TMP/mCtrl-$VERSION-src/include $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/AUTHORS $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/COPYING $TMP/mCtrl-$VERSION/
