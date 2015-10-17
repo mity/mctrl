@@ -44,30 +44,63 @@ repository hosted on github:
 ## Using mCtrl
 
 If you have the pre-built package, using mCtrl is as easy as using any other
-DLL.
+DLL, just configure your compiler where it finds mCtrl headers and libraries.
 
-Header files are located in `include\mCtrl` directory. You should instruct
-your C/C++ compiler to search for header files in the `include` directory and
-use the `mCtrl` in your preprocessor `#include` directives, e.g.:
+The pre-built release package has tis directory structure:
 
-```C
-#include <mCtrl/version.h>
+```
+mCtrl-X.Y.Z/
+ |  AUTHORS                 # Authors participating on the project
+ |  COPYING                 # GNU General Public License
+ |  COPYING.lib             # GNU Lesser General Public License
+ |  README.md               # This file
+ |
+ +- bin/                    # 32-bit binaries
+ |   |  mCtrl.dll           # MCTRL.DLL
+ |   |  example-*.exe       # Pre-built examples
+ |   |
+ |   +- debug-gcc/
+ |   |      mCtrl.dll       # Debug build of MCTRL.DLL (built with gcc)
+ |   |
+ |   +- debug-msvc/
+ |          mCtrl.dll       # Debug build of MCTRL.DLL (built with Visual Studio)
+ |          mCtrl.pdb       # Visual Studio debug info
+ |
+ +- bin64/                  # 64-bit binaries
+ |   |  mCtrl.dll           # MCTRL.DLL
+ |   |  example-*.exe       # Pre-built examples
+ |   |
+ |   +- debug-gcc/
+ |   |      mCtrl.dll       # Debug build of MCTRL.DLL (built with gcc)
+ |   |
+ |   +- debug-msvc/
+ |          mCtrl.dll       # Debug build of MCTRL.DLL (built with Visual Studio)
+ |          mCtrl.pdb       # Visual Studio debug info
+ |
+ +- doc/                    # Reference manual
+ |      *.html
+ |
+ +- examples/               # Examples
+ |      CMakeLists.txt      # CMake recipe for building the examples
+ |      *.c; *.h; *.rc      # Source files of the examples
+ |
+ +- lib/                    # 32-bit import libraries
+ |      libmCtrl.dll.a      # Import library for gcc
+ |      mCtrl.lib           # Import library for Visual Studio
+ |
+ +- lib64/                  # 64-bit import libraries
+        libmCtrl.dll.a      # Import library for gcc
+        mCtrl.lib           # Import library for Visual Studio
 ```
 
-Import libraries are located under the `lib` (32-bit libs) and `lib64` (64-bit)
-subdirectory:
+Note you should instruct your C/C++ compiler to search for header files in
+the `include` directory and use the directory `mCtrl` in your preprocessor
+`#include` directives, e.g.:
 
-* `libmCtrl.dll.a` for gcc-based tool chains (e.g. mingw, mingw-w64)
-* `mCtrl.lib` for MSVC
-
-And finally deploy your application with the `MCTRL.DLL` which is located
-in the `bin` (32-bit binaries) and `bin64` (64-bit) subdirectories in
-the prebuilt package.
-
-Documentation for application developers is bundled within the pre-built
-package, or you can also find the documentation online:
-
-* http://mctrl.org/doc.php
+```C
+#include <mCtrl/dialog.h>
+#include <mCtrl/treelist.h>
+```
 
 
 ## Building mCtrl from Sources
