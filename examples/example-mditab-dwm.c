@@ -157,7 +157,9 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nC
     hInst = hInstance;
 
     /* Check this example can show anything relevant. If not the example
-     * provides the same user experience as example-mditab.exe. */
+     * provides the same user experience as example-mditab.exe.
+     * (Normal apps which do not need this kind of "warning" do not need this
+     * at all.) */
     hDwmapi = LoadLibrary(_T("DWMAPI.DLL"));
     if(hDwmapi != NULL) {
         funcDwmIsCompositionEnabled = (HRESULT (WINAPI*)(BOOL*))
@@ -178,6 +180,8 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nC
                 _T("MC_MTS_EXTENDWINDOWFRAME has no effect."), WINDOW_TITLE,
                 MB_OK | MB_ICONINFORMATION);
     }
+    if(hDwmapi != NULL)
+        FreeLibrary(hDwmapi);
 
     /* Register main window class */
     wc.lpfnWndProc = WndProc;
