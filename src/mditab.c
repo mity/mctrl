@@ -2623,6 +2623,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     mditab_t* mditab = (mditab_t*) GetWindowLongPtr(win, 0);
 
+    /* This shuts up Coverity issues CID1327525, CID1327526, CID1327527. */
+    MC_ASSERT(mditab != NULL  ||  msg == WM_NCCREATE  ||  msg == WM_NCDESTROY);
+
     if(mditab != NULL  &&  mditab->tooltip_win != NULL)
         tooltip_forward_msg(mditab->tooltip_win, win, msg, wp, lp);
 
