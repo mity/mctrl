@@ -707,8 +707,6 @@ button_init_module(void)
 {
     WNDCLASS wc;
 
-    mc_init_common_controls(ICC_STANDARD_CLASSES);
-
     if(MC_ERR(!GetClassInfo(NULL, _T("BUTTON"), &wc))) {
         MC_TRACE_ERR("button_init_module: GetClassInfo() failed");
         return -1;

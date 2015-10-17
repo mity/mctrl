@@ -402,21 +402,6 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta, int lines_per_page)
  *** Assorted Utilities ***
  **************************/
 
-static void (WINAPI *mc_InitCommonControlsEx)(INITCOMMONCONTROLSEX*) = NULL;
-
-void
-mc_init_common_controls(DWORD icc)
-{
-    if(mc_InitCommonControlsEx != NULL) {
-        INITCOMMONCONTROLSEX icce = { 0 };
-        icce.dwSize = sizeof(INITCOMMONCONTROLSEX);
-        icce.dwICC = icc;
-        mc_InitCommonControlsEx(&icce);
-    } else {
-        InitCommonControls();
-    }
-}
-
 void
 mc_icon_size(HICON icon, SIZE* size)
 {
@@ -674,9 +659,8 @@ mc_init_module(void)
     setup_load_sys_dll();
     setup_comctl32_version(dll_comctl32);
 
-    /* For mc_init_common_controls(). */
-    mc_InitCommonControlsEx = (void (WINAPI *)(INITCOMMONCONTROLSEX*))
-                GetProcAddress(dll_comctl32, "InitCommonControlsEx");
+    /* Init common controls. */
+    InitCommonControls();
 
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */

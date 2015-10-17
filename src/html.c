@@ -1818,7 +1818,6 @@ html_init_module(void)
     WNDCLASS wc = { 0 };
 
     /* Register window class */
-    mc_init_common_controls(ICC_STANDARD_CLASSES);
     wc.style = CS_GLOBALCLASS | CS_PARENTDC;
     wc.lpfnWndProc = html_proc;
     wc.cbWndExtra = sizeof(html_t*);

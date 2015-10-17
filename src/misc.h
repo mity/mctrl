@@ -465,9 +465,6 @@ mc_wheel_reset(void)
  *** Assorted Utilities ***
  **************************/
 
-/* Convenient wrapper of InitCommonControls/InitCommonControlsEx. */
-void mc_init_common_controls(DWORD icc);
-
 /* Detect icon size */
 void mc_icon_size(HICON icon, SIZE* size);
 static inline UINT mc_icon_width(HICON icon)

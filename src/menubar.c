@@ -819,8 +819,6 @@ menubar_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    mc_init_common_controls(ICC_BAR_CLASSES | ICC_COOL_CLASSES);
-
     if(MC_ERR(!GetClassInfo(NULL, _T("ToolbarWindow32"), &wc))) {
         MC_TRACE_ERR("menubar_init_module: GetClassInfo() failed");
         return -1;
