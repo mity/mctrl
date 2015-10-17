@@ -292,12 +292,14 @@ mkdir -p $TMP/mCtrl-$VERSION/bin/debug-msvc
 cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-msvc/
 cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin/debug-msvc/
 
+# Some vanilla contents from the source tree
 cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
 cp -r $TMP/mCtrl-$VERSION-src/include $TMP/mCtrl-$VERSION/
+cp -r $TMP/mCtrl-$VERSION-src/examples $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/AUTHORS $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/COPYING $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/COPYING.lib $TMP/mCtrl-$VERSION/
-cp $TMP/mCtrl-$VERSION-src/README $TMP/mCtrl-$VERSION/
+cp $TMP/mCtrl-$VERSION-src/README.md $TMP/mCtrl-$VERSION/
 find $TMP/mCtrl-$VERSION -name .git -exec rm -rf {} \;
 find $TMP/mCtrl-$VERSION -name .gitignore -exec rm {} \;
 $MKZIP mCtrl-$VERSION-bin.zip $TMP/mCtrl-$VERSION

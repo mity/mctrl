@@ -24,6 +24,9 @@ set(LIBRARY_OUTPUT_PATH "${PROJECT_BINARY_DIR}")
 # set up include-directories
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
+# Tell exampples/CMakeListst.txt that examples are built as part of complete
+# mCtrl build:
+set(BUILD_COMPLETE_MCTRL "TRUE")
 
 # Add sub-directories
 add_subdirectory(src)

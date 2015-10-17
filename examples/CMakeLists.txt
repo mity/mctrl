@@ -1,4 +1,25 @@
 
+
+# Note this file serves twofold purpose. It serves as a partial CMakefile
+# as part of complete mCtrl source tree, and it is also capable to work
+# as a standalone CMakefile when deployed with the directory examples into
+# a release binary package.
+
+# === Extra stuff the stand-alone mode ===
+if(NOT "${BUILD_COMPLETE_MCTRL}" STREQUAL "TRUE")
+    cmake_minimum_required(VERSION 3.1)
+    project(mCtrl-examples C)
+    set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}")
+    include_directories("${PROJECT_SOURCE_DIR}/../include")
+    if("${CMAKE_SIZEOF_VOID_P}" EQUAL 8)
+        link_directories("${PROJECT_SOURCE_DIR}/../lib64")
+    else()
+        link_directories("${PROJECT_SOURCE_DIR}/../lib")
+    endif()
+endif()
+# ========================================
+
+
 add_definitions(-DUNICODE -D_UNICODE)
 add_definitions(-D_WIN32_IE=0x0501 -D_WIN32_WINNT=0x0501 -DWINVER=_WIN32_WINNT)
 
@@ -24,34 +45,33 @@ elseif(MSVC)
 endif()
 
 
+# Each example mini-app is implemented in a single C source file.
 file(GLOB EXAMPLE_SOURCES "*.c")
-
 foreach(SOURCE ${EXAMPLE_SOURCES})
     get_filename_component(TARGET ${SOURCE} NAME_WE)
 
     string(REGEX REPLACE "\\.c$" "" BASENAME ${SOURCE})
 
+    # Check if this example has an appropriate header and/or resource script
+    # and add those to the mini-project.
     if(EXISTS ${BASENAME}.h)
         set(HEADER ${BASENAME}.h)
     else()
         unset(HEADER)
     endif()
-
     if(EXISTS ${BASENAME}.rc)
         set(RESOURCE ${BASENAME}.rc)
     else()
         set(RESOURCE example-default.rc)
     endif()
-
-
     add_executable(${TARGET} ${SOURCE} ${HEADER} ${RESOURCE})
 
-    # all examples link with comctl32.dll
+    # All examples link with comctl32.dll.
     target_link_libraries(${TARGET} comctl32)
 
-    # all examples but ex_dllgetversion.exe link with mCtrl.dll
+    # All examples but ex_dllgetversion.exe link with mCtrl.dll.
+    # (ex_dllgetversion.exe loads it via LoadLibrary().)
     if(NOT ${TARGET} MATCHES ex_dllgetversion)
         target_link_libraries(${TARGET} mCtrl)
     endif()
 endforeach()
-
