@@ -21,7 +21,6 @@
 
 /* Uncomment this to have more verbose traces from this module. */
 /*#define DSA_DEBUG     1*/
- #define DSA_DEBUG     1
 
 #ifdef DSA_DEBUG
     #define DSA_TRACE         MC_TRACE
