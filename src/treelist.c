@@ -231,7 +231,6 @@ struct treelist_tag {
 #define ITEM_INDENT_MIN           19  /* minimal item indent (per level) */
 #define ITEM_HEIGHT_MIN           16  /* minimal item height */
 #define ITEM_HEIGHT_FONT_MARGIN_V  3  /* margin of item height derived from font size */
-#define ITEM_PAINT_MARGIN_H        1  /* we follow listview in that the (sub)items are offseted to right in compatision to the header */
 #define ITEM_PADDING_H             2  /* inner padding of the item */
 #define ITEM_PADDING_V             1  /* inner padding of the item */
 #define ITEM_PADDING_H_THEMEEXTRA  2  /* when using theme, use extra more horiz. padding. */
@@ -1014,7 +1013,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         for(col_ix = 0; col_ix < tl->col_count; col_ix++) {
             header_item.mask = HDI_FORMAT;
             MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &subitem_rect);
-            subitem_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x;
+            subitem_rect.right -= tl->scroll_x;
             MoveToEx(dc, subitem_rect.right, header_height, NULL);
             LineTo(dc, subitem_rect.right, rect.bottom);
         }
@@ -1082,7 +1081,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             /* Subitem geometry */
             header_item.mask = HDI_FORMAT;
             MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &subitem_rect);
-            subitem_rect.left += ITEM_PAINT_MARGIN_H - tl->scroll_x;
+            subitem_rect.left -= tl->scroll_x;
             if(col_ix == 0) {
                 subitem_rect.left += level * tl->item_indent;
                 if(tl->style & MC_TLS_LINESATROOT)
@@ -1090,7 +1089,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 subitem_rect.left += ITEM_PADDING_H;
             }
             subitem_rect.top = y;
-            subitem_rect.right += ITEM_PAINT_MARGIN_H - tl->scroll_x - 1;
+            subitem_rect.right -= + tl->scroll_x + 1;
             subitem_rect.bottom = y + tl->item_height;
 
             /* Determine subitem colors */
@@ -1350,8 +1349,7 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
     if(tl->font)
         old_font = SelectObject(dc, tl->font);
 
-    mc_rect_set(&item_rect, header_item_rect.left + ITEM_PAINT_MARGIN_H, y,
-                            header_item_rect.right + ITEM_PAINT_MARGIN_H, y + tl->item_height);
+    mc_rect_set(&item_rect, header_item_rect.left, y, header_item_rect.right, y + tl->item_height);
 
     if(info->iSubItem == 0) {
         treelist_dispinfo_t dispinfo;
@@ -1375,7 +1373,6 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
                         goto done;
                     }
                 }
-                item_rect.left += ITEM_PAINT_MARGIN_H;
             }
         }
 
@@ -1502,8 +1499,8 @@ treelist_invalidate_column(treelist_t* tl, int col_ix)
     RECT rect;
 
     MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &tmp);
-    rect.left = tmp.left + ITEM_PAINT_MARGIN_H;
-    rect.right = tmp.right + ITEM_PAINT_MARGIN_H;
+    rect.left = tmp.left;
+    rect.right = tmp.right;
     GetWindowRect(tl->header_win, &tmp);
     rect.top = mc_height(&tmp);
     GetClientRect(tl->win, &tmp);
@@ -2485,7 +2482,7 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
 
         GetClientRect(tl->win, &rect);
-        rect.left = header_item_rect.left - tl->scroll_x + ITEM_PAINT_MARGIN_H;
+        rect.left = header_item_rect.left - tl->scroll_x;
         rect.top = mc_height(&header_item_rect);
         rect.right = tl->scroll_x_max - tl->scroll_x;
 
@@ -2644,7 +2641,7 @@ treelist_delete_column(treelist_t* tl, int col_ix)
         RECT rect;
 
         GetClientRect(tl->win, &rect);
-        rect.left = header_item_rect.left - tl->scroll_x + ITEM_PAINT_MARGIN_H;
+        rect.left = header_item_rect.left - tl->scroll_x;
         rect.top = mc_height(&header_item_rect);
         rect.right = tl->scroll_x_max - tl->scroll_x;
 
@@ -3417,7 +3414,7 @@ treelist_header_notify(treelist_t* tl, NMHEADER* info)
                 if(!tl->no_redraw) {
                     RECT rect;
                     GetClientRect(tl->win, &rect);
-                    rect.left = header_item_rect.right + ITEM_PAINT_MARGIN_H;
+                    rect.left = header_item_rect.right;
                     rect.top = mc_height(&header_item_rect);
                     ScrollWindowEx(tl->win, new_width - old_width, 0, &rect, &rect,
                                    NULL, NULL, SW_ERASE | SW_INVALIDATE);
