@@ -43,13 +43,9 @@ repository hosted on github:
 
 ## Using mCtrl
 
-If you have the pre-built package, using mCtrl is as easy as using any other
-DLL, just configure your compiler where it finds mCtrl headers and libraries.
-
-The pre-built release package has tis directory structure:
-
+The pre-built release package has the following directory structure:
 ```
-mCtrl-X.Y.Z/
+mCtrl-x.y.z/
  |  AUTHORS                 # Authors participating on the project
  |  COPYING                 # GNU General Public License
  |  COPYING.lib             # GNU Lesser General Public License
@@ -93,10 +89,12 @@ mCtrl-X.Y.Z/
         mCtrl.lib           # Import library for Visual Studio
 ```
 
-Note you should instruct your C/C++ compiler to search for header files in
-the `include` directory and use the directory `mCtrl` in your preprocessor
-`#include` directives, e.g.:
+Using mCtrl is as easy as using any other DLL, just tell your compiler and
+linker where it can find mCtrl headers and libraries.
 
+Note you should instruct your C/C++ compiler to search for header files in
+the `include` directory and use the directory `mCtrl` as part of preprocessor
+`#include` directives, e.g.:
 ```C
 #include <mCtrl/dialog.h>
 #include <mCtrl/treelist.h>
