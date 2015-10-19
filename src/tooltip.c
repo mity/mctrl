@@ -19,10 +19,22 @@
 #include "tooltip.h"
 
 
+/* Uncomment this to have more verbose traces from this module. */
+/* #define TOOLTIP_DEBUG     1 */
+
+#ifdef TOOLTIP_DEBUG
+    #define TOOLTIP_TRACE        MC_TRACE
+#else
+    #define TOOLTIP_TRACE(...)   do {} while(0)
+#endif
+
+
 HWND
 tooltip_create(HWND control_win, HWND notify_win, BOOL tracking)
 {
     HWND tooltip_win;
+
+    TOOLTIP_TRACE("tooltip_create(%s)", tracking ? "tracking" : "");
 
     tooltip_win = CreateWindow(TOOLTIPS_CLASS, NULL, WS_POPUP, 0, 0, 0, 0,
                                control_win, NULL, NULL, NULL);
@@ -49,6 +61,7 @@ tooltip_create(HWND control_win, HWND notify_win, BOOL tracking)
 void
 tooltip_destroy(HWND tooltip_win)
 {
+    TOOLTIP_TRACE("tooltip_destroy(%p)", tooltip_win);
     DestroyWindow(tooltip_win);
 }
 
@@ -56,6 +69,9 @@ void
 tooltip_install(HWND tooltip_win, HWND control_win, BOOL tracking)
 {
     TTTOOLINFO info = { 0 };
+
+    TOOLTIP_TRACE("tooltip_install(%p, %p%s)",
+                  tooltip_win, control_win, tracking ? ", tracking" : "");
 
     info.cbSize = sizeof(TTTOOLINFO);
     info.uFlags = TTF_TRANSPARENT | TTF_IDISHWND;
@@ -71,6 +87,8 @@ tooltip_uninstall(HWND tooltip_win, HWND control_win)
 {
     TTTOOLINFO info = { 0 };
 
+    TOOLTIP_TRACE("tooltip_uninstall(%p, %p)", tooltip_win, control_win);
+
     info.cbSize = sizeof(TTTOOLINFO);
     info.uFlags = TTF_IDISHWND;
     info.uId = (UINT_PTR) control_win;
@@ -81,6 +99,8 @@ tooltip_uninstall(HWND tooltip_win, HWND control_win)
 void
 tooltip_forward_msg(HWND tooltip_win, HWND control_win, UINT msg, WPARAM wp, LPARAM lp)
 {
+    TOOLTIP_TRACE("tooltip_forward_msg(%p, %p, %u)", tooltip_win, control_win, msg);
+
     /* Accordingly to docs of TTM_RELAYEVENT, only these messages are really
      * needed. */
     if(msg == WM_LBUTTONDOWN  ||  msg == WM_LBUTTONUP  ||
@@ -109,6 +129,9 @@ tooltip_show_tracking(HWND tooltip_win, HWND control_win, BOOL show)
 {
     TTTOOLINFO info = { 0 };
 
+    TOOLTIP_TRACE("tooltip_show_tracking(%p, %p, %s)",
+                  tooltip_win, control_win, (show ? "show" : "hide"));
+
     info.cbSize = sizeof(TTTOOLINFO);
     info.uFlags = TTF_IDISHWND;
     info.uId = (UINT_PTR) control_win;
@@ -121,6 +144,9 @@ tooltip_move_tracking(HWND tooltip_win, HWND control_win, int x, int y)
 {
     POINT pt;
 
+    TOOLTIP_TRACE("tooltip_move_tracking(%p, %p, %d, %d)",
+                  tooltip_win, control_win, x, y);
+
     pt.x = x;
     pt.y = y;
     ClientToScreen(control_win, &pt);
@@ -131,6 +157,9 @@ void
 tooltip_update_text(HWND tooltip_win, HWND control_win, const TCHAR* str)
 {
     TTTOOLINFO info = { 0 };
+
+    TOOLTIP_TRACE("tooltip_update_text(%p, %p, %S)", tooltip_win, control_win,
+                  (str == LPSTR_TEXTCALLBACK ? _T("<callback>") : str));
 
     info.cbSize = sizeof(TTTOOLINFO);
     info.uFlags = TTF_IDISHWND;
@@ -145,6 +174,8 @@ tooltip_size(HWND tooltip_win, HWND control_win, SIZE* size)
 {
     TTTOOLINFO info = { 0 };
     DWORD sz;
+
+    TOOLTIP_TRACE("tooltip_size(%p, %p)", tooltip_win, control_win);
 
     info.cbSize = sizeof(TTTOOLINFO);
     info.uFlags = TTF_IDISHWND;
