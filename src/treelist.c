@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Martin Mitas
+ * Copyright (c) 2013-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,11 +19,11 @@
 #include "treelist.h"
 #include "generic.h"
 #include "theme.h"
+#include "tooltip.h"
 
 
 /* TODO:
  *  -- Incremental search.
- *  -- Tooltips and style MC_TLS_NOTOOLTIPS.
  *  -- Handling state and style MC_TLS_CHECKBOXES.
  *  -- Support editing labels and style MC_TLS_EDITLABELS and related
  *     notifications.
@@ -205,10 +205,12 @@ struct treelist_tag {
     DWORD tracking_leave         :  1;
     DWORD theme_treeitem_defined :  1;
     DWORD theme_hotglyph_defined :  1;
+    DWORD active_tooltip         :  1;
     DWORD displayed_items;
     WORD col_count;
     WORD item_height;
     WORD item_indent;
+    SHORT hot_col;
     WORD scroll_y;                    /* in rows */
     int scroll_x;                     /* in pixels */
     int scroll_x_max;
@@ -414,6 +416,29 @@ treelist_free_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
         free(si->text);
 }
 
+static int
+treelist_label_width(treelist_t* tl, treelist_item_t* item, int col_ix)
+{
+    int w = 0;
+
+    if(col_ix == 0) {
+        treelist_dispinfo_t di;
+
+        treelist_get_dispinfo(tl, item, &di, MC_TLIF_TEXT);
+        if(di.text != NULL)
+            w = mc_string_width(di.text, tl->font);
+        treelist_free_dispinfo(tl, item, &di);
+    } else {
+        treelist_subdispinfo_t sdi;
+
+        treelist_get_subdispinfo(tl, item, col_ix, &sdi, MC_TLIF_TEXT);
+        if(sdi.text != NULL)
+            w = mc_string_width(sdi.text, tl->font);
+        treelist_free_subdispinfo(tl, item, col_ix, &sdi);
+    }
+
+    return w;
+}
 
 static BOOL
 treelist_item_has_children(treelist_t* tl, treelist_item_t* item)
@@ -469,6 +494,7 @@ treelist_next_selected(treelist_t* tl, treelist_item_t* item)
 /* Forward declarations */
 static void treelist_refresh_hot(treelist_t* tl);
 static void treelist_invalidate_item(treelist_t* tl, treelist_item_t* item, int col_ix, int scroll);
+static int treelist_do_get_item_rect(treelist_t* tl, MC_HTREELISTITEM item, int col_ix, int what, RECT* rect);
 
 
 static void
@@ -2044,38 +2070,81 @@ treelist_is_common_hit(treelist_t* tl, MC_TLHITTESTINFO* info)
 }
 
 static void
+treelist_update_tooltip_pos(treelist_t* tl)
+{
+    RECT rect;
+
+    if(tl->hot_item == NULL)
+        return;
+
+    treelist_do_get_item_rect(tl, tl->hot_item, tl->hot_col, MC_TLIR_LABEL, &rect);
+    ClientToScreen(tl->win, (POINT*) &rect);
+    MC_SEND(tl->tooltip_win, TTM_ADJUSTRECT, TRUE, &rect);
+    SetWindowPos(tl->tooltip_win, NULL, rect.left, rect.top, 0, 0,
+                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+static void
 treelist_mouse_move(treelist_t* tl, int x, int y)
 {
-    /* Hot items only draw differently if we have themes, so... */
-    if(tl->theme != NULL  &&  tl->theme_treeitem_defined) {
-        MC_TLHITTESTINFO info;
-        treelist_item_t* item;
-        treelist_item_t* hot_item;
-        treelist_item_t* hotbutton_item;
+    MC_TLHITTESTINFO info;
+    treelist_item_t* item;
+    treelist_item_t* hot_item;
+    treelist_item_t* hotbutton_item;
+    treelist_item_t* old_hot_item = tl->hot_item;
+    SHORT old_hot_col = tl->hot_col;
 
-        info.pt.x = x;
-        info.pt.y = y;
-        item = treelist_hit_test(tl, &info);
+    info.pt.x = x;
+    info.pt.y = y;
+    item = treelist_hit_test(tl, &info);
 
-        hot_item = treelist_is_common_hit(tl, &info) ? item : NULL;
-        hotbutton_item = (info.flags & MC_TLHT_ONITEMBUTTON) ? item : NULL;
+    hot_item = treelist_is_common_hit(tl, &info) ? item : NULL;
+    hotbutton_item = (info.flags & MC_TLHT_ONITEMBUTTON) ? item : NULL;
 
-        /* Make sure the right item is hot */
-        if(hot_item != tl->hot_item) {
-            if(tl->hot_item != NULL  &&  !tl->no_redraw)
-                treelist_invalidate_item(tl, tl->hot_item, -1, 0);
-            if(hot_item != NULL  &&  !tl->no_redraw)
-                treelist_invalidate_item(tl, hot_item, -1, 0);
-            tl->hot_item = hot_item;
-        }
+    tl->hot_col = info.iSubItem;
 
-        /* Make sure the right item's button is hot */
-        if(hotbutton_item != tl->hotbutton_item) {
-            if(tl->hotbutton_item != NULL  &&  !tl->no_redraw)
-                treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
-            if(hotbutton_item != NULL  &&  !tl->no_redraw)
-                treelist_invalidate_item(tl, hotbutton_item, 0, 0);
-            tl->hotbutton_item = hotbutton_item;
+    /* Make sure the right item is hot */
+    if(hot_item != old_hot_item) {
+        if(old_hot_item != NULL  &&  !tl->no_redraw)
+            treelist_invalidate_item(tl, old_hot_item, -1, 0);
+        if(hot_item != NULL  &&  !tl->no_redraw)
+            treelist_invalidate_item(tl, hot_item, -1, 0);
+        tl->hot_item = hot_item;
+    }
+
+    /* Make sure the right item's button is hot */
+    if(hotbutton_item != tl->hotbutton_item) {
+        if(tl->hotbutton_item != NULL  &&  !tl->no_redraw)
+            treelist_invalidate_item(tl, tl->hotbutton_item, 0, 0);
+        if(hotbutton_item != NULL  &&  !tl->no_redraw)
+            treelist_invalidate_item(tl, hotbutton_item, 0, 0);
+        tl->hotbutton_item = hotbutton_item;
+    }
+
+    /* Checker whether we need to update tooltip. */
+    if(tl->tooltip_win != NULL) {
+        if(hot_item != old_hot_item  ||  info.iSubItem != old_hot_col) {
+            BOOL need_label_ellipses;
+
+            if(hot_item != NULL) {
+                RECT rect;
+                int str_width;
+
+                treelist_do_get_item_rect(tl, hot_item, info.iSubItem,
+                            MC_TLIR_LABEL, &rect);
+                str_width = treelist_label_width(tl, hot_item, info.iSubItem);
+
+                need_label_ellipses = (rect.left + str_width >= rect.right);
+            } else {
+                need_label_ellipses = FALSE;
+            }
+
+            if(need_label_ellipses) {
+                tooltip_update_text(tl->tooltip_win, tl->win, LPSTR_TEXTCALLBACK);
+                treelist_update_tooltip_pos(tl);
+            } else {
+                tooltip_update_text(tl->tooltip_win, tl->win, NULL);
+            }
         }
     }
 
@@ -2088,6 +2157,11 @@ treelist_mouse_move(treelist_t* tl, int x, int y)
 static void
 treelist_mouse_leave(treelist_t* tl)
 {
+    /* If the tooltip is visible, we defer handling of WM_MOUSELEAVE until
+     * the tooltip window disapperas (TTN_POP). */
+    if(tl->active_tooltip)
+        return;
+
     if(tl->hot_item != NULL  &&  !tl->no_redraw)
         treelist_invalidate_item(tl, tl->hot_item, -1, 0);
     tl->hot_item = NULL;
@@ -3182,7 +3256,6 @@ treelist_delete_children(treelist_t* tl, treelist_item_t* item)
     item->child_tail = NULL;
 
     /* Reset item bookmarks which will need recomputing anyway. */
-    tl->hot_item = NULL;
     if(tl->hot_item != NULL  &&  !tl->no_redraw)
         treelist_invalidate_item(tl, tl->hot_item, -1, 0);
     tl->hot_item = NULL;
@@ -3484,20 +3557,7 @@ treelist_do_get_item_rect(treelist_t* tl, MC_HTREELISTITEM item, int col_ix,
 
         MC_ASSERT(what == MC_TLIR_SELECTBOUNDS  &&  col_ix == 0);
 
-        if(col_ix == 0) {
-            treelist_dispinfo_t di;
-
-            treelist_get_dispinfo(tl, item, &di, MC_TLIF_TEXT);
-            str_width = mc_string_width(di.text, tl->font);
-            treelist_free_dispinfo(tl, item, &di);
-        } else {
-            treelist_subdispinfo_t sdi;
-
-            treelist_get_subdispinfo(tl, item, col_ix, &sdi, MC_TLIF_TEXT);
-            str_width = mc_string_width(sdi.text, tl->font);
-            treelist_free_subdispinfo(tl, item, col_ix, &sdi);
-        }
-
+        str_width = treelist_label_width(tl, item, col_ix);
         if(rect->left + str_width < rect->right)
             rect->right = rect->left + str_width;
     }
@@ -3640,6 +3700,70 @@ treelist_theme_changed(treelist_t* tl)
         InvalidateRect(tl->win, NULL, TRUE);
 }
 
+static void
+treelist_style_changed(treelist_t* tl, STYLESTRUCT* ss)
+{
+    tl->style = ss->styleNew;
+
+    if((ss->styleOld & MC_TLS_MULTISELECT) != (ss->styleNew & MC_TLS_MULTISELECT)) {
+        if(!(ss->styleNew & MC_TLS_MULTISELECT)  &&  tl->selected_count > 1)
+            treelist_set_sel(tl, tl->selected_last);
+    }
+
+    if((ss->styleOld & MC_TLS_NOTOOLTIPS) != (ss->styleNew & MC_TLS_NOTOOLTIPS)) {
+        if(!(ss->styleNew & MC_TLS_NOTOOLTIPS)) {
+            tl->tooltip_win = tooltip_create(tl->win, tl->notify_win, FALSE);
+        } else {
+            tooltip_destroy(tl->tooltip_win);
+            tl->tooltip_win = NULL;
+        }
+    }
+
+    if(!tl->no_redraw)
+        InvalidateRect(tl->win, NULL, TRUE);
+}
+
+static LRESULT
+treelist_tooltip_notify(treelist_t* tl, NMHDR* hdr)
+{
+    switch(hdr->code) {
+        case TTN_SHOW:
+            if(tl->hot_item != NULL  &&  tl->hot_col >= 0)
+                treelist_update_tooltip_pos(tl);
+            tl->active_tooltip = TRUE;
+            return TRUE;
+
+        case TTN_POP:
+            tl->active_tooltip = FALSE;
+            treelist_mouse_leave(tl);
+            break;
+
+        case TTN_GETDISPINFO:
+        {
+            NMTTDISPINFO* dispinfo = (NMTTDISPINFO*) hdr;
+
+            if(tl->hot_item != 0  &&  tl->hot_col >= 0) {
+                if(tl->hot_col == 0) {
+                    treelist_dispinfo_t di;
+                    treelist_get_dispinfo(tl, tl->hot_item, &di, MC_TLIF_TEXT);
+                    dispinfo->lpszText = di.text;
+                    treelist_free_dispinfo(tl, tl->hot_item, &di);
+                } else {
+                    treelist_subdispinfo_t sdi;
+                    treelist_get_subdispinfo(tl, tl->hot_item, tl->hot_col, &sdi, MC_TLIF_TEXT);
+                    dispinfo->lpszText = sdi.text;
+                    treelist_free_subdispinfo(tl, tl->hot_item, tl->hot_col, &sdi);
+                }
+            } else {
+                dispinfo->lpszText = NULL;
+            }
+            break;
+        }
+    }
+
+    return 0;
+}
+
 static treelist_t*
 treelist_nccreate(HWND win, CREATESTRUCT* cs)
 {
@@ -3657,10 +3781,7 @@ treelist_nccreate(HWND win, CREATESTRUCT* cs)
     tl->style = cs->style;
     tl->item_height = treelist_natural_item_height(tl);
     tl->item_indent = ITEM_INDENT_MIN;
-
-    tl->selected_from = NULL;
-    tl->selected_last = NULL;
-    tl->selected_count = 0;
+    tl->hot_col = -1;
 
     treelist_notify_format(tl);
 
@@ -3687,6 +3808,9 @@ treelist_create(treelist_t* tl)
     }
     MC_SEND(tl->header_win, HDM_SETUNICODEFORMAT, MC_IS_UNICODE, 0);
 
+    if(!(tl->style & MC_TLS_NOTOOLTIPS))
+        tl->tooltip_win = tooltip_create(tl->win, tl->notify_win, FALSE);
+
     treelist_open_theme(tl);
     return 0;
 }
@@ -3695,6 +3819,13 @@ static void
 treelist_destroy(treelist_t* tl)
 {
     treelist_delete_item(tl, NULL);
+
+    if(tl->tooltip_win != NULL) {
+        if(!(tl->style & MC_TLS_NOTOOLTIPS))
+            tooltip_destroy(tl->tooltip_win);
+        else
+            tooltip_uninstall(tl->tooltip_win, tl->win);
+    }
 
     if(tl->theme) {
         mcCloseThemeData(tl->theme);
@@ -3713,7 +3844,10 @@ static LRESULT CALLBACK
 treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     treelist_t* tl = (treelist_t*) GetWindowLongPtr(win, 0);
-    int ignored;
+    MC_ASSERT(tl != NULL  ||  msg == WM_NCCREATE  ||  msg == WM_NCDESTROY);
+
+    if(tl != NULL  &&  tl->tooltip_win != NULL)
+        tooltip_forward_msg(tl->tooltip_win, win, msg, wp, lp);
 
     switch(msg) {
         case WM_PAINT:
@@ -3858,9 +3992,17 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (treelist_get_subitem_rect(tl, item, r->top, r->left, r) == 0);
         }
 
+        case MC_TLM_SETTOOLTIPS:
+            return generic_settooltips(win, &tl->tooltip_win, (HWND) wp, FALSE);
+
+        case MC_TLM_GETTOOLTIPS:
+            return (LRESULT) tl->tooltip_win;
+
         case WM_NOTIFY:
             if(((NMHDR*)lp)->hwndFrom == tl->header_win)
                 return treelist_header_notify(tl, (NMHEADER*) lp);
+            if(((NMHDR*) lp)->hwndFrom == tl->tooltip_win)
+                return treelist_tooltip_notify(tl, (NMHDR*) lp);
             break;
 
         case WM_SIZE:
@@ -3914,6 +4056,8 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETFOCUS:
             if(tl->selected_count == 0) {
                 treelist_item_t* item;
+                int ignored;
+
                 item = treelist_scrolled_item(tl, &ignored);
                 if(item)
                     treelist_set_sel(tl, item);
@@ -3951,18 +4095,8 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_WANTARROWS | DLGC_WANTCHARS;
 
         case WM_STYLECHANGED:
-            if(wp == GWL_STYLE) {
-                STYLESTRUCT* ss = (STYLESTRUCT*) lp;
-                tl->style = ss->styleNew;
-
-                if((ss->styleOld & MC_TLS_MULTISELECT) != (ss->styleNew & MC_TLS_MULTISELECT)) {
-                    if(!(ss->styleNew & MC_TLS_MULTISELECT)  &&  tl->selected_count > 1)
-                        treelist_set_sel(tl, tl->selected_last);
-                }
-
-                if(!tl->no_redraw)
-                    InvalidateRect(win, NULL, TRUE);
-            }
+            if(wp == GWL_STYLE)
+                treelist_style_changed(tl, (STYLESTRUCT*) lp);
             break;
 
         case WM_THEMECHANGED:

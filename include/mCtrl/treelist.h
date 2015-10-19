@@ -251,9 +251,10 @@ void MCTRL_API mcTreeList_Terminate(void);
  *  @details Note that only sibling items (i.e. items with the same parent item)
  *  can be selected at the same time. */
 #define MC_TLS_MULTISELECT          0x0800
+/** @brief Disables a tooltip window. */
+#define MC_TLS_NOTOOLTIPS           0x1000
 
 #if 0 /* TODO */
-#define MC_TLS_NOTOOLTIPS           0x1000
 #define MC_TLS_CHECKBOXES           0x2000
 #define MC_TLS_EDITLABELS           0x4000
 #define MC_TLS_EDITSUBLABELS        0x8000
@@ -1198,6 +1199,25 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
  */
 #define MC_TLM_GETSUBITEMRECT       (MC_TLM_FIRST + 35)
+
+/*
+ * @brief Associate a tooltip window with the control.
+ * @param[in] wParam (@c HWND) Handle of the tooltip window.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of previous tooltip window or @c NULL if no tooltip
+ * was associated with the control.
+ * @sa MC_TLS_NOTOOLTIPS
+ */
+#define MC_TLM_SETTOOLTIPS          (MC_TLM_FIRST + 36)
+
+/**
+ * @brief Get tooltip window associated with the control.
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of the tooltip window or @c NULL if no tooltip
+ * is associated with the control.
+ */
+#define MC_TLM_GETTOOLTIPS          (MC_TLM_FIRST + 37)
 
 /*@}*/
 
