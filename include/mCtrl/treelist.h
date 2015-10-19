@@ -424,7 +424,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 
 
 /**
- * @name Action Flags for MC_TLM_EXPAND
+ * @name Action Flags for @ref MC_TLM_EXPAND
  * @anchor MC_TLE_xxxx
  */
 /*@{*/
@@ -443,7 +443,7 @@ void MCTRL_API mcTreeList_Terminate(void);
 
 
 /**
- * @name Item Relationship Flags for MC_TLM_GETNEXTITEM
+ * @name Item Relationship Flags for @ref MC_TLM_GETNEXTITEM
  * @anchor MC_TLGN_xxxx
  */
 /*@{*/
@@ -490,6 +490,26 @@ void MCTRL_API mcTreeList_Terminate(void);
  *  item which can be displayed by scrolling. It does not check current state
  *  of scrollbars. */
 #define MC_TLGN_LASTVISIBLE          0xa
+
+/*@}*/
+
+
+/**
+ * @name Flags for @ref MC_TLM_GETITEMRECT and @ref MC_TLM_GETSUBITEMRECT
+ * @anchor MC_TLIR_xxxx
+ */
+/*@{*/
+
+/** @brief Returns the bounding rectangle of the entire item, including the
+ *  icon and label. */
+#define MC_TLIR_BOUNDS               0
+/** @brief Returns the bounding rectangle of the icon. */
+#define MC_TLIR_ICON                 1
+/** @brief Returns the bounding rectangle of the label. */
+#define MC_TLIR_LABEL                2
+/** Returns the union of the @ref MC_TLIR_ICON and @ref MC_TLIR_LABEL
+ *  rectangles, but excludes other columns. */
+#define MC_TLIR_SELECTBOUNDS         3
 
 /*@}*/
 
@@ -1156,6 +1176,28 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * @return (@c int) The number of items selected.
  */
 #define MC_TLM_GETSELECTEDCOUNT     (MC_TLM_FIRST + 33)
+
+/**
+ * @brief Gets rectangle of the given item.
+ *
+ * @param[in] wParam (@ref MC_HTREELISTITEM) Handle of the item.
+ * @param[in,out] lParam (@c RECT*) Pointer to rectangle. On input, the caller
+ * has to set @c RECT::left to one of the following values: @ref MC_TLIR_BOUNDS,
+ * @ref MC_TLIR_ICON, @ref MC_TLIR_LABEL or @ref MC_TLIR_SELECTBOUNDS.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_TLM_GETITEMRECT          (MC_TLM_FIRST + 34)
+
+/**
+ * @brief Gets rectangle of the given subitem.
+ *
+ * @param[in] wParam (@ref MC_HTREELISTITEM) Handle of the item.
+ * @param[in,out] lParam (@c RECT*) Pointer to rectangle. On input, the caller
+ * has to set @c RECT::top to the index of the subitem, and @c RECT::left to
+ * one of the following values: @ref MC_TLIR_BOUNDS or @ref MC_TLIR_LABEL.
+ * @return (@c BOOL) @c TRUE on success, @c FALSE otherwise.
+ */
+#define MC_TLM_GETSUBITEMRECT       (MC_TLM_FIRST + 35)
 
 /*@}*/
 

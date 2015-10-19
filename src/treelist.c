@@ -187,7 +187,7 @@ struct treelist_tag {
     HWND notify_win;
     HTHEME theme;
     HFONT font;
-    HIMAGELIST imglist_normal;
+    HIMAGELIST imglist;
     treelist_item_t* root_head;
     treelist_item_t* root_tail;
     treelist_item_t* scrolled_item;   /* can be NULL if not known */
@@ -705,9 +705,9 @@ treelist_natural_item_height(treelist_t* tl)
     if(height < tm.tmHeight + tm.tmExternalLeading + ITEM_HEIGHT_FONT_MARGIN_V)
         height = tm.tmHeight + tm.tmExternalLeading + ITEM_HEIGHT_FONT_MARGIN_V;
 
-    if(tl->imglist_normal != NULL) {
+    if(tl->imglist != NULL) {
         int w, h;
-        ImageList_GetIconSize(tl->imglist_normal, &w, &h);
+        ImageList_GetIconSize(tl->imglist, &w, &h);
         if(height < h)
             height = h;
     }
@@ -994,8 +994,8 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     GetClientRect(tl->win, &rect);
     GetWindowRect(tl->header_win, &header_rect);
     header_height = mc_height(&header_rect);
-    if(tl->imglist_normal)
-        ImageList_GetIconSize(tl->imglist_normal, &img_w, &img_h);
+    if(tl->imglist)
+        ImageList_GetIconSize(tl->imglist, &img_w, &img_h);
 
     /* Paint grid */
     if(tl->style & MC_TLS_GRIDLINES) {
@@ -1160,7 +1160,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 }
 
                 /* Paint image of the main item */
-                if(tl->imglist_normal != NULL) {
+                if(tl->imglist != NULL) {
                     int img;
                     if(item->state & MC_TLIS_SELECTED)
                         img = dispinfo.img_selected;
@@ -1169,7 +1169,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                     else
                         img = dispinfo.img;
                     if(img >= 0) {
-                        ImageList_DrawEx(tl->imglist_normal, img, dc,
+                        ImageList_DrawEx(tl->imglist, img, dc,
                                 subitem_rect.left, subitem_rect.top + (mc_height(&subitem_rect) - img_h) / 2,
                                 0, 0, CLR_NONE, CLR_DEFAULT, ILD_NORMAL);
                     }
@@ -1376,10 +1376,10 @@ treelist_hit_test(treelist_t* tl, MC_TLHITTESTINFO* info)
             }
         }
 
-        if(tl->imglist_normal) {
+        if(tl->imglist) {
             int img_w, img_h;
 
-            ImageList_GetIconSize(tl->imglist_normal, &img_w, &img_h);
+            ImageList_GetIconSize(tl->imglist, &img_w, &img_h);
             if(item_rect.left <= info->pt.x  &&  info->pt.x < item_rect.left + img_w) {
                 info->flags = MC_TLHT_ONITEMICON;
                 goto done;
@@ -3352,12 +3352,190 @@ treelist_set_imagelist(treelist_t* tl, HIMAGELIST imglist)
 {
     TREELIST_TRACE("treelist_set_imagelist(%p, %p)", tl, imglist);
 
-    if(imglist == tl->imglist_normal)
+    if(imglist == tl->imglist)
         return;
 
-    tl->imglist_normal = imglist;
+    tl->imglist = imglist;
     if(!tl->no_redraw)
         InvalidateRect(tl->win, NULL, TRUE);
+}
+
+static int
+treelist_do_get_item_rect(treelist_t* tl, MC_HTREELISTITEM item, int col_ix,
+                          int what, RECT* rect)
+{
+    MC_HTREELISTITEM iter;
+    MC_HTREELISTITEM stopper;
+    int level;
+    int y;
+    RECT header_rect;
+    int header_height;
+    RECT header_item_rect;
+
+    /* No rect cases */
+    if(!item_is_displayed(item)  ||  (what == MC_TLIR_ICON  &&  tl->imglist == NULL)) {
+        mc_rect_set(rect, 0, 0, 0, 0);
+        return -1;
+    }
+
+    /* Get header height */
+    GetWindowRect(tl->header_win, &header_rect);
+    header_height = mc_height(&header_rect);
+
+    /* Optimization: It can be assumed that most calls to this function are
+     * calls about items which are in the current view-port. Therefore we
+     * start the search at the treelist_t::scrolled_item and if we are
+     * unsuccessful, we then wrap and start at the root. */
+    if(tl->scrolled_item != NULL) {
+        iter = tl->scrolled_item;
+        level = tl->scrolled_level;
+        y = header_height;
+
+        while(iter != NULL) {
+            if(iter == item)
+                break;
+            iter = item_next_displayed(iter, &level);
+            y += tl->item_height;
+        }
+
+        stopper = tl->scrolled_item;
+    } else {
+        stopper = NULL;
+    }
+
+    /* The regular search from the top of the tree. */
+    if(iter == NULL) {
+        iter = tl->root_head;
+        level = 0;
+        y = header_height - (tl->scroll_y * tl->item_height);
+
+        while(iter != stopper) {
+            if(iter == item)
+                break;
+            iter = item_next_displayed_ex(iter, stopper, &level);
+            y += tl->item_height;
+        }
+    }
+
+    if(MC_ERR(iter == NULL)) {
+        MC_TRACE("treelist_do_get_item_rect: The item not found. "
+                 "Likely invalid item handle. (App's bug).");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    /* Get header item rect */
+    if(col_ix == 0  &&  what == MC_TLIR_BOUNDS) {
+        int index;
+
+        index = MC_SEND(tl->header_win, HDM_ORDERTOINDEX, tl->col_count - 1, 0);
+        MC_SEND(tl->header_win, HDM_GETITEMRECT, index, &header_item_rect);
+    } else {
+        MC_SEND(tl->header_win, HDM_GETITEMRECT, col_ix, &header_item_rect);
+    }
+
+    mc_rect_set(rect, header_item_rect.left, y, header_item_rect.right, y + tl->item_height);
+
+    /* For MC_TLIR_BOUNDS, we are done. */
+    if(what == MC_TLIR_BOUNDS) {
+        if(col_ix == 0)
+            rect->left = -tl->scroll_x;
+        return 0;
+    }
+
+    /* For the main item, get past the lines and indentation. */
+    if(col_ix == 0) {
+        rect->left += level * tl->item_indent;
+        if(tl->style & MC_TLS_LINESATROOT)
+            rect->left += tl->item_indent;
+        rect->left += ITEM_PADDING_H;
+    }
+
+    if(col_ix == 0  &&  tl->imglist != NULL) {
+        int img_w, img_h;
+
+        ImageList_GetIconSize(tl->imglist, &img_w, &img_h);
+
+        /* For MC_TLIR_ICON, we are done. */
+        if(what == MC_TLIR_ICON) {
+            MC_ASSERT(col_ix == 0);
+            MC_ASSERT(tl->imglist != NULL);
+
+            /* We do the same as listview (LVM_GETITEMRECT), which covers all
+             * the row height. */
+            rect->right = rect->left + img_w;
+            return 0;
+        }
+
+        /* For MC_TLIR_LABEL, get past the image */
+        if(what == MC_TLIR_LABEL)
+            rect->left += img_w;
+    }
+
+    rect->left += ITEM_PADDING_H;
+
+    if(what == MC_TLIR_LABEL) {
+        /* We do the same as listview (LVM_GETITEMRECT), which returns rect
+         * after the icon, which covers whole cell to the right column border
+         * and all the row height. (i.e. it ignores text width). */
+        /*noop*/
+    } else {
+        int str_width;
+
+        MC_ASSERT(what == MC_TLIR_SELECTBOUNDS  &&  col_ix == 0);
+
+        if(col_ix == 0) {
+            treelist_dispinfo_t di;
+
+            treelist_get_dispinfo(tl, item, &di, MC_TLIF_TEXT);
+            str_width = mc_string_width(di.text, tl->font);
+            treelist_free_dispinfo(tl, item, &di);
+        } else {
+            treelist_subdispinfo_t sdi;
+
+            treelist_get_subdispinfo(tl, item, col_ix, &sdi, MC_TLIF_TEXT);
+            str_width = mc_string_width(sdi.text, tl->font);
+            treelist_free_subdispinfo(tl, item, col_ix, &sdi);
+        }
+
+        if(rect->left + str_width < rect->right)
+            rect->right = rect->left + str_width;
+    }
+
+    return 0;
+}
+
+static int
+treelist_get_item_rect(treelist_t* tl, MC_HTREELISTITEM item, int what,
+                       RECT* rect)
+{
+    if(MC_ERR(what != MC_TLIR_BOUNDS  &&  what != MC_TLIR_ICON  &&
+              what != MC_TLIR_LABEL  &&  what != MC_TLIR_SELECTBOUNDS)) {
+        MC_TRACE("treelist_get_item_rect: what %d not supported.", what);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    return treelist_do_get_item_rect(tl, item, 0, what, rect);
+}
+
+static int
+treelist_get_subitem_rect(treelist_t* tl, MC_HTREELISTITEM item, int subitem_id,
+                          int what, RECT* rect)
+{
+    if(MC_ERR(what != MC_TLIR_BOUNDS  &&  what != MC_TLIR_LABEL)) {
+        MC_TRACE("treelist_get_subitem_rect: what %d not supported.", what);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    if(MC_ERR(subitem_id >= tl->col_count)) {
+        MC_TRACE("treelist_get_subitem_rect: Column %d out of range.", subitem_id);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return -1;
+    }
+
+    return treelist_do_get_item_rect(tl, item, subitem_id, what, rect);
 }
 
 static int
@@ -3655,16 +3833,30 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case MC_TLM_SETIMAGELIST:
         {
-            HIMAGELIST imglist = tl->imglist_normal;
+            HIMAGELIST imglist = tl->imglist;
             treelist_set_imagelist(tl, (HIMAGELIST) lp);
             return (LRESULT) imglist;
         }
 
         case MC_TLM_GETIMAGELIST:
-            return (LRESULT) tl->imglist_normal;
+            return (LRESULT) tl->imglist;
 
         case MC_TLM_GETSELECTEDCOUNT:
             return (LRESULT)tl->selected_count;
+
+        case MC_TLM_GETITEMRECT:
+        {
+            MC_HTREELISTITEM item = (MC_HTREELISTITEM) wp;
+            RECT* r = (RECT*) lp;
+            return (treelist_get_item_rect(tl, item, r->left, r) == 0);
+        }
+
+        case MC_TLM_GETSUBITEMRECT:
+        {
+            MC_HTREELISTITEM item = (MC_HTREELISTITEM) wp;
+            RECT* r = (RECT*) lp;
+            return (treelist_get_subitem_rect(tl, item, r->top, r->left, r) == 0);
+        }
 
         case WM_NOTIFY:
             if(((NMHDR*)lp)->hwndFrom == tl->header_win)
