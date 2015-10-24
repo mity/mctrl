@@ -2524,7 +2524,7 @@ mditab_set_tooltip_pos(mditab_t* mditab)
 
     mditab_get_item_rect(mditab, mditab->item_hot, &item_rect, TRUE);
     MapWindowPoints(mditab->win, HWND_DESKTOP, (POINT*) &item_rect, 2);
-    tooltip_size(mditab->tooltip_win, mditab->win, &tip_size);
+    tooltip_size(mditab->tooltip_win, &tip_size);
     SetWindowPos(mditab->tooltip_win, NULL,
                  (item_rect.left + item_rect.right - tip_size.cx) / 2,
                  item_rect.bottom + 10, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);

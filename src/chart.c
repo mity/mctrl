@@ -2694,10 +2694,10 @@ chart_mouse_move(chart_t* chart, int x, int y)
             InvalidateRect(chart->win, NULL, TRUE);
     }
 
-    if(chart->tooltip_win != NULL) {//  &&  chart->tooltip_active) {
+    if(chart->tooltip_win != NULL  &&  chart->tooltip_active) {
         SIZE tip_size;
 
-        tooltip_size(chart->tooltip_win, chart->win, &tip_size);
+        tooltip_size(chart->tooltip_win, &tip_size);
         tooltip_move_tracking(chart->tooltip_win, chart->win,
                     x - tip_size.cx / 2, y - tip_size.cy - 5);
     }

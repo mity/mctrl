@@ -21,6 +21,7 @@
 
 /* Uncomment this to have more verbose traces from this module. */
 /* #define TOOLTIP_DEBUG     1 */
+ #define TOOLTIP_DEBUG     1
 
 #ifdef TOOLTIP_DEBUG
     #define TOOLTIP_TRACE        MC_TRACE
@@ -83,7 +84,7 @@ tooltip_install(HWND tooltip_win, HWND control_win, BOOL tracking)
     TOOLTIP_TRACE("tooltip_install(%p, %p%s)",
                   tooltip_win, control_win, tracking ? ", tracking" : "");
 
-    info.cbSize = sizeof(TTTOOLINFO);
+    info.cbSize = TTTOOLINFO_V1_SIZE;
     info.uFlags = TTF_TRANSPARENT | TTF_IDISHWND;
     if(tracking)
         info.uFlags = TTF_TRACK | TTF_ABSOLUTE;
@@ -99,7 +100,7 @@ tooltip_uninstall(HWND tooltip_win, HWND control_win)
 
     TOOLTIP_TRACE("tooltip_uninstall(%p, %p)", tooltip_win, control_win);
 
-    info.cbSize = sizeof(TTTOOLINFO);
+    info.cbSize = TTTOOLINFO_V1_SIZE;
     info.uFlags = TTF_IDISHWND;
     info.uId = (UINT_PTR) control_win;
     info.hwnd = control_win;
@@ -142,7 +143,7 @@ tooltip_show_tracking(HWND tooltip_win, HWND control_win, BOOL show)
     TOOLTIP_TRACE("tooltip_show_tracking(%p, %p, %s)",
                   tooltip_win, control_win, (show ? "show" : "hide"));
 
-    info.cbSize = sizeof(TTTOOLINFO);
+    info.cbSize = TTTOOLINFO_V1_SIZE;
     info.uFlags = TTF_IDISHWND;
     info.uId = (UINT_PTR) control_win;
     info.hwnd = control_win;
@@ -171,7 +172,7 @@ tooltip_update_text(HWND tooltip_win, HWND control_win, const TCHAR* str)
     TOOLTIP_TRACE("tooltip_update_text(%p, %p, %S)", tooltip_win, control_win,
                   (str == LPSTR_TEXTCALLBACK ? _T("<callback>") : str));
 
-    info.cbSize = sizeof(TTTOOLINFO);
+    info.cbSize = TTTOOLINFO_V1_SIZE;
     info.uFlags = TTF_IDISHWND;
     info.uId = (UINT_PTR) control_win;
     info.hwnd = control_win;
@@ -180,19 +181,21 @@ tooltip_update_text(HWND tooltip_win, HWND control_win, const TCHAR* str)
 }
 
 void
-tooltip_size(HWND tooltip_win, HWND control_win, SIZE* size)
+tooltip_size(HWND tooltip_win, SIZE* size)
 {
-    TTTOOLINFO info = { 0 };
-    DWORD sz;
+    RECT rect;
 
-    TOOLTIP_TRACE("tooltip_size(%p, %p)", tooltip_win, control_win);
+    TOOLTIP_TRACE("tooltip_size(%p)", tooltip_win);
 
-    info.cbSize = sizeof(TTTOOLINFO);
-    info.uFlags = TTF_IDISHWND;
-    info.uId = (UINT_PTR) control_win;
-    info.hwnd = control_win;
-    sz = MC_SEND(tooltip_win, TTM_GETBUBBLESIZE, 0, &info);
-    size->cx = LOWORD(sz);
-    size->cy = HIWORD(sz);
+    /* Note: We cannot use TTM_GETBUBBLESIZE as it seems to be crashing on
+     * Win 2000 and XP. See https://goo.gl/ItnhKL for more info.
+     *
+     * So instead of that, we simply use GetWindowRect(). It means, we can
+     * only get size for currently selected tool.
+     */
+
+    GetWindowRect(tooltip_win, &rect);
+    size->cx = mc_width(&rect);
+    size->cy = mc_height(&rect);
 }
 

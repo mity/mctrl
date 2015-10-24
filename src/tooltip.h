@@ -46,8 +46,8 @@ void tooltip_move_tracking(HWND tooltip_win, HWND control_win, int x, int y);
 /* str may be LPSTR_TEXTCALLBACK if control_win handles TTN_GETDISPINFO. */
 void tooltip_update_text(HWND tooltip_win, HWND control_win, const TCHAR* str);
 
-/* Get tooltip window size with the text for the tool specified by control_win. */
-void tooltip_size(HWND tooltip_win, HWND control_win, SIZE* size);
+/* Get current tooltip window size. */
+void tooltip_size(HWND tooltip_win, SIZE* size);
 
 
 #endif  /* MC_TOOLTIP_H */
