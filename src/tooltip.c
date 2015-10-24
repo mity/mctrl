@@ -32,9 +32,19 @@
 HWND
 tooltip_create(HWND control_win, HWND notify_win, BOOL tracking)
 {
+    static BOOL need_init = TRUE;
     HWND tooltip_win;
 
     TOOLTIP_TRACE("tooltip_create(%s)", tracking ? "tracking" : "");
+
+    if(need_init) {
+        if(MC_ERR(mc_init_comctl32(ICC_BAR_CLASSES) != 0)) {
+            MC_TRACE("tooltip_create: mc_init_comctl32() failed.");
+            return NULL;
+        }
+
+        need_init = FALSE;
+    }
 
     tooltip_win = CreateWindow(TOOLTIPS_CLASS, NULL, WS_POPUP, 0, 0, 0, 0,
                                control_win, NULL, NULL, NULL);

@@ -402,6 +402,22 @@ mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta, int lines_per_page)
  *** Assorted Utilities ***
  **************************/
 
+int
+mc_init_comctl32(DWORD icc)
+{
+    INITCOMMONCONTROLSEX icce = { 0 };
+
+    icce.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    icce.dwICC = icc;
+
+    if(MC_ERR(!InitCommonControlsEx(&icce))) {
+        MC_TRACE_ERR("mc_init_comctl32: InitCommonControlsEx() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
 void
 mc_icon_size(HICON icon, SIZE* size)
 {
@@ -645,6 +661,12 @@ mc_init_module(void)
     dll_comctl32 = GetModuleHandle(_T("COMCTL32.DLL"));
     MC_ASSERT(dll_comctl32 != NULL);
 
+    /* Init common controls. */
+    if(MC_ERR(mc_init_comctl32(ICC_STANDARD_CLASSES) != 0)) {
+        MC_TRACE("mc_init_module: mc_init_comctl32() failed.");
+        return -1;
+    }
+
     /* Load set of helper symbols used for helper buttons of more complex
      * controls */
     mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance, MAKEINTRESOURCE(
@@ -658,9 +680,6 @@ mc_init_module(void)
     setup_win_version();
     setup_load_sys_dll();
     setup_comctl32_version(dll_comctl32);
-
-    /* Init common controls. */
-    InitCommonControls();
 
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
