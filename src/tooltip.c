@@ -21,7 +21,6 @@
 
 /* Uncomment this to have more verbose traces from this module. */
 /* #define TOOLTIP_DEBUG     1 */
- #define TOOLTIP_DEBUG     1
 
 #ifdef TOOLTIP_DEBUG
     #define TOOLTIP_TRACE        MC_TRACE
