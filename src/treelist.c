@@ -661,7 +661,7 @@ treelist_mouse_wheel(treelist_t* tl, BOOL vertical, int wheel_delta)
     si.fMask = SIF_PAGE;
     GetScrollInfo(tl->win, (vertical ? SB_VERT : SB_HORZ), &si);
 
-    line_delta = mc_wheel_scroll(tl->win, vertical, wheel_delta, si.nPage);
+    line_delta = mc_wheel_scroll(tl->win, wheel_delta, si.nPage, vertical);
     if(line_delta != 0) {
         if(vertical)
             treelist_vscroll_rel(tl, line_delta);

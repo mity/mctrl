@@ -452,13 +452,7 @@ mc_clip_reset(HDC dc, HRGN old_clip)
  *** Mouse Wheel Utilities ***
  *****************************/
 
-int mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta, int lines_per_page);
-
-static inline void
-mc_wheel_reset(void)
-{
-    mc_wheel_scroll(NULL, 0, 0, 0);
-}
+int mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical);
 
 
 /**************************

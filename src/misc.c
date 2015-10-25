@@ -348,53 +348,60 @@ mc_load_redist_dll(const TCHAR* dll_name)
  *** Mouse Wheel Utilities ***
  *****************************/
 
+static CRITICAL_SECTION mc_wheel_lock;
+
 int
-mc_wheel_scroll(HWND win, BOOL is_vertical, int wheel_delta, int lines_per_page)
+mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
 {
     /* We accumulate the wheel_delta until there is enough to scroll for
      * at least a single line. This improves the feel for strange values
      * of SPI_GETWHEELSCROLLLINES and for some mouses. */
     static HWND last_win = NULL;
-    static int wheel[2] = { 0, 0 };  /* horizontal, vertical */
+    static DWORD last_time[2] = { 0, 0 };   /* horizontal, vertical */
+    static int accum_delta[2] = { 0, 0 };   /* horizontal, vertical */
 
-    int dir = (is_vertical ? 1 : 0);
+    DWORD now;
+    UINT param;
+    int dir = (is_vertical ? 1 : 0); /* index into accum_delta[], last_time[] */
     UINT lines_per_WHEEL_DELTA;
-    int lines_to_scroll;
+    int lines;
 
-    /* Do not carry accumulated values between windows */
+    now = GetTickCount();
+
+    if(page < 1)
+        page = 1;
+
+    /* Ask the system for scroll speed. */
+    param = (is_vertical ? SPI_GETWHEELSCROLLLINES : SPI_GETWHEELSCROLLCHARS);
+    if(MC_ERR(!SystemParametersInfo(param, 0, &lines_per_WHEEL_DELTA, 0)))
+        lines_per_WHEEL_DELTA = 3;
+
+    /* But never scroll more then complete page. */
+    if(lines_per_WHEEL_DELTA == WHEEL_PAGESCROLL  ||  lines_per_WHEEL_DELTA >= page)
+        lines_per_WHEEL_DELTA = page;
+
+    EnterCriticalSection(&mc_wheel_lock);
+
+    /* Reset the accumulated value(s) when switching to another window, when
+     * changing scrolling direction, or when the wheel was not used for some
+     * time. */
     if(win != last_win) {
         last_win = win;
-        wheel[0] = 0;
-        wheel[1] = 0;
-
-        if(win == NULL)  /* just reset */
-            return 0;
+        accum_delta[0] = 0;
+        accum_delta[1] = 0;
+    } else if((now - last_time[dir] > GetDoubleClickTime() * 2)  ||
+              ((delta > 0) == (accum_delta[dir] < 0))) {
+        accum_delta[dir] = 0;
     }
 
-    /* On a direction change, reset the accumulated value */
-    if((wheel_delta > 0 && wheel[dir] < 0) || (wheel_delta < 0 && wheel[dir] > 0))
-        wheel[dir] = 0;
+    /* Compute lines to scroll. */
+    accum_delta[dir] += delta;
+    lines = (accum_delta[dir] * (int)lines_per_WHEEL_DELTA) / WHEEL_DELTA;
+    accum_delta[dir] -= (lines * WHEEL_DELTA) / (int)lines_per_WHEEL_DELTA;
+    last_time[dir] = now;
 
-    if(lines_per_page > 0) {
-        /* Ask the system for scroll speed */
-        if(MC_ERR(!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines_per_WHEEL_DELTA, 0)))
-            lines_per_WHEEL_DELTA = 3;
-
-        /* But never scroll more then complete page */
-        if(lines_per_WHEEL_DELTA == WHEEL_PAGESCROLL  ||  lines_per_WHEEL_DELTA >= lines_per_page)
-            lines_per_WHEEL_DELTA = MC_MAX(1, lines_per_page);
-    } else {
-        /* The caller does not know what page is: The control probably only has
-         * few discrete values to iterate over. */
-        lines_per_WHEEL_DELTA = 1;
-    }
-
-    /* Compute lines to scroll */
-    wheel[dir] += wheel_delta;
-    lines_to_scroll = (wheel[dir] * (int)lines_per_WHEEL_DELTA) / WHEEL_DELTA;
-    wheel[dir] -= (lines_to_scroll * WHEEL_DELTA) / (int)lines_per_WHEEL_DELTA;
-
-    return (is_vertical ? -lines_to_scroll : lines_to_scroll);
+    LeaveCriticalSection(&mc_wheel_lock);
+    return (is_vertical ? -lines : lines);
 }
 
 
@@ -681,6 +688,8 @@ mc_init_module(void)
     setup_load_sys_dll();
     setup_comctl32_version(dll_comctl32);
 
+    InitializeCriticalSection(&mc_wheel_lock);
+
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
     perform_unit_tests();
@@ -693,6 +702,7 @@ mc_init_module(void)
 void
 mc_fini_module(void)
 {
+    DeleteCriticalSection(&mc_wheel_lock);
     ImageList_Destroy(mc_bmp_glyphs);
 }
 

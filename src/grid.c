@@ -470,7 +470,7 @@ grid_mouse_wheel(grid_t* grid, BOOL is_vertical, int wheel_delta)
     si.fMask = SIF_PAGE;
     GetScrollInfo(grid->win, (is_vertical ? SB_VERT : SB_HORZ), &si);
 
-    line_delta = mc_wheel_scroll(grid->win, is_vertical, wheel_delta, si.nPage);
+    line_delta = mc_wheel_scroll(grid->win, wheel_delta, si.nPage, is_vertical);
     if(line_delta != 0)
         grid_scroll(grid, is_vertical, SB_LINEDOWN, line_delta);
 }
