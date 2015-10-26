@@ -2237,7 +2237,7 @@ out:
 static void
 treelist_right_button(treelist_t* tl, int x, int y, BOOL dblclick, WPARAM wp)
 {
-    UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
+    UINT notify_code = (dblclick ? NM_RDBLCLK : NM_RCLICK);
     POINT pt;
 
     if(mc_send_notify(tl->notify_win, tl->win, notify_code) != 0) {
