@@ -2329,7 +2329,7 @@ grid_left_button_dblclick(grid_t* grid, int x, int y)
 static void
 grid_right_button(grid_t* grid, int x, int y, BOOL dblclick)
 {
-    UINT notify_code = (dblclick ? NM_DBLCLK : NM_CLICK);
+    UINT notify_code = (dblclick ? NM_RDBLCLK : NM_RCLICK);
     POINT pt;
 
     if(mc_send_notify(grid->notify_win, grid->win, notify_code) != 0) {
