@@ -97,7 +97,6 @@ static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
 
 #define ITEM_HOT_NONE              -100
 
-#define ANIM_TIMER_ID                 1
 #define ANIM_MAX_PIXELS_PER_SECOND  800
 
 #define MDITAB_ITEM_TOP_MARGIN        4    /* space above item */
@@ -1138,7 +1137,7 @@ again_without_animation:
     if(continue_animation) {
         if(mditab->animation == NULL) {
             MDITAB_TRACE("mditab_update_layout: Starting animation.");
-            mditab->animation = anim_start(mditab->win, ANIM_TIMER_ID,
+            mditab->animation = anim_start(mditab->win,
                     ANIM_UNLIMITED_DURATION, ANIM_DEFAULT_FREQUENCY);
             if(MC_ERR(mditab->animation == NULL)) {
                 MC_TRACE("mditab_update_layout: anim_start() failed.");
@@ -2644,7 +2643,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return FALSE;
 
         case WM_TIMER:
-            if(wp == ANIM_TIMER_ID  &&  mditab->animation != NULL) {
+            if(mditab->animation != NULL  &&  wp == anim_timer_id(mditab->animation)) {
                 anim_step(mditab->animation);
                 mditab_update_layout(mditab, TRUE);
                 return 0;

@@ -26,7 +26,7 @@ anim_time_cmp(DWORD t1, DWORD t2)
 }
 
 
-anim_t* anim_start_ex(HWND win, UINT timer_id, DWORD duration, DWORD freq,
+anim_t* anim_start_ex(HWND win, DWORD duration, DWORD freq,
                       void* extra_bytes, size_t extra_size)
 {
     anim_t* anim;
@@ -38,7 +38,6 @@ anim_t* anim_start_ex(HWND win, UINT timer_id, DWORD duration, DWORD freq,
     }
 
     anim->win = win;
-    anim->timer_id = timer_id;
     if(extra_size > 0)
         memcpy(anim+1, extra_bytes, extra_size);
 
@@ -47,7 +46,7 @@ anim_t* anim_start_ex(HWND win, UINT timer_id, DWORD duration, DWORD freq,
     anim->time_curr_frame = anim->time_start;
     anim->time_end = anim->time_start + duration;
 
-    if(MC_ERR(SetTimer(win, timer_id, 1000 / freq, NULL) == 0)) {
+    if(MC_ERR(SetTimer(win, (UINT_PTR) anim, 1000 / freq, NULL) == 0)) {
         MC_TRACE_ERR("anim_start_ex: SetTimer() failed.");
         free(anim);
         return NULL;
@@ -84,6 +83,6 @@ anim_is_done(anim_t* anim)
 void
 anim_stop(anim_t* anim)
 {
-    KillTimer(anim->win, anim->timer_id);
+    KillTimer(anim->win, (UINT_PTR) anim);
     free(anim);
 }

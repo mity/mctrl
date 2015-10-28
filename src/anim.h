@@ -26,7 +26,6 @@
 typedef struct anim_tag anim_t;
 struct anim_tag {
     HWND win;
-    UINT timer_id;
     DWORD time_start;
     DWORD time_prev_frame;
     DWORD time_curr_frame;
@@ -49,11 +48,14 @@ struct anim_tag {
  *  -- Starts a timer with SetTimer(), accordingly to the desired frequency
  *     (frames per second).
  */
-anim_t* anim_start_ex(HWND win, UINT timer_id, DWORD duration, DWORD freq,
+anim_t* anim_start_ex(HWND win, DWORD duration, DWORD freq,
                       void* extra_bytes, size_t extra_size);
 
-static inline anim_t* anim_start(HWND win, UINT timer_id, DWORD duration, DWORD freq)
-    { return anim_start_ex(win, timer_id, duration, freq, NULL, 0); }
+static inline anim_t* anim_start(HWND win, DWORD duration, DWORD freq)
+    { return anim_start_ex(win, duration, freq, NULL, 0); }
+
+static inline UINT_PTR anim_timer_id(anim_t* anim)
+    { return (UINT_PTR) anim; }
 
 /* Performs animation step.
  *  -- Can be called anytime between anim_start() and anim_end(), but typically

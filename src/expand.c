@@ -36,8 +36,6 @@
 #define FOCUS_INFLATE_H       3
 #define FOCUS_INFLATE_V       1
 
-#define ANIM_TIMER_ID         1
-
 
 static const TCHAR expand_wc[] = MC_WC_EXPAND;    /* Window class name */
 static const WCHAR expand_tc[] = L"BUTTON";       /* Theming identifier */
@@ -628,7 +626,7 @@ expand_resize(expand_t* expand, DWORD flags)
         /* We store original (current) parent window size to deal correctly
          * with situations, when it changes while the animation is in
          * progress. */
-        expand->anim = anim_start_ex(expand->win, ANIM_TIMER_ID, duration,
+        expand->anim = anim_start_ex(expand->win, duration,
                 ANIM_DEFAULT_FREQUENCY, &anim_ctx, sizeof(expand_anim_ctx_t));
         if(expand->anim != NULL) {
             return;
@@ -761,7 +759,7 @@ expand_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return (expand->state & STATE_EXPANDED) ? TRUE : FALSE;
 
         case WM_TIMER:
-            if(wp == ANIM_TIMER_ID  &&  expand->anim != NULL) {
+            if(expand->anim != NULL  &&  wp == anim_timer_id(expand->anim)) {
                 expand_animate_resize_callback(expand);
                 return 0;
             }
