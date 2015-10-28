@@ -91,14 +91,9 @@ struct grid_tag {
     DWORD focus                  :  1;
     DWORD theme_listitem_defined :  1;
     DWORD tracking_leave         :  1;
-
-    /* Header dragging */
-    DWORD header_dragging        :  1;  /* is a column/row divider dragging? */
-    DWORD header_drag_is_col     :  1;  /* 0: dragging row, 1: dragging column */
-    int header_drag_offset       :  4;  /* range <-DIVIDER_WIDTH/2, DIVIDER_WIDTH/2> */
-
-    WORD header_drag_index;            /* column or row being resized by drag */
-    WORD header_drag_orig_size;        /* original column width or row height */
+    DWORD mouse_captured         :  1;
+    DWORD colsizedrag_started    :  1;
+    DWORD rowsizedrag_started    :  1;
 
     /* If MC_GS_OWNERDATA, we need it here locally. If not, it is a cached
      * value of table->col_count and table->row_count. */
@@ -1238,7 +1233,8 @@ grid_hit_test_ex(grid_t* grid, MC_GHITTESTINFO* info, RECT* cell_rect)
             }
 
             if(cell_rect != NULL)
-                mc_rect_set(cell_rect, x0, 0, x3, header_h);
+                grid_cell_rect(grid, info->wColumn, MC_TABLE_HEADER, cell_rect);
+
             return MAKELRESULT(info->wColumn, MC_TABLE_HEADER);
         }
 
@@ -1301,7 +1297,8 @@ grid_hit_test_ex(grid_t* grid, MC_GHITTESTINFO* info, RECT* cell_rect)
             }
 
             if(cell_rect != NULL)
-                mc_rect_set(cell_rect, 0, y0, header_w, y3);
+                grid_cell_rect(grid, MC_TABLE_HEADER, info->wRow, cell_rect);
+
             return MAKELRESULT(MC_TABLE_HEADER, info->wRow);
         }
 
@@ -1965,38 +1962,39 @@ grid_get_row_height(grid_t* grid, WORD row)
 }
 
 static void
-grid_stop_dragging(grid_t* grid, BOOL cancel)
+grid_end_drag(grid_t* grid, BOOL cancel)
 {
     MC_NMGCOLROWSIZECHANGE notif;
 
-    if(!grid->header_dragging)
-        return;
-
-    grid->header_dragging = FALSE;
+    MC_ASSERT(grid->colsizedrag_started  ||  grid->rowsizedrag_started);
 
     if(cancel) {
-        if(grid->header_drag_is_col)
-            grid_set_col_width(grid, grid->header_drag_index, grid->header_drag_orig_size);
+        if(grid->colsizedrag_started)
+            grid_set_col_width(grid, mc_drag_index, mc_drag_extra);
         else
-            grid_set_row_height(grid, grid->header_drag_index, grid->header_drag_orig_size);
+            grid_set_row_height(grid, mc_drag_index, mc_drag_extra);
     }
+
+    mc_drag_stop(grid->win);
+    grid->colsizedrag_started = FALSE;
+    grid->rowsizedrag_started = FALSE;
 
     notif.hdr.hwndFrom = grid->win;
     notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
-    if(grid->header_drag_is_col) {
+    if(grid->colsizedrag_started) {
         notif.hdr.code = MC_GN_ENDCOLUMNTRACK;
-        notif.wColumnOrRow = grid->header_drag_index;
-        notif.wWidthOrHeight = grid_col_width(grid, grid->header_drag_index);
+        notif.wColumnOrRow = mc_drag_index;
+        notif.wWidthOrHeight = grid_col_width(grid, mc_drag_index);
     } else {
         notif.hdr.code = MC_GN_ENDROWTRACK;
-        notif.wColumnOrRow = grid->header_drag_index;
-        notif.wWidthOrHeight = grid_row_height(grid, grid->header_drag_index);
+        notif.wColumnOrRow = mc_drag_index;
+        notif.wWidthOrHeight = grid_row_height(grid, mc_drag_index);
     }
     MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
 
-    if(grid->win == GetCapture())
+    if(grid->mouse_captured)
         ReleaseCapture();
-
+    grid->mouse_captured = FALSE;
     mc_send_notify(grid->notify_win, grid->win, NM_RELEASEDCAPTURE);
 }
 
@@ -2039,31 +2037,32 @@ grid_mouse_move(grid_t* grid, int x, int y)
     WORD hot_col = COL_INVALID;
     WORD hot_row = ROW_INVALID;
 
-    /* Resizing columns/rows */
-    if(grid->header_dragging) {
-        if(grid->header_drag_is_col) {
-            int right;
+    /* Resizing column */
+    if(grid->colsizedrag_started) {
+        int right;
 
-            grid_cell_rect(grid, grid->header_drag_index, MC_TABLE_HEADER, &cell_rect);
-            right = MC_MAX(cell_rect.left, x - grid->header_drag_offset);
-            if(right == cell_rect.right)
-                return;
+        grid_cell_rect(grid, mc_drag_index, MC_TABLE_HEADER, &cell_rect);
+        right = MC_MAX(cell_rect.left, x - mc_drag_hotspot_x);
+        if(right != cell_rect.right)
+            grid_set_col_width(grid, mc_drag_index, right - cell_rect.left);
 
-            grid_set_col_width(grid, grid->header_drag_index, right - cell_rect.left);
-        } else {
-            int bottom;
+        return;
+    }
 
-            grid_cell_rect(grid, MC_TABLE_HEADER, grid->header_drag_index, &cell_rect);
-            bottom = MC_MAX(cell_rect.top, y - grid->header_drag_offset);
-            if(bottom == cell_rect.bottom)
-                return;
+    /* Resizing row */
+    if(grid->rowsizedrag_started) {
+        int bottom;
 
-            grid_set_row_height(grid, grid->header_drag_index, bottom - cell_rect.top);
-        }
+        grid_cell_rect(grid, MC_TABLE_HEADER, mc_drag_index, &cell_rect);
+        bottom = MC_MAX(cell_rect.top, y - mc_drag_hotspot_y);
+        if(bottom != cell_rect.bottom)
+            grid_set_row_height(grid, mc_drag_index, bottom - cell_rect.top);
+
+        return;
     }
 
     /* Hot tracking. */
-    if(!grid->header_dragging  &&  grid->theme_listview != NULL  &&  grid->theme_listitem_defined) {
+    if(grid->theme_listview != NULL  &&  grid->theme_listitem_defined) {
         /* We paint hot item differently only with themes. */
         MC_GHITTESTINFO info;
 
@@ -2196,6 +2195,10 @@ grid_left_button_down(grid_t* grid, int x, int y)
     BOOL control_pressed = (GetKeyState(VK_CONTROL) & 0x8000);
     BOOL shift_pressed = (GetKeyState(VK_SHIFT) & 0x8000);
 
+    MC_ASSERT(!grid->mouse_captured);
+    MC_ASSERT(!grid->colsizedrag_started);
+    MC_ASSERT(!grid->rowsizedrag_started);
+
     if(mc_send_notify(grid->notify_win, grid->win, NM_CLICK)) {
         /* Application suppresses the default processing of the message */
         return;
@@ -2221,28 +2224,29 @@ grid_left_button_down(grid_t* grid, int x, int y)
             notif.wColumnOrRow = info.wRow;
             notif.wWidthOrHeight = grid_row_height(grid, info.wRow);
         }
-
         if(MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif) != 0) {
             /* Application suppresses the dragging mode. */
             return;
         }
 
-        /* Capture mouse for the dragging */
-        if(info.flags & col_track_mask) {
-            grid->header_drag_is_col = TRUE;
-            grid->header_drag_index = info.wColumn;
-            grid->header_drag_orig_size = grid_col_width(grid, info.wColumn);
-            MC_ASSERT(cell_rect.left - x < DIVIDER_WIDTH / 2);
-            grid->header_drag_offset = cell_rect.left - x;
-        } else {
-            grid->header_drag_is_col = FALSE;
-            grid->header_drag_index = info.wRow;
-            grid->header_drag_orig_size = grid_row_height(grid, info.wRow);
-            MC_ASSERT(cell_rect.top - y < DIVIDER_WIDTH / 2);
-            grid->header_drag_offset = cell_rect.top - y;
+        /* Start the dragging. */
+        if(mc_drag_start(grid->win, x, y) == MC_DRAG_STARTED) {
+            if(info.flags & col_track_mask) {
+                grid->colsizedrag_started = TRUE;
+                mc_drag_index = info.wColumn;
+                mc_drag_extra = grid_col_width(grid, info.wColumn);
+                mc_drag_hotspot_x = x - cell_rect.right;
+            } else {
+                grid->rowsizedrag_started = TRUE;
+                mc_drag_index = info.wRow;
+                mc_drag_extra = grid_row_height(grid, info.wRow);
+                mc_drag_hotspot_y = y - cell_rect.bottom;
+            }
+            SetCapture(grid->win);
+            grid->mouse_captured = TRUE;
         }
-        SetCapture(grid->win);
-        grid->header_dragging = TRUE;
+
+        return;
     }
 
     /* Ordinary cell? Focus it. */
@@ -2316,8 +2320,8 @@ grid_left_button_down(grid_t* grid, int x, int y)
 static void
 grid_left_button_up(grid_t* grid, int x, int y)
 {
-    if(grid->header_dragging)
-        grid_stop_dragging(grid, FALSE);
+    if(grid->colsizedrag_started  ||  grid->rowsizedrag_started)
+        grid_end_drag(grid, FALSE);
 }
 
 static void
@@ -2955,7 +2959,9 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_WANTARROWS;
 
         case WM_CAPTURECHANGED:
-            grid_stop_dragging(grid, TRUE);
+            if(grid->colsizedrag_started || grid->rowsizedrag_started)
+                grid_end_drag(grid, TRUE);
+            grid->mouse_captured = FALSE;
             return 0;
 
         case WM_SIZE:
