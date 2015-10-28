@@ -58,6 +58,11 @@ static const WCHAR grid_listview_tc[] = L"LISTVIEW";
 #define COL_INVALID                     0xfffe   /* 0xffff is taken by MC_TABLE_HEADER */
 #define ROW_INVALID                     0xfffe
 
+/* Modes for selection dragging (how to apply marquee) */
+#define DRAGSEL_NOOP                    0
+#define DRAGSEL_SET                     1
+#define DRAGSEL_UNION                   2
+#define DRAGSEL_XOR                     3
 
 /* Cursor for column and row resizing. */
 #define CURSOR_DIVIDER_H                0
@@ -92,8 +97,10 @@ struct grid_tag {
     DWORD theme_listitem_defined :  1;
     DWORD tracking_leave         :  1;
     DWORD mouse_captured         :  1;
-    DWORD colsizedrag_started    :  1;
-    DWORD rowsizedrag_started    :  1;
+    DWORD colsizedrag_started    :  1;  /* Dragging column header divider. */
+    DWORD rowsizedrag_started    :  1;  /* Dragging row header divider. */
+    DWORD seldrag_considering    :  1;
+    DWORD seldrag_started        :  1;  /* Dragging selection rectangle. */
 
     /* If MC_GS_OWNERDATA, we need it here locally. If not, it is a cached
      * value of table->col_count and table->row_count. */
@@ -628,6 +635,43 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     COLORREF back_color;
 
     is_selected = rgn16_contains_xy(&grid->selection, col, row);
+
+    /* If we are currently dragging a selection marquee, we want to display
+     * selection state which would result from it if the users ends it right
+     * now by WM_LBUTTONUP. */
+    if(grid->seldrag_considering  ||  grid->seldrag_started) {
+        if(mc_drag_lock(grid->win)) {
+            int drag_start_x, drag_start_y;
+            int drag_hotspot_x, drag_hotspot_y;
+            int drag_mode;
+            RECT marquee_rect;
+            BOOL is_in_marquee;
+
+            drag_start_x = mc_drag_start_x;
+            drag_start_y = mc_drag_start_y;
+            drag_hotspot_x = mc_drag_hotspot_x;
+            drag_hotspot_y = mc_drag_hotspot_y;
+            drag_mode = mc_drag_extra;
+            mc_drag_unlock();
+
+            marquee_rect.left = MC_MIN(drag_start_x, drag_hotspot_x) - grid->scroll_x;
+            marquee_rect.top = MC_MIN(drag_start_y, drag_hotspot_y) - grid->scroll_y;
+            marquee_rect.right = MC_MAX(drag_start_x, drag_hotspot_x) - grid->scroll_x + 1;
+            marquee_rect.bottom = MC_MAX(drag_start_y, drag_hotspot_y) - grid->scroll_y + 1;
+            is_in_marquee = mc_rect_overlaps_rect(rect, &marquee_rect);
+
+            switch(drag_mode) {
+                case DRAGSEL_SET:   is_selected = is_in_marquee; break;
+                case DRAGSEL_UNION: is_selected = (is_selected || is_in_marquee); break;
+                case DRAGSEL_XOR:   if(is_in_marquee) is_selected = !is_selected; break;
+            }
+        } else {
+            MC_ASSERT(grid->seldrag_considering);
+            MC_ASSERT(!grid->seldrag_started);
+            grid->seldrag_considering = FALSE;
+        }
+    }
+
     is_hot = (col == grid->hot_col  &&  row == grid->hot_row  &&
               col < grid->col_count  &&  row < grid->row_count);  /* <-- avoid headers */
 
@@ -829,6 +873,14 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     GetClientRect(grid->win, &client);
     header_w = grid_header_width(grid);
     header_h = grid_header_height(grid);
+
+    if(erase) {
+        HBRUSH brush;
+
+        brush = mcGetThemeSysColorBrush(grid->theme_listview, COLOR_WINDOW);
+        FillRect(dc, &client, brush);
+        DeleteObject(brush);
+    }
 
     old_mode = SetBkMode(dc, TRANSPARENT);
     old_bk_color = GetBkColor(dc);
@@ -1043,20 +1095,31 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.top = rect.bottom + gridline_w;
     }
 
-    /* Paint focus cursor */
-    if(grid->focus  &&  (grid->style & MC_GS_FOCUSEDCELL)  &&
-       col_count > 0  &&  row_count > 0)
-    {
-        RECT r;
+    if(!(cd_mode & CDRF_SKIPPOSTPAINT)) {
+        if(grid->seldrag_started) {
+            /* Paint selection dragging marquee. */
+            RECT r;
 
-        mc_clip_set(dc, MC_MAX(0, header_w-1), MC_MAX(0, header_h-1),
-                        client.right, client.bottom);
-        grid_cell_rect(grid, grid->focused_col, grid->focused_row, &r);
-        r.right -= gridline_w;
-        r.bottom -= gridline_w;
-        grid_paint_rect(dc, &r);
-        mc_rect_inflate(&r, -1, -1);
-        grid_paint_rect(dc, &r);
+            r.left = MC_MIN(mc_drag_start_x, mc_drag_hotspot_x) - grid->scroll_x;
+            r.top = MC_MIN(mc_drag_start_y, mc_drag_hotspot_y) - grid->scroll_y;
+            r.right = MC_MAX(mc_drag_start_x, mc_drag_hotspot_x) - grid->scroll_x + 1;
+            r.bottom = MC_MAX(mc_drag_start_y, mc_drag_hotspot_y) - grid->scroll_y + 1;
+
+            DrawFocusRect(dc, &r);
+        } else if(grid->focus  &&  (grid->style & MC_GS_FOCUSEDCELL)  &&
+                  col_count > 0  &&  row_count > 0) {
+            /* Paint focus cursor */
+            RECT r;
+
+            mc_clip_set(dc, MC_MAX(0, header_w-1), MC_MAX(0, header_h-1),
+                            client.right, client.bottom);
+            grid_cell_rect(grid, grid->focused_col, grid->focused_row, &r);
+            r.right -= gridline_w;
+            r.bottom -= gridline_w;
+            grid_paint_rect(dc, &r);
+            mc_rect_inflate(&r, -1, -1);
+            grid_paint_rect(dc, &r);
+        }
     }
 
     /* Custom draw: Control post-paint notification */
@@ -1961,8 +2024,213 @@ grid_get_row_height(grid_t* grid, WORD row)
     return MAKELPARAM(grid_row_height(grid, row), 0);
 }
 
+
+static int
+grid_reset_selection(grid_t* grid)
+{
+    rgn16_t sel;
+
+    rgn16_init(&sel);
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_reset_selection: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+grid_select_cell(grid_t* grid, WORD col, WORD row)
+{
+    rgn16_t sel;
+
+    rgn16_init_with_xy(&sel, col, row);
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_select_cell: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+grid_select_rect(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
+{
+    rgn16_rect_t sel_rect = { col0, row0, col1, row1 };
+    rgn16_t sel;
+
+    rgn16_init_with_rect(&sel, &sel_rect);
+    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
+        MC_TRACE("grid_select_rect: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+grid_select_rect_UNION(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
+{
+    rgn16_rect_t sel_rect = { col0, row0, col1, row1 };
+    rgn16_t sel;
+    rgn16_t sel_union;
+
+    rgn16_init_with_rect(&sel, &sel_rect);
+
+    if(MC_ERR(rgn16_union(&sel_union, &sel, &grid->selection) != 0)) {
+        MC_TRACE("grid_select_rect_UNION: rgn16_union() failed.");
+        return -1;
+    }
+
+    if(MC_ERR(grid_install_selection(grid, &sel_union) != 0)) {
+        MC_TRACE("grid_select_rect_UNION: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+grid_select_rect_XOR(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
+{
+    rgn16_rect_t sel_rect = { col0, row0, col1, row1 };
+    rgn16_t sel;
+    rgn16_t sel_xor;
+
+    rgn16_init_with_rect(&sel, &sel_rect);
+
+    if(MC_ERR(rgn16_xor(&sel_xor, &sel, &grid->selection) != 0)) {
+        MC_TRACE("grid_select_rect_XOR: rgn16_xor() failed.");
+        return -1;
+    }
+
+    if(MC_ERR(grid_install_selection(grid, &sel_xor) != 0)) {
+        MC_TRACE("grid_select_rect_XOR: grid_install_selection() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
 static void
-grid_end_drag(grid_t* grid, BOOL cancel)
+grid_end_sel_drag(grid_t* grid, BOOL cancel)
+{
+    WORD col_count = grid->col_count;
+    WORD row_count = grid->row_count;
+
+    MC_ASSERT(grid->seldrag_considering || grid->seldrag_started);
+
+    /* Apply the selection marquee. */
+    if(!cancel  &&  col_count > 0  &&  row_count > 0) {
+        if(mc_drag_lock(grid->win)) {
+            int drag_start_x, drag_start_y;
+            int drag_hotspot_x, drag_hotspot_y;
+            int drag_mode;
+            int marquee_x0, marquee_y0, marquee_x1, marquee_y1;
+            int x, y;
+            int gridline_w = (grid->style & MC_GS_NOGRIDLINES) ? 0 : 1;
+            WORD col0, row0, col1, row1;
+            int err = -1;
+
+            drag_start_x = mc_drag_start_x;
+            drag_start_y = mc_drag_start_y;
+            drag_hotspot_x = mc_drag_hotspot_x;
+            drag_hotspot_y = mc_drag_hotspot_y;
+            drag_mode = mc_drag_extra;
+
+            mc_drag_unlock();
+
+            /* Translate marquee into column and row rectangle. */
+            marquee_x0 = MC_MIN(drag_start_x, drag_hotspot_x);
+            marquee_y0 = MC_MIN(drag_start_y, drag_hotspot_y);
+            marquee_x1 = MC_MAX(drag_start_x, drag_hotspot_x);
+            marquee_y1 = MC_MAX(drag_start_y, drag_hotspot_y);
+            x = grid_header_width(grid);
+            for(col0 = 0; col0 < col_count; col0++) {
+                x += grid_col_width(grid, col0);
+                if(marquee_x0 < x + gridline_w)
+                    break;
+            }
+            for(col1 = col0; col1 < col_count; col1++) {
+                if(marquee_x1 < x + gridline_w)
+                    break;
+                if(col1+1 < col_count)
+                    x += grid_col_width(grid, col1+1);
+            }
+            y = grid_header_height(grid);
+            for(row0 = 0; row0 < row_count; row0++) {
+                y += grid_row_height(grid, row0);
+                if(marquee_y0 < y + gridline_w)
+                    break;
+            }
+            for(row1 = row0; row1 < row_count; row1++) {
+                if(marquee_y1 < y + gridline_w)
+                    break;
+                if(row1+1 < row_count)
+                    y += grid_row_height(grid, row1+1);
+            }
+
+            GRID_TRACE("grid_end_sel_drag: %d %d %d %d",
+                       (int) col0, (int) row0, (int) col1, (int) row1);
+
+            /* Setup the selection. */
+            switch(drag_mode) {
+                case DRAGSEL_SET:
+                    MC_ASSERT((grid->style & GRID_GS_SELMASK) == MC_GS_COMPLEXSEL ||
+                              (grid->style & GRID_GS_SELMASK) == MC_GS_RECTSEL);
+                    err = grid_select_rect(grid, col0, row0, col1 + 1, row1 + 1);
+                    if(MC_ERR(err != 0))
+                        MC_TRACE("grid_end_sel_drag: grid_select_rect() failed.");
+                    break;
+
+                case DRAGSEL_UNION:
+                    MC_ASSERT((grid->style & GRID_GS_SELMASK) == MC_GS_COMPLEXSEL);
+                    err = grid_select_rect_UNION(grid, col0, row0, col1 + 1, row1 + 1);
+                    if(MC_ERR(err != 0))
+                        MC_TRACE("grid_end_sel_drag: grid_select_rect_UNION() failed.");
+                    break;
+
+                case DRAGSEL_XOR:
+                    MC_ASSERT((grid->style & GRID_GS_SELMASK) == MC_GS_COMPLEXSEL);
+                    err = grid_select_rect_XOR(grid, col0, row0, col1 + 1, row1 + 1);
+                    if(MC_ERR(err != 0))
+                        MC_TRACE("grid_end_sel_drag: grid_select_rect_XOR() failed.");
+                    break;
+            }
+
+            if(err == 0) {
+                /* Remember the origin of the dragging as the selection mark. */
+                grid->selmark_col = (drag_start_x < drag_hotspot_x) ? col0 : col1;
+                grid->selmark_row = (drag_start_y < drag_hotspot_y) ? row0 : row1;
+
+                /* Remember the target of the dragging as the focused cell. */
+                if(grid->style & MC_GS_FOCUSEDCELL) {
+                    WORD focused_col = (drag_start_x < drag_hotspot_x) ? col1 : col0;
+                    WORD focused_row = (drag_start_y < drag_hotspot_y) ? row1 : row0;
+
+                    grid_set_focused_cell(grid, focused_col, focused_row);
+                }
+            }
+        } else {
+            /* Noop: cancel */
+        }
+    }
+
+    if(grid->seldrag_started)
+        mc_drag_stop(grid->win);
+    grid->seldrag_considering = FALSE;
+    grid->seldrag_started = FALSE;
+
+    if(grid->mouse_captured)
+        ReleaseCapture();
+    grid->mouse_captured = FALSE;
+    mc_send_notify(grid->notify_win, grid->win, NM_RELEASEDCAPTURE);
+
+    InvalidateRect(grid->win, NULL, TRUE);
+}
+
+static void
+grid_end_headersize_drag(grid_t* grid, BOOL cancel)
 {
     MC_NMGCOLROWSIZECHANGE notif;
 
@@ -1996,6 +2264,15 @@ grid_end_drag(grid_t* grid, BOOL cancel)
         ReleaseCapture();
     grid->mouse_captured = FALSE;
     mc_send_notify(grid->notify_win, grid->win, NM_RELEASEDCAPTURE);
+}
+
+static void
+grid_end_any_drag(grid_t* grid, BOOL cancel)
+{
+    if(grid->seldrag_considering || grid->seldrag_started)
+        grid_end_sel_drag(grid, TRUE);
+    else if(grid->colsizedrag_started || grid->rowsizedrag_started)
+        grid_end_headersize_drag(grid, TRUE);
 }
 
 static void
@@ -2036,6 +2313,41 @@ grid_mouse_move(grid_t* grid, int x, int y)
     RECT cell_rect;
     WORD hot_col = COL_INVALID;
     WORD hot_row = ROW_INVALID;
+
+    /* Updating selection dragging (marquee). */
+    if(grid->seldrag_considering) {
+        int drag_x = x - grid->scroll_x;
+        int drag_y = y - grid->scroll_y;
+
+        MC_ASSERT(!grid->seldrag_started);
+
+        switch(mc_drag_consider_start(grid->win, drag_x, drag_y)) {
+            case MC_DRAG_STARTED:
+                grid->seldrag_considering = FALSE;
+                grid->seldrag_started = TRUE;
+                SetCapture(grid->win);
+                grid->mouse_captured = TRUE;
+                break;
+
+            case MC_DRAG_CONSIDERING:
+                /* noop */
+                break;
+
+            case MC_DRAG_CANCELED:
+                grid->seldrag_considering = FALSE;
+                break;
+        }
+    }
+    if(grid->seldrag_started) {
+        MC_ASSERT(!grid->seldrag_considering);
+
+        /* Remember the moving corner of the marquee. */
+        mc_drag_hotspot_x = x + grid->scroll_x;
+        mc_drag_hotspot_y = y + grid->scroll_y;
+
+        InvalidateRect(grid->win, NULL, TRUE);
+        return;
+    }
 
     /* Resizing column */
     if(grid->colsizedrag_started) {
@@ -2107,49 +2419,6 @@ grid_mouse_leave(grid_t* grid)
 }
 
 static int
-grid_reset_selection(grid_t* grid)
-{
-    rgn16_t sel;
-
-    rgn16_init(&sel);
-    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
-        MC_TRACE("grid_reset_selection: grid_install_selection() failed.");
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-grid_select_cell(grid_t* grid, WORD col, WORD row)
-{
-    rgn16_t sel;
-
-    rgn16_init_with_xy(&sel, col, row);
-    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
-        MC_TRACE("grid_select_cell: grid_install_selection() failed.");
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-grid_select_rect(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
-{
-    rgn16_rect_t sel_rect = { col0, row0, col1, row1 };
-    rgn16_t sel;
-
-    rgn16_init_with_rect(&sel, &sel_rect);
-    if(MC_ERR(grid_install_selection(grid, &sel) != 0)) {
-        MC_TRACE("grid_select_rect: grid_install_selection() failed.");
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
 grid_toggle_cell_selection(grid_t* grid, WORD col, WORD row)
 {
     rgn16_t sel;
@@ -2194,6 +2463,7 @@ grid_left_button_down(grid_t* grid, int x, int y)
     RECT cell_rect;
     BOOL control_pressed = (GetKeyState(VK_CONTROL) & 0x8000);
     BOOL shift_pressed = (GetKeyState(VK_SHIFT) & 0x8000);
+    DWORD sel_mode;
 
     MC_ASSERT(!grid->mouse_captured);
     MC_ASSERT(!grid->colsizedrag_started);
@@ -2249,49 +2519,38 @@ grid_left_button_down(grid_t* grid, int x, int y)
         return;
     }
 
-    /* Ordinary cell? Focus it. */
-    if((info.flags & MC_GHT_ONNORMALCELL)  &&  (grid->style & MC_GS_FOCUSEDCELL))
-        grid_set_focused_cell(grid, info.wColumn, info.wRow);
-
     /* Update selection. */
-    switch(grid->style & GRID_GS_SELMASK) {
+    sel_mode = (grid->style & GRID_GS_SELMASK);
+    switch(sel_mode) {
         case MC_GS_COMPLEXSEL:
-            /* <CTRL>+click toggles selection state of the cell. */
-            if(control_pressed) {
-                if(info.flags & MC_GHT_ONNORMALCELL) {
-                    int err = grid_toggle_cell_selection(grid, info.wColumn, info.wRow);
-                    if(err == 0) {
-                        grid->selmark_col = info.wColumn;
-                        grid->selmark_row = info.wRow;
-                    } else {
-                        MC_TRACE("grid_left_button_down: grid_toggle_cell_selection() failed.");
-                    }
-                }
-                break;
-            } else {
-                /* Fall through */
-            }
-
         case MC_GS_RECTSEL:
-            /* <SHIFT>+click sets the selection to rect (the other corner
-             * is determined by grid->selmark_col/row) */
-            if(shift_pressed  &&
-               grid->selmark_col < grid->col_count  &&
-               grid->selmark_row < grid->row_count)
-            {
-                if(info.flags & MC_GHT_ONNORMALCELL) {
-                    int err = grid_select_rect(grid,
-                            MC_MIN(grid->selmark_col, info.wColumn),
-                            MC_MIN(grid->selmark_row, info.wRow),
-                            MC_MAX(grid->selmark_col, info.wColumn) + 1,
-                            MC_MAX(grid->selmark_row, info.wRow) + 1);
-                    if(err != 0) {
-                        MC_TRACE("grid_left_button_down: grid_select_rect() failed.");
-                    }
+            /* In multi-select modes, we consider starting a mouse dragging
+             * operation, assuming we are not on a column/row header. */
+            if(!(info.flags & MC_GHT_ONHEADER)) {
+                int start_x, start_y;
+                UINT_PTR extra;
+
+                /* We remember coordinates relatively, without the scrolling
+                 * offsets, because we may need to scroll during the dragging. */
+                start_x = x + grid->scroll_x;
+                start_y = y + grid->scroll_y;
+
+                /* We remember the mode how the rectangle shall be applied,
+                 * given the special keys pressed. */
+                if(sel_mode == MC_GS_COMPLEXSEL  &&  control_pressed)
+                    extra = DRAGSEL_XOR;
+                else if(sel_mode == MC_GS_COMPLEXSEL  &&  shift_pressed)
+                    extra = DRAGSEL_UNION;
+                else
+                    extra = DRAGSEL_SET;
+
+                if(mc_drag_set_candidate(grid->win, start_x, start_y, start_x, start_y, 0, extra)) {
+                    grid->seldrag_considering = TRUE;
+                    InvalidateRect(grid->win, NULL, TRUE);
                 }
                 break;
             } else {
-                /* Fall through */
+                /* Fall through into MC_GS_NOSEL (indirectly through MC_GS_NOSEL). */
             }
 
         case MC_GS_SINGLESEL:
@@ -2300,12 +2559,15 @@ grid_left_button_down(grid_t* grid, int x, int y)
                 if(grid_select_cell(grid, info.wColumn, info.wRow) == 0) {
                     grid->selmark_col = info.wColumn;
                     grid->selmark_row = info.wRow;
+
+                    if(grid->style & MC_GS_FOCUSEDCELL)
+                        grid_set_focused_cell(grid, info.wColumn, info.wRow);
                 } else {
                     MC_TRACE("grid_left_button_down: grid_select_cell() failed.");
                 }
                 break;
             } else {
-                /* Fall through */
+                /* Fall through into MC_GS_NOSEL. */
             }
 
         case MC_GS_NOSEL:
@@ -2320,8 +2582,10 @@ grid_left_button_down(grid_t* grid, int x, int y)
 static void
 grid_left_button_up(grid_t* grid, int x, int y)
 {
-    if(grid->colsizedrag_started  ||  grid->rowsizedrag_started)
-        grid_end_drag(grid, FALSE);
+    if(grid->seldrag_considering  ||  grid->seldrag_started)
+        grid_end_sel_drag(grid, FALSE);
+    else if(grid->colsizedrag_started  ||  grid->rowsizedrag_started)
+        grid_end_headersize_drag(grid, FALSE);
 }
 
 static void
@@ -2404,6 +2668,12 @@ grid_key_down(grid_t* grid, int key)
     BOOL control_pressed = (GetKeyState(VK_CONTROL) & 0x8000);
     BOOL shift_pressed = (GetKeyState(VK_SHIFT) & 0x8000);
     int err;
+
+    /* On <ESC>, cancel any dragging. */
+    if(key == VK_ESCAPE) {
+        grid_end_any_drag(grid, TRUE);
+        return;
+    }
 
     /* Move focused cell or scroll */
     switch(key) {
@@ -2557,6 +2827,8 @@ grid_set_table(grid_t* grid, table_t* table)
             return -1;
         }
     }
+
+    grid_end_any_drag(grid, TRUE);
 
     if(grid->table != NULL) {
         table_uninstall_view(grid->table, grid);
@@ -2718,11 +2990,25 @@ grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
 {
     grid->style = ss->styleNew;
 
-    if((ss->styleNew & MC_GS_OWNERDATA) != (ss->styleOld & MC_GS_OWNERDATA))
+    if((ss->styleNew & MC_GS_OWNERDATA) != (ss->styleOld & MC_GS_OWNERDATA)) {
         grid_set_table(grid, NULL);
+    }
 
-    if((ss->styleNew & GRID_GS_SELMASK) != (ss->styleOld & GRID_GS_SELMASK))
+    if((ss->styleNew & GRID_GS_SELMASK) != (ss->styleOld & GRID_GS_SELMASK)) {
         grid_reset_selection(grid);
+        if(grid->seldrag_considering || grid->seldrag_started)
+            grid_end_sel_drag(grid, TRUE);
+    }
+
+    if((ss->styleNew & MC_GS_RESIZABLECOLUMNS) != (ss->styleOld & MC_GS_RESIZABLECOLUMNS)) {
+        if(grid->colsizedrag_started)
+            grid_end_headersize_drag(grid, TRUE);
+    }
+
+    if((ss->styleNew & MC_GS_RESIZABLEROWS) != (ss->styleOld & MC_GS_RESIZABLEROWS)) {
+        if(grid->rowsizedrag_started)
+            grid_end_headersize_drag(grid, TRUE);
+    }
 
     if(!grid->no_redraw)
         InvalidateRect(grid->win, NULL, TRUE);
@@ -2798,9 +3084,12 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
+            /* Note that the selection marquee dragging implies double-buffering
+             * because during that the control needs to be repainted quite often.
+             */
             return generic_paint(win, grid->no_redraw,
-                                 (grid->style & MC_GS_DOUBLEBUFFER),
-                                 grid_paint, grid);
+                        ((grid->style & MC_GS_DOUBLEBUFFER) || grid->seldrag_started),
+                        grid_paint, grid);
 
         case WM_PRINTCLIENT:
             return generic_printclient(win, (HDC) wp, grid_paint, grid);
@@ -2809,7 +3098,8 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return generic_ncpaint(win, grid->theme_listview, (HRGN) wp);
 
         case WM_ERASEBKGND:
-            return generic_erasebkgnd(win, grid->theme_listview, (HDC) wp);
+            /* Keep it on WM_PAINT */
+            return FALSE;
 
         case MC_GM_GETTABLE:
             return (LRESULT) grid->table;
@@ -2956,11 +3246,12 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_GETDLGCODE:
+            if(wp == VK_ESCAPE)
+                return DLGC_WANTMESSAGE;
             return DLGC_WANTARROWS;
 
         case WM_CAPTURECHANGED:
-            if(grid->colsizedrag_started || grid->rowsizedrag_started)
-                grid_end_drag(grid, TRUE);
+            grid_end_any_drag(grid, TRUE);
             grid->mouse_captured = FALSE;
             return 0;
 
