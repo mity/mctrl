@@ -3457,7 +3457,7 @@ treelist_do_get_item_rect(treelist_t* tl, MC_HTREELISTITEM item, int col_ix,
 
     /* Optimization: It can be assumed that most calls to this function are
      * calls about items which are in the current view-port. Therefore we
-     * start the search at the treelist_t::scrolled_item and if we are
+     * try to start the search at the treelist_t::scrolled_item and if we are
      * unsuccessful, we then wrap and start at the root. */
     if(tl->scrolled_item != NULL) {
         iter = tl->scrolled_item;
@@ -3473,10 +3473,11 @@ treelist_do_get_item_rect(treelist_t* tl, MC_HTREELISTITEM item, int col_ix,
 
         stopper = tl->scrolled_item;
     } else {
+        iter = NULL;
         stopper = NULL;
     }
 
-    /* The regular search from the top of the tree. */
+    /* If not yet found, we do regular search from the top of the tree. */
     if(iter == NULL) {
         iter = tl->root_head;
         level = 0;
