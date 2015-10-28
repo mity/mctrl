@@ -395,9 +395,15 @@ mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
     }
 
     /* Compute lines to scroll. */
-    accum_delta[dir] += delta;
-    lines = (accum_delta[dir] * (int)lines_per_WHEEL_DELTA) / WHEEL_DELTA;
-    accum_delta[dir] -= (lines * WHEEL_DELTA) / (int)lines_per_WHEEL_DELTA;
+    if(lines_per_WHEEL_DELTA > 0) {
+        accum_delta[dir] += delta;
+        lines = (accum_delta[dir] * (int)lines_per_WHEEL_DELTA) / WHEEL_DELTA;
+        accum_delta[dir] -= (lines * WHEEL_DELTA) / (int)lines_per_WHEEL_DELTA;
+    } else {
+        /* lines_per_WHEEL_DELTA == 0 --> We just don't scroll at all. */
+        lines = 0;
+        accum_delta[dir] = 0;
+    }
     last_time[dir] = now;
 
     LeaveCriticalSection(&mc_wheel_lock);
