@@ -344,9 +344,9 @@ mc_load_redist_dll(const TCHAR* dll_name)
 }
 
 
-/*****************************
- *** Mouse Wheel Utilities ***
- *****************************/
+/***********************
+ *** Mouse Utilities ***
+ ***********************/
 
 static CRITICAL_SECTION mc_wheel_lock;
 
@@ -402,6 +402,110 @@ mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
 
     LeaveCriticalSection(&mc_wheel_lock);
     return (is_vertical ? -lines : lines);
+}
+
+
+static CRITICAL_SECTION mc_drag_lock;
+
+static BOOL mc_drag_running = FALSE;
+static HWND mc_drag_win = NULL;
+int mc_drag_start_x;
+int mc_drag_start_y;
+int mc_drag_hotspot_x;
+int mc_drag_hotspot_y;
+int mc_drag_index;
+UINT_PTR mc_drag_extra;
+
+BOOL
+mc_drag_set_candidate(HWND win, int start_x, int start_y,
+                      int hotspot_x, int hotspot_y, int index, UINT_PTR extra)
+{
+    BOOL ret = FALSE;
+
+    EnterCriticalSection(&mc_drag_lock);
+    if(!mc_drag_running) {
+        mc_drag_win = win;
+        mc_drag_start_x = start_x;
+        mc_drag_start_y = start_y;
+        mc_drag_hotspot_x = hotspot_x;
+        mc_drag_hotspot_y = hotspot_y;
+        mc_drag_index = index;
+        mc_drag_extra = extra;
+        ret = TRUE;
+    } else {
+        /* Dragging (of different window?) is already running. Actually this
+         * should happen normally only if the two windows live in different
+         * threads, because the mc_drag_win should have the mouse captured. */
+        MC_ASSERT(mc_drag_win != NULL);
+        MC_ASSERT(GetWindowThreadProcessId(win, NULL) != GetWindowThreadProcessId(mc_drag_win, NULL));
+    }
+    LeaveCriticalSection(&mc_drag_lock);
+
+    return ret;
+}
+
+mc_drag_state_t
+mc_drag_consider_start(HWND win, int x, int y)
+{
+    mc_drag_state_t ret;
+
+    EnterCriticalSection(&mc_drag_lock);
+    if(!mc_drag_running  &&  win == mc_drag_win) {
+        int drag_cx, drag_cy;
+        RECT rect;
+
+        drag_cx = GetSystemMetrics(SM_CXDRAG);
+        drag_cy = GetSystemMetrics(SM_CYDRAG);
+
+        rect.left = mc_drag_start_x - drag_cx;
+        rect.top = mc_drag_start_y - drag_cy;
+        rect.right = mc_drag_start_x + drag_cx + 1;
+        rect.bottom = mc_drag_start_y + drag_cy + 1;
+
+        if(!mc_rect_contains_xy(&rect, x, y)) {
+            mc_drag_running = TRUE;
+            ret = MC_DRAG_STARTED;
+        } else {
+            /* Still not clear whether we should start the dragging. Maybe
+             * next WM_MOUSEMOVE will finally decide it. */
+            ret = MC_DRAG_CONSIDERING;
+        }
+    } else {
+        ret = MC_DRAG_CANCELED;
+    }
+    LeaveCriticalSection(&mc_drag_lock);
+
+    return ret;
+}
+
+mc_drag_state_t
+mc_drag_start(HWND win, int start_x, int start_y)
+{
+    mc_drag_state_t ret;
+
+    EnterCriticalSection(&mc_drag_lock);
+    if(!mc_drag_running) {
+        mc_drag_running = TRUE;
+        mc_drag_win = win;
+        mc_drag_start_x = start_x;
+        mc_drag_start_y = start_y;
+        ret = MC_DRAG_STARTED;
+    } else {
+        ret = MC_DRAG_CANCELED;
+    }
+    LeaveCriticalSection(&mc_drag_lock);
+
+    return ret;
+}
+
+void
+mc_drag_stop(HWND win)
+{
+    EnterCriticalSection(&mc_drag_lock);
+    MC_ASSERT(mc_drag_running);
+    MC_ASSERT(win == mc_drag_win);
+    mc_drag_running = FALSE;
+    LeaveCriticalSection(&mc_drag_lock);
 }
 
 
@@ -689,6 +793,7 @@ mc_init_module(void)
     setup_comctl32_version(dll_comctl32);
 
     InitializeCriticalSection(&mc_wheel_lock);
+    InitializeCriticalSection(&mc_drag_lock);
 
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
@@ -702,7 +807,9 @@ mc_init_module(void)
 void
 mc_fini_module(void)
 {
+    DeleteCriticalSection(&mc_drag_lock);
     DeleteCriticalSection(&mc_wheel_lock);
+
     ImageList_Destroy(mc_bmp_glyphs);
 }
 
