@@ -2227,7 +2227,8 @@ mditab_key_up(mditab_t* mditab, int key_code, DWORD key_data)
             break;
 
         case VK_ESCAPE:
-            mditab_cancel_drag(mditab);
+            if(mditab->itemdrag_considering || mditab->itemdrag_started)
+                mditab_cancel_drag(mditab);
             break;
 
         default:
