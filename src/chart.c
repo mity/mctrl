@@ -523,7 +523,7 @@ pie_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
         label_angle_rads = (angle + 0.5f * sweep) * (MC_PIf / 180.0f);
         label_rect.x0 = geom.circle.x + 0.75f * geom.circle.r * cosf(label_angle_rads);
         label_rect.y0 = geom.circle.y + 0.75f * geom.circle.r * sinf(label_angle_rads)
-                        - layout->font_size.cy / 2;
+                        - layout->font_size.cy / 2.0f;
         label_rect.x1 = label_rect.x0;
         label_rect.y1 = label_rect.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis1, val, buffer);
@@ -711,7 +711,7 @@ scatter_calc_geometry(chart_t* chart, chart_paint_t* ctx,
 
     /* Compute core area */
     geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2;
+    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
     geom->core_rect.x1 = layout->body_rect.right;
     geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
     if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0) {
@@ -808,7 +808,7 @@ scatter_paint_grid(chart_t* chart, chart_paint_t* ctx,
         xdraw_rect_t rc;
 
         rc.x0 = scatter_map_x(x, geom);
-        rc.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2;
+        rc.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
         rc.x1 = rc.x0;
         rc.y1 = rc.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis1, x, buffer);
@@ -818,8 +818,8 @@ scatter_paint_grid(chart_t* chart, chart_paint_t* ctx,
     for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
         xdraw_rect_t rc;
 
-        rc.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2;
-        rc.y0 = scatter_map_y(y, geom) - (layout->font_size.cy+1) / 2;
+        rc.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
+        rc.y0 = scatter_map_y(y, geom) - (layout->font_size.cy+1) / 2.0f;
         rc.x1 = rc.x0;
         rc.y1 = rc.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis2, y, buffer);
@@ -1075,7 +1075,7 @@ line_calc_geometry(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
 
     /* Compute core area */
     geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2;
+    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
     geom->core_rect.x1 = layout->body_rect.right;
     geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
     if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0) {
@@ -1172,7 +1172,7 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx,
         xdraw_rect_t rc;
 
         rc.x0 = line_map_x(x, geom);
-        rc.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2;
+        rc.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
         rc.x1 = rc.x0;
         rc.y1 = rc.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis1, x, buffer);
@@ -1182,8 +1182,8 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx,
     for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
         xdraw_rect_t rc;
 
-        rc.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2;
-        rc.y0 = line_map_y(y, geom) - (layout->font_size.cy+1) / 2;
+        rc.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
+        rc.y0 = line_map_y(y, geom) - (layout->font_size.cy+1) / 2.0f;
         rc.x1 = rc.x0;
         rc.y1 = rc.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis2, y, buffer);
@@ -1532,7 +1532,7 @@ column_calc_geometry(chart_t* chart, BOOL is_stacked, const chart_layout_t* layo
 
     /* Compute core area */
     geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2;
+    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
     geom->core_rect.x1 = layout->body_rect.right;
     geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
     if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0)
@@ -1616,7 +1616,7 @@ column_paint_grid(chart_t* chart, chart_paint_t* ctx,
     for(x = 0; x < geom->min_count; x++) {
         rect.x0 = geom->core_rect.x0 + (x + 0.5f) *
                 (geom->core_rect.x1 - geom->core_rect.x0) / geom->min_count;
-        rect.y0 = geom->core_rect.y1 + ((layout->font_size.cy+1) / 2);
+        rect.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
         rect.x1 = rect.x0;
         rect.y1 = rect.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis1, x, buffer);
@@ -1625,8 +1625,8 @@ column_paint_grid(chart_t* chart, chart_paint_t* ctx,
     }
 
     for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
-        rect.x0 = geom->core_rect.x0 - ((layout->font_size.cx+1) / 2);
-        rect.y0 = column_map_y(y, geom) - ((layout->font_size.cy+1) / 2);
+        rect.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
+        rect.y0 = column_map_y(y, geom) - (layout->font_size.cy+1) / 2.0f;
         rect.x1 = rect.x0;
         rect.y1 = rect.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis2, y, buffer);
@@ -1923,7 +1923,7 @@ bar_calc_geometry(chart_t* chart, BOOL is_stacked, const chart_layout_t* layout,
 
     /* Compute core area */
     geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2;
+    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
     geom->core_rect.x1 = layout->body_rect.right;
     geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
     if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0)
@@ -2005,7 +2005,7 @@ bar_paint_grid(chart_t* chart, chart_paint_t* ctx,
     /* Labels */
     for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
         rect.x0 = bar_map_x(x, geom);
-        rect.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2;
+        rect.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
         rect.x1 = rect.x0;
         rect.y1 = rect.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis2, x, buffer);
@@ -2014,10 +2014,10 @@ bar_paint_grid(chart_t* chart, chart_paint_t* ctx,
     }
 
     for(y = 0; y < geom->min_count; y++) {
-        rect.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2;
+        rect.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
         rect.y0 = geom->core_rect.y1 - (y + 0.5f) *
                 (geom->core_rect.y1 - geom->core_rect.y0) / geom->min_count -
-                (layout->font_size.cy+1) / 2;
+                (layout->font_size.cy+1) / 2.0f;
         rect.x1 = rect.x0;
         rect.y1 = rect.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis1, y, buffer);

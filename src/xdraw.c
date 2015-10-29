@@ -1900,11 +1900,14 @@ xdraw_path_add_arc(xdraw_path_sink_t* sink, const xdraw_point_t* center,
 
     XDRAW_TRACE("xdraw_path_add_arc(%p)", sink);
 
-    /* Avoid undefined case for atan2f() */
-    if(xdiff == 0.0f  &&  ydiff == 0.0f)
+    r = sqrtf(xdiff * xdiff + ydiff * ydiff);
+
+    /* Avoid undefined case for atan2f().
+     * Note we check for range (-Epsion, +Epsilon) instead of exact float zero.
+     */
+    if(r < 0.001f)
         return;
 
-    r = sqrtf(xdiff * xdiff + ydiff * ydiff);
     base_angle = atan2f(ydiff, xdiff) * (180.0f / MC_PIf);
 
     if(d2d_dll != NULL) {

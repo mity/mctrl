@@ -241,7 +241,7 @@ husl_luv2xyz(float* tuple)
     U = tuple[1];
     V = tuple[2];
 
-    if(L == 0) {
+    if(L < 0.001f) {  /* Using Epsilon 0.001f instead of checking for equality to zero. */
         tuple[2] = tuple[1] = tuple[0] = 0.0f;
         return tuple;
     }

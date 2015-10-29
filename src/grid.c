@@ -1438,7 +1438,7 @@ static int
 grid_install_selection(grid_t* grid, rgn16_t* sel)
 {
     MC_NMGSELECTIONCHANGE notif;
-    char buf[MC_MAX(sizeof(rgn16_t), sizeof(MC_GSELECTION))];
+    rgn16_t tmp;
 
     if(rgn16_equals_rgn(&grid->selection, sel))
         return 0;
@@ -1458,9 +1458,9 @@ grid_install_selection(grid_t* grid, rgn16_t* sel)
     }
 
     /* Install the new selection. */
-    memcpy(buf, &grid->selection, sizeof(rgn16_t));
+    memcpy(&tmp, &grid->selection, sizeof(rgn16_t));
     memcpy(&grid->selection, sel, sizeof(rgn16_t));
-    memcpy(sel, buf, sizeof(rgn16_t));
+    memcpy(sel, &tmp, sizeof(rgn16_t));
 
     /* Refresh */
     if(!grid->no_redraw) {

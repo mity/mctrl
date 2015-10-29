@@ -346,7 +346,7 @@ mditab_setup_item_layout(mditab_t* mditab,mditab_item_t* item, int x0, int y0,
 
         ImageList_GetIconSize(mditab->img_list, &icon_w, &icon_h);
         layout->icon_rect.x0 = contents_x;
-        layout->icon_rect.y0 = (y0 + y1 - icon_h) / 2;
+        layout->icon_rect.y0 = (y0 + y1 - icon_h) / 2.0f;
         layout->icon_rect.x1 = layout->icon_rect.x0 + icon_w;
         layout->icon_rect.y1 = layout->icon_rect.y0 + icon_h;
 
@@ -358,7 +358,7 @@ mditab_setup_item_layout(mditab_t* mditab,mditab_item_t* item, int x0, int y0,
 
         mc_font_size(mditab->font, &size, TRUE);
         layout->text_rect.x0 = contents_x;
-        layout->text_rect.y0 = (y0 + y1 - size.cy) / 2;
+        layout->text_rect.y0 = (y0 + y1 - size.cy) / 2.0f;
         layout->text_rect.x1 = x1 - MDITAB_ITEM_PADDING;
         layout->text_rect.y1 = layout->text_rect.y0 + size.cy;
 
