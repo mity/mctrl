@@ -141,6 +141,7 @@ struct mditab_tag {
     DWORD style                 : 16;
     DWORD btn_mask              :  4;
     DWORD no_redraw             :  1;
+    DWORD hide_focus            :  1;
     DWORD tracking_leave        :  1;
     DWORD dirty_layout          :  1;
     DWORD dirty_scroll          :  1;
@@ -1411,6 +1412,32 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
                 XDRAW_STRING_CLIP | XDRAW_STRING_END_ELLIPSIS);
     }
 
+    /* Paint focus rect (if needed). */
+    if(is_selected  &&  !mditab->hide_focus  &&
+       ((mditab->style & MC_MTS_FOCUSMASK) != MC_MTS_FOCUSNEVER)  &&
+       (item->text != NULL || mditab->img_list != NULL))
+    {
+        HDC dc;
+        RECT focus_rect;
+
+        focus_rect.left = (LONG)(mditab->img_list != NULL ? layout.icon_rect.x0 : layout.text_rect.x0) - 1;
+        focus_rect.right = (LONG)(item->text != NULL ? layout.text_rect.x1 : layout.icon_rect.x1) + 1;
+        if(item->text != NULL  &&  mditab->img_list != NULL) {
+            focus_rect.top = (LONG) MC_MIN(layout.text_rect.y0, layout.icon_rect.y0) - 1;
+            focus_rect.bottom = (LONG) MC_MAX(layout.text_rect.y1, layout.icon_rect.y1) + 1;
+        } else if(item->text != NULL) {
+            focus_rect.top = (LONG) layout.text_rect.y0 - 1;
+            focus_rect.bottom = (LONG) layout.text_rect.y1 + 1;
+        } else {
+            focus_rect.top = (LONG) layout.icon_rect.y0 - 1;
+            focus_rect.bottom = (LONG) layout.icon_rect.y1 + 1;
+        }
+
+        dc = xdraw_canvas_acquire_dc(ctx->canvas, TRUE);
+        DrawFocusRect(dc, &focus_rect);
+        xdraw_canvas_release_dc(ctx->canvas, dc);
+    }
+
     /* Paint border of the item. */
     xdraw_canvas_set_clip(ctx->canvas, &clip_rect, NULL);
     xdraw_brush_solid_set_color(ctx->solid_brush, MDITAB_COLOR_BORDER);
@@ -2457,9 +2484,8 @@ static void
 mditab_change_focus(mditab_t* mditab)
 {
     /* The selected tab needs refresh to draw/hide focus rect. */
-    if(mditab->item_selected < 0)
-        return;
-    mditab_invalidate_item(mditab, mditab->item_selected);
+    if(mditab->item_selected >= 0  &&  !mditab->hide_focus)
+        mditab_invalidate_item(mditab, mditab->item_selected);
 }
 
 static void
@@ -2550,6 +2576,21 @@ mditab_notify_from_tooltip(mditab_t* mditab, NMHDR* hdr)
     return 0;
 }
 
+static LRESULT
+mditab_update_ui_state(mditab_t* mditab, WPARAM wp, LPARAM lp)
+{
+    LRESULT ret;
+    DWORD flags;
+
+    ret = DefWindowProc(mditab->win, WM_UPDATEUISTATE, wp, lp);
+    flags = MC_SEND(mditab->win, WM_QUERYUISTATE, 0, 0);
+    mditab->hide_focus = (flags & UISF_HIDEFOCUS) ? TRUE : FALSE;
+    if(!mditab->no_redraw  &&  mditab->item_selected >= 0)
+        mditab_invalidate_item(mditab, mditab->item_selected);
+
+    return ret;
+}
+
 static mditab_t*
 mditab_nccreate(HWND win, CREATESTRUCT* cs)
 {
@@ -2582,6 +2623,11 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
 static int
 mditab_create(mditab_t* mditab, CREATESTRUCT* cs)
 {
+    WORD ui_state;
+
+    ui_state = MC_SEND(mditab->win, WM_QUERYUISTATE, 0, 0);
+    mditab->hide_focus = (ui_state & UISF_HIDEFOCUS) ? TRUE : FALSE;
+
     mditab->dwm_extend_frame = ((cs->style & MC_MTS_EXTENDWINDOWFRAME)
                                 &&  dwm_is_composition_enabled());
 
@@ -2833,6 +2879,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(!mditab->no_redraw)
                 RedrawWindow(win, NULL, NULL, RDW_INVALIDATE);
             break;
+
+        case WM_UPDATEUISTATE:
+            return mditab_update_ui_state(mditab, wp, lp);
 
         case CCM_SETNOTIFYWINDOW:
         {
