@@ -1,10 +1,11 @@
 
-This directory contains files which are a moral replacement for some standard
-Win32API headers which, for reasons beyond me, Microsoft created incompatible
-with plain C for no apparent reason.
+This directory contains files which are a moral replacements for some standard
+Win32API headers which Microsoft decided to create incompatible with plain C
+for no apparent reason.
 
-Note that the headers are very incomplete: They only contain stuff needed
-for successful building of mCtrl.
+Note that these dummy headers are very incomplete: It contains only the stuff
+needed for building of mCtrl.
 
-Also, to avoid clash with e.g. forward declarations in various standard
-headers, we use the prefix "dummy_" for all globally visible symbols.
+Also, to avoid clash with various standard headers (which may contain for
+example forward declarations of functions) the dummy headers use the prefix
+"dummy_" for all globally visible symbols.

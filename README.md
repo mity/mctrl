@@ -151,16 +151,17 @@ Other CMake generators may or may not work. If they do not, then one or more
 
 Notes:
 
-* Unfortunately, CMake does not support generating projects targetting multiple
-  architectures. To build both 32 and 64-bit binaries, you have togenerate
-  project files or Makefiles twice and build them separately in different
-  directories.
+* Unfortunately, CMake does not support generating projects targeting multiple
+  architectures. To build both 32 and 64-bit binaries, you have to generate
+  project files or Makefiles twice and build them separately (in different
+  directories).
 
-* For gcc tool-chains, you may need to specify path to `gcc` if you want to
-  use other gcc version then the one in the `$PATH`, e.g. if you have multiple
+* For gcc tool-chains, you may need to specify path to `gcc` if you want to use
+  different gcc version then the one in your `$PATH`, e.g. if you have multiple
   mingw-w64 variants installed, one targeting 32-bit and one 64-bit build.
-  Prior using CMake, you may specify path to the `gcc` and CMake will derive
-  all other tool paths accordingly:
+  You may do so by setting the variable `CC` prior using CMake. CMake is smart
+  enough to derive paths to other tools like linker or resource compiler
+  automatically.
 ```sh
 export CC=/path/to/the/desired/gcc
 ```
