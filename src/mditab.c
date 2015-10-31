@@ -1985,9 +1985,6 @@ mditab_delete_all_items(mditab_t* mditab)
         mditab_notify_sel_change(mditab, old_index, mditab->item_selected);
     }
 
-    if(mditab->itemdrag_considering || mditab->itemdrag_started)
-        mditab_cancel_drag(mditab);
-
     mditab_notify_delete_all_items(mditab);
     dsa_clear(&mditab->items, mditab_item_dtor);
 
