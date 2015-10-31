@@ -1912,6 +1912,22 @@ mditab_delete_item(mditab_t* mditab, int index)
         mditab->scroll_x_desired = mditab->scroll_x;
     }
 
+    /* If the item is currently being dragged, we need to cancel it. Note this
+     * is a bit tricky because we may just be considering to drag it, i.e.
+     * we are not yet owning the mc_drag_index. */
+    if(mditab->itemdrag_considering || mditab->itemdrag_started) {
+        if(mc_drag_lock(mditab->win)) {
+            int dragged_index = mc_drag_index;
+            mc_drag_unlock();
+            if(index == dragged_index)
+                mditab_cancel_drag(mditab);
+        } else {
+            /* We are not candidate control for dragging at all, so we may
+             * cancel the dragging. */
+            mditab_cancel_drag(mditab);
+        }
+    }
+
     if(index == mditab->item_selected) {
         int old_item_selected = mditab->item_selected;
         int n = mditab_count(mditab);
@@ -1921,11 +1937,6 @@ mditab_delete_item(mditab_t* mditab, int index)
             mditab->item_selected = n-2;
 
         mditab_notify_sel_change(mditab, old_item_selected, mditab->item_selected);
-    }
-
-    if(mditab->itemdrag_considering || mditab->itemdrag_started) {
-        if(index == mc_drag_index)
-            mditab_cancel_drag(mditab);
     }
 
     if(index == mditab->item_mclose)
@@ -1944,8 +1955,15 @@ mditab_delete_item(mditab_t* mditab, int index)
     if(index < mditab->item_mclose)
         mditab->item_mclose--;
     if(mditab->itemdrag_considering || mditab->itemdrag_started) {
-        if(index < mc_drag_index)
-            mc_drag_index--;
+        if(mc_drag_lock(mditab->win)) {
+            if(index < mc_drag_index)
+                mc_drag_index--;
+            mc_drag_unlock();
+        } else {
+            /* We are not candidate control for dragging at all, so we may
+             * cancel the dragging. */
+            mditab_cancel_drag(mditab);
+        }
     }
     mditab_reset_hot(mditab);
 

@@ -491,8 +491,11 @@ mc_drag_state_t mc_drag_consider_start(HWND win, int x, int y);
 mc_drag_state_t mc_drag_start(HWND win, int start_x, int start_y);
 void mc_drag_stop(HWND win);
 
-/* All of the below can be read (and especially written) only between
- * the drag operation really started and stopped (by the control who did so).
+BOOL mc_drag_lock(HWND win);
+void mc_drag_unlock(void);
+
+/* All of the below can be read (and especially written) only when locked
+ * with mc_drag_lock(), or when really started the dragging.
  *
  * The mc_drag_start_x and mc_drag_start_y have to be mouse position at the
  * time of mc_drag_set_candidate(), the rest are not interpreted here but serve

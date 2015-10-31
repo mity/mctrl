@@ -348,7 +348,7 @@ mc_load_redist_dll(const TCHAR* dll_name)
  *** Mouse Utilities ***
  ***********************/
 
-static CRITICAL_SECTION mc_wheel_lock;
+static CRITICAL_SECTION wheel_lock;
 
 int
 mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
@@ -380,7 +380,7 @@ mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
     if(lines_per_WHEEL_DELTA == WHEEL_PAGESCROLL  ||  lines_per_WHEEL_DELTA >= page)
         lines_per_WHEEL_DELTA = page;
 
-    EnterCriticalSection(&mc_wheel_lock);
+    EnterCriticalSection(&wheel_lock);
 
     /* Reset the accumulated value(s) when switching to another window, when
      * changing scrolling direction, or when the wheel was not used for some
@@ -406,12 +406,12 @@ mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
     }
     last_time[dir] = now;
 
-    LeaveCriticalSection(&mc_wheel_lock);
+    LeaveCriticalSection(&wheel_lock);
     return (is_vertical ? -lines : lines);
 }
 
 
-static CRITICAL_SECTION mc_drag_lock;
+static CRITICAL_SECTION drag_lock;
 
 static BOOL mc_drag_running = FALSE;
 static HWND mc_drag_win = NULL;
@@ -428,7 +428,7 @@ mc_drag_set_candidate(HWND win, int start_x, int start_y,
 {
     BOOL ret = FALSE;
 
-    EnterCriticalSection(&mc_drag_lock);
+    EnterCriticalSection(&drag_lock);
     if(!mc_drag_running) {
         mc_drag_win = win;
         mc_drag_start_x = start_x;
@@ -445,7 +445,7 @@ mc_drag_set_candidate(HWND win, int start_x, int start_y,
         MC_ASSERT(mc_drag_win != NULL);
         MC_ASSERT(GetWindowThreadProcessId(win, NULL) != GetWindowThreadProcessId(mc_drag_win, NULL));
     }
-    LeaveCriticalSection(&mc_drag_lock);
+    LeaveCriticalSection(&drag_lock);
 
     return ret;
 }
@@ -455,7 +455,7 @@ mc_drag_consider_start(HWND win, int x, int y)
 {
     mc_drag_state_t ret;
 
-    EnterCriticalSection(&mc_drag_lock);
+    EnterCriticalSection(&drag_lock);
     if(!mc_drag_running  &&  win == mc_drag_win) {
         int drag_cx, drag_cy;
         RECT rect;
@@ -479,7 +479,7 @@ mc_drag_consider_start(HWND win, int x, int y)
     } else {
         ret = MC_DRAG_CANCELED;
     }
-    LeaveCriticalSection(&mc_drag_lock);
+    LeaveCriticalSection(&drag_lock);
 
     return ret;
 }
@@ -489,7 +489,7 @@ mc_drag_start(HWND win, int start_x, int start_y)
 {
     mc_drag_state_t ret;
 
-    EnterCriticalSection(&mc_drag_lock);
+    EnterCriticalSection(&drag_lock);
     if(!mc_drag_running) {
         mc_drag_running = TRUE;
         mc_drag_win = win;
@@ -499,7 +499,7 @@ mc_drag_start(HWND win, int start_x, int start_y)
     } else {
         ret = MC_DRAG_CANCELED;
     }
-    LeaveCriticalSection(&mc_drag_lock);
+    LeaveCriticalSection(&drag_lock);
 
     return ret;
 }
@@ -507,11 +507,32 @@ mc_drag_start(HWND win, int start_x, int start_y)
 void
 mc_drag_stop(HWND win)
 {
-    EnterCriticalSection(&mc_drag_lock);
+    EnterCriticalSection(&drag_lock);
     MC_ASSERT(mc_drag_running);
     MC_ASSERT(win == mc_drag_win);
     mc_drag_running = FALSE;
-    LeaveCriticalSection(&mc_drag_lock);
+    LeaveCriticalSection(&drag_lock);
+}
+
+BOOL
+mc_drag_lock(HWND win)
+{
+    if(win != mc_drag_win)
+        return FALSE;
+
+    EnterCriticalSection(&drag_lock);
+    if(win != mc_drag_win) {
+        LeaveCriticalSection(&drag_lock);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+void
+mc_drag_unlock(void)
+{
+    LeaveCriticalSection(&drag_lock);
 }
 
 
@@ -798,8 +819,8 @@ mc_init_module(void)
     setup_load_sys_dll();
     setup_comctl32_version(dll_comctl32);
 
-    InitializeCriticalSection(&mc_wheel_lock);
-    InitializeCriticalSection(&mc_drag_lock);
+    InitializeCriticalSection(&wheel_lock);
+    InitializeCriticalSection(&drag_lock);
 
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
@@ -813,8 +834,8 @@ mc_init_module(void)
 void
 mc_fini_module(void)
 {
-    DeleteCriticalSection(&mc_drag_lock);
-    DeleteCriticalSection(&mc_wheel_lock);
+    DeleteCriticalSection(&drag_lock);
+    DeleteCriticalSection(&wheel_lock);
 
     ImageList_Destroy(mc_bmp_glyphs);
 }
