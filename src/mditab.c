@@ -2238,9 +2238,9 @@ mditab_get_item_rect(mditab_t* mditab, WORD index, RECT* rect, BOOL whole)
 }
 
 static BOOL
-mditab_key_up(mditab_t* mditab, int key_code, DWORD key_data)
+mditab_key_down(mditab_t* mditab, int key_code, DWORD key_data)
 {
-    MDITAB_TRACE("mditab_key_up(%p, %d, 0x%x)", mditab, key_code, key_data);
+    MDITAB_TRACE("mditab_key_down(%p, %d, 0x%x)", mditab, key_code, key_data);
 
     switch(key_code) {
         case VK_LEFT:
@@ -2801,8 +2801,8 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 mditab_dwm_extend_frame(mditab);
             return 0;
 
-        case WM_KEYUP:
-            if(mditab_key_up(mditab, (int)wp, (DWORD)lp))
+        case WM_KEYDOWN:
+            if(mditab_key_down(mditab, (int)wp, (DWORD)lp))
                 return 0;
             break;
 
@@ -2866,8 +2866,8 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_GETDLGCODE:
-            /* FIXME: Wine-1.1.2/dlls/comctl32/tab.c returns (DLGC_WANTARROWS
-             *        | DLGC_WANTCHARS). Why? Shouldn't we follow it? */
+            if(wp == VK_ESCAPE)
+                return DLGC_WANTMESSAGE;
             return DLGC_WANTARROWS;
 
         case WM_STYLECHANGED:
