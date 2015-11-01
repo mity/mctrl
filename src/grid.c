@@ -140,6 +140,10 @@ struct grid_tag {
 };
 
 
+/* Forward declarations */
+static void grid_mouse_move(grid_t* grid, int x, int y);
+
+
 static inline WORD
 grid_col_width(grid_t* grid, WORD col)
 {
@@ -460,6 +464,43 @@ grid_scroll(grid_t* grid, BOOL is_vertical, WORD opcode, int factor)
     }
 
     grid_scroll_xy(grid, scroll_x, scroll_y);
+}
+
+/* Called from WM_TIMER when in the marquee selection dragging mode. */
+static void
+grid_autoscroll(grid_t* grid)
+{
+    RECT client;
+    int header_w, header_h;
+    DWORD pos;
+    POINT pt;
+    int scroll_x, scroll_y;
+
+    GetClientRect(grid->win, &client);
+    header_w = grid_header_width(grid);
+    header_h = grid_header_height(grid);
+
+    pos = GetMessagePos();
+    pt.x = GET_X_LPARAM(pos);
+    pt.y = GET_Y_LPARAM(pos);
+    ScreenToClient(grid->win, &pt);
+
+    scroll_x = grid->scroll_x;
+    if(pt.x < header_w)
+        scroll_x -= header_w - pt.x;
+    else if(pt.x >= client.right)
+        scroll_x += pt.x - client.right + 1;
+
+    scroll_y = grid->scroll_y;
+    if(pt.y < header_h)
+        scroll_y -= header_h - pt.y;
+    else if(pt.y >= client.bottom)
+        scroll_y += pt.y - client.bottom + 1;
+
+    grid_scroll_xy(grid, scroll_x, scroll_y);
+
+    /* Update the marquee accordingly. */
+    grid_mouse_move(grid, pt.x, pt.y);
 }
 
 static void
@@ -2214,6 +2255,8 @@ grid_end_sel_drag(grid_t* grid, BOOL cancel)
         } else {
             /* Noop: cancel */
         }
+
+        KillTimer(grid->win, (UINT_PTR) grid_autoscroll);
     }
 
     if(grid->seldrag_started)
@@ -2327,6 +2370,7 @@ grid_mouse_move(grid_t* grid, int x, int y)
                 grid->seldrag_started = TRUE;
                 SetCapture(grid->win);
                 grid->mouse_captured = TRUE;
+                SetTimer(grid->win, (UINT_PTR) grid_autoscroll, 50, NULL);
                 break;
 
             case MC_DRAG_CONSIDERING:
@@ -2338,6 +2382,7 @@ grid_mouse_move(grid_t* grid, int x, int y)
                 break;
         }
     }
+
     if(grid->seldrag_started) {
         MC_ASSERT(!grid->seldrag_considering);
 
@@ -3284,6 +3329,13 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETCURSOR:
             if(grid_set_cursor(grid))
                 return TRUE;
+            break;
+
+        case WM_TIMER:
+            if(wp == (UINT_PTR) grid_autoscroll) {
+                grid_autoscroll(grid);
+                return 0;
+            }
             break;
 
         case WM_STYLECHANGED:
