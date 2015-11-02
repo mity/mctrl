@@ -452,26 +452,6 @@ typedef struct MC_NMMTCLOSEITEM_tag {
     LPARAM lParam;
 } MC_NMMTCLOSEITEM;
 
-/**
- * @brief Structure for notifications related to drag-and-drop operations:
- * @ref MC_MTN_BEGINDRAGITEM, @ref MC_MTN_CANDROPITEM, @ref MC_MTN_DROPPEDITEM.
- */
-typedef struct MC_NMMTCANDROPITEM_tag {
-    /** Standard notification structure header. */
-    NMHDR hdr;
-    /** Index of the item being dragged. */
-    int iItem;
-    /** User data of the item being dragged. */
-    LPARAM lParam;
-    /** Current mouse position in screen coordinates. */
-    POINT ptPosition;
-    /** Application can create and fill bitmap used as a preview of the item.
-     *  It it does not so, the control creates its own image from the tab.
-     *  Not that if set, the control takes ownership of the bitmap and
-     *  destroys it when no longer needed. */
-    HBITMAP hItemBitmap;
-} MC_NMMTDRAGITEM;
-
 /*@}*/
 
 
