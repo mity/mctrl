@@ -22,8 +22,5 @@
 #include "misc.h"
 
 
-void module_init(void);
-void module_fini(void);
-
 
 #endif  /* MC_MODULE_H  */

@@ -16,24 +16,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MC_XCOM_H
-#define MC_XCOM_H
+#ifndef MC_MOUSEWHEEL_H
+#define MC_MOUSEWHEEL_H
 
 #include "misc.h"
 
 
-/* The purpose of this is to not force COM-unaware applications to initialize
- * COM just for MCTRL.DLL, yet to not stand in a way if the application does so.
- * (See http://blogs.msdn.com/b/larryosterman/archive/2004/05/12/130541.aspx)
- *
- * The function ensures COM is initialized (if not it calls CoInitialize()
- * or some of its friends), and then it just calls CoCreateInstance().
- */
-void* xcom_init_create(const CLSID* clsid, DWORD context, const IID* iid);
-
-/* Calls CoUninitialize() if it was initialized in previous xcom_create_init().
- * Otherwise noop. */
-void xcom_uninit(void);
+int mousewheel_scroll(HWND win, int delta, int page, BOOL is_vertical);
 
 
-#endif  /* MC_XCOM_H */
+#endif  /* MC_MOUSEWHEEL_H */

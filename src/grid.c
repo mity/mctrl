@@ -18,9 +18,11 @@
 
 #include "grid.h"
 #include "generic.h"
+#include "mousedrag.h"
+#include "mousewheel.h"
+#include "rgn16.h"
 #include "table.h"
 #include "theme.h"
-#include "rgn16.h"
 
 
 /* Uncomment this to have more verbose traces about MC_GRID control. */
@@ -513,7 +515,7 @@ grid_mouse_wheel(grid_t* grid, BOOL is_vertical, int wheel_delta)
     si.fMask = SIF_PAGE;
     GetScrollInfo(grid->win, (is_vertical ? SB_VERT : SB_HORZ), &si);
 
-    line_delta = mc_wheel_scroll(grid->win, wheel_delta, si.nPage, is_vertical);
+    line_delta = mousewheel_scroll(grid->win, wheel_delta, si.nPage, is_vertical);
     if(line_delta != 0)
         grid_scroll(grid, is_vertical, SB_LINEDOWN, line_delta);
 }
@@ -681,19 +683,19 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
      * selection state which would result from it if the users ends it right
      * now by WM_LBUTTONUP. */
     if(grid->seldrag_considering  ||  grid->seldrag_started) {
-        if(mc_drag_lock(grid->win)) {
+        if(mousedrag_lock(grid->win)) {
             int drag_start_x, drag_start_y;
             int drag_hotspot_x, drag_hotspot_y;
             int drag_mode;
             RECT marquee_rect;
             BOOL is_in_marquee;
 
-            drag_start_x = mc_drag_start_x;
-            drag_start_y = mc_drag_start_y;
-            drag_hotspot_x = mc_drag_hotspot_x;
-            drag_hotspot_y = mc_drag_hotspot_y;
-            drag_mode = mc_drag_extra;
-            mc_drag_unlock();
+            drag_start_x = mousedrag_start_x;
+            drag_start_y = mousedrag_start_y;
+            drag_hotspot_x = mousedrag_hotspot_x;
+            drag_hotspot_y = mousedrag_hotspot_y;
+            drag_mode = mousedrag_extra;
+            mousedrag_unlock();
 
             marquee_rect.left = MC_MIN(drag_start_x, drag_hotspot_x) - grid->scroll_x;
             marquee_rect.top = MC_MIN(drag_start_y, drag_hotspot_y) - grid->scroll_y;
@@ -1141,10 +1143,10 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             /* Paint selection dragging marquee. */
             RECT r;
 
-            r.left = MC_MIN(mc_drag_start_x, mc_drag_hotspot_x) - grid->scroll_x;
-            r.top = MC_MIN(mc_drag_start_y, mc_drag_hotspot_y) - grid->scroll_y;
-            r.right = MC_MAX(mc_drag_start_x, mc_drag_hotspot_x) - grid->scroll_x + 1;
-            r.bottom = MC_MAX(mc_drag_start_y, mc_drag_hotspot_y) - grid->scroll_y + 1;
+            r.left = MC_MIN(mousedrag_start_x, mousedrag_hotspot_x) - grid->scroll_x;
+            r.top = MC_MIN(mousedrag_start_y, mousedrag_hotspot_y) - grid->scroll_y;
+            r.right = MC_MAX(mousedrag_start_x, mousedrag_hotspot_x) - grid->scroll_x + 1;
+            r.bottom = MC_MAX(mousedrag_start_y, mousedrag_hotspot_y) - grid->scroll_y + 1;
 
             DrawFocusRect(dc, &r);
         } else if(grid->focus  &&  (grid->style & MC_GS_FOCUSEDCELL)  &&
@@ -2163,7 +2165,7 @@ grid_end_sel_drag(grid_t* grid, BOOL cancel)
 
     /* Apply the selection marquee. */
     if(!cancel  &&  col_count > 0  &&  row_count > 0) {
-        if(mc_drag_lock(grid->win)) {
+        if(mousedrag_lock(grid->win)) {
             int drag_start_x, drag_start_y;
             int drag_hotspot_x, drag_hotspot_y;
             int drag_mode;
@@ -2173,13 +2175,13 @@ grid_end_sel_drag(grid_t* grid, BOOL cancel)
             WORD col0, row0, col1, row1;
             int err = -1;
 
-            drag_start_x = mc_drag_start_x;
-            drag_start_y = mc_drag_start_y;
-            drag_hotspot_x = mc_drag_hotspot_x;
-            drag_hotspot_y = mc_drag_hotspot_y;
-            drag_mode = mc_drag_extra;
+            drag_start_x = mousedrag_start_x;
+            drag_start_y = mousedrag_start_y;
+            drag_hotspot_x = mousedrag_hotspot_x;
+            drag_hotspot_y = mousedrag_hotspot_y;
+            drag_mode = mousedrag_extra;
 
-            mc_drag_unlock();
+            mousedrag_unlock();
 
             /* Translate marquee into column and row rectangle. */
             marquee_x0 = MC_MIN(drag_start_x, drag_hotspot_x);
@@ -2260,7 +2262,7 @@ grid_end_sel_drag(grid_t* grid, BOOL cancel)
     }
 
     if(grid->seldrag_started)
-        mc_drag_stop(grid->win);
+        mousedrag_stop(grid->win);
     grid->seldrag_considering = FALSE;
     grid->seldrag_started = FALSE;
 
@@ -2281,12 +2283,12 @@ grid_end_headersize_drag(grid_t* grid, BOOL cancel)
 
     if(cancel) {
         if(grid->colsizedrag_started)
-            grid_set_col_width(grid, mc_drag_index, mc_drag_extra);
+            grid_set_col_width(grid, mousedrag_index, mousedrag_extra);
         else
-            grid_set_row_height(grid, mc_drag_index, mc_drag_extra);
+            grid_set_row_height(grid, mousedrag_index, mousedrag_extra);
     }
 
-    mc_drag_stop(grid->win);
+    mousedrag_stop(grid->win);
     grid->colsizedrag_started = FALSE;
     grid->rowsizedrag_started = FALSE;
 
@@ -2294,12 +2296,12 @@ grid_end_headersize_drag(grid_t* grid, BOOL cancel)
     notif.hdr.idFrom = GetWindowLong(grid->win, GWL_ID);
     if(grid->colsizedrag_started) {
         notif.hdr.code = MC_GN_ENDCOLUMNTRACK;
-        notif.wColumnOrRow = mc_drag_index;
-        notif.wWidthOrHeight = grid_col_width(grid, mc_drag_index);
+        notif.wColumnOrRow = mousedrag_index;
+        notif.wWidthOrHeight = grid_col_width(grid, mousedrag_index);
     } else {
         notif.hdr.code = MC_GN_ENDROWTRACK;
-        notif.wColumnOrRow = mc_drag_index;
-        notif.wWidthOrHeight = grid_row_height(grid, mc_drag_index);
+        notif.wColumnOrRow = mousedrag_index;
+        notif.wWidthOrHeight = grid_row_height(grid, mousedrag_index);
     }
     MC_SEND(grid->notify_win, WM_NOTIFY, notif.hdr.idFrom, &notif);
 
@@ -2364,8 +2366,8 @@ grid_mouse_move(grid_t* grid, int x, int y)
 
         MC_ASSERT(!grid->seldrag_started);
 
-        switch(mc_drag_consider_start(grid->win, drag_x, drag_y)) {
-            case MC_DRAG_STARTED:
+        switch(mousedrag_consider_start(grid->win, drag_x, drag_y)) {
+            case MOUSEDRAG_STARTED:
                 grid->seldrag_considering = FALSE;
                 grid->seldrag_started = TRUE;
                 SetCapture(grid->win);
@@ -2373,11 +2375,11 @@ grid_mouse_move(grid_t* grid, int x, int y)
                 SetTimer(grid->win, (UINT_PTR) grid_autoscroll, 50, NULL);
                 break;
 
-            case MC_DRAG_CONSIDERING:
+            case MOUSEDRAG_CONSIDERING:
                 /* noop */
                 break;
 
-            case MC_DRAG_CANCELED:
+            case MOUSEDRAG_CANCELED:
                 grid->seldrag_considering = FALSE;
                 break;
         }
@@ -2387,8 +2389,8 @@ grid_mouse_move(grid_t* grid, int x, int y)
         MC_ASSERT(!grid->seldrag_considering);
 
         /* Remember the moving corner of the marquee. */
-        mc_drag_hotspot_x = x + grid->scroll_x;
-        mc_drag_hotspot_y = y + grid->scroll_y;
+        mousedrag_hotspot_x = x + grid->scroll_x;
+        mousedrag_hotspot_y = y + grid->scroll_y;
 
         InvalidateRect(grid->win, NULL, TRUE);
         return;
@@ -2398,10 +2400,10 @@ grid_mouse_move(grid_t* grid, int x, int y)
     if(grid->colsizedrag_started) {
         int right;
 
-        grid_cell_rect(grid, mc_drag_index, MC_TABLE_HEADER, &cell_rect);
-        right = MC_MAX(cell_rect.left, x - mc_drag_hotspot_x);
+        grid_cell_rect(grid, mousedrag_index, MC_TABLE_HEADER, &cell_rect);
+        right = MC_MAX(cell_rect.left, x - mousedrag_hotspot_x);
         if(right != cell_rect.right)
-            grid_set_col_width(grid, mc_drag_index, right - cell_rect.left);
+            grid_set_col_width(grid, mousedrag_index, right - cell_rect.left);
 
         return;
     }
@@ -2410,10 +2412,10 @@ grid_mouse_move(grid_t* grid, int x, int y)
     if(grid->rowsizedrag_started) {
         int bottom;
 
-        grid_cell_rect(grid, MC_TABLE_HEADER, mc_drag_index, &cell_rect);
-        bottom = MC_MAX(cell_rect.top, y - mc_drag_hotspot_y);
+        grid_cell_rect(grid, MC_TABLE_HEADER, mousedrag_index, &cell_rect);
+        bottom = MC_MAX(cell_rect.top, y - mousedrag_hotspot_y);
         if(bottom != cell_rect.bottom)
-            grid_set_row_height(grid, mc_drag_index, bottom - cell_rect.top);
+            grid_set_row_height(grid, mousedrag_index, bottom - cell_rect.top);
 
         return;
     }
@@ -2545,17 +2547,17 @@ grid_left_button_down(grid_t* grid, int x, int y)
         }
 
         /* Start the dragging. */
-        if(mc_drag_start(grid->win, x, y) == MC_DRAG_STARTED) {
+        if(mousedrag_start(grid->win, x, y) == MOUSEDRAG_STARTED) {
             if(info.flags & col_track_mask) {
                 grid->colsizedrag_started = TRUE;
-                mc_drag_index = info.wColumn;
-                mc_drag_extra = grid_col_width(grid, info.wColumn);
-                mc_drag_hotspot_x = x - cell_rect.right;
+                mousedrag_index = info.wColumn;
+                mousedrag_extra = grid_col_width(grid, info.wColumn);
+                mousedrag_hotspot_x = x - cell_rect.right;
             } else {
                 grid->rowsizedrag_started = TRUE;
-                mc_drag_index = info.wRow;
-                mc_drag_extra = grid_row_height(grid, info.wRow);
-                mc_drag_hotspot_y = y - cell_rect.bottom;
+                mousedrag_index = info.wRow;
+                mousedrag_extra = grid_row_height(grid, info.wRow);
+                mousedrag_hotspot_y = y - cell_rect.bottom;
             }
             SetCapture(grid->win);
             grid->mouse_captured = TRUE;
@@ -2589,7 +2591,7 @@ grid_left_button_down(grid_t* grid, int x, int y)
                 else
                     extra = DRAGSEL_SET;
 
-                if(mc_drag_set_candidate(grid->win, start_x, start_y, start_x, start_y, 0, extra)) {
+                if(mousedrag_set_candidate(grid->win, start_x, start_y, start_x, start_y, 0, extra)) {
                     grid->seldrag_considering = TRUE;
                     InvalidateRect(grid->win, NULL, TRUE);
                 }

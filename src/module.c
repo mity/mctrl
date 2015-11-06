@@ -26,13 +26,13 @@
 static CRITICAL_SECTION mod_lock;
 
 void
-module_init(void)
+module_dllmain_init(void)
 {
     InitializeCriticalSection(&mod_lock);
 }
 
 void
-module_fini(void)
+module_dllmain_fini(void)
 {
     DeleteCriticalSection(&mod_lock);
 }

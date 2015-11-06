@@ -209,6 +209,26 @@ extern DWORD mc_comctl32_version;
 extern HIMAGELIST mc_bmp_glyphs;
 
 
+/*********************************************
+ *** InitialzeCriticalSection() Workaround ***
+ *********************************************/
+
+/* Since Windows Vista, InitializeCriticalSection() is leaking memory on
+ * purpose because Microsoft made it to allocate some debug info block
+ * which is NOT released in DeleteCriticalSection().
+ *
+ * So lets do this hack to replace InitializeCriticalSection() with
+ * InitializeCriticalSectionEx() (available since Vista), which allows to
+ * suppress the silly behavior.
+ *
+ * See http://stackoverflow.com/questions/804848/
+ */
+
+void WINAPI mc_InitializeCriticalSection(CRITICAL_SECTION* cs);
+#undef InitializeCriticalSection
+#define InitializeCriticalSection  mc_InitializeCriticalSection
+
+
 /************************
  *** String Utilities ***
  ************************/
@@ -446,67 +466,6 @@ mc_clip_reset(HDC dc, HRGN old_clip)
     if(old_clip != NULL)
         DeleteObject(old_clip);
 }
-
-
-/***********************
- *** Mouse Utilities ***
- ***********************/
-
-/* Scrolling with mouse wheel. */
-int mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical);
-
-/* Dragging helpers.
- *
- * Usage:
- * (1) Call mc_drag_set_candidate() on WM_LBUTTONDOWN.
- * (2) If mc_drag_set_candidate() returns TRUE, caller should call
- *     mc_drag_consider_start() on WM_MOUSEMOVE until it gives up, until it is
- *     canceled (MC_DRAG_CANCELED) or until it is started (MC_DRAG_STARTED).
- * (3) When started, caller should capture mouse with SetCapture().
- * (4) The dragging holds until mc_drag_release() is called which happens
- *     usually on WM_LBUTTONUP and also must happen on WM_CAPTURECHANGED.
- *
- * Note: mc_drag_set_candidate() may return MC_DRAG_CANCELED when, in the mean
- * time, some other HWND registered itself as an candidate (and possibly even
- * started its own dragging).
- *
- * Alternatively (if no considering is desired):
- * (1) Call mc_drag_start() on WM_LBUTTONDOWN. It returns MC_DRAG_STARTED or
- *     MC_DRAG_CANCELED (never MC_DRAG_CONSIDERING).
- * (2) When started, caller should capture mouse with SetCapture().
- * (3) The dragging holds until mc_drag_release() is called which happens
- *     usually on WM_LBUTTONUP and also must happen on WM_CAPTURECHANGED.
- */
-typedef enum mc_drag_state_tag mc_drag_state_t;
-enum mc_drag_state_tag {
-    MC_DRAG_CANCELED = -1,
-    MC_DRAG_CONSIDERING = 0,
-    MC_DRAG_STARTED = 1
-};
-
-BOOL mc_drag_set_candidate(HWND win, int start_x, int start_y,
-                                     int hotspot_x, int hotspot_y,
-                                     int index, UINT_PTR extra);
-mc_drag_state_t mc_drag_consider_start(HWND win, int x, int y);
-mc_drag_state_t mc_drag_start(HWND win, int start_x, int start_y);
-void mc_drag_stop(HWND win);
-
-BOOL mc_drag_lock(HWND win);
-void mc_drag_unlock(void);
-
-/* All of the below can be read (and especially written) only when locked
- * with mc_drag_lock(), or when really started the dragging.
- *
- * The mc_drag_start_x and mc_drag_start_y have to be mouse position at the
- * time of mc_drag_set_candidate(), the rest are not interpreted here but serve
- * just as a storage for few values for the caller.
- */
-extern int mc_drag_start_x;
-extern int mc_drag_start_y;
-extern int mc_drag_hotspot_x;
-extern int mc_drag_hotspot_y;
-extern int mc_drag_index;
-extern UINT_PTR mc_drag_extra;
 
 
 /**************************

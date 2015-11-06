@@ -293,7 +293,7 @@ debug_free(const char* fname, int line, void* mem)
 }
 
 void
-debug_init(void)
+debug_dllmain_init(void)
 {
     InitializeCriticalSection(&mem_lock);
 
@@ -304,7 +304,7 @@ debug_init(void)
 }
 
 void
-debug_fini(void)
+debug_dllmain_fini(void)
 {
     int i;
     int n = 0;
@@ -317,20 +317,20 @@ debug_fini(void)
         for(mi = mem_hashtable[i]; mi != NULL; mi = mi->next) {
             if(n == 0) {
                 MC_TRACE("");
-                MC_TRACE("debug_fini: LEAK REPORT:");
-                MC_TRACE("debug_fini: --------------------------------------------------");
+                MC_TRACE("debug_dllmain_fini: LEAK REPORT:");
+                MC_TRACE("debug_dllmain_fini: --------------------------------------------------");
 #ifdef _WIN64
-                MC_TRACE("debug_fini: Address              Size       Where");
+                MC_TRACE("debug_dllmain_fini: Address              Size       Where");
 #else
-                MC_TRACE("debug_fini: Address      Size       Where");
+                MC_TRACE("debug_dllmain_fini: Address      Size       Where");
 #endif
-                MC_TRACE("debug_fini: --------------------------------------------------");
+                MC_TRACE("debug_dllmain_fini: --------------------------------------------------");
             }
 
 #ifdef _WIN64
-            MC_TRACE("debug_fini: 0x%16p   %8lu   %s:%d", mi->mem, mi->size, mi->fname, mi->line);
+            MC_TRACE("debug_dllmain_fini: 0x%16p   %8lu   %s:%d", mi->mem, mi->size, mi->fname, mi->line);
 #else
-            MC_TRACE("debug_fini: 0x%8p   %8lu   %s:%d", mi->mem, mi->size, mi->fname, mi->line);
+            MC_TRACE("debug_dllmain_fini: 0x%8p   %8lu   %s:%d", mi->mem, mi->size, mi->fname, mi->line);
 #endif
 
             n++;
@@ -339,8 +339,8 @@ debug_fini(void)
     }
     LeaveCriticalSection(&mem_lock);
     if(n > 0) {
-        MC_TRACE("debug_fini: --------------------------------------------------");
-        MC_TRACE("debug_fini: Lost %lu bytes in %d leaks.", size, n);
+        MC_TRACE("debug_dllmain_fini: --------------------------------------------------");
+        MC_TRACE("debug_dllmain_fini: Lost %lu bytes in %d leaks.", size, n);
         MC_TRACE("");
     }
 
@@ -349,6 +349,20 @@ debug_fini(void)
     /* Uninitialize */
     HeapDestroy(mem_heap);
     DeleteCriticalSection(&mem_lock);
+}
+
+#else  /* #if defined DEBUG && DEBUG >= 2 */
+
+void
+debug_dllmain_init(void)
+{
+    /* noop */
+}
+
+void
+debug_dllmain_fini(void)
+{
+    /* noop */
 }
 
 #endif  /* #if defined DEBUG && DEBUG >= 2 */

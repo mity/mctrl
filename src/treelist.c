@@ -18,6 +18,7 @@
 
 #include "treelist.h"
 #include "generic.h"
+#include "mousewheel.h"
 #include "theme.h"
 #include "tooltip.h"
 
@@ -661,7 +662,7 @@ treelist_mouse_wheel(treelist_t* tl, BOOL vertical, int wheel_delta)
     si.fMask = SIF_PAGE;
     GetScrollInfo(tl->win, (vertical ? SB_VERT : SB_HORZ), &si);
 
-    line_delta = mc_wheel_scroll(tl->win, wheel_delta, si.nPage, vertical);
+    line_delta = mousewheel_scroll(tl->win, wheel_delta, si.nPage, vertical);
     if(line_delta != 0) {
         if(vertical)
             treelist_vscroll_rel(tl, line_delta);

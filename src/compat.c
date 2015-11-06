@@ -165,32 +165,3 @@ compat_wcstoui64(const wchar_t *nptr, wchar_t **endptr, int base)
     return negative ? (uint64_t)(-(int64_t)ret) : ret;
 }
 #endif  /* COMPAT_NEED_WCSTOUI64 */
-
-
-
-#undef InitializeCriticalSection
-
-static BOOL (WINAPI* compat_InitializeCriticalSectionEx)(CRITICAL_SECTION*, DWORD, DWORD);
-
-void WINAPI
-compat_InitializeCriticalSection(CRITICAL_SECTION* cs)
-{
-    if(compat_InitializeCriticalSectionEx != NULL)
-        compat_InitializeCriticalSectionEx(cs, 0, CRITICAL_SECTION_NO_DEBUG_INFO);
-    else
-        InitializeCriticalSection(cs);
-}
-
-
-void
-compat_init(void)
-{
-    compat_InitializeCriticalSectionEx = (BOOL (WINAPI*)(CRITICAL_SECTION*, DWORD, DWORD))
-                GetProcAddress(mc_instance_kernel32, "InitializeCriticalSectionEx");
-}
-
-void
-compat_fini(void)
-{
-    /* noop */
-}

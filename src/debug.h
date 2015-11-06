@@ -144,12 +144,6 @@
     #endif
     #define _malloca(size)     malloc(size)
     #define _freea(ptr)        free(ptr)
-
-    void debug_init(void);
-    void debug_fini(void);
-#else
-    static inline void debug_init(void)   {}
-    static inline void debug_fini(void)   {}
 #endif
 
 

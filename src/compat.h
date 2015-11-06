@@ -263,33 +263,4 @@ mc_clz(uint32_t val)
 }
 
 
-/****************************************
- *** InitializeCriticalSection() hack ***
- ****************************************/
-
-/* Since Windows Vista, InitializeCriticalSection() is leaking memory on
- * purpose because Microsoft made it to allocate some debug info block
- * which is NOT released in DeleteCriticalSection().
- *
- * So lets do this hack to replace InitializeCriticalSection() with
- * InitializeCriticalSectionEx() (available since Vista), which allows to
- * suppress the silly behavior.
- */
-
-#include <windows.h>
-
-void WINAPI compat_InitializeCriticalSection(CRITICAL_SECTION* cs);
-
-#undef InitializeCriticalSection
-#define InitializeCriticalSection   compat_InitializeCriticalSection
-
-
-/**********************
- *** Initialization ***
- **********************/
-
-void compat_init(void);
-void compat_fini(void);
-
-
 #endif  /* MC_COMPAT_H */

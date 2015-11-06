@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2013 Martin Mitas
+ * Copyright (c) 2008-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,6 +33,26 @@ DWORD mc_win_version;
 DWORD mc_comctl32_version;
 
 HIMAGELIST mc_bmp_glyphs;
+
+
+/*********************************************
+ *** InitialzeCriticalSection() Workaround ***
+ *********************************************/
+
+#undef InitializeCriticalSection
+
+static BOOL (WINAPI* mc_InitializeCriticalSectionEx)(CRITICAL_SECTION*, DWORD, DWORD);
+
+void WINAPI
+mc_InitializeCriticalSection(CRITICAL_SECTION* cs)
+{
+    if(mc_InitializeCriticalSectionEx != NULL)
+        mc_InitializeCriticalSectionEx(cs, 0, CRITICAL_SECTION_NO_DEBUG_INFO);
+    else
+        InitializeCriticalSection(cs);
+}
+
+#define InitializeCriticalSection mc_InitializeCriticalSection
 
 
 /************************
@@ -344,198 +364,6 @@ mc_load_redist_dll(const TCHAR* dll_name)
 }
 
 
-/***********************
- *** Mouse Utilities ***
- ***********************/
-
-static CRITICAL_SECTION wheel_lock;
-
-int
-mc_wheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
-{
-    /* We accumulate the wheel_delta until there is enough to scroll for
-     * at least a single line. This improves the feel for strange values
-     * of SPI_GETWHEELSCROLLLINES and for some mouses. */
-    static HWND last_win = NULL;
-    static DWORD last_time[2] = { 0, 0 };   /* horizontal, vertical */
-    static int accum_delta[2] = { 0, 0 };   /* horizontal, vertical */
-
-    DWORD now;
-    UINT param;
-    int dir = (is_vertical ? 1 : 0); /* index into accum_delta[], last_time[] */
-    UINT lines_per_WHEEL_DELTA;
-    int lines;
-
-    now = GetTickCount();
-
-    if(page < 1)
-        page = 1;
-
-    /* Ask the system for scroll speed. */
-    param = (is_vertical ? SPI_GETWHEELSCROLLLINES : SPI_GETWHEELSCROLLCHARS);
-    if(MC_ERR(!SystemParametersInfo(param, 0, &lines_per_WHEEL_DELTA, 0)))
-        lines_per_WHEEL_DELTA = 3;
-
-    /* But never scroll more then complete page. */
-    if(lines_per_WHEEL_DELTA == WHEEL_PAGESCROLL  ||  lines_per_WHEEL_DELTA >= page)
-        lines_per_WHEEL_DELTA = page;
-
-    EnterCriticalSection(&wheel_lock);
-
-    /* Reset the accumulated value(s) when switching to another window, when
-     * changing scrolling direction, or when the wheel was not used for some
-     * time. */
-    if(win != last_win) {
-        last_win = win;
-        accum_delta[0] = 0;
-        accum_delta[1] = 0;
-    } else if((now - last_time[dir] > GetDoubleClickTime() * 2)  ||
-              ((delta > 0) == (accum_delta[dir] < 0))) {
-        accum_delta[dir] = 0;
-    }
-
-    /* Compute lines to scroll. */
-    if(lines_per_WHEEL_DELTA > 0) {
-        accum_delta[dir] += delta;
-        lines = (accum_delta[dir] * (int)lines_per_WHEEL_DELTA) / WHEEL_DELTA;
-        accum_delta[dir] -= (lines * WHEEL_DELTA) / (int)lines_per_WHEEL_DELTA;
-    } else {
-        /* lines_per_WHEEL_DELTA == 0 --> We just don't scroll at all. */
-        lines = 0;
-        accum_delta[dir] = 0;
-    }
-    last_time[dir] = now;
-
-    LeaveCriticalSection(&wheel_lock);
-    return (is_vertical ? -lines : lines);
-}
-
-
-static CRITICAL_SECTION drag_lock;
-
-static BOOL mc_drag_running = FALSE;
-static HWND mc_drag_win = NULL;
-int mc_drag_start_x;
-int mc_drag_start_y;
-int mc_drag_hotspot_x;
-int mc_drag_hotspot_y;
-int mc_drag_index;
-UINT_PTR mc_drag_extra;
-
-BOOL
-mc_drag_set_candidate(HWND win, int start_x, int start_y,
-                      int hotspot_x, int hotspot_y, int index, UINT_PTR extra)
-{
-    BOOL ret = FALSE;
-
-    EnterCriticalSection(&drag_lock);
-    if(!mc_drag_running) {
-        mc_drag_win = win;
-        mc_drag_start_x = start_x;
-        mc_drag_start_y = start_y;
-        mc_drag_hotspot_x = hotspot_x;
-        mc_drag_hotspot_y = hotspot_y;
-        mc_drag_index = index;
-        mc_drag_extra = extra;
-        ret = TRUE;
-    } else {
-        /* Dragging (of different window?) is already running. Actually this
-         * should happen normally only if the two windows live in different
-         * threads, because the mc_drag_win should have the mouse captured. */
-        MC_ASSERT(mc_drag_win != NULL);
-        MC_ASSERT(GetWindowThreadProcessId(win, NULL) != GetWindowThreadProcessId(mc_drag_win, NULL));
-    }
-    LeaveCriticalSection(&drag_lock);
-
-    return ret;
-}
-
-mc_drag_state_t
-mc_drag_consider_start(HWND win, int x, int y)
-{
-    mc_drag_state_t ret;
-
-    EnterCriticalSection(&drag_lock);
-    if(!mc_drag_running  &&  win == mc_drag_win) {
-        int drag_cx, drag_cy;
-        RECT rect;
-
-        drag_cx = GetSystemMetrics(SM_CXDRAG);
-        drag_cy = GetSystemMetrics(SM_CYDRAG);
-
-        rect.left = mc_drag_start_x - drag_cx;
-        rect.top = mc_drag_start_y - drag_cy;
-        rect.right = mc_drag_start_x + drag_cx + 1;
-        rect.bottom = mc_drag_start_y + drag_cy + 1;
-
-        if(!mc_rect_contains_xy(&rect, x, y)) {
-            mc_drag_running = TRUE;
-            ret = MC_DRAG_STARTED;
-        } else {
-            /* Still not clear whether we should start the dragging. Maybe
-             * next WM_MOUSEMOVE will finally decide it. */
-            ret = MC_DRAG_CONSIDERING;
-        }
-    } else {
-        ret = MC_DRAG_CANCELED;
-    }
-    LeaveCriticalSection(&drag_lock);
-
-    return ret;
-}
-
-mc_drag_state_t
-mc_drag_start(HWND win, int start_x, int start_y)
-{
-    mc_drag_state_t ret;
-
-    EnterCriticalSection(&drag_lock);
-    if(!mc_drag_running) {
-        mc_drag_running = TRUE;
-        mc_drag_win = win;
-        mc_drag_start_x = start_x;
-        mc_drag_start_y = start_y;
-        ret = MC_DRAG_STARTED;
-    } else {
-        ret = MC_DRAG_CANCELED;
-    }
-    LeaveCriticalSection(&drag_lock);
-
-    return ret;
-}
-
-void
-mc_drag_stop(HWND win)
-{
-    EnterCriticalSection(&drag_lock);
-    MC_ASSERT(mc_drag_running);
-    MC_ASSERT(win == mc_drag_win);
-    mc_drag_running = FALSE;
-    LeaveCriticalSection(&drag_lock);
-}
-
-BOOL
-mc_drag_lock(HWND win)
-{
-    if(win != mc_drag_win)
-        return FALSE;
-
-    EnterCriticalSection(&drag_lock);
-    if(win != mc_drag_win) {
-        LeaveCriticalSection(&drag_lock);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-void
-mc_drag_unlock(void)
-{
-    LeaveCriticalSection(&drag_lock);
-}
-
-
 /**************************
  *** Assorted Utilities ***
  **************************/
@@ -819,9 +647,6 @@ mc_init_module(void)
     setup_load_sys_dll();
     setup_comctl32_version(dll_comctl32);
 
-    InitializeCriticalSection(&wheel_lock);
-    InitializeCriticalSection(&drag_lock);
-
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
     perform_unit_tests();
@@ -834,9 +659,6 @@ mc_init_module(void)
 void
 mc_fini_module(void)
 {
-    DeleteCriticalSection(&drag_lock);
-    DeleteCriticalSection(&wheel_lock);
-
     ImageList_Destroy(mc_bmp_glyphs);
 }
 
@@ -845,62 +667,76 @@ mc_fini_module(void)
  *** DllMain() ***
  *****************/
 
+/* Forward declarations of various initialization routines for some helper
+ * modules. (We don't pollute the namespace in headers with these.)
+ */
+void debug_dllmain_init(void);
+void debug_dllmain_fini(void);
+void module_dllmain_init(void);
+void module_dllmain_fini(void);
+void mousedrag_dllmain_init(void);
+void mousedrag_dllmain_fini(void);
+void mousewheel_dllmain_init(void);
+void mousewheel_dllmain_fini(void);
+void xcom_dllmain_init(void);
+void xcom_dllmain_fini(void);
+
+
+static void
+dllmain_init(HINSTANCE instance)
+{
+    MC_TRACE("****************************************************************");
+    MC_TRACE("MCTRL.DLL version %hs (%d bit)", MC_VERSION_STR, 8 * sizeof(void*));
+
+    mc_instance = instance;
+
+    mc_instance_kernel32 = GetModuleHandle(_T("KERNEL32.DLL"));
+    if(MC_ERR(mc_instance_kernel32 == NULL)) {
+        MC_TRACE_ERR("dllmain_init: GetModuleHandle(KERNEL32.DLL) failed.");
+        return FALSE;
+    }
+
+    mc_InitializeCriticalSectionEx =
+            (BOOL (WINAPI*)(CRITICAL_SECTION*, DWORD, DWORD))
+            GetProcAddress(mc_instance_kernel32, "InitializeCriticalSectionEx");
+
+    /* BEWARE when changing this: All these functions are very limited in what
+     * they can do because of DllMain() context.
+     *
+     * More complex stuff, especially any registration of window classes, has
+     * to be deferred into public functions exposed from the DLL.
+     *
+     * (See module.c)
+     */
+    debug_dllmain_init();   /* <-- Keep 1st, must precede any malloc(). */
+    module_dllmain_init();
+    mousedrag_dllmain_init();
+    mousewheel_dllmain_init();
+    xcom_dllmain_init();
+}
+
+static void
+dllmain_fini(void)
+{
+    xcom_dllmain_fini();
+    mousewheel_dllmain_fini();
+    mousedrag_dllmain_fini();
+    module_dllmain_fini();
+    debug_dllmain_fini();
+}
+
 BOOL WINAPI
 DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
 {
     switch(reason) {
         case DLL_PROCESS_ATTACH:
-            MC_TRACE("***************************************"
-                     "***************************************");
-            MC_TRACE("DllMain(DLL_PROCESS_ATTACH): MCTRL.DLL version %hs (%d bit)",
-                     MC_VERSION_STR, 8 * sizeof(void*));
-
-            mc_instance = instance;
             DisableThreadLibraryCalls(instance);
-
-            /* This is somewhat scary to do within DllMain() context because of
-             * all the limitations DllMain() imposes. Unfortunately we need it
-             * this early for compat_init() below.
-             *
-             * I believe it's valid to do here because system DLL loader lock
-             * is reentrant and KERNEL32.DLL has already be mapped into our
-             * process memory and initialized.
-             *
-             * (Otherwise InitializeCriticalSection() would not be usable in
-             * DllMain() but creation of synchronization objects is explicitly
-             * allowed by MSDN docs.)
-             */
-            mc_instance_kernel32 = GetModuleHandle(_T("KERNEL32.DLL"));
-            if(MC_ERR(mc_instance_kernel32 == NULL)) {
-                MC_TRACE_ERR("DllMain: GetModuleHandle(KERNEL32.DLL) failed.");
-                return FALSE;
-            }
-
-            /* Perform very minimal initialization. Most complex stuff,
-             * especially any registration of window classes, is deferred into
-             * public functions exposed from the DLL. (See module.c)
-             *
-             * BEWARE when changing this: All these functions are very limited
-             * in what they can do (because of DllMain() context) and their
-             * order is very important (see the comments) because they may
-             * do some cooperation with preprocessor magic replacing some
-             * WinAPI function with our wrapper.
-             */
-            compat_init();  /* <-- must precede any InitializeCriticalSection(). */
-            debug_init();   /* <-- must precede any malloc(). */
-            module_init();
-            xcom_init();
+            dllmain_init(instance);
             break;
 
         case DLL_PROCESS_DETACH:
-        {
-            xcom_fini();
-            module_fini();
-            debug_fini();
-            compat_fini();
-            MC_TRACE("DllMain(DLL_PROCESS_DETACH)");
+            dllmain_fini();
             break;
-        }
     }
 
     return TRUE;
@@ -909,6 +745,6 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
 
 /* Include the main public header file as we actually never do this elsewhere.
  * This at least verifies there is no compilation problem with it,
- * e.g. some idendifier clash between some of the public headers etc. */
+ * e.g. some identifier clash between some of the public headers etc. */
 #include "mctrl.h"
 

@@ -21,6 +21,7 @@
 #include "dsa.h"
 #include "dwm.h"
 #include "generic.h"
+#include "mousedrag.h"
 #include "theme.h"
 #include "tooltip.h"
 #include "xdraw.h"
@@ -483,7 +484,7 @@ mditab_hit_test(mditab_t* mditab, MC_MTHITTESTINFO* hti, BOOL want_hti_item_flag
         area_x1 += r;
     if(area_x0 <= hti->pt.x  &&  hti->pt.x < area_x1) {
         if(mditab->itemdrag_started) {
-            i = mc_drag_index;
+            i = mousedrag_index;
             if(mditab_hit_test_item(mditab, hti, &client, i, want_hti_item_flags))
                 return i;
         }
@@ -641,10 +642,10 @@ mditab_set_item_order(mditab_t* mditab, WORD old_index, WORD new_index)
         mditab->item_mclose = new_index;
 
     if(mditab->itemdrag_started) {
-        if(i0 <= mc_drag_index  &&  mc_drag_index <= i1)
-            mc_drag_index += delta;
-        else if(old_index == mc_drag_index)
-            mc_drag_index = new_index;
+        if(i0 <= mousedrag_index  &&  mousedrag_index <= i1)
+            mousedrag_index += delta;
+        else if(old_index == mousedrag_index)
+            mousedrag_index = new_index;
     }
 
     /* Swap the data in DSA. */
@@ -665,12 +666,12 @@ mditab_do_drag(mditab_t* mditab, int x, int y)
 
     GetClientRect(mditab->win, &client);
     area_width = mc_width(&client) - mditab->area_margin0 - mditab->area_margin1;
-    item = mditab_item(mditab, mc_drag_index);
+    item = mditab_item(mditab, mousedrag_index);
     w = item->x1 - item->x0;
 
     // TODO: consider scroll if mouse too left or too right
 
-    new_item_x0 = MC_MAX(0, x - mditab->area_margin0 - mc_drag_hotspot_x + mditab->scroll_x);
+    new_item_x0 = MC_MAX(0, x - mditab->area_margin0 - mousedrag_hotspot_x + mditab->scroll_x);
     new_item_x1 = new_item_x0 + w;
 
     /* Ensure the dragged item is in the visible view port. */
@@ -705,7 +706,7 @@ mditab_end_drag(mditab_t* mditab, BOOL cancel)
         MC_ASSERT(!mditab->itemdrag_considering);
         MC_ASSERT(mditab->itemdrag_started);
 
-        dragged = mditab_item(mditab, mc_drag_index);
+        dragged = mditab_item(mditab, mousedrag_index);
 
         /* Find the index where the item should be inserted. */
         n = mditab_count(mditab);
@@ -719,9 +720,9 @@ mditab_end_drag(mditab_t* mditab, BOOL cancel)
                 break;
         }
 
-        if(i > mc_drag_index)
+        if(i > mousedrag_index)
             i--;
-        mditab_set_item_order(mditab, mc_drag_index, i);
+        mditab_set_item_order(mditab, mousedrag_index, i);
     }
 
     if(mditab->mouse_captured)
@@ -730,7 +731,7 @@ mditab_end_drag(mditab_t* mditab, BOOL cancel)
     mditab->mouse_captured = FALSE;
 
     if(mditab->itemdrag_started)
-        mc_drag_stop(mditab->win);
+        mousedrag_stop(mditab->win);
     mditab->itemdrag_considering = FALSE;
     mditab->itemdrag_started = FALSE;
 
@@ -763,19 +764,19 @@ mditab_mouse_move(mditab_t* mditab, int x, int y)
     if(mditab->itemdrag_considering) {
         MC_ASSERT(!mditab->itemdrag_started);
 
-        switch(mc_drag_consider_start(mditab->win, x, y)) {
-            case MC_DRAG_STARTED:
+        switch(mousedrag_consider_start(mditab->win, x, y)) {
+            case MOUSEDRAG_STARTED:
                 mditab->itemdrag_considering = FALSE;
                 mditab->itemdrag_started = TRUE;
                 SetCapture(mditab->win);
                 mditab->mouse_captured = TRUE;
                 break;
 
-            case MC_DRAG_CONSIDERING:
+            case MOUSEDRAG_CONSIDERING:
                 /* noop */
                 break;
 
-            case MC_DRAG_CANCELED:
+            case MOUSEDRAG_CANCELED:
                 mditab->itemdrag_considering = FALSE;
                 break;
         }
@@ -993,7 +994,7 @@ again_without_animation:
              * - We only move other items out of the way to indicate where the
              *   dragged item would be dropped.
              */
-            mditab_item_t* dragged = mditab_item(mditab, mc_drag_index);
+            mditab_item_t* dragged = mditab_item(mditab, mousedrag_index);
             USHORT w_dragged = dragged->x1 - dragged->x0;
             UINT x = 0;
             BOOL found_gap = FALSE;
@@ -1561,7 +1562,7 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
                 sel_rect.y1 = client.bottom;
                 continue;
             }
-            if(mditab->itemdrag_started  &&  i == mc_drag_index) {
+            if(mditab->itemdrag_started  &&  i == mousedrag_index) {
                 paint_drag_item = TRUE;
                 drag_rect.x0 = x0;
                 drag_rect.x1 = x1;
@@ -1590,10 +1591,10 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
 
         /* Paint the dragged item. */
         if(paint_drag_item) {
-            mditab_item_t* item = mditab_item(mditab, mc_drag_index);
+            mditab_item_t* item = mditab_item(mditab, mousedrag_index);
             mditab_paint_item(mditab, ctx, &client, item, &drag_rect,
                               area_x0, area_x1, background_image, FALSE,
-                              (mc_drag_index == mditab->item_hot));
+                              (mousedrag_index == mditab->item_hot));
         }
     }
 
@@ -1788,8 +1789,8 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     if(index <= mditab->item_mclose)
         mditab->item_mclose++;
     if(mditab->itemdrag_started) {
-        if(index <= mc_drag_index)
-            mc_drag_index++;
+        if(index <= mousedrag_index)
+            mousedrag_index++;
     }
     /* We don't update ->item_hot. This is determined by mouse and set
      * in mditab_update_layout() below anyway... */
@@ -1914,11 +1915,11 @@ mditab_delete_item(mditab_t* mditab, int index)
 
     /* If the item is currently being dragged, we need to cancel it. Note this
      * is a bit tricky because we may just be considering to drag it, i.e.
-     * we are not yet owning the mc_drag_index. */
+     * we are not yet owning the mousedrag_index. */
     if(mditab->itemdrag_considering || mditab->itemdrag_started) {
-        if(mc_drag_lock(mditab->win)) {
-            int dragged_index = mc_drag_index;
-            mc_drag_unlock();
+        if(mousedrag_lock(mditab->win)) {
+            int dragged_index = mousedrag_index;
+            mousedrag_unlock();
             if(index == dragged_index)
                 mditab_cancel_drag(mditab);
         } else {
@@ -1955,10 +1956,10 @@ mditab_delete_item(mditab_t* mditab, int index)
     if(index < mditab->item_mclose)
         mditab->item_mclose--;
     if(mditab->itemdrag_considering || mditab->itemdrag_started) {
-        if(mc_drag_lock(mditab->win)) {
-            if(index < mc_drag_index)
-                mc_drag_index--;
-            mc_drag_unlock();
+        if(mousedrag_lock(mditab->win)) {
+            if(index < mousedrag_index)
+                mousedrag_index--;
+            mousedrag_unlock();
         } else {
             /* We are not candidate control for dragging at all, so we may
              * cancel the dragging. */
@@ -2373,7 +2374,7 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
             MC_ASSERT(!mditab->itemdrag_started);
 
             mditab_get_item_rect(mditab, index, &item_rect, TRUE);
-            can_consider = mc_drag_set_candidate(mditab->win, x, y,
+            can_consider = mousedrag_set_candidate(mditab->win, x, y,
                         x - item_rect.left, y - item_rect.top, index, 0);
             if(can_consider)
                 mditab->itemdrag_considering = TRUE;

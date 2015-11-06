@@ -100,16 +100,14 @@ xcom_uninit(void)
         CoUninitialize();
 }
 
-
 void
-xcom_init(void)
+xcom_dllmain_init(void)
 {
     InitializeCriticalSection(&xcom_lock);
 }
 
 void
-xcom_fini(void)
+xcom_dllmain_fini(void)
 {
     DeleteCriticalSection(&xcom_lock);
 }
-
