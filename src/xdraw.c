@@ -310,7 +310,7 @@ err_GetFrame:
     IWICBitmapDecoder_Release(wic_decoder);
 err_CreateDecoder:
     IWICImagingFactory_Release(wic_factory);
-    xcom_fini();
+    xcom_uninit();
 err_xcom_init_create:
     return NULL;
 }
@@ -1598,7 +1598,7 @@ xdraw_image_create_from_HBITMAP(HBITMAP bmp)
 
 err_CreateBitmapFromHBITMAP:
         IWICImagingFactory_Release(wic_factory);
-        xcom_fini();
+        xcom_uninit();
 err_xcom_init_create:
         return NULL;
     } else {
@@ -1690,7 +1690,7 @@ xdraw_image_destroy(xdraw_image_t* image)
     if(d2d_dll != NULL) {
         IWICBitmapSource* source = (IWICBitmapSource*) image;
         IWICBitmapSource_Release(source);
-        xcom_fini();
+        xcom_uninit();
     } else {
         gdix_DisposeImage((dummy_GpImage*) image);
     }
@@ -2233,7 +2233,7 @@ err_CreateFormatConverter:
         IWICBitmap_Release(wic_bitmap);
 err_CreateBitmapFromHICON:
         IWICImagingFactory_Release(wic_factory);
-        xcom_fini();
+        xcom_uninit();
 err_xcom_init_create:
         ;  /* noop */
     } else {
