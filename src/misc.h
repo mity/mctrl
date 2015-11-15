@@ -524,4 +524,41 @@ mc_track_mouse(HWND win, DWORD flags)
 }
 
 
+static inline uint32_t
+mc_round_up_to_power_of_two_32(uint32_t val)
+{
+    val--;
+    val |= val >> 1; val |= val >> 2; val |= val >> 4;
+    val |= val >> 8; val |= val >> 16;
+    val++;
+    return val;
+}
+
+static inline uint32_t
+mc_round_down_to_power_of_two_32(uint32_t val)
+{
+    val |= val >> 1; val |= val >> 2; val |= val >> 4;
+    val |= val >> 8; val |= val >> 16;
+    return (val + 1) >> 1;
+}
+
+static inline uint64_t
+mc_round_up_to_power_of_two_64(uint64_t val)
+{
+    val--;
+    val |= val >> 1; val |= val >> 2; val |= val >> 4;
+    val |= val >> 8; val |= val >> 16; val |= val >> 32;
+    val++;
+    return val;
+}
+
+static inline uint64_t
+mc_round_down_to_power_of_two_64(uint64_t val)
+{
+    val |= val >> 1; val |= val >> 2; val |= val >> 4;
+    val |= val >> 8; val |= val >> 16; val |= val >> 32;
+    return (val + 1) >> 1;
+}
+
+
 #endif  /* MC_MISC_H  */

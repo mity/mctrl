@@ -227,40 +227,4 @@
 #endif
 
 
-/*****************
- *** Intrinsic ***
- *****************/
-
-/* <intrin.h> is only provided by some tool-chains and many functions are
- * available only for some architectures, so we need to provide fallback
- * implementations for those few functions we use. */
-
-#if defined MC_TOOLCHAIN_MSVC  ||  defined MC_TOOLCHAIN_MINGW64
-    #include <intrin.h>
-    #define MC_HAVE_INTRIN_H
-#endif
-
-
-/* CLZ (count leading zeros).
- * Note the result is undefined for val == 0.
- */
-static inline unsigned
-mc_clz(uint32_t val)
-{
-#if defined MC_COMPILER_GCC
-    return  __builtin_clz(val);
-#elif defined MC_HAVE_INTRIN_H
-    unsigned long n;
-    _BitScanReverse(&n, val);
-    return (31 - n);
-#else
-    unsigned n = 0;
-    while(val > 1023)  { val = val >> 11; n += 11; }
-    while(val > 7)     { val = val >> 4; n += 4; }
-    while(val > 0)     { val = val >> 1; n += 1; }
-    return (32 - n);
-#endif
-}
-
-
 #endif  /* MC_COMPAT_H */

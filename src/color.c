@@ -39,10 +39,9 @@ color_seq(UINT index)
     if(index < 3) {
         h = 120.0f * index;
     } else {
-        int i, n, base;
+        int base, i;
 
-        n = 31 - mc_clz((int32_t)(index / 3));
-        base = 3 * (1<<n);
+        base = 3 * mc_round_down_to_power_of_two_32((int32_t)(index / 3));
         i = index - base;
         h = 180.0f / base + (float)(i/3) * (360.0f/base) + (float)(i%3) * 120.0f;
     }
