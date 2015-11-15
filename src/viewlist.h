@@ -23,7 +23,7 @@
 #include "dsa.h"
 
 
-/* The models (as in model-view-controller paradigma) must be aware of their
+/* The models (as in model-view-controller paradigm) must be aware of their
  * views so the views are notified to be refreshed whenever the model state
  * changes.
  *
@@ -50,7 +50,7 @@ struct view_list_tag {
 static inline void
 view_list_init(view_list_t* vlist)
 {
-    dsa_init_ex(&vlist->dsa, sizeof(view_node_t), TRUE);
+    dsa_init(&vlist->dsa, sizeof(view_node_t));
 }
 
 static inline void

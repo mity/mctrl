@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 Martin Mitas
+ * Copyright (c) 2011-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,15 +29,22 @@
 #endif
 
 
-#define DSA_IS_COMPACT(dsa)             (dsa->capacity == 0xffff)
-
 #define DSA_MAX_ITEM_SIZE               32
-#define DSA_DEFAULT_GROW_SIZE(size)     (MC_MAX(8, (size) / 4))
-#define DSA_DEFAULT_SHRINK_SIZE(size)   (2*DSA_DEFAULT_GROW_SIZE(size))
+
+
+/* To avoid waste of memory as heap allocator needs to store somewhere some
+ * internal bookkeeping. */
+#ifdef _WIN64
+    #define DSA_BIGBUFFER_SIZE                  2048
+    #define DSA_BIGBUFFER_BOOKKEEPING_PADDING     32
+#else
+    #define DSA_BIGBUFFER_SIZE                  1024
+    #define DSA_BIGBUFFER_BOOKKEEPING_PADDING     16
+#endif
 
 
 void
-dsa_init_ex(dsa_t* dsa, WORD item_size, BOOL compact)
+dsa_init(dsa_t* dsa, WORD item_size)
 {
     DSA_TRACE("dsa_init(%p, %d)", dsa, (int)item_size);
 
@@ -47,7 +54,7 @@ dsa_init_ex(dsa_t* dsa, WORD item_size, BOOL compact)
     dsa->buffer = NULL;
     dsa->item_size = item_size;
     dsa->size = 0;
-    dsa->capacity = (compact ? 0xffff : 0);
+    dsa->capacity = 0;
 }
 
 void
@@ -74,8 +81,11 @@ dsa_reserve(dsa_t* dsa, WORD size)
 
     DSA_TRACE("dsa_reserve(%p, %d)", dsa, (int)size);
 
-    if(!DSA_IS_COMPACT(dsa)  &&  capacity <= dsa->capacity)
+    if(capacity <= dsa->capacity)
         return 0;
+
+    DSA_TRACE("dsa_reserve: Capacity growing: %d -> %d",
+                (int) dsa->capacity, (int) capacity);
 
     buffer = (BYTE*) realloc(dsa->buffer,
                              (size_t)capacity * (size_t)dsa->item_size);
@@ -85,8 +95,7 @@ dsa_reserve(dsa_t* dsa, WORD size)
     }
 
     dsa->buffer = buffer;
-    if(!DSA_IS_COMPACT(dsa))
-        dsa->capacity = capacity;
+    dsa->capacity = capacity;
     return 0;
 }
 
@@ -96,12 +105,43 @@ dsa_insert_raw(dsa_t* dsa, WORD index)
     DSA_TRACE("dsa_insert_raw(%p, %d)", dsa, (int)index);
     MC_ASSERT(index <= dsa->size);
 
-    if(DSA_IS_COMPACT(dsa)  ||  dsa->capacity - dsa->size == 0) {
-        WORD reserve = (DSA_IS_COMPACT(dsa) ? DSA_DEFAULT_GROW_SIZE(dsa->size) : 1);
-        if(MC_ERR(dsa_reserve(dsa, reserve) != 0)) {
-            MC_TRACE("dsa_insert_raw: dsa_reserve() failed.");
+    if(dsa->size >= dsa->capacity) {
+        BYTE* buffer;
+        size_t sz = (size_t)dsa->size * (size_t)dsa->item_size;
+
+        if(sz > DSA_BIGBUFFER_SIZE) {
+            sz += DSA_BIGBUFFER_BOOKKEEPING_PADDING + dsa->item_size - 1;
+            sz %= dsa->item_size;
+        }
+
+        /* Make the buffer about twice as large, but round up to power of two. */
+        sz = 2 * sz;
+#ifdef _WIN64
+        MC_ASSERT(sizeof(size_t) == 8);
+        sz = mc_round_up_to_power_of_two_64(sz);
+#else
+        MC_ASSERT(sizeof(size_t) == 4);
+        sz = mc_round_up_to_power_of_two_32(sz);
+#endif
+        /* Make sure at least 4 items fit inside. */
+        sz = MC_MAX(sz, 4 * dsa->item_size);
+
+        if(sz > DSA_BIGBUFFER_SIZE) {
+            sz -= DSA_BIGBUFFER_BOOKKEEPING_PADDING;
+            sz %= dsa->item_size;
+        }
+
+        DSA_TRACE("dsa_insert_raw: Capacity growing: %d -> %d",
+                    (int) dsa->capacity, (int) (sz / dsa->item_size));
+
+        buffer = (BYTE*) realloc(dsa->buffer, sz);
+        if(MC_ERR(buffer == NULL)) {
+            MC_TRACE("dsa_insert_raw: realloc() failed.");
             return NULL;
         }
+
+        dsa->buffer = buffer;
+        dsa->capacity = sz / dsa->item_size;
     }
 
     if(index < dsa->size) {
@@ -134,48 +174,61 @@ dsa_insert(dsa_t* dsa, WORD index, void* item)
 void
 dsa_remove(dsa_t* dsa, WORD index, dsa_dtor_t dtor_func)
 {
-    BYTE* buffer;
-
     DSA_TRACE("dsa_remove(%p, %d)", dsa, (int)index);
     MC_ASSERT(index < dsa->size);
 
+    /* Call the destructor. */
     if(dtor_func != NULL)
         dtor_func(dsa, dsa_item(dsa, index));
 
-    /* Fast (no-realloc) path. */
-    if(!DSA_IS_COMPACT(dsa)  &&
-       dsa->capacity < dsa->size + DSA_DEFAULT_SHRINK_SIZE(dsa->size))
-    {
-no_realloc:
-        memmove(dsa_item(dsa, index), dsa_item(dsa, index+1),
-                (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
-        dsa->size--;
+    /* Removing last element? Free the buffer altogether. */
+    if(MC_UNLIKELY(dsa->size == 1)) {
+        dsa_clear(dsa, NULL);
         return;
     }
 
-    if(index == dsa->size - 1) {
-        /* Getting rid of the tail element. */
-        if(dsa->size > 1) {
-            buffer = (BYTE*) realloc(dsa->buffer, (size_t)(dsa->size - 1) * (size_t)dsa->item_size);
-            if(MC_ERR(buffer == NULL))
-                goto no_realloc;
-        } else {
-            free(dsa->buffer);
-            buffer = NULL;
-        }
-    } else {
-        /* General path. */
-        buffer = (BYTE*) malloc((size_t)(dsa->size - 1) * (size_t)dsa->item_size);
-        if(MC_ERR(buffer == NULL))
-            goto no_realloc;
-        memcpy(buffer, dsa->buffer, (size_t)index * (size_t)dsa->item_size);
-        memcpy(buffer + index * dsa->item_size, dsa_item(dsa, index+1),
-               (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
-        free(dsa->buffer);
+    /* Remove the given element. */
+    if(index < dsa->size - 1) {
+        memmove(dsa_item(dsa, index), dsa_item(dsa, index+1),
+                (size_t)(dsa->size - index - 1) * (size_t)dsa->item_size);
     }
-    dsa->buffer = buffer;
     dsa->size--;
-    dsa->capacity = dsa->size;
+
+    /* Shrink if less then 25% of the buffer is used. */
+    if(4 * dsa->size < dsa->capacity) {
+        size_t sz;
+        BYTE* buffer;
+
+        sz = (size_t)dsa->capacity * (size_t)dsa->item_size;
+        if(sz > DSA_BIGBUFFER_SIZE) {
+            sz += DSA_BIGBUFFER_BOOKKEEPING_PADDING + dsa->item_size - 1;
+            sz %= dsa->item_size;
+        }
+
+        sz = sz / 2;
+
+        /* Make sure at least 4 items fit inside. */
+        sz = MC_MAX(sz, 4 * dsa->item_size);
+
+        if(sz > DSA_BIGBUFFER_SIZE) {
+            sz -= DSA_BIGBUFFER_BOOKKEEPING_PADDING;
+            sz %= dsa->item_size;
+        }
+
+        MC_ASSERT((size_t)dsa->size * (size_t)dsa->item_size < sz);
+
+        DSA_TRACE("dsa_remove: Capacity shrinking: %d -> %d",
+                    (int) dsa->capacity, (int) (sz / dsa->item_size));
+
+        buffer = (BYTE*) realloc(dsa->buffer, sz);
+        if(MC_ERR(buffer == NULL)) {
+            MC_TRACE("dsa_remove: realloc() failed. Cannot shrink.");
+            return;
+        }
+
+        dsa->buffer = buffer;
+        dsa->capacity = sz / dsa->item_size;
+    }
 }
 
 void

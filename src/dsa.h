@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Mitas
+ * Copyright (c) 2011-2015 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -64,9 +64,7 @@ dsa_item_(dsa_t* dsa, WORD index, WORD item_size)
         ((type*) dsa_item_((dsa), (index), sizeof(type)))
 
 
-void dsa_init_ex(dsa_t* dsa, WORD item_size, BOOL compact);
-static inline void dsa_init(dsa_t* dsa, WORD item_size)
-    { dsa_init_ex(dsa, item_size, FALSE); }
+void dsa_init(dsa_t* dsa, WORD item_size);
 void dsa_fini(dsa_t* dsa, dsa_dtor_t dtor_func);
 
 int dsa_reserve(dsa_t* dsa, WORD size);
