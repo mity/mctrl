@@ -19,6 +19,7 @@
 #ifndef MC_MISC_H
 #define MC_MISC_H
 
+#include <malloc.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <tchar.h>
