@@ -682,7 +682,7 @@ void xcom_dllmain_init(void);
 void xcom_dllmain_fini(void);
 
 
-static void
+static int
 dllmain_init(HINSTANCE instance)
 {
     MC_TRACE("****************************************************************");
@@ -693,7 +693,7 @@ dllmain_init(HINSTANCE instance)
     mc_instance_kernel32 = GetModuleHandle(_T("KERNEL32.DLL"));
     if(MC_ERR(mc_instance_kernel32 == NULL)) {
         MC_TRACE_ERR("dllmain_init: GetModuleHandle(KERNEL32.DLL) failed.");
-        return FALSE;
+        return -1;
     }
 
     mc_InitializeCriticalSectionEx =
@@ -713,6 +713,8 @@ dllmain_init(HINSTANCE instance)
     mousedrag_dllmain_init();
     mousewheel_dllmain_init();
     xcom_dllmain_init();
+
+    return 0;
 }
 
 static void
@@ -731,7 +733,8 @@ DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
     switch(reason) {
         case DLL_PROCESS_ATTACH:
             DisableThreadLibraryCalls(instance);
-            dllmain_init(instance);
+            if(MC_ERR(dllmain_init(instance) != 0))
+                return FALSE;
             break;
 
         case DLL_PROCESS_DETACH:
