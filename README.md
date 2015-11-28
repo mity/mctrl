@@ -46,47 +46,53 @@ repository hosted on github:
 The pre-built release package has the following directory structure:
 ```
 mCtrl-x.y.z/
- |  AUTHORS                 # Authors participating on the project
- |  COPYING                 # GNU General Public License
- |  COPYING.lib             # GNU Lesser General Public License
- |  README.md               # This file
+ |  AUTHORS               # List of authors contributing to the project
+ |  COPYING               # GNU General Public License
+ |  COPYING.lib           # GNU Lesser General Public License
+ |  README.md             # This file
  |
- +- bin/                    # 32-bit binaries
- |   |  mCtrl.dll           # MCTRL.DLL
- |   |  example-*.exe       # Pre-built examples
+ +- bin/                  # 32-bit binaries
+ |   |  mCtrl.dll         # MCTRL.DLL
+ |   |  example-*.exe     # Pre-built examples
  |   |
  |   +- debug-gcc/
- |   |      mCtrl.dll       # Debug build of MCTRL.DLL (built with gcc)
+ |   |      mCtrl.dll     # Debug build of MCTRL.DLL (built with gcc)
  |   |
  |   +- debug-msvc/
- |          mCtrl.dll       # Debug build of MCTRL.DLL (built with Visual Studio)
- |          mCtrl.pdb       # Visual Studio debug info
+ |          mCtrl.dll     # Debug build of MCTRL.DLL (built with Visual Studio)
+ |          mCtrl.pdb     # Visual Studio debug info
  |
- +- bin64/                  # 64-bit binaries
- |   |  mCtrl.dll           # MCTRL.DLL
- |   |  example-*.exe       # Pre-built examples
+ +- bin64/                # 64-bit binaries
+ |   |  mCtrl.dll         # MCTRL.DLL
+ |   |  example-*.exe     # Pre-built examples
  |   |
  |   +- debug-gcc/
- |   |      mCtrl.dll       # Debug build of MCTRL.DLL (built with gcc)
+ |   |      mCtrl.dll     # Debug build of MCTRL.DLL (built with gcc)
  |   |
  |   +- debug-msvc/
- |          mCtrl.dll       # Debug build of MCTRL.DLL (built with Visual Studio)
- |          mCtrl.pdb       # Visual Studio debug info
+ |          mCtrl.dll     # Debug build of MCTRL.DLL (built with Visual Studio)
+ |          mCtrl.pdb     # Visual Studio debug info
  |
- +- doc/                    # Reference manual
+ +- doc/                  # Reference manual
  |      *.html
  |
- +- examples/               # Examples
- |      CMakeLists.txt      # CMake recipe for building the examples
- |      *.c; *.h; *.rc      # Source files of the examples
+ +- examples/             # Examples
+ |      CMakeLists.txt    # CMake recipe for building the examples
+ |      *.c; *.h; *.rc    # Source files of the examples
  |
- +- lib/                    # 32-bit import libraries
- |      libmCtrl.dll.a      # Import library for gcc
- |      mCtrl.lib           # Import library for Visual Studio
+ +- include/
+ |   |  mctrl.h           # All-in-one public header (includes all mCtrl/*.h)
+ |   |
+ |   +- mCtrl/
+ |          *.h           # mCtrl public headers
  |
- +- lib64/                  # 64-bit import libraries
-        libmCtrl.dll.a      # Import library for gcc
-        mCtrl.lib           # Import library for Visual Studio
+ +- lib/                  # 32-bit import libraries
+ |      libmCtrl.dll.a    # Import library for gcc
+ |      mCtrl.lib         # Import library for Visual Studio
+ |
+ +- lib64/                # 64-bit import libraries
+        libmCtrl.dll.a    # Import library for gcc
+        mCtrl.lib         # Import library for Visual Studio
 ```
 
 Using mCtrl is as easy as using any other DLL, just tell your compiler and
