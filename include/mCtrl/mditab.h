@@ -452,6 +452,32 @@ typedef struct MC_NMMTCLOSEITEM_tag {
     LPARAM lParam;
 } MC_NMMTCLOSEITEM;
 
+/**
+ * @brief Structure used by notification @ref MC_MTN_GETDISPINFO
+ * (Unicode variant).
+ */
+typedef struct MC_NMMTDISPINFOW_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Item index. */
+    UINT iItem;
+    /** Structure describing the contents of the cell. */
+    MC_MTITEMW item;
+} MC_NMMTDISPINFOW;
+
+/**
+ * @brief Structure used by notification @ref MC_MTN_GETDISPINFO
+ * (ANSI variant).
+ */
+typedef struct MC_NMMTDISPINFOA_tag {
+    /** Common notification structure header. */
+    NMHDR hdr;
+    /** Item index. */
+    UINT iItem;
+    /** Structure describing the contents of the cell. */
+    MC_MTITEMA item;
+} MC_NMMTDISPINFOA;
+
 /*@}*/
 
 
@@ -753,6 +779,33 @@ typedef struct MC_NMMTCLOSEITEM_tag {
  */
 #define MC_MTN_CLOSEITEM          (MC_MTN_FIRST + 3)
 
+/**
+ * @brief Fired when control needs to retrieve some item data, the parent holds
+ * (Unicode variant).
+ *
+ * This may happen when @c MC_MTITEM::pszText was to to the magical value
+ * @ref MC_LPSTR_TEXTCALLBACK, or @c MC_MTITEM::iImage was set to the magical
+ * value @ref MC_I_IMAGECALLBACK.
+ *
+ * When sending the notification, the control sets @c MC_NMMTDISPINFO::iItem
+ * to identify the desired item. The control also sets
+ * @c MC_NMMTDISPINFO::item::lParam.
+ *
+ * The control specifies what members in @c MC_NMGDISPINFO::cell the application
+ * should fill with the @c MC_NMGDISPINFO::item::fMask.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return None.*/
+#define MC_MTN_GETDISPINFOW       (MC_MTN_FIRST + 4)
+
+/**
+ * @brief Fired when control needs to retrieve some item data, the parent holds
+ * (ANSI variant).
+ */
+#define MC_MTN_GETDISPINFOA       (MC_MTN_FIRST + 5)
+
 /*@}*/
 
 
@@ -771,6 +824,10 @@ typedef struct MC_NMMTCLOSEITEM_tag {
 #define MC_MTM_SETITEM        MCTRL_NAME_AW(MC_MTM_SETITEM)
 /** Unicode-resolution alias. @sa MC_MTM_GETITEMW MC_MTM_GETITEMA */
 #define MC_MTM_GETITEM        MCTRL_NAME_AW(MC_MTM_GETITEM)
+/** Unicode-resolution alias. @sa MC_MTN_GETDISPINFOW MC_MTN_GETDISPINFOA */
+#define MC_MTN_GETDISPINFO    MCTRL_NAME_AW(MC_MTN_GETDISPINFO)
+/** Unicode-resolution alias. @sa MC_NMMTDISPINFOW MC_NMMTDISPINFOA */
+#define MC_NMMTDISPINFO       MCTRL_NAME_AW(MC_NMMTDISPINFO)
 
 /*@}*/
 
