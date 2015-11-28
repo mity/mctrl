@@ -951,9 +951,7 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
  * is in effect, it is always set to zero).
  *
  * The control specifies what members in @c MC_NMGDISPINFO::cell the application
- * should fill with the  @c MC_NMGDISPINFO::cell::fMask. Note that the mask
- * can ask for both, the cell text as well the value. However application is
- * then expected to provide one or the other (and set the other one to @c NULL).
+ * should fill with the @c MC_NMGDISPINFO::cell::fMask.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
@@ -976,9 +974,7 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
  * is in effect, it is always set to zero).
  *
  * The control specifies what members in @c MC_NMGDISPINFO::cell the application
- * should fill with the  @c MC_NMGDISPINFO::cell::fMask. Note that the mask
- * can ask for both, the cell text as well the value. However application is
- * then expected to provide one or the other (and set the other one to @c NULL).
+ * should fill with the @c MC_NMGDISPINFO::cell::fMask.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
