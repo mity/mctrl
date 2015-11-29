@@ -142,6 +142,7 @@ struct mditab_tag {
     DWORD style                 : 16;
     DWORD btn_mask              :  4;
     DWORD no_redraw             :  1;
+    DWORD unicode_notifications :  1;
     DWORD hide_focus            :  1;
     DWORD tracking_leave        :  1;
     DWORD dirty_layout          :  1;
@@ -203,9 +204,77 @@ static void
 mditab_item_dtor(dsa_t* dsa, void* it)
 {
     mditab_item_t* item = (mditab_item_t*) it;
-    if(item->text != NULL)
+    if(item->text != NULL  &&  item->text != MC_LPSTR_TEXTCALLBACK)
         free(item->text);
 }
+
+
+typedef struct mditab_dispinfo_tag mditab_dispinfo_t;
+struct mditab_dispinfo_tag {
+    TCHAR* text;
+    int img;
+    LPARAM lp;
+};
+
+static void
+mditab_get_dispinfo(mditab_t* mditab, int index, mditab_item_t* item,
+                    mditab_dispinfo_t* di, DWORD mask)
+{
+    MC_NMMTDISPINFO info;
+
+    MC_ASSERT((mask & ~(MC_MTIF_TEXT | MC_MTIF_IMAGE | MC_MTIF_PARAM)) == 0);
+
+    /* Use what can be taken from the item. */
+    if(item->text != MC_LPSTR_TEXTCALLBACK) {
+        di->text = item->text;
+        mask &= ~MC_MTIF_TEXT;
+    }
+
+    if(item->img != MC_I_IMAGECALLBACK) {
+        di->img = item->img;
+        mask &= ~MC_MTIF_IMAGE;
+    }
+
+    di->lp = item->lp;
+    mask &= ~MC_MTIF_PARAM;
+
+    if(mask == 0)
+        return;
+
+    /* For the rest, fire MC_MTN_GETDISPINFO notification. */
+    info.hdr.hwndFrom = mditab->win;
+    info.hdr.idFrom = GetWindowLong(mditab->win, GWL_ID);
+    info.hdr.code = (mditab->unicode_notifications ? MC_MTN_GETDISPINFOW : MC_MTN_GETDISPINFOA);
+    info.iItem = index;
+    info.item.dwMask = mask;
+    /* Set info.cell members to meaningful values. lParam may be needed by the
+     * app to find the requested data. Other members should be set to some
+     * defaults to deal with broken apps which do not set the asked members. */
+    info.item.pszText = NULL;
+    info.item.iImage = MC_I_IMAGENONE;
+    info.item.lParam = item->lp;
+    MC_SEND(mditab->notify_win, WM_NOTIFY, 0, &info);
+
+    /* If needed, convert the text from parent to the expected format. */
+    if(mask & MC_MTIF_TEXT) {
+        if(mditab->unicode_notifications == MC_IS_UNICODE)
+            di->text = info.item.pszText;
+        else
+            di->text = mc_str(info.item.pszText, (mditab->unicode_notifications ? MC_STRW : MC_STRA), MC_STRT);
+    } else {
+        /* Needed even when not asked for because of mditab_free_dispinfo() */
+        di->text = NULL;
+    }
+}
+
+static inline void
+mditab_free_dispinfo(mditab_t* mditab, mditab_item_t* item, mditab_dispinfo_t* di)
+{
+    if(mditab->unicode_notifications != MC_IS_UNICODE  &&
+       di->text != item->text  &&  di->text != NULL)
+        free(di->text);
+}
+
 
 static inline USHORT
 mditab_item_current_width(mditab_t* mditab, WORD index)
@@ -220,21 +289,24 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
     mditab_item_t* item = mditab_item(mditab, index);
 
     if(MC_UNLIKELY(item->ideal_width == 0)) {
-        const TCHAR* text = item->text;
+        mditab_item_t* item = mditab_item(mditab, index);
+        mditab_dispinfo_t di;
         int w = 0;
+
+        mditab_get_dispinfo(mditab, index, item, &di, MC_MTIF_TEXT);
 
         if(mditab->img_list != NULL) {
             int ico_w, ico_h;
             ImageList_GetIconSize(mditab->img_list, &ico_w, &ico_h);
             w += ico_w + MDITAB_ITEM_PADDING;
 
-            if(text != NULL)
+            if(di.text != NULL)
                 w += MDITAB_ITEM_ICON_MARGIN;
             else
                 w += MDITAB_ITEM_PADDING;
         }
 
-        if(text != NULL) {
+        if(di.text != NULL) {
             xdraw_canvas_t* canvas;
             xdraw_font_t* font;
 
@@ -261,7 +333,7 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
                 }
             }
 
-            w += ceilf(xdraw_measure_string_width(canvas, font, text));
+            w += ceilf(xdraw_measure_string_width(canvas, font, di.text));
             w += MDITAB_ITEM_PADDING;
 
             if(mditab->paint_ctx == NULL) {
@@ -274,6 +346,7 @@ err_xdraw_canvas_create_with_dc:
         }
 
         item->ideal_width = w;
+        mditab_free_dispinfo(mditab, item, &di);
     }
 
     return MC_MAX(item->ideal_width, mditab->item_min_width);
@@ -338,7 +411,7 @@ mditab_button_rect(mditab_t* mditab, int btn_id, RECT* rect)
 }
 
 static void
-mditab_setup_item_layout(mditab_t* mditab,mditab_item_t* item, int x0, int y0,
+mditab_setup_item_layout(mditab_t* mditab, mditab_dispinfo_t* di, int x0, int y0,
                          int x1, int y1, mditab_item_layout_t* layout)
 {
     int contents_x = x0 + MDITAB_ITEM_PADDING;
@@ -355,7 +428,7 @@ mditab_setup_item_layout(mditab_t* mditab,mditab_item_t* item, int x0, int y0,
         contents_x += icon_w + MDITAB_ITEM_ICON_MARGIN;
     }
 
-    if(item->text != NULL) {
+    if(di->text != NULL) {
         SIZE size;
 
         mc_font_size(mditab->font, &size, TRUE);
@@ -426,9 +499,11 @@ mditab_hit_test_item(mditab_t* mditab, MC_MTHITTESTINFO* hti,
     }
 
     if(want_hti_item_flags) {
+        mditab_dispinfo_t di;
         mditab_item_layout_t layout;
 
-        mditab_setup_item_layout(mditab, item, x0, y0, x1, y1, &layout);
+        di.text = NULL;  /* <-- little hack: we only need layout.icon_rect. */
+        mditab_setup_item_layout(mditab, &di, x0, y0, x1, y1, &layout);
 
         if(mditab->img_list != NULL  &&
            layout.icon_rect.x0 <= x  &&  x < layout.icon_rect.x1  &&
@@ -1300,6 +1375,7 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
                   const xdraw_image_t* background_image,
                   BOOL is_selected, BOOL is_hot)
 {
+    mditab_dispinfo_t di;
     float x0 = item_rect->x0;
     float y0 = item_rect->y0;
     float x1 = item_rect->x1;
@@ -1316,7 +1392,9 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     mditab_item_layout_t layout;
     BOOL degenerate_shape = FALSE;
 
-    mditab_setup_item_layout(mditab, item, x0, y0, x1, y1, &layout);
+    mditab_get_dispinfo(mditab, dsa_index(&mditab->items, item), item,
+                        &di, MC_MTIF_TEXT | MC_MTIF_IMAGE);
+    mditab_setup_item_layout(mditab, &di, x0, y0, x1, y1, &layout);
 
     /* Construct a path defining shape of the item. */
     path = xdraw_path_create(ctx->canvas);
@@ -1398,7 +1476,7 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     if(mditab->img_list != NULL) {
         HICON icon;
 
-        icon = ImageList_GetIcon(mditab->img_list, item->img, ILD_NORMAL);
+        icon = ImageList_GetIcon(mditab->img_list, di.img, ILD_NORMAL);
         if(icon != NULL) {
             xdraw_blit_HICON(ctx->canvas, icon, &layout.icon_rect);
             DestroyIcon(icon);
@@ -1406,27 +1484,27 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     }
 
     /* Paint item text. */
-    if(item->text != NULL) {
+    if(di.text != NULL) {
         xdraw_brush_solid_set_color(ctx->solid_brush, XDRAW_RGB(0,0,0));
-        xdraw_draw_string(ctx->canvas, ctx->font, &layout.text_rect, item->text,
-                _tcslen(item->text), ctx->solid_brush, XDRAW_STRING_NOWRAP |
+        xdraw_draw_string(ctx->canvas, ctx->font, &layout.text_rect, di.text,
+                _tcslen(di.text), ctx->solid_brush, XDRAW_STRING_NOWRAP |
                 XDRAW_STRING_CLIP | XDRAW_STRING_END_ELLIPSIS);
     }
 
     /* Paint focus rect (if needed). */
     if(is_selected  &&  !mditab->hide_focus  &&
        ((mditab->style & MC_MTS_FOCUSMASK) != MC_MTS_FOCUSNEVER)  &&
-       (item->text != NULL || mditab->img_list != NULL))
+       (di.text != NULL || mditab->img_list != NULL))
     {
         HDC dc;
         RECT focus_rect;
 
         focus_rect.left = (LONG)(mditab->img_list != NULL ? layout.icon_rect.x0 : layout.text_rect.x0) - 1;
-        focus_rect.right = (LONG)(item->text != NULL ? layout.text_rect.x1 : layout.icon_rect.x1) + 1;
-        if(item->text != NULL  &&  mditab->img_list != NULL) {
+        focus_rect.right = (LONG)(di.text != NULL ? layout.text_rect.x1 : layout.icon_rect.x1) + 1;
+        if(di.text != NULL  &&  mditab->img_list != NULL) {
             focus_rect.top = (LONG) MC_MIN(layout.text_rect.y0, layout.icon_rect.y0) - 1;
             focus_rect.bottom = (LONG) MC_MAX(layout.text_rect.y1, layout.icon_rect.y1) + 1;
-        } else if(item->text != NULL) {
+        } else if(di.text != NULL) {
             focus_rect.top = (LONG) layout.text_rect.y0 - 1;
             focus_rect.bottom = (LONG) layout.text_rect.y1 + 1;
         } else {
@@ -1463,6 +1541,8 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
         mditab_paint_scroll_block(mditab, ctx, floorf(area_x0 - r), y0, y1, +1);
     if(right_block)
         mditab_paint_scroll_block(mditab, ctx, ceilf(area_x1 + r), y0, y1, -1);
+
+    mditab_free_dispinfo(mditab, item, &di);
 }
 
 static BOOL
@@ -1773,7 +1853,7 @@ mditab_insert_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 
     /* Setup the new item */
     item->text = item_text;
-    item->img = ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : (SHORT)MC_I_IMAGENONE);
+    item->img = (SHORT) ((id->dwMask & MC_MTIF_IMAGE) ? id->iImage : MC_I_IMAGENONE);
     item->lp = ((id->dwMask & MC_MTIF_PARAM) ? id->lParam : 0);
     item->x0 = (index > 0  ?  mditab_item(mditab, index-1)->x1  :  0);
     item->x1 = item->x0;
@@ -1838,7 +1918,7 @@ mditab_set_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
         item->ideal_width = 0;
     }
     if(id->dwMask & MC_MTIF_IMAGE)
-        item->img = (SHORT)id->iImage;
+        item->img = (SHORT) id->iImage;
     if(id->dwMask & MC_MTIF_PARAM)
         item->lp = id->lParam;
 
@@ -1853,6 +1933,8 @@ static BOOL
 mditab_get_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
 {
     mditab_item_t* item;
+    mditab_dispinfo_t di;
+    DWORD di_mask;
 
     MDITAB_TRACE("mditab_get_item(%p, %d, %p, %d)", mditab, index, id, unicode);
 
@@ -1868,15 +1950,21 @@ mditab_get_item(mditab_t* mditab, int index, MC_MTITEM* id, BOOL unicode)
     }
 
     item = mditab_item(mditab, index);
+    di_mask = (id->dwMask & (MC_MTIF_TEXT | MC_MTIF_IMAGE));
+    if(di_mask != 0)
+        mditab_get_dispinfo(mditab, index, item, &di, di_mask);
 
     if(id->dwMask & MC_MTIF_TEXT) {
-        mc_str_inbuf(item->text, MC_STRT, id->pszText,
-                (unicode ? MC_STRW : MC_STRA), id->cchTextMax);
+        mc_str_inbuf(di.text, MC_STRT, id->pszText,
+                     (unicode ? MC_STRW : MC_STRA), id->cchTextMax);
     }
     if(id->dwMask & MC_MTIF_IMAGE)
-        id->iImage = item->img;
+        id->iImage = di.img;
     if(id->dwMask & MC_MTIF_PARAM)
         id->lParam = item->lp;
+
+    if(di_mask != 0)
+        mditab_free_dispinfo(mditab, item, &di);
 
     return TRUE;
 }
@@ -2134,9 +2222,19 @@ mditab_set_cur_sel(mditab_t* mditab, int index)
 static void
 mditab_measure_menu_icon(mditab_t* mditab, MEASUREITEMSTRUCT* mis)
 {
-    mditab_item_t* item = mditab_item(mditab, mis->itemID - 1000);
+    int index = mis->itemID - 1000;
+    mditab_item_t* item = mditab_item(mditab, index);
+    int img = -1;
 
-    if(mditab->img_list != NULL  &&  item->img >= 0) {
+    if(mditab->img_list != NULL) {
+        mditab_dispinfo_t di;
+
+        mditab_get_dispinfo(mditab, index, item, &di, MC_MTIF_IMAGE);
+        img = di.img;
+        mditab_free_dispinfo(mditab, item, &di);
+    }
+
+    if(img >= 0) {
         int w, h;
 
         ImageList_GetIconSize(mditab->img_list, &w, &h);
@@ -2151,10 +2249,20 @@ mditab_measure_menu_icon(mditab_t* mditab, MEASUREITEMSTRUCT* mis)
 static void
 mditab_draw_menu_icon(mditab_t* mditab, DRAWITEMSTRUCT* dis)
 {
-    mditab_item_t* item = mditab_item(mditab, dis->itemID - 1000);
+    int index = dis->itemID - 1000;
+    mditab_item_t* item = mditab_item(mditab, index);
+    int img = -1;
 
-    if(mditab->img_list != NULL  &&  item->img >= 0) {
-        ImageList_Draw(mditab->img_list, item->img, dis->hDC,
+    if(mditab->img_list != NULL) {
+        mditab_dispinfo_t di;
+
+        mditab_get_dispinfo(mditab, index, item, &di, MC_MTIF_IMAGE);
+        img = di.img;
+        mditab_free_dispinfo(mditab, item, &di);
+    }
+
+    if(img >= 0) {
+        ImageList_Draw(mditab->img_list, img, dis->hDC,
                        dis->rcItem.left, dis->rcItem.top, ILD_TRANSPARENT);
     }
 }
@@ -2316,12 +2424,19 @@ mditab_list_items(mditab_t* mditab)
     }
     n = mditab_count(mditab);
     for(i = 0; i < n; i++) {
+        mditab_item_t* item = mditab_item(mditab, i);
+        mditab_dispinfo_t di;
+
+        mditab_get_dispinfo(mditab, i, item, &di, MC_MTIF_TEXT);
+
         mii.dwItemData = i;
         mii.wID = 1000 + i;
         mii.fState = (i == mditab->item_selected ? MFS_DEFAULT : 0);
-        mii.dwTypeData = mditab_item(mditab, i)->text;
+        mii.dwTypeData = di.text;
         mii.cch = _tcslen(mii.dwTypeData);
         InsertMenuItem(popup, i, TRUE, &mii);
+
+        mditab_free_dispinfo(mditab, item, &di);
     }
 
     /* Show the menu */
@@ -2505,6 +2620,16 @@ mditab_change_focus(mditab_t* mditab)
 }
 
 static void
+mditab_notify_format(mditab_t* mditab)
+{
+    LRESULT lres;
+    lres = MC_SEND(mditab->notify_win, WM_NOTIFYFORMAT, mditab->win, NF_QUERY);
+    mditab->unicode_notifications = (lres == NFR_UNICODE);
+    MDITAB_TRACE("mditab_notify_format: Will use %s notifications.",
+                 mditab->unicode_notifications ? "Unicode" : "ANSI");
+}
+
+static void
 mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 {
     static const DWORD style_mask_for_layout =
@@ -2581,10 +2706,16 @@ mditab_notify_from_tooltip(mditab_t* mditab, NMHDR* hdr)
         {
             NMTTDISPINFO* dispinfo = (NMTTDISPINFO*) hdr;
 
-            if(mditab->item_hot >= 0)
-                dispinfo->lpszText = mditab_item(mditab, mditab->item_hot)->text;
-            else
+            if(mditab->item_hot >= 0) {
+                mditab_item_t* item = mditab_item(mditab, mditab->item_hot);
+                mditab_dispinfo_t di;
+
+                mditab_get_dispinfo(mditab, mditab->item_hot, item, &di, MC_MTIF_TEXT);
+                dispinfo->lpszText = di.text;
+                mditab_free_dispinfo(mditab, item, &di);
+            } else {
                 dispinfo->lpszText = NULL;
+            }
             break;
         }
     }
@@ -2629,6 +2760,8 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
     mditab->item_min_width = DEFAULT_ITEM_MIN_WIDTH;
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
+
+    mditab_notify_format(mditab);
 
     /* This initializes mditab_t::btn_mask, area_margin0, area_margin1 */
     mditab_update_layout(mditab, FALSE);
@@ -2898,6 +3031,21 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_UPDATEUISTATE:
             return mditab_update_ui_state(mditab, wp, lp);
+
+        case WM_NOTIFYFORMAT:
+            if(lp == NF_REQUERY)
+                mditab_notify_format(mditab);
+            return (mditab->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
+
+        case CCM_SETUNICODEFORMAT:
+        {
+            BOOL old = mditab->unicode_notifications;
+            mditab->unicode_notifications = (wp != 0);
+            return old;
+        }
+
+        case CCM_GETUNICODEFORMAT:
+            return mditab->unicode_notifications;
 
         case CCM_SETNOTIFYWINDOW:
         {

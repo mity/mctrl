@@ -84,6 +84,19 @@ extern "C" {
  *   (still you are free to implement any menu you like ;-)
  *
  *
+ * @section mditab_callbacks Item Callbacks
+ *
+ * The control can be told to ask parent instead of remembering some attributes
+ * of item.
+ *
+ * To use the callbacks, you can set item texts to @ref MC_LPSTR_TEXTCALLBACK,
+ * and/or images to @ref MC_I_IMAGECALLBACK.
+ *
+ * Whenever the control needs to paint the item, it then sends notification
+ * @ref MC_MTN_GETDISPINFO with @c dwMask specifying what members of it the
+ * application has to fill.
+ *
+ *
  * @section mditab_wdm MDI Tab Control and Desktop Window Manager
  *
  * Since Windows Vista, it is possible to extend window frame into window
@@ -109,7 +122,9 @@ extern "C" {
  * - @c WM_GETFONT
  * - @c WM_SETFONT
  * - @c WM_SETREDRAW
+ * - @c CCM_GETUNICODEFORMAT
  * - @c CCM_SETNOTIFYWINDOW
+ * - @c CCM_SETUNICODEFORMAT
  * - @c CCM_SETWINDOWTHEME
  *
  * These standard notifications are sent by the control:
@@ -791,18 +806,35 @@ typedef struct MC_NMMTDISPINFOA_tag {
  * to identify the desired item. The control also sets
  * @c MC_NMMTDISPINFO::item::lParam.
  *
- * The control specifies what members in @c MC_NMGDISPINFO::cell the application
- * should fill with the @c MC_NMGDISPINFO::item::fMask.
+ * The control specifies what members in @c MC_NMMTDISPINFO::item the
+ * application should fill with the @c MC_NMMTDISPINFO::item::dwMask.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
- * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * @param[in,out] lParam (@ref MC_NMMTDISPINFO*) Pointer to @ref MC_NMMTDISPINFO
  * structure.
- * @return None.*/
+ * @return None.
+ */
 #define MC_MTN_GETDISPINFOW       (MC_MTN_FIRST + 4)
 
 /**
  * @brief Fired when control needs to retrieve some item data, the parent holds
  * (ANSI variant).
+ *
+ * This may happen when @c MC_MTITEM::pszText was to to the magical value
+ * @ref MC_LPSTR_TEXTCALLBACK, or @c MC_MTITEM::iImage was set to the magical
+ * value @ref MC_I_IMAGECALLBACK.
+ *
+ * When sending the notification, the control sets @c MC_NMMTDISPINFO::iItem
+ * to identify the desired item. The control also sets
+ * @c MC_NMMTDISPINFO::item::lParam.
+ *
+ * The control specifies what members in @c MC_NMMTDISPINFO::item the
+ * application should fill with the @c MC_NMMTDISPINFO::item::dwMask.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMMTDISPINFO*) Pointer to @ref MC_NMMTDISPINFO
+ * structure.
+ * @return None.
  */
 #define MC_MTN_GETDISPINFOA       (MC_MTN_FIRST + 5)
 
