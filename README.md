@@ -140,6 +140,16 @@ $ cmake -G "Ninja" ..
 $ ninja
 ```
 
+To build within [MSYS2](http://msys2.github.io), make sure you have these
+MSYS2 packages installed:
+* `make`
+* `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake` (for 32-bit build)
+* `mingw-w64-x86_64-gcc`, `mingw-w64-x86_64-cmake` (for 64-bit build)
+
+Then start MSYS2 shell with `mingw32_shell.bat` or `mingw64_shell.bat`
+respectively and follow the same instructions as above for MSYS + 
+mingw-w64 + Make.
+
 To build with Microsoft Visual Studio 2013 or 2015:
 ```sh
 $ mkdir build
