@@ -35,6 +35,17 @@ if(CMAKE_COMPILER_IS_GNUCC)
     # By default, mingw-w64 uses its own swprintf() implementation (for the
     # sake of standard compliance). This enforces swprintf() from MSVCRT.DLL:
     add_definitions(-D_CRT_NON_CONFORMING_SWPRINTFS)
+
+    # Enable DEP (data execution prevention) and ASLR (address space layout
+    # randomization).
+    # See https://lists.gnu.org/archive/html/bug-binutils/2015-09/msg00204.html
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--nxcompat")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-auto-image-base -Wl,--dynamicbase")
+    if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+        # For 64-bit build, enable higher entropy for the memory relocations:
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--high-entropy-va")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--image-base -Wl,0x140000000")
+    endif()
 elseif(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /MANIFEST:NO /SUBSYSTEM:WINDOWS")
     add_definitions(/D_CRT_SECURE_NO_WARNINGS)

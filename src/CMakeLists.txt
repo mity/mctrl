@@ -54,6 +54,17 @@ if(CMAKE_COMPILER_IS_GNUCC)
     # sake of standard compliance). This enforces swprintf() from MSVCRT.DLL:
     add_definitions(-D_CRT_NON_CONFORMING_SWPRINTFS)
 
+    # Enable DEP (data execution prevention) and ASLR (address space layout
+    # randomization).
+    # See https://lists.gnu.org/archive/html/bug-binutils/2015-09/msg00204.html
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--nxcompat")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--disable-auto-image-base -Wl,--dynamicbase")
+    if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+        # For 64-bit build, enable higher entropy for the memory relocations:
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--high-entropy-va")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--image-base -Wl,0x180000000")
+    endif()
+
     # With gcc/binutils toolchain (e.g. mingw-w64), gcc option -Wl,--kill-at
     # results in unusable import lib because gcc/ld then un-decorates not just
     # DLL exports but unfortunately also import lib symbols. Hence lets create
