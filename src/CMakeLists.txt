@@ -26,7 +26,14 @@ if(CMAKE_COMPILER_IS_GNUCC)
     # Detect gcc version:
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wdouble-promotion -municode -ffast-math")
+    # Enable many warnings:
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wdouble-promotion")
+
+    # Use unicode (-W suffixed symbols):
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -municode")
+
+    # Use faster but less precise float math; it suffices for our purposes:
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffast-math")
 
     # By default, CMake uses -O3 for Release builds. Lets stick with safer -O2:
     string(REGEX REPLACE "(^| )-O[0-9a-z]+" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
@@ -40,7 +47,8 @@ if(CMAKE_COMPILER_IS_GNUCC)
 
     # Ensure we do not depend on libgcc.dll and that our exported symbols
     # don't have undesired symbol decorations:
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -Wl,--enable-stdcall-fixup -Wl,--kill-at")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--kill-at")
 
     # By default, mingw-w64 uses its own swprintf() implementation (for the
     # sake of standard compliance). This enforces swprintf() from MSVCRT.DLL:
@@ -72,6 +80,7 @@ elseif(MSVC)
     # Disable warnings about the so-called unsecured functions:
     add_definitions(/D_CRT_SECURE_NO_WARNINGS)
 
+    # Use faster but less precise float math; it suffices for our purposes:
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /fp:fast")
 
     # Make sure strings in string table resource are zero-terminated.
@@ -82,6 +91,7 @@ elseif(MSVC)
     # We provide our own manifest, so tell the linker to not generate it:
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MANIFEST:NO")
 
+    # Specify proper C runtime library:
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
     set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} /MT")
