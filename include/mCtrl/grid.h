@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2015 Martin Mitas
+ * Copyright (c) 2010-2016 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
