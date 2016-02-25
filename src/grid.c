@@ -3506,7 +3506,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                          "(size: %ux%u; requested [%u,%u])",
                          (unsigned) grid->col_count, (unsigned) grid->row_count,
                          (unsigned) col, (unsigned) row);
-                return NULL;
+                return (LRESULT) NULL;
             }
 
             return (LRESULT) grid_start_label_edit(grid, col, row);
