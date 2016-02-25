@@ -175,6 +175,30 @@ extern "C" {
  * MC_GN_FOCUSEDCELLCHANGING and @ref MC_GN_FOCUSEDCELLCHANGED.
  *
  *
+ * @section grid_label_edit Cell Label Editing
+ *
+ * When the style @ref MC_GS_EDITLABELS is enabled, user can edit cell labels.
+ * The editing is started when user clicks on the focused cell, when user
+ * presses @c ENTER, or when the application explicitly sends the message
+ * @ref MC_GM_EDITLABEL.
+ *
+ * When the label editing starts, application gets the notification
+ * @ref MC_GN_BEGINLABELEDIT which allows it to suppress the editing mode,
+ * or to customize the embedded edit window. The code handling the notification
+ * may use the message @ref MC_GM_GETEDITCONTROL to retrieve handle of the edit
+ * control.
+ *
+ * Likewise, when the edit mode ends, the application gets the notification
+ * @ref MC_GN_ENDLABELEDIT, which allows the application to accept or reject
+ * the new text for the label.
+ *
+ * If it is accepted by returning non-zero from the notification, the control
+ * saves the new text label within the table or it tells the parent to remember
+ * it via @ref MC_GN_SETDISPINFO if the parent maintains the table or cell
+ * contents (this happens when the control uses the style @c MC_GS_OWNERDATA
+ * or when the cell uses the magic value @ref MC_LPSTR_TEXTCALLBACK).
+ *
+ *
  * @section grid_std_msgs Standard Messages
  *
  * These standard messages are handled by @c MC_WC_GRID control:
@@ -236,7 +260,6 @@ void MCTRL_API mcGrid_Terminate(void);
  * @name Control Styles
  */
 /*@{*/
-
 /** @brief Do not automatically create empty table. */
 #define MC_GS_NOTABLECREATE          0x0001
 
@@ -257,6 +280,9 @@ void MCTRL_API mcGrid_Terminate(void);
 
 /** @brief Enables cell focus. */
 #define MC_GS_FOCUSEDCELL            0x0040
+
+/** @brief Enables label editing support. */
+#define MC_GS_EDITLABELS             0x0080
 
 /** @brief Control does not allow cell selection. */
 #define MC_GS_NOSEL                  0x0000
@@ -887,6 +913,34 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
  */
 #define MC_GM_GETSELECTION        (MC_GM_FIRST + 23)
 
+/**
+ * @brief Set selection.
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of edit control on success, @c NULL otherwise.
+ */
+#define MC_GM_GETEDITCONTROL      (MC_GM_FIRST + 24)
+
+/**
+ * @brief Begins in-place editing of the specified cell.
+ * @details This message implicitly sets focus to the given cell.
+ * @param[in] wParam (@c DWORD) Column and row of the cell. Low word specifies
+ * column index and high word specifies row index.
+ * @param lParam Reserved, set to zero.
+ * @return (@c HWND) Handle of edit control on success, @c NULL otherwise.
+ */
+#define MC_GM_EDITLABEL           (MC_GM_FIRST + 25)
+
+/**
+ * @brief Ends a cell editing operation, if any is in progress.
+ * @details If any edit operation is in progress, the message causes a
+ * notification @ref MC_GN_ENDLABELEDIT to be sent.
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return None.
+ */
+#define MC_GM_CANCELEDITLABEL     (MC_GM_FIRST + 26)
+
 /*@}*/
 
 
@@ -932,10 +986,43 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
  */
 #define MC_GN_ODCACHEHINT         (MC_GN_FIRST + 0)
 
-#if 0  /* TODO */
+/**
+ * @brief Fired when control needs to tell parent to update some cell data
+ * it manages (Unicode variant).
+ *
+ * When sending the notification, the control sets @c MC_NMGDISPINFO::wColumn
+ * and @c MC_NMGDISPINFO::wRow to identify the cell. The control also sets
+ * @c MC_NMTLDISPINFO::item::lParam (however if the style @ref MC_GS_OWNERDATA
+ * is in effect, it is always set to zero).
+ *
+ * The control specifies what members in @c MC_NMGDISPINFO::cell the application
+ * should remember with the @c MC_NMGDISPINFO::cell::fMask.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return None.
+ */
 #define MC_GN_SETDISPINFOW        (MC_GN_FIRST + 1)
+
+/**
+ * @brief Fired when control needs to tell parent to update some cell data
+ * it manages (ANSI variant).
+ *
+ * When sending the notification, the control sets @c MC_NMGDISPINFO::wColumn
+ * and @c MC_NMGDISPINFO::wRow to identify the cell. The control also sets
+ * @c MC_NMTLDISPINFO::item::lParam (however if the style @ref MC_GS_OWNERDATA
+ * is in effect, it is always set to zero).
+ *
+ * The control specifies what members in @c MC_NMGDISPINFO::cell the application
+ * should remember with the @c MC_NMGDISPINFO::cell::fMask.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return None.
+ */
 #define MC_GN_SETDISPINFOA        (MC_GN_FIRST + 2)
-#endif
 
 /**
  * @brief Fired when control needs to retrieve some cell data, the parent holds
@@ -1107,6 +1194,81 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
  */
 #define MC_GN_SELECTIONCHANGED    (MC_GN_FIRST + 16)
 
+/**
+ * @brief Fired when control is about to start label editing (Unicode variant).
+ *
+ * The cell to be edited is specified with @c MC_NMGDISPINFO::wCol and @c wRow.
+ *
+ * When this notification is sent the edit control for editing the label already
+ * exists (but is hidden). Application may ask for it with the message
+ * @ref MC_GM_GETEDITCONTROL and customize it.
+ *
+ * This may only happen if the control has the style @ref MC_GS_EDITLABELS.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return @c TRUE to prevent the label editing, @c FALSE to allow it.
+ */
+#define MC_GN_BEGINLABELEDITW     (MC_GN_FIRST + 17)
+
+/**
+ * @brief Fired when control is about to start label editing (ANSI variant).
+ *
+ * The cell to be edited is specified with @c MC_NMGDISPINFO::wCol and @c wRow.
+ *
+ * When this notification is sent the edit control for editing the label already
+ * exists (but is hidden). Application may ask for it with the message
+ * @ref MC_GM_GETEDITCONTROL and customize it.
+ *
+ * This may only happen if the control has the style @ref MC_GS_EDITLABELS.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return @c TRUE to prevent the label editing, @c FALSE to allow it.
+ */
+#define MC_GN_BEGINLABELEDITA     (MC_GN_FIRST + 18)
+
+/**
+ * @brief Fired when control is about to end label editing (Unicode variant).
+ *
+ * The control sets @c MC_NMGDISPINFO provided via @c LPARAM to describe change
+ * of the label. @c MC_NMGDISPINFO::wCol and @c wRow determine the cell.
+ * @c MC_NMGDISPINFO::cell::pszText is set to the new label or to @c NULL if
+ * the label editing is being canceled.
+ *
+ * This may only happen if the control has the style @ref MC_GS_EDITLABELS.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return If @c MC_NMGDISPINFO::cell::pszText is not @c NULL, return @c TRUE
+ * to allow change of the label, @c FALSE to suppress it. If the @c pszText
+ * is @c NULL, the return value is ignored and no label change happens.
+ */
+#define MC_GN_ENDLABELEDITW       (MC_GN_FIRST + 19)
+
+/**
+ * @brief Fired when control is about to end label editing (ANSI variant).
+ *
+ * The control sets @c MC_NMGDISPINFO provided via @c LPARAM to describe change
+ * of the label. @c MC_NMGDISPINFO::wCol and @c wRow determine the cell.
+ * @c MC_NMGDISPINFO::cell::pszText is set to the new label or to @c NULL if
+ * the label editing is being canceled.
+ *
+ * This may only happen if the control has the style @ref MC_GS_EDITLABELS.
+ *
+ * @param[in] wParam (@c int) Id of the control sending the notification.
+ * @param[in,out] lParam (@ref MC_NMGDISPINFO*) Pointer to @ref MC_NMGDISPINFO
+ * structure.
+ * @return If @c MC_NMGDISPINFO::cell::pszText is not @c NULL, return @c TRUE
+ * to allow change of the label, @c FALSE to suppress it. If the @c pszText
+ * is @c NULL, the return value is ignored and no label change happens.
+ */
+#define MC_GN_ENDLABELEDITA       (MC_GN_FIRST + 20)
+
+
 /*@}*/
 
 
@@ -1116,17 +1278,21 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
 /*@{*/
 
 /** Unicode-resolution alias. @sa MC_WC_GRIDW MC_WC_GRIDA */
-#define MC_WC_GRID          MCTRL_NAME_AW(MC_WC_GRID)
+#define MC_WC_GRID              MCTRL_NAME_AW(MC_WC_GRID)
 /** Unicode-resolution alias. @sa MC_NMGDISPINFOW MC_NMGDISPINFOA */
-#define MC_NMGDISPINFO      MCTRL_NAME_AW(MC_NMGDISPINFO)
+#define MC_NMGDISPINFO          MCTRL_NAME_AW(MC_NMGDISPINFO)
 /** Unicode-resolution alias. @sa MC_GM_SETCELLW MC_GM_SETCELLA */
-#define MC_GM_SETCELL       MCTRL_NAME_AW(MC_GM_SETCELL)
+#define MC_GM_SETCELL           MCTRL_NAME_AW(MC_GM_SETCELL)
 /** Unicode-resolution alias. @sa MC_GM_GETCELLW MC_GM_GETCELLA */
-#define MC_GM_GETCELL       MCTRL_NAME_AW(MC_GM_GETCELL)
+#define MC_GM_GETCELL           MCTRL_NAME_AW(MC_GM_GETCELL)
 /** Unicode-resolution alias. @sa MC_GN_SETDISPINFOW MC_GN_SETDISPINFOA */
-#define MC_GN_SETDISPINFO   MCTRL_NAME_AW(MC_GN_SETDISPINFO)
+#define MC_GN_SETDISPINFO       MCTRL_NAME_AW(MC_GN_SETDISPINFO)
 /** Unicode-resolution alias. @sa MC_GN_GETDISPINFOW MC_GN_GETDISPINFOA */
-#define MC_GN_GETDISPINFO   MCTRL_NAME_AW(MC_GN_GETDISPINFO)
+#define MC_GN_GETDISPINFO       MCTRL_NAME_AW(MC_GN_GETDISPINFO)
+/** Unicode-resolution alias. @sa MC_GN_BEGINLABELEDITW MC_GN_BEGINLABELEDITA */
+#define MC_GN_BEGINLABELEDIT    MCTRL_NAME_AW(MC_GN_BEGINLABELEDIT)
+/** Unicode-resolution alias. @sa MC_GN_ENDLABELEDITW MC_GN_ENDLABELEDITA */
+#define MC_GN_ENDLABELEDIT      MCTRL_NAME_AW(MC_GN_ENDLABELEDIT)
 
 /*@}*/
 

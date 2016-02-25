@@ -94,6 +94,19 @@ static LRESULT CALLBACK
 win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg) {
+        case WM_NOTIFY:
+        {
+            /* Handle notifications from the grid control. */
+            NMHDR* hdr = (NMHDR*) lParam;
+            if(hdr->idFrom == IDC_GRID  &&  hdr->code == MC_GN_ENDLABELEDIT) {
+                /* Accept the new text when user edits a cell label. Application
+                 * should implement this notification whenever it created the
+                 * grid control with the style MC_GS_EDITLABELS. */
+                return TRUE;
+            }
+            break;
+        }
+
         case WM_SIZE:
             /* Resize the grid control so it takes all space of the top
              * level window */
@@ -127,7 +140,8 @@ win_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP |
                     MC_GS_COLUMNHEADERALPHABETIC | MC_GS_ROWHEADERNORMAL |
                     MC_GS_RESIZABLECOLUMNS | MC_GS_RESIZABLEROWS |
-                    MC_GS_FOCUSEDCELL | MC_GS_COMPLEXSEL | MC_GS_SHOWSELALWAYS,
+                    MC_GS_FOCUSEDCELL | MC_GS_COMPLEXSEL | MC_GS_SHOWSELALWAYS |
+                    MC_GS_EDITLABELS,
                     0, 0, 0, 0, hwnd, (HMENU) IDC_GRID, hInst, NULL);
             LoadGrid();
             return 0;

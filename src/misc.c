@@ -672,6 +672,8 @@ mc_fini_module(void)
  */
 void debug_dllmain_init(void);
 void debug_dllmain_fini(void);
+void labeledit_dllmain_init(void);
+void labeledit_dllmain_fini(void);
 void module_dllmain_init(void);
 void module_dllmain_fini(void);
 void mousedrag_dllmain_init(void);
@@ -709,6 +711,7 @@ dllmain_init(HINSTANCE instance)
      * (See module.c)
      */
     debug_dllmain_init();   /* <-- Keep 1st, must precede any malloc(). */
+    labeledit_dllmain_init();
     module_dllmain_init();
     mousedrag_dllmain_init();
     mousewheel_dllmain_init();
@@ -724,6 +727,7 @@ dllmain_fini(void)
     mousewheel_dllmain_fini();
     mousedrag_dllmain_fini();
     module_dllmain_fini();
+    labeledit_dllmain_fini();
     debug_dllmain_fini();
 }
 
