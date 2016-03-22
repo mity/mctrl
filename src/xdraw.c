@@ -2010,7 +2010,7 @@ xdraw_draw_path(xdraw_canvas_t* canvas, const xdraw_brush_t* brush,
         d2d_canvas_t* c = (d2d_canvas_t*) canvas;
         ID2D1Geometry* g = (ID2D1Geometry*) path;
         ID2D1Brush* b = (ID2D1Brush*) brush;
-        ID2D1RenderTarget_DrawGeometry(c->target, g, b, 1.0f, NULL);
+        ID2D1RenderTarget_DrawGeometry(c->target, g, b, stroke_width, NULL);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) canvas;
         gdix_SetPenBrushFill(c->pen, (void*) brush);
