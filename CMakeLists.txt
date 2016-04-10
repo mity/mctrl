@@ -29,6 +29,6 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 set(BUILD_COMPLETE_MCTRL "TRUE")
 
 # Add sub-directories
-add_subdirectory(src)
+add_subdirectory(mctrl)
 add_subdirectory(examples)
 add_subdirectory(tests)
