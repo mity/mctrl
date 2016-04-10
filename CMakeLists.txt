@@ -23,12 +23,14 @@ set(LIBRARY_OUTPUT_PATH "${PROJECT_BINARY_DIR}")
 
 # set up include-directories
 include_directories("${PROJECT_SOURCE_DIR}/include")
+include_directories("${PROJECT_SOURCE_DIR}/windrawlib/include")
 
 # Tell exampples/CMakeListst.txt that examples are built as part of complete
 # mCtrl build:
 set(BUILD_COMPLETE_MCTRL "TRUE")
 
 # Add sub-directories
+add_subdirectory(windrawlib)
 add_subdirectory(mctrl)
 add_subdirectory(examples)
 add_subdirectory(tests)
