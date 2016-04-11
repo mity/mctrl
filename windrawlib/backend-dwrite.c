@@ -138,8 +138,8 @@ dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, const WD_RECT* rect,
         static const dummy_DWRITE_TRIMMING trim_word = { dummy_DWRITE_TRIMMING_GRANULARITY_WORD, 0, 0 };
         static const dummy_DWRITE_TRIMMING trim_path = { dummy_DWRITE_TRIMMING_GRANULARITY_WORD, L'\\', 1 };
 
-        const dummy_DWRITE_TRIMMING* trim_options;
-        void* trim_sign = NULL;
+        const dummy_DWRITE_TRIMMING* trim_options = NULL;
+        void* trim_sign;
 
         hr = dummy_IDWriteFactory_CreateEllipsisTrimmingSign(dwrite_factory, tf, &trim_sign);
         if(FAILED(hr)) {
