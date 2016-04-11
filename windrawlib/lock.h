@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Martin Mitas
+ * Copyright (c) 2016 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,24 +16,28 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MC_MEMSTREAM_H
-#define MC_MEMSTREAM_H
+#ifndef WD_LOCK_H
+#define WD_LOCK_H
 
 #include "misc.h"
 
 
-/* The caller is responsible to ensure the data (or the resource) are valid
- * and immutable for the lifetime of the stream. The stream does not copy the
- * data and reads them directly from the given source.
- *
- * The caller should release the stream as a standard COM object, i.e. via
- * method IStream::Release().
- */
-
-IStream* memstream_create(const BYTE* buffer, ULONG size);
-
-IStream* memstream_create_from_resource(HINSTANCE instance,
-                        const TCHAR* res_type, const TCHAR* res_name);
+extern CRITICAL_SECTION* wd_critical_section;
 
 
-#endif  /* MC_MEMSTREAM_H */
+static inline void
+wd_lock(void)
+{
+    if(wd_critical_section != NULL)
+        EnterCriticalSection(wd_critical_section);
+}
+
+static inline void
+wd_unlock(void)
+{
+    if(wd_critical_section != NULL)
+        LeaveCriticalSection(wd_critical_section);
+}
+
+
+#endif  /* WD_LOCK_H */

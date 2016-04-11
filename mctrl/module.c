@@ -155,7 +155,6 @@ DEFINE_MODULE(mditab);
 DEFINE_MODULE(menubar);
 DEFINE_MODULE(theme);
 DEFINE_MODULE(treelist);
-DEFINE_MODULE(xdraw);
 
 
 /* Public interfaces of exposed modules */
@@ -163,7 +162,7 @@ DEFINE_MODULE(xdraw);
 static module_t* mod_button_deps[] = { &mod_mc, &mod_theme, &mod_button };
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
 
-static module_t* mod_chart_deps[] = { &mod_mc, &mod_theme, &mod_xdraw, &mod_chart };
+static module_t* mod_chart_deps[] = { &mod_mc, &mod_theme, &mod_chart };
 DEFINE_PUBLIC_IFACE(chart, Chart, mod_chart_deps)
 
 static module_t* mod_expand_deps[] = { &mod_mc, &mod_theme, &mod_expand };
@@ -175,10 +174,10 @@ DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 static module_t* mod_html_deps[] = { &mod_mc, &mod_theme, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 
-static module_t* mod_imgview_deps[] = { &mod_mc, &mod_xdraw, &mod_imgview };
+static module_t* mod_imgview_deps[] = { &mod_mc, &mod_imgview };
 DEFINE_PUBLIC_IFACE(imgview, ImgView, mod_imgview_deps)
 
-static module_t* mod_mditab_deps[] = { &mod_mc, &mod_dwm, &mod_xdraw, &mod_mditab };
+static module_t* mod_mditab_deps[] = { &mod_mc, &mod_dwm, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
 static module_t* mod_menubar_deps[] = { &mod_mc, &mod_theme, &mod_menubar };

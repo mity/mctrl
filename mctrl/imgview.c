@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 Martin Mitas
+ * Copyright (c) 2013-2016 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,9 +17,9 @@
  */
 
 #include "imgview.h"
-#include "memstream.h"
 #include "theme.h"
-#include "xdraw.h"
+
+#include <wdl.h>
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -39,45 +39,48 @@ typedef struct imgview_tag imgview_t;
 struct imgview_tag {
     HWND win;
     HWND notify_win;
-    xdraw_canvas_t* canvas;
-    xdraw_image_t* image;
+    WD_HCANVAS canvas;
+    WD_HIMAGE image;
     DWORD style       : 16;
     DWORD no_redraw   : 1;
 };
 
 
 static BOOL
-imgview_paint_to_canvas(imgview_t* iv, xdraw_canvas_t* canvas,
-                        RECT* dirty, BOOL erase)
+imgview_paint_to_canvas(imgview_t* iv, WD_HCANVAS canvas, RECT* dirty, BOOL erase)
 {
-    xdraw_canvas_begin_paint(canvas);
+    wdBeginPaint(canvas);
 
     if(erase) {
         if(iv->style & MC_IVS_TRANSPARENT) {
             HDC dc;
 
-            dc = xdraw_canvas_acquire_dc(canvas, FALSE);
+            dc = wdStartGdi(canvas, FALSE);
             if(dc != NULL) {
                 mcDrawThemeParentBackground(iv->win, dc, NULL);
-                xdraw_canvas_release_dc(canvas, dc);
+                wdEndGdi(canvas, dc);
             } else {
-                MC_TRACE("imgview_paint_to_canvas: xdraw_canvas_acquire_dc() failed.");
+                MC_TRACE("imgview_paint_to_canvas: wdStartGdi() failed.");
             }
         } else {
-            xdraw_clear(canvas, XDRAW_COLORREF(GetSysColor(COLOR_WINDOW)));
+            COLORREF c = GetSysColor(COLOR_WINDOW);
+            wdClear(canvas, WD_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
         }
     }
 
     if(iv->image != NULL) {
         RECT client;
-        xdraw_rect_t src;
-        xdraw_rect_t dst;
+        UINT w, h;
+        WD_RECT src;
+        WD_RECT dst;
 
         GetClientRect(iv->win, &client);
+        wdGetImageSize(iv->image, &w, &h);
 
         src.x0 = 0.0f;
         src.y0 = 0.0f;
-        xdraw_image_get_size(iv->image, &src.x1, &src.y1);
+        src.x1 = (float) w;
+        src.y1 = (float) h;
 
         if(iv->style & MC_IVS_REALSIZECONTROL) {
             dst.x0 = 0.0f;
@@ -107,17 +110,17 @@ imgview_paint_to_canvas(imgview_t* iv, xdraw_canvas_t* canvas,
             }
         }
 
-        xdraw_blit_image(canvas, iv->image, &dst, &src);
+        wdBitBltImage(canvas, iv->image, &dst, &src);
     }
 
-    return xdraw_canvas_end_paint(canvas);
+    return wdEndPaint(canvas);
 }
 
 static void
 imgview_paint(imgview_t* iv)
 {
     PAINTSTRUCT ps;
-    xdraw_canvas_t* canvas;
+    WD_HCANVAS canvas;
 
     BeginPaint(iv->win, &ps);
     if(iv->no_redraw)
@@ -125,7 +128,7 @@ imgview_paint(imgview_t* iv)
 
     canvas = iv->canvas;
     if(canvas == NULL) {
-        canvas = xdraw_canvas_create_with_paintstruct(iv->win, &ps, XDRAW_CANVAS_GDICOMPAT);
+        canvas = wdCreateCanvasWithPaintStruct(iv->win, &ps, 0);
         if(MC_ERR(canvas == NULL))
             goto no_paint;
     }
@@ -134,7 +137,7 @@ imgview_paint(imgview_t* iv)
         /* We are allowed to cache the context for reuse. */
         iv->canvas = canvas;
     } else {
-        xdraw_canvas_destroy(canvas);
+        wdDestroyCanvas(canvas);
         iv->canvas = NULL;
     }
 
@@ -146,14 +149,14 @@ static void
 imgview_printclient(imgview_t* iv, HDC dc)
 {
     RECT rect;
-    xdraw_canvas_t* canvas;
+    WD_HCANVAS canvas;
 
     GetClientRect(iv->win, &rect);
-    canvas = xdraw_canvas_create_with_dc(dc, &rect, XDRAW_CANVAS_GDICOMPAT);
+    canvas = wdCreateCanvasWithHDC(dc, &rect, 0);
     if(MC_ERR(canvas == NULL))
         return;
     imgview_paint_to_canvas(iv, canvas, &rect, TRUE);
-    xdraw_canvas_destroy(canvas);
+    wdDestroyCanvas(canvas);
 }
 
 static void
@@ -170,17 +173,16 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
     static TCHAR* allowed_res_types[] = {
         RT_RCDATA, _T("PNG"), RT_BITMAP, RT_HTML
     };
-    xdraw_image_t* image = NULL;
+    WD_HIMAGE image = NULL;
 
     if(res_name != NULL) {
-        IStream* stream = NULL;
         int i;
-        TCHAR* tmp;
+        WCHAR* tmp;
 
-        if(unicode == MC_IS_UNICODE) {
-            tmp = (TCHAR*) res_name;
+        if(unicode) {
+            tmp = (WCHAR*) res_name;
         } else {
-            tmp = mc_str(res_name, (unicode ? MC_STRW : MC_STRA), MC_STRT);
+            tmp = mc_str(res_name, MC_STRA, MC_STRW);
             if(MC_ERR(tmp == NULL)) {
                 MC_TRACE("imgview_load_resource: mc_str() failed.");
                 return -1;
@@ -188,29 +190,22 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
         }
 
         for(i = 0; i < MC_SIZEOF_ARRAY(allowed_res_types); i++) {
-            stream = memstream_create_from_resource(instance, allowed_res_types[i], tmp);
-            if(stream != NULL)
+            image = wdLoadImageFromResource(instance, allowed_res_types[i], tmp);
+            if(image != NULL)
                 break;
         }
+
         if(tmp != res_name)
             free(tmp);
-        if(MC_ERR(stream == NULL)) {
-             MC_TRACE("imgview_load_resource: "
-                      "memstream_create_from_resource() failed.");
-             return -1;
-        }
 
-        image = xdraw_image_load_from_stream(stream);
-        IStream_Release(stream);
         if(MC_ERR(image == NULL)) {
-            MC_TRACE("imgview_load_resource: "
-                     "xdraw_image_load_from_stream() failed.");
+            MC_TRACE("imgview_load_resource: wdLoadIMageFromResource() failed.");
             return -1;
         }
     }
 
     if(iv->image != NULL)
-        xdraw_image_destroy(iv->image);
+        wdDestroyImage(iv->image);
     iv->image = image;
 
     return 0;
@@ -219,26 +214,26 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
 static int
 imgview_load_file(imgview_t* iv, void* path, BOOL unicode)
 {
-    xdraw_image_t* image;
+    WD_HIMAGE image;
 
     if(path != NULL) {
         WCHAR* tmp;
 
-        if(unicode == MC_IS_UNICODE) {
+        if(unicode) {
             tmp = path;
         } else {
-            tmp = mc_str(path, MC_STRA, MC_STRT);
+            tmp = mc_str(path, MC_STRA, MC_STRW);
             if(MC_ERR(tmp == NULL)) {
                 MC_TRACE("imgview_load_file: mc_str() failed.");
                 return -1;
             }
         }
 
-        image = xdraw_image_load_from_file(tmp);
+        image = wdLoadImageFromFile(tmp);
         if(tmp != path)
             free(tmp);
         if(MC_ERR(image == NULL)) {
-            MC_TRACE("imgview_load_file: xdraw_image_load_from_file() failed");
+            MC_TRACE("imgview_load_file: wdLoadImageFromFile() failed.");
             return -1;
         }
     } else {
@@ -246,7 +241,7 @@ imgview_load_file(imgview_t* iv, void* path, BOOL unicode)
     }
 
     if(iv->image != NULL)
-        xdraw_image_destroy(iv->image);
+        wdDestroyImage(iv->image);
     iv->image = image;
 
     return 0;
@@ -286,9 +281,9 @@ static void
 imgview_ncdestroy(imgview_t* iv)
 {
     if(iv->image != NULL)
-        xdraw_image_destroy(iv->image);
+        wdDestroyImage(iv->image);
     if(iv->canvas != NULL)
-        xdraw_canvas_destroy(iv->canvas);
+        wdDestroyCanvas(iv->canvas);
     free(iv);
 }
 
@@ -308,7 +303,7 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_DISPLAYCHANGE:
             if(iv->canvas != NULL) {
-                xdraw_canvas_destroy(iv->canvas);
+                wdDestroyCanvas(iv->canvas);
                 iv->canvas = NULL;
             }
             InvalidateRect(win, NULL, FALSE);
@@ -320,7 +315,7 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SIZE:
             if(iv->canvas != NULL)
-                xdraw_canvas_resize(iv->canvas, LOWORD(lp), HIWORD(lp));
+                wdResizeCanvas(iv->canvas, LOWORD(lp), HIWORD(lp));
             break;
 
         case MC_IVM_LOADRESOURCEW:
@@ -372,6 +367,11 @@ imgview_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
+    if(MC_ERR(!wdInitialize(WD_INIT_IMAGEAPI))) {
+        MC_TRACE("imgview_init_module: wdInitialize() failed");
+        return -1;
+    }
+
     wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = imgview_proc;
     wc.cbWndExtra = sizeof(imgview_t*);
@@ -379,6 +379,7 @@ imgview_init_module(void)
     wc.lpszClassName = imgview_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
         MC_TRACE_ERR("imgview_init_module: RegisterClass() failed");
+        wdTerminate(WD_INIT_IMAGEAPI);
         return -1;
     }
 
@@ -389,4 +390,6 @@ void
 imgview_fini_module(void)
 {
     UnregisterClass(imgview_wc, NULL);
+
+    wdTerminate(WD_INIT_IMAGEAPI);
 }

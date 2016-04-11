@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015 Martin Mitas
+ * Copyright (c) 2008-2016 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,6 +21,8 @@
 #include "module.h"
 #include "theme.h"
 #include "xcom.h"
+
+#include <wdl.h>
 
 
 /***************
@@ -684,6 +686,9 @@ void xcom_dllmain_init(void);
 void xcom_dllmain_fini(void);
 
 
+/* Critical section for WinDrawLib */
+static CRITICAL_SECTION dllmain_wdl_lock;
+
 static int
 dllmain_init(HINSTANCE instance)
 {
@@ -701,6 +706,9 @@ dllmain_init(HINSTANCE instance)
     mc_InitializeCriticalSectionEx =
             (BOOL (WINAPI*)(CRITICAL_SECTION*, DWORD, DWORD))
             GetProcAddress(mc_instance_kernel32, "InitializeCriticalSectionEx");
+
+    InitializeCriticalSection(&dllmain_wdl_lock);
+    wdPreInitialize(&dllmain_wdl_lock, 0);
 
     /* BEWARE when changing this: All these functions are very limited in what
      * they can do because of DllMain() context.
@@ -723,6 +731,8 @@ dllmain_init(HINSTANCE instance)
 static void
 dllmain_fini(void)
 {
+    DeleteCriticalSection(&dllmain_wdl_lock);
+
     xcom_dllmain_fini();
     mousewheel_dllmain_fini();
     mousedrag_dllmain_fini();

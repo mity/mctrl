@@ -100,6 +100,19 @@ enum dummy_GpStringAlignment_tag {
     dummy_StringAlignmentFar = 2
 };
 
+typedef enum dummy_GpStringFormatFlags_tag dummy_GpStringFormatFlags;
+enum dummy_GpStringFormatFlags_tag {
+    dummy_StringFormatFlagsDirectionRightToLeft = 0x00000001,
+    dummy_StringFormatFlagsDirectionVertical = 0x00000002,
+    dummy_StringFormatFlagsNoFitBlackBox = 0x00000004,
+    dummy_StringFormatFlagsDisplayFormatControl = 0x00000020,
+    dummy_StringFormatFlagsNoFontFallback = 0x00000400,
+    dummy_StringFormatFlagsMeasureTrailingSpaces = 0x00000800,
+    dummy_StringFormatFlagsNoWrap = 0x00001000,
+    dummy_StringFormatFlagsLineLimit = 0x00002000,
+    dummy_StringFormatFlagsNoClip = 0x00004000
+};
+
 typedef enum dummy_GpStringTrimming_tag dummy_GpStringTrimming;
 enum dummy_GpStringTrimming_tag {
     dummy_StringTrimmingNone = 0,

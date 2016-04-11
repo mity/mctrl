@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Martin Mitas
+ * Copyright (c) 2015-2016 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,30 +19,19 @@
 #include "memstream.h"
 
 
-/* Uncomment this to have more verbose traces from this module. */
-/*#define MEMSTREAM_DEBUG     1*/
-
-#ifdef MEMSTREAM_DEBUG
-    #define MEMSTREAM_TRACE       MC_TRACE
-#else
-    #define MEMSTREAM_TRACE(...)  do {} while(0)
-#endif
-
-
-
 typedef struct memstream_tag memstream_t;
 struct memstream_tag {
     const BYTE* buffer;
     ULONG pos;
     ULONG size;
-    mc_ref_t refs;
+    LONG refs;
 
     IStream stream;  /* COM interface */
 };
 
 
 #define MEMSTREAM_FROM_IFACE(stream_iface)                                    \
-    MC_CONTAINEROF(stream_iface, memstream_t, stream)
+    WD_CONTAINEROF(stream_iface, memstream_t, stream)
 
 
 static HRESULT STDMETHODCALLTYPE
@@ -54,7 +43,7 @@ memstream_QueryInterface(IStream* self, REFIID riid, void** obj)
        IsEqualGUID(riid, &IID_IStream))
     {
         memstream_t* s = MEMSTREAM_FROM_IFACE(self);
-        mc_ref(&s->refs);
+        InterlockedIncrement(&s->refs);
         *obj = s;
         return S_OK;
     } else {
@@ -67,8 +56,7 @@ static ULONG STDMETHODCALLTYPE
 memstream_AddRef(IStream* self)
 {
     memstream_t* s = MEMSTREAM_FROM_IFACE(self);
-    MEMSTREAM_TRACE("memstream_AddRef(%d -> %d)", (int) s->refs, (int) s->refs+1);
-    return mc_ref(&s->refs);
+    return InterlockedIncrement(&s->refs);
 }
 
 static ULONG STDMETHODCALLTYPE
@@ -77,12 +65,9 @@ memstream_Release(IStream* self)
     memstream_t* s = MEMSTREAM_FROM_IFACE(self);
     ULONG refs;
 
-    MEMSTREAM_TRACE("memstream_Release(%d -> %d)", (int) s->refs, (int) s->refs-1);
-    refs = mc_unref(&s->refs);
-    if(refs == 0) {
-        MEMSTREAM_TRACE("memstream_Release: Freeing the stream object.");
+    refs = InterlockedDecrement(&s->refs);
+    if(refs == 0)
         free(s);
-    }
     return refs;
 }
 
@@ -91,13 +76,11 @@ memstream_Read(IStream* self, void* buf, ULONG n, ULONG* n_read)
 {
     memstream_t* s = MEMSTREAM_FROM_IFACE(self);
 
-    MEMSTREAM_TRACE("memstream_Read(%lu)", n);
-
-    if(MC_ERR(s->pos >= s->size)) {
+    if(s->pos >= s->size) {
         n = 0;
         if(n_read != NULL)
             *n_read = 0;
-        return STG_E_INVALIDFUNCTION;
+        return S_FALSE;
     }
 
     if(n > s->size - s->pos)
@@ -115,10 +98,9 @@ static HRESULT STDMETHODCALLTYPE
 memstream_Write(IStream* self, const void* buf, ULONG n, ULONG* n_written)
 {
     /* We are read-only stream. */
-    MEMSTREAM_TRACE("memstream_Write: Stub.");
     if(n_written != NULL)
         *n_written = 0;
-    return STG_E_CANTSAVE;
+    return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -127,31 +109,29 @@ memstream_Seek(IStream* self, LARGE_INTEGER delta, DWORD origin,
 {
     memstream_t* s = MEMSTREAM_FROM_IFACE(self);
     LARGE_INTEGER pos;
-    HRESULT hres = S_OK;
-
-    MEMSTREAM_TRACE("memstream_Seek(%lu, %lu)", delta, origin);
 
     switch(origin) {
         case STREAM_SEEK_SET:  pos.QuadPart = delta.QuadPart; break;
         case STREAM_SEEK_CUR:  pos.QuadPart = s->pos + delta.QuadPart; break;
         case STREAM_SEEK_END:  pos.QuadPart = s->size + delta.QuadPart; break;
-        default:               hres = STG_E_SEEKERROR;
+        default:               return STG_E_INVALIDPARAMETER;
     }
 
     if(pos.QuadPart < 0)
-        hres = STG_E_INVALIDFUNCTION;
+        return STG_E_INVALIDFUNCTION;
 
-    s->pos = pos.QuadPart;
+    /* We trim the high part here. */
+    s->pos = pos.u.LowPart;
     if(new_pos != NULL)
-        new_pos->QuadPart = pos.QuadPart;
-    return hres;
+        new_pos->QuadPart = s->pos;
+    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE
 memstream_SetSize(IStream* self, ULARGE_INTEGER new_size)
 {
-    MEMSTREAM_TRACE("memstream_SetSize: Stub.");
-    return STG_E_INVALIDFUNCTION;
+    /* We are read-only stream. */
+    return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -165,7 +145,7 @@ memstream_CopyTo(IStream* self, IStream* other, ULARGE_INTEGER n,
     if(s->pos + n.QuadPart >= s->size)
         n.QuadPart = (s->pos < s->size ? s->size - s->pos : 0);
 
-    hr = IStream_Write(other, s->buffer + s->pos, n.QuadPart, &written);
+    hr = IStream_Write(other, s->buffer + s->pos, (ULONG) n.QuadPart, &written);
     s->pos += written;
     if(n_read != NULL)
         n_read->QuadPart = written;
@@ -177,31 +157,27 @@ memstream_CopyTo(IStream* self, IStream* other, ULARGE_INTEGER n,
 static HRESULT STDMETHODCALLTYPE
 memstream_Commit(IStream* self, DWORD flags)
 {
-    MEMSTREAM_TRACE("memstream_Commit: Stub.");
-    return S_OK;
+    return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
 memstream_Revert(IStream* self)
 {
-    MEMSTREAM_TRACE("memstream_Revert: Stub.");
-    return S_OK;
+    return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
 memstream_LockRegion(IStream* self, ULARGE_INTEGER offset,
                           ULARGE_INTEGER n, DWORD type)
 {
-    MEMSTREAM_TRACE("memstream_LockRegion: Stub.");
-    return STG_E_INVALIDFUNCTION;
+    return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
 memstream_UnlockRegion(IStream* self, ULARGE_INTEGER offset,
                             ULARGE_INTEGER n, DWORD type)
 {
-    MEMSTREAM_TRACE("memstream_UnlockRegion: Stub.");
-    return S_OK;
+    return E_NOTIMPL;
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -209,10 +185,7 @@ memstream_Stat(IStream* self, STATSTG* stat, DWORD flag)
 {
     memstream_t* s = MEMSTREAM_FROM_IFACE(self);
 
-    MEMSTREAM_TRACE("memstream_Stat: Stub.");
-
     memset(stat, 0, sizeof(STATSTG));
-
     stat->type = STGTY_STREAM;
     stat->cbSize.QuadPart = s->size;
     return S_OK;
@@ -221,15 +194,16 @@ memstream_Stat(IStream* self, STATSTG* stat, DWORD flag)
 static HRESULT STDMETHODCALLTYPE
 memstream_Clone(IStream* self, IStream** other)
 {
+    *other = NULL;
+    return E_NOTIMPL;
+
     memstream_t* s = MEMSTREAM_FROM_IFACE(self);
     IStream* o;
     memstream_t* so;
 
-    MEMSTREAM_TRACE("memstream_Clone");
-
     o = memstream_create(s->buffer, s->size);
-    if(MC_ERR(o == NULL)) {
-        MC_TRACE("memstream_Clone: memstream_create() failed.");
+    if(o == NULL) {
+        WD_TRACE("memstream_Clone: memstream_create() failed.");
         return STG_E_INSUFFICIENTMEMORY;
     }
     so = MEMSTREAM_FROM_IFACE(o);
@@ -263,8 +237,8 @@ memstream_create(const BYTE* buffer, ULONG size)
     memstream_t* s;
 
     s = (memstream_t*) malloc(sizeof(memstream_t));
-    if(MC_ERR(s == NULL)) {
-        MC_TRACE("memstream_create: malloc() failed.");
+    if(s == NULL) {
+        WD_TRACE("memstream_create: malloc() failed.");
         return NULL;
     }
 
@@ -294,34 +268,32 @@ memstream_create_from_resource(HINSTANCE instance,
      *
      * See also http://blogs.msdn.com/b/oldnewthing/archive/2011/03/07/10137456.aspx
      *
-     * It may look a bit ugly, but it simplifies things a lot. Otherwise our
-     * IStream implementation would have to "own" the resource and free it in
-     * its destructor. That would complicate especially the IStream::Clone() as
-     * the image resource would have to be shared by multiple IStreams objects.
+     * It may look a bit ugly, but it simplifies things a lot as the stream
+     * does not need to do any bookkeeping for the resource.
      */
 
     res = FindResource(instance, res_name, res_type);
-    if(MC_ERR(res == NULL)) {
-        MC_TRACE_ERR("memstream_create_from_resource: FindResource() failed.");
+    if(res == NULL) {
+        WD_TRACE_ERR("memstream_create_from_resource: FindResource() failed.");
         return NULL;
     }
 
     res_size = SizeofResource(instance, res);
     res_global = LoadResource(instance, res);
-    if(MC_ERR(res_global == NULL)) {
-        MC_TRACE_ERR("memstream_create_from_resource: LoadResource() failed");
+    if(res_global == NULL) {
+        WD_TRACE_ERR("memstream_create_from_resource: LoadResource() failed");
         return NULL;
     }
 
     res_data = LockResource(res_global);
-    if(MC_ERR(res_data == NULL)) {
-        MC_TRACE_ERR("memstream_create_from_resource: LockResource() failed");
+    if(res_data == NULL) {
+        WD_TRACE_ERR("memstream_create_from_resource: LockResource() failed");
         return NULL;
     }
 
     stream = memstream_create(res_data, res_size);
-    if(MC_ERR(stream == NULL)) {
-        MC_TRACE("memstream_create_from_resource: memstream_create() failed.");
+    if(stream == NULL) {
+        WD_TRACE("memstream_create_from_resource: memstream_create() failed.");
         return NULL;
     }
 
