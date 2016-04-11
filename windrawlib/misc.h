@@ -67,4 +67,13 @@
 HMODULE wd_load_system_dll(const TCHAR* dll_name);
 
 
+#ifdef _MSC_VER
+    /* MSVC does not understand "inline" when building as pure C (not C++).
+     * However it understands "__inline" */
+    #ifndef __cplusplus
+        #define inline __inline
+    #endif
+#endif
+
+
 #endif  /* WD_MISC_H */
