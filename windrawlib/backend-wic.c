@@ -100,7 +100,7 @@ wic_convert_bitmap(IWICBitmapSource* bitmap)
         return NULL;
     }
 
-    if(InlineIsEqualGUID(&pixel_format, &wic_pixel_format)) {
+    if(IsEqualGUID(&pixel_format, &wic_pixel_format)) {
         /* No conversion needed. */
         IWICBitmapSource_AddRef(bitmap);
         return bitmap;

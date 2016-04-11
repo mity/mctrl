@@ -194,9 +194,6 @@ memstream_Stat(IStream* self, STATSTG* stat, DWORD flag)
 static HRESULT STDMETHODCALLTYPE
 memstream_Clone(IStream* self, IStream** other)
 {
-    *other = NULL;
-    return E_NOTIMPL;
-
     memstream_t* s = MEMSTREAM_FROM_IFACE(self);
     IStream* o;
     memstream_t* so;
