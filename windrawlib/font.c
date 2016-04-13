@@ -101,7 +101,7 @@ wdCreateFont(const LOGFONTW* pLogFont)
         int status;
 
         dc = GetDC(NULL);
-        status = gdix_CreateFontFromLogfontW(dc, pLogFont, &f);
+        status = gdix_vtable->fn_CreateFontFromLogfontW(dc, pLogFont, &f);
         if(status != 0) {
             LOGFONTW fallback_logfont;
 
@@ -110,7 +110,7 @@ wdCreateFont(const LOGFONTW* pLogFont)
              * Tahoma or Segoe UI on newer Windows. */
             memcpy(&fallback_logfont, pLogFont, sizeof(LOGFONTW));
             wd_get_default_gui_fontface(fallback_logfont.lfFaceName);
-            status = gdix_CreateFontFromLogfontW(dc, &fallback_logfont, &f);
+            status = gdix_vtable->fn_CreateFontFromLogfontW(dc, &fallback_logfont, &f);
         }
         ReleaseDC(NULL, dc);
 
@@ -143,12 +143,12 @@ wdDestroyFont(WD_HFONT hFont)
         dummy_IDWriteTextFormat* tf = (dummy_IDWriteTextFormat*) hFont;
         dummy_IDWriteTextFormat_Release(tf);
     } else {
-        gdix_DeleteFont((dummy_GpFont*) hFont);
+        gdix_vtable->fn_DeleteFont((dummy_GpFont*) hFont);
     }
 }
 
 void
-wdFontMetrics(WD_HFONT hFont, WD_FONT_METRICS* pMetrics)
+wdFontMetrics(WD_HFONT hFont, WD_FONTMETRICS* pMetrics)
 {
     if(hFont == NULL) {
         /* Treat NULL as "no font". This simplifies paint code when font
@@ -264,19 +264,19 @@ err_malloca:
         UINT16 line_spacing;
         int status;
 
-        gdix_GetFontSize((void*) hFont, &font_size);
-        gdix_GetFontStyle((void*) hFont, &font_style);
+        gdix_vtable->fn_GetFontSize((void*) hFont, &font_size);
+        gdix_vtable->fn_GetFontStyle((void*) hFont, &font_style);
 
-        status = gdix_GetFamily((void*) hFont, &font_family);
+        status = gdix_vtable->fn_GetFamily((void*) hFont, &font_family);
         if(status != 0) {
             WD_TRACE("wdFontMetrics: GdipGetFamily() failed. [%d]", status);
             goto err;
         }
-        gdix_GetCellAscent(font_family, font_style, &cell_ascent);
-        gdix_GetCellDescent(font_family, font_style, &cell_descent);
-        gdix_GetEmHeight(font_family, font_style, &em_height);
-        gdix_GetLineSpacing(font_family, font_style, &line_spacing);
-        gdix_DeleteFontFamily(font_family);
+        gdix_vtable->fn_GetCellAscent(font_family, font_style, &cell_ascent);
+        gdix_vtable->fn_GetCellDescent(font_family, font_style, &cell_descent);
+        gdix_vtable->fn_GetEmHeight(font_family, font_style, &em_height);
+        gdix_vtable->fn_GetLineSpacing(font_family, font_style, &line_spacing);
+        gdix_vtable->fn_DeleteFontFamily(font_family);
 
         pMetrics->fEmHeight = font_size;
         pMetrics->fAscent = font_size * (float)cell_ascent / (float)em_height;

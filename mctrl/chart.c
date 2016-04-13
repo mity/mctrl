@@ -100,18 +100,6 @@ struct chart_layout_tag {
  *** Utilities ***
  *****************/
 
-static inline WD_COLOR
-chart_color_from_COLORREF(COLORREF cref)
-{
-    return WD_RGB(GetRValue(cref), GetGValue(cref), GetBValue(cref));
-}
-
-static inline WD_COLOR
-chart_color_from_COLORREF_and_alpha(COLORREF cref, BYTE alpha)
-{
-    return WD_ARGB(alpha, GetRValue(cref), GetGValue(cref), GetBValue(cref));
-}
-
 static void
 chart_data_dtor(dsa_t* dsa, void* item)
 {
@@ -512,20 +500,20 @@ pie_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
 
         /* Paint the pie */
         wdSetSolidBrushColor(ctx->solid_brush,
-                chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
         wdFillPie(ctx->canvas, ctx->solid_brush, &geom.circle, angle, sweep);
 
         /* Paint active aura */
         if(set_ix == chart->hot_set_ix) {
             wdSetSolidBrushColor(ctx->solid_brush,
-                    chart_color_from_COLORREF(color_hint(chart_data_color(chart, set_ix))));
+                    WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
             tmp_circle.r = geom.circle.r + 6.0f;
             wdDrawArc(ctx->canvas, ctx->solid_brush, &tmp_circle, angle, sweep, 8.0f);
         }
 
         /* Paint white borders */
         wdSetSolidBrushColor(ctx->solid_brush,
-                chart_color_from_COLORREF(GetSysColor(COLOR_WINDOW)));
+                WD_COLOR_FROM_GDI(GetSysColor(COLOR_WINDOW)));
         tmp_circle.r = geom.circle.r + 16.0f;
         wdDrawPie(ctx->canvas, ctx->solid_brush, &tmp_circle, angle, sweep, 1.0f);
 
@@ -859,7 +847,7 @@ scatter_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
 
         set_ix = chart->hot_set_ix;
         data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-        wdSetSolidBrushColor(ctx->solid_brush, chart_color_from_COLORREF(
+        wdSetSolidBrushColor(ctx->solid_brush, WD_COLOR_FROM_GDI(
                         color_hint(chart_data_color(chart, set_ix))));
 
         if(chart->hot_i >= 0) {
@@ -883,7 +871,7 @@ scatter_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
     for(set_ix = 0; set_ix < n; set_ix++) {
         data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
         wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
         for(i = 0; i < data->count-1; i += 2) {  /* '-1' to protect if ->count is odd */
             WD_CIRCLE c;
             c.x = scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom);
@@ -1277,7 +1265,7 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
                 alpha = 0x2f;
 
             wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF_and_alpha(chart_data_color(chart, set_ix), alpha));
+                        WD_COLOR_FROM_GDI_EX(alpha, chart_data_color(chart, set_ix)));
             wdFillPath(ctx->canvas, ctx->solid_brush, path);
             wdDestroyPath(path);
         }
@@ -1298,7 +1286,7 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
         }
 
         wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF(color_hint(chart_data_color(chart, set_ix))));
+                        WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
 
         for(x = x0; x < x1; x++) {
             if(is_stacked)
@@ -1327,7 +1315,7 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
     /* Paint all data sets */
     for(set_ix = 0; set_ix < n; set_ix++) {
         wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
         for(x = 0; x < geom.min_count; x++) {
             if(is_stacked)
                 y = cache_stack(&cache, set_ix, x);
@@ -1683,13 +1671,13 @@ column_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                     };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
-                            chart_color_from_COLORREF(color_hint(chart_data_color(chart, set_ix))));
+                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
                     wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
                 wdFillRect(ctx->canvas, ctx->solid_brush, &column_rect);
                 column_rect.y1 = column_rect.y0;
             }
@@ -1718,13 +1706,13 @@ column_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                     };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
-                            chart_color_from_COLORREF(color_hint(chart_data_color(chart, set_ix))));
+                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
                     wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
                 wdFillRect(ctx->canvas, ctx->solid_brush, &column_rect);
                 column_rect.x0 = column_rect.x1 + geom.column_padding;
             }
@@ -2074,13 +2062,13 @@ bar_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                     };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
-                            chart_color_from_COLORREF(color_hint(chart_data_color(chart, set_ix))));
+                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
                     wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
                 wdFillRect(ctx->canvas, ctx->solid_brush, &bar_rect);
                 bar_rect.x0 = bar_rect.x1;
             }
@@ -2108,13 +2096,13 @@ bar_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                     };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
-                            chart_color_from_COLORREF(color_hint(chart_data_color(chart, set_ix))));
+                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
                     wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
-                        chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
                 wdFillRect(ctx->canvas, ctx->solid_brush, &bar_rect);
                 bar_rect.y1 = bar_rect.y0 - geom.bar_padding;
             }
@@ -2234,7 +2222,7 @@ static void
 chart_paint_legend(chart_t* chart, chart_paint_t* ctx,
                    const chart_layout_t* layout)
 {
-    WD_FONT_METRICS fm;
+    WD_FONTMETRICS fm;
     float color_size;
     int set_ix, n;
     WD_RECT color_rect;
@@ -2275,13 +2263,13 @@ chart_paint_legend(chart_t* chart, chart_paint_t* ctx,
             WD_RECT r = { color_rect.x0 - 2.5f, color_rect.y0 - 2.5f,
                                color_rect.x1 + 2.5f, color_rect.y1 + 2.5f };
             wdSetSolidBrushColor(ctx->solid_brush,
-                    chart_color_from_COLORREF(color_hint(chart_data_color(chart, set_ix))));
+                    WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
             wdDrawRect(ctx->canvas, ctx->solid_brush, &r, 2.0);
         }
 
         /* Legend color */
         wdSetSolidBrushColor(ctx->solid_brush,
-                chart_color_from_COLORREF(chart_data_color(chart, set_ix)));
+                WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
         wdFillRect(ctx->canvas, ctx->solid_brush, &color_rect);
 
         /* Legend text */
@@ -2309,7 +2297,7 @@ static int
 chart_hit_test_legend(chart_t* chart, chart_paint_t* ctx,
                       chart_layout_t* layout, int x, int y)
 {
-    WD_FONT_METRICS fm;
+    WD_FONTMETRICS fm;
     float color_size;
     WD_RECT color_rect;
     WD_RECT text_rect;
@@ -2401,7 +2389,7 @@ chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase
     wdBeginPaint(ctx->canvas);
 
     if(erase)
-        wdClear(ctx->canvas, chart_color_from_COLORREF(GetSysColor(COLOR_WINDOW)));
+        wdClear(ctx->canvas, WD_COLOR_FROM_GDI(GetSysColor(COLOR_WINDOW)));
 
     chart_calc_layout(chart, &layout);
 

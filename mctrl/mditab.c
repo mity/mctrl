@@ -104,22 +104,10 @@ static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
 #define MDITAB_ITEM_PADDING           8    /* horizontal padding inside the item */
 #define MDITAB_ITEM_ICON_MARGIN       5    /* space between icon and text */
 
-static inline WD_COLOR
-mditab_color_from_COLORREF(COLORREF cref)
-{
-    return WD_RGB(GetRValue(cref), GetGValue(cref), GetBValue(cref));
-}
-
-static inline WD_COLOR
-mditab_color_from_COLORREF_and_alpha(COLORREF cref, BYTE alpha)
-{
-    return WD_ARGB(alpha, GetRValue(cref), GetGValue(cref), GetBValue(cref));
-}
-
-#define MDITAB_COLOR_BACKGROUND    mditab_color_from_COLORREF(GetSysColor(COLOR_APPWORKSPACE))
-#define MDITAB_COLOR_BORDER        mditab_color_from_COLORREF(GetSysColor(COLOR_3DDKSHADOW))
-#define MDITAB_COLOR_INACTIVEITEM  mditab_color_from_COLORREF_and_alpha(GetSysColor(COLOR_APPWORKSPACE),127)
-#define MDITAB_COLOR_HOTITEM       mditab_color_from_COLORREF_and_alpha(GetSysColor(COLOR_APPWORKSPACE),63)
+#define MDITAB_COLOR_BACKGROUND    WD_COLOR_FROM_GDI(GetSysColor(COLOR_APPWORKSPACE))
+#define MDITAB_COLOR_BORDER        WD_COLOR_FROM_GDI(GetSysColor(COLOR_3DDKSHADOW))
+#define MDITAB_COLOR_INACTIVEITEM  WD_COLOR_FROM_GDI_EX(127,GetSysColor(COLOR_APPWORKSPACE))
+#define MDITAB_COLOR_HOTITEM       WD_COLOR_FROM_GDI_EX(63,GetSysColor(COLOR_APPWORKSPACE))
 
 
 typedef struct mditab_paint_tag mditab_paint_t;
@@ -1305,16 +1293,16 @@ mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
         WD_CIRCLE circle = { rect->x0 + w/2.0f, rect->y0 + h/2.0f, MC_MIN(w, h) / 2.0f - 1.0f };
 
         c = (state == BTNSTATE_HOT
-                ? mditab_color_from_COLORREF_and_alpha(GetSysColor(COLOR_BTNFACE), 191)
-                : mditab_color_from_COLORREF_and_alpha(GetSysColor(COLOR_BTNFACE), 127));
+                ? WD_COLOR_FROM_GDI_EX(191, GetSysColor(COLOR_BTNFACE))
+                : WD_COLOR_FROM_GDI_EX(127, GetSysColor(COLOR_BTNFACE)));
         wdSetSolidBrushColor(ctx->solid_brush, c);
         wdFillCircle(ctx->canvas, ctx->solid_brush, &circle);
 
     }
 
     c = (state == BTNSTATE_DISABLED
-            ? mditab_color_from_COLORREF_and_alpha(GetSysColor(COLOR_BTNTEXT), 63)
-            : mditab_color_from_COLORREF(GetSysColor(COLOR_BTNTEXT)));
+            ? WD_COLOR_FROM_GDI_EX(63, GetSysColor(COLOR_BTNTEXT))
+            : WD_COLOR_FROM_GDI(GetSysColor(COLOR_BTNTEXT)));
 
     wdSetSolidBrushColor(ctx->solid_brush, c);
     for(i = 0; i < 2; i++) {
@@ -1358,10 +1346,9 @@ mditab_paint_scroll_block(mditab_t* mditab, mditab_paint_t* ctx,
                           float x, float y0, float y1, int direction)
 {
     WD_LINE line;
-    BYTE a = 0xff;
-    BYTE r = WD_RVALUE(MDITAB_COLOR_BORDER);
-    BYTE g = WD_GVALUE(MDITAB_COLOR_BORDER);
-    BYTE b = WD_BVALUE(MDITAB_COLOR_BORDER);
+    WD_COLOR color = MDITAB_COLOR_BORDER;
+    COLORREF rgb;
+    BYTE a;
     int i;
     int ydiff = 1;
 
@@ -1370,8 +1357,11 @@ mditab_paint_scroll_block(mditab_t* mditab, mditab_paint_t* ctx,
     line.x1 = x;
     line.y1 = y1;
 
+    rgb = WD_COLOR_TO_GDI(color);
+    a = WD_AVALUE(color);
+
     for(i = 0; i < 8; i++) {
-        wdSetSolidBrushColor(ctx->solid_brush, WD_ARGB(a, r, g, b));
+        wdSetSolidBrushColor(ctx->solid_brush, WD_COLOR_FROM_GDI_EX(a, rgb));
         wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
 
         line.x0 += direction;

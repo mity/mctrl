@@ -58,7 +58,8 @@ wdDrawString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
         r.h = pRect->y1 - pRect->y0;
 
         gdix_canvas_apply_string_flags(c, dwFlags);
-        gdix_DrawString(c->graphics, pszText, iTextLength, f, &r, c->string_format, b);
+        gdix_vtable->fn_DrawString(c->graphics, pszText, iTextLength,
+                f, &r, c->string_format, b);
     }
 }
 
@@ -98,7 +99,7 @@ wdMeasureString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
         r.h = pRect->y1 - pRect->y0;
 
         gdix_canvas_apply_string_flags(c, dwFlags);
-        gdix_MeasureString(c->graphics, pszText, iTextLength, f, &r,
+        gdix_vtable->fn_MeasureString(c->graphics, pszText, iTextLength, f, &r,
                                 c->string_format, &br, NULL, NULL);
 
         pResult->x0 = br.x;

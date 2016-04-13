@@ -73,8 +73,8 @@ wdBitBltImage(WD_HCANVAS hCanvas, const WD_HIMAGE hImage,
         } else {
             UINT w, h;
 
-            gdix_GetImageWidth(b, &w);
-            gdix_GetImageHeight(b, &h);
+            gdix_vtable->fn_GetImageWidth(b, &w);
+            gdix_vtable->fn_GetImageHeight(b, &h);
 
             sx = 0.0f;
             sy = 0.0f;
@@ -82,8 +82,41 @@ wdBitBltImage(WD_HCANVAS hCanvas, const WD_HIMAGE hImage,
             sh = (float) h;
         }
 
-        gdix_DrawImageRectRect(c->graphics, b, dx, dy, dw, dh, sx, sy, sw, sh,
-                dummy_UnitPixel, NULL, NULL, NULL);
+        gdix_vtable->fn_DrawImageRectRect(c->graphics, b, dx, dy, dw, dh,
+                 sx, sy, sw, sh, dummy_UnitPixel, NULL, NULL, NULL);
+    }
+}
+
+void
+wdBitBltCachedImage(WD_HCANVAS hCanvas, const WD_HCACHEDIMAGE hCachedImage,
+                    int x, int y)
+{
+    if(d2d_enabled()) {
+        d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
+        ID2D1Bitmap* b = (ID2D1Bitmap*) hCachedImage;
+        D2D1_SIZE_U sz;
+        D2D1_RECT_F src;
+        D2D1_RECT_F dest;
+
+        sz = ID2D1Bitmap_GetPixelSize(b);
+
+        src.left = 0.0f;
+        src.top = 0.0f;
+        src.right = (float) sz.width;
+        src.bottom = (float) sz.height;
+
+        dest.left = (float) x;
+        dest.top = (float) y;
+        dest.right = (float) (x + sz.width);
+        dest.bottom = (float) (y + sz.height);
+
+        ID2D1RenderTarget_DrawBitmap(c->target, b, &dest, 1.0f,
+                D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &src);
+    } else {
+        gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
+        dummy_GpCachedBitmap* cb = (dummy_GpCachedBitmap*) hCachedImage;
+
+        gdix_vtable->fn_DrawCachedBitmap(c->graphics, cb, x, y);
     }
 }
 
@@ -131,14 +164,14 @@ err_CreateBitmapFromHICON:
         dummy_GpBitmap* b;
         int status;
 
-        status = gdix_CreateBitmapFromHICON(hIcon, &b);
+        status = gdix_vtable->fn_CreateBitmapFromHICON(hIcon, &b);
         if(status != 0) {
             WD_TRACE("wdBitBltHICON: GdipCreateBitmapFromHICON() failed. "
                      "[%d]", status);
             return;
         }
         wdBitBltImage(hCanvas, (WD_HIMAGE) b, pDestRect, pSourceRect);
-        gdix_DisposeImage(b);
+        gdix_vtable->fn_DisposeImage(b);
     }
 }
 

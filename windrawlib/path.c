@@ -43,7 +43,7 @@ wdCreatePath(WD_HCANVAS hCanvas)
         dummy_GpPath* p;
         int status;
 
-        status = gdix_CreatePath(dummy_FillModeAlternate, &p);
+        status = gdix_vtable->fn_CreatePath(dummy_FillModeAlternate, &p);
         if(status != 0) {
             WD_TRACE("wdCreatePath: GdipCreatePath() failed. [%d]", status);
             return NULL;
@@ -91,7 +91,7 @@ wdDestroyPath(WD_HPATH hPath)
     if(d2d_enabled()) {
         ID2D1PathGeometry_Release((ID2D1PathGeometry*) hPath);
     } else {
-        gdix_DeletePath((dummy_GpPath*) hPath);
+        gdix_vtable->fn_DeletePath((dummy_GpPath*) hPath);
     }
 }
 
@@ -139,7 +139,7 @@ wdBeginFigure(WD_PATHSINK* pSink, const WD_POINT* pStartPoint)
         ID2D1GeometrySink_BeginFigure(s, *((D2D1_POINT_2F*) pStartPoint),
                                       D2D1_FIGURE_BEGIN_FILLED);
     } else {
-        gdix_StartPathFigure(pSink->pData);
+        gdix_vtable->fn_StartPathFigure(pSink->pData);
     }
 
     pSink->ptEnd.x = pStartPoint->x;
@@ -154,7 +154,7 @@ wdEndFigure(WD_PATHSINK* pSink, BOOL bCloseFigure)
                 (bCloseFigure ? D2D1_FIGURE_END_CLOSED : D2D1_FIGURE_END_OPEN));
     } else {
         if(bCloseFigure)
-            gdix_ClosePathFigure(pSink->pData);
+            gdix_vtable->fn_ClosePathFigure(pSink->pData);
     }
 }
 
@@ -165,7 +165,7 @@ wdAddLine(WD_PATHSINK* pSink, const WD_POINT* pEndPoint)
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
         ID2D1GeometrySink_AddLine(s, *((D2D1_POINT_2F*) pEndPoint));
     } else {
-        gdix_AddPathLine(pSink->pData, pSink->ptEnd.x, pSink->ptEnd.y,
+        gdix_vtable->fn_AddPathLine(pSink->pData, pSink->ptEnd.x, pSink->ptEnd.y,
                          pEndPoint->x, pEndPoint->y);
     }
 
@@ -206,7 +206,7 @@ wdAddArc(WD_PATHSINK* pSink, const WD_POINT* pCenter, float fSweepAngle)
         float d = 2.0f * r;
         float sweep_rads = (base_angle + fSweepAngle) * (WD_PI / 180.0f);
 
-        gdix_AddPathArc(pSink->pData, cx - r, cy - r, d, d, base_angle, fSweepAngle);
+        gdix_vtable->fn_AddPathArc(pSink->pData, cx - r, cy - r, d, d, base_angle, fSweepAngle);
         pSink->ptEnd.x = cx + r * cosf(sweep_rads);
         pSink->ptEnd.y = cy + r * sinf(sweep_rads);
     }

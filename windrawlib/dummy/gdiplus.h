@@ -156,6 +156,7 @@ struct dummy_GpRectF_tag {
  **********************/
 
 typedef struct dummy_GpBrush_tag        dummy_GpBrush;
+typedef struct dummy_GpCachedBitmap_tag dummy_GpCachedBitmap;
 typedef struct dummy_GpFont_tag         dummy_GpFont;
 typedef struct dummy_GpGraphics_tag     dummy_GpGraphics;
 typedef struct dummy_GpImage_tag        dummy_GpImage;

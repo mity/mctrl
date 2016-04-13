@@ -46,12 +46,20 @@ typedef DWORD WD_COLOR;
 #define WD_ARGB(a,r,g,b)                                                    \
         ((((WD_COLOR)(a) & 0xff) << 24) | (((WD_COLOR)(r) & 0xff) << 16) |  \
          (((WD_COLOR)(g) & 0xff) << 8)  | (((WD_COLOR)(b) & 0xff) << 0))
-#define WD_RGB(r,g,b)       WD_ARGB(255,(r),(g),(b))
+#define WD_RGB(r,g,b)               WD_ARGB(255,(r),(g),(b))
 
-#define WD_AVALUE(color)    (((WD_COLOR)(color) & 0xff000000U) >> 24)
-#define WD_RVALUE(color)    (((WD_COLOR)(color) & 0x00ff0000U) >> 16)
-#define WD_GVALUE(color)    (((WD_COLOR)(color) & 0x0000ff00U) >> 8)
-#define WD_BVALUE(color)    (((WD_COLOR)(color) & 0x000000ffU) >> 0)
+#define WD_AVALUE(color)            (((WD_COLOR)(color) & 0xff000000U) >> 24)
+#define WD_RVALUE(color)            (((WD_COLOR)(color) & 0x00ff0000U) >> 16)
+#define WD_GVALUE(color)            (((WD_COLOR)(color) & 0x0000ff00U) >> 8)
+#define WD_BVALUE(color)            (((WD_COLOR)(color) & 0x000000ffU) >> 0)
+
+/* Create WD_COLOR from GDI's COLORREF. */
+#define WD_COLOR_FROM_GDI_EX(a, cref)                                        \
+        ((((WD_COLOR)(a) & 0xff) << 24) | ((WD_COLOR)(cref) & 0x00ffffffU))
+#define WD_COLOR_FROM_GDI(cref)     WD_COLOR_FROM_GDI_EX(255,(cref))
+
+/* Get GDI's COLORREF from WD_COLOR. */
+#define WD_COLOR_TO_GDI(color)      ((COLORREF)(color) & 0x00ffffffU)
 
 
 /*****************************
@@ -93,8 +101,7 @@ struct WD_CIRCLE_tag {
  ************************/
 
 /* If the library is to be used in a context of multiple threads concurrently,
- * application has to provide a critical section to protect its internal
- * globals.
+ * application has to provide pointers to synchronization functions.
  *
  * Note that even then, object instances (like e.g. canvas, brushes, images)
  * cannot be used concurrently, each thread must work with its own objects.
@@ -118,11 +125,11 @@ struct WD_CIRCLE_tag {
 #define WD_DISABLE_D2D              0x0001
 #define WD_DISABLE_GDIPLUS          0x0002
 
-void wdPreInitialize(CRITICAL_SECTION* pCritSection, DWORD dwFlags);
+void wdPreInitialize(void (*fnLock)(void), void (*fnUnlock)(void), DWORD dwFlags);
 
 
 /* Initialization functions may be called multiple times, even concurrently
- * (assuming a critical section has been provided via wdPreInitialize()).
+ * (assuming a synchronization function have been provided via wdPreInitialize()).
  *
  * The library maintains a counter for each module and it gets really
  * uninitialized when the respective counter drops back to zero.
@@ -144,10 +151,12 @@ void wdTerminate(DWORD dwFlags);
  ***  Opaque Object Handles  ***
  *******************************/
 
+typedef struct WD_BRUSH_tag *WD_HBRUSH;
 typedef struct WD_CANVAS_tag *WD_HCANVAS;
-typedef struct WD_IMAGE_tag *WD_HIMAGE;
-typedef struct WD_PATH_tag *WD_HPATH;
 typedef struct WD_FONT_tag *WD_HFONT;
+typedef struct WD_IMAGE_tag *WD_HIMAGE;
+typedef struct WD_CACHEDIMAGE_tag* WD_HCACHEDIMAGE;
+typedef struct WD_PATH_tag *WD_HPATH;
 
 
 /***************************
@@ -219,7 +228,8 @@ void wdResetWorld(WD_HCANVAS hCanvas);
 /* All these functions are usable only if the library has been initialized with
  * the flag WD_INIT_IMAGEAPI.
  *
- * Note that unlike most other resources, WD_HIMAGE is not canvas-specific
+ * Note that unlike most other resources (including WD_HCACHEDIMAGE), WD_HIMAGE
+ * is not canvas-specific and can be used for painting on any canvas.
  */
 
 WD_HIMAGE wdCreateImageFromHBITMAP(HBITMAP hBmp);
@@ -232,14 +242,39 @@ void wdDestroyImage(WD_HIMAGE hImage);
 void wdGetImageSize(WD_HIMAGE hImage, UINT* puWidth, UINT* puHeight);
 
 
+/*********************************
+ ***  Cached Image Management  ***
+ *********************************/
+
+/* All these functions are usable only if the library has been initialized with
+ * the flag WD_INIT_IMAGEAPI.
+ *
+ * Cached image is an image which is converted to the right pixel format for
+ * faster rendering on the given canvas. It can only be used for the canvas
+ * it has been created for.
+ *
+ * In other words, you may see WD_HCACHEDIMAGE as a counterpart to device
+ * dependent bitmap, and WD_HIMAGE as a counterpart to device-independent
+ * bitmap.
+ *
+ * In short WD_HIMAGE is more flexible and easier to use, while WD_HCACHEDIMAGE
+ * requires more care from the developer but provides better performance,
+ * especially when used repeatedly.
+ *
+ * All these functions are usable only if the library has been initialized with
+ * the flag WD_INIT_IMAGEAPI.
+ */
+
+WD_HCACHEDIMAGE wdCreateCachedImage(WD_HCANVAS hCanvas, WD_HIMAGE hImage);
+void wdDestroyCachedImage(WD_HCACHEDIMAGE hCachedImage);
+
+
 /**************************
  ***  Brush Management  ***
  **************************/
 
 /* Brush is an object used for drawing operations. Note the brush can only
  * be used for the canvas it has been created for. */
-
-typedef struct WD_BRUSH_tag *WD_HBRUSH;
 
 WD_HBRUSH wdCreateSolidBrush(WD_HCANVAS hCanvas, WD_COLOR color);
 void wdDestroyBrush(WD_HBRUSH hBrush);
@@ -293,8 +328,8 @@ void wdDestroyFont(WD_HFONT hFont);
 
 
 /* Structure describing metrics of the font. */
-typedef struct WD_FONT_METRICS_tag WD_FONT_METRICS;
-struct WD_FONT_METRICS_tag {
+typedef struct WD_FONTMETRICS_tag WD_FONTMETRICS;
+struct WD_FONTMETRICS_tag {
     float fEmHeight;        /* Typically height of letter 'M' or 'H' */
     float fAscent;          /* Height of char cell above the base line. */
     float fDescent;         /* Height of char cell below the base line. */
@@ -303,7 +338,7 @@ struct WD_FONT_METRICS_tag {
     /* Usually: fEmHeight < fAscent + fDescent <= fLeading */
 };
 
-void wdFontMetrics(WD_HFONT hFont, WD_FONT_METRICS* pMetrics);
+void wdFontMetrics(WD_HFONT hFont, WD_FONTMETRICS* pMetrics);
 
 
 /*************************
@@ -350,6 +385,8 @@ void wdFillRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_RECT* pRect);
  */
 void wdBitBltImage(WD_HCANVAS hCanvas, const WD_HIMAGE hImage,
                 const WD_RECT* pDestRect, const WD_RECT* pSourceRect);
+void wdBitBltCachedImage(WD_HCANVAS hCanvas, const WD_HCACHEDIMAGE hCachedImage,
+                int x, int y);
 void wdBitBltHICON(WD_HCANVAS hCanvas, HICON hIcon,
                 const WD_RECT* pDestRect, const WD_RECT* pSourceRect);
 

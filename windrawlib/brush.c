@@ -43,7 +43,7 @@ wdCreateSolidBrush(WD_HCANVAS hCanvas, WD_COLOR color)
         dummy_GpSolidFill* b;
         int status;
 
-        status = gdix_CreateSolidFill(color, &b);
+        status = gdix_vtable->fn_CreateSolidFill(color, &b);
         if(status != 0) {
             WD_TRACE("wdCreateSolidBrush: "
                      "GdipCreateSolidFill() failed. [%d]", status);
@@ -59,7 +59,7 @@ wdDestroyBrush(WD_HBRUSH hBrush)
     if(d2d_enabled()) {
         ID2D1Brush_Release((ID2D1Brush*) hBrush);
     } else {
-        gdix_DeleteBrush((void*) hBrush);
+        gdix_vtable->fn_DeleteBrush((void*) hBrush);
     }
 }
 
@@ -72,6 +72,8 @@ wdSetSolidBrushColor(WD_HBRUSH hBrush, WD_COLOR color)
         d2d_init_color(&clr, color);
         ID2D1SolidColorBrush_SetColor((ID2D1SolidColorBrush*) hBrush, &clr);
     } else {
-        gdix_SetSolidFillColor((dummy_GpSolidFill*) hBrush, (dummy_ARGB) color);
+        dummy_GpSolidFill* b = (dummy_GpSolidFill*) hBrush;
+
+        gdix_vtable->fn_SetSolidFillColor(b, (dummy_ARGB) color);
     }
 }

@@ -35,8 +35,8 @@ wdFillCircle(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle)
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
         float d = 2.0f * pCircle->r;
 
-        gdix_FillEllipse(c->graphics, (void*) hBrush, pCircle->x - pCircle->r,
-                pCircle->y - pCircle->r, d, d);
+        gdix_vtable->fn_FillEllipse(c->graphics, (void*) hBrush,
+                pCircle->x - pCircle->r, pCircle->y - pCircle->r, d, d);
     }
 }
 
@@ -52,7 +52,7 @@ wdFillPath(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_HPATH hPath)
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
 
-        gdix_FillPath(c->graphics, (void*) hBrush, (void*) hPath);
+        gdix_vtable->fn_FillPath(c->graphics, (void*) hBrush, (void*) hPath);
     }
 }
 
@@ -77,8 +77,9 @@ wdFillPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle,
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
         float d = 2.0f * pCircle->r;
 
-        gdix_FillPie(c->graphics, (void*) hBrush, pCircle->x - pCircle->r,
-                     pCircle->y - pCircle->r, d, d, fBaseAngle, fSweepAngle);
+        gdix_vtable->fn_FillPie(c->graphics, (void*) hBrush,
+                pCircle->x - pCircle->r, pCircle->y - pCircle->r,
+                d, d, fBaseAngle, fSweepAngle);
     }
 }
 
@@ -97,7 +98,8 @@ wdFillRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_RECT* pRect)
         float x1 = WD_MAX(pRect->x0, pRect->x1);
         float y1 = WD_MAX(pRect->y0, pRect->y1);
 
-        gdix_FillRectangle(c->graphics, (void*) hBrush, x0, y0, x1 - x0, y1 - y0);
+        gdix_vtable->fn_FillRectangle(c->graphics, (void*) hBrush,
+                x0, y0, x1 - x0, y1 - y0);
     }
 }
 

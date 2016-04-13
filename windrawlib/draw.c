@@ -43,9 +43,9 @@ wdDrawArc(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle,
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
         float d = 2.0f * pCircle->r;
 
-        gdix_SetPenBrushFill(c->pen, (void*) hBrush);
-        gdix_SetPenWidth(c->pen, fStrokeWidth);
-        gdix_DrawArc(c->graphics, c->pen, pCircle->x - pCircle->r,
+        gdix_vtable->fn_SetPenBrushFill(c->pen, (void*) hBrush);
+        gdix_vtable->fn_SetPenWidth(c->pen, fStrokeWidth);
+        gdix_vtable->fn_DrawArc(c->graphics, c->pen, pCircle->x - pCircle->r,
                      pCircle->y - pCircle->r, d, d, fBaseAngle, fSweepAngle);
     }
 }
@@ -64,9 +64,10 @@ wdDrawLine(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_LINE* pLine,
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
 
-        gdix_SetPenBrushFill(c->pen, (void*) hBrush);
-        gdix_SetPenWidth(c->pen, fStrokeWidth);
-        gdix_DrawLine(c->graphics, c->pen, pLine->x0, pLine->y0, pLine->x1, pLine->y1);
+        gdix_vtable->fn_SetPenBrushFill(c->pen, (void*) hBrush);
+        gdix_vtable->fn_SetPenWidth(c->pen, fStrokeWidth);
+        gdix_vtable->fn_DrawLine(c->graphics, c->pen,
+                    pLine->x0, pLine->y0, pLine->x1, pLine->y1);
     }
 }
 
@@ -82,9 +83,9 @@ wdDrawPath(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_HPATH hPath,
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
 
-        gdix_SetPenBrushFill(c->pen, (void*) hBrush);
-        gdix_SetPenWidth(c->pen, fStrokeWidth);
-        gdix_DrawPath(c->graphics, (void*) c->pen, (void*) hPath);
+        gdix_vtable->fn_SetPenBrushFill(c->pen, (void*) hBrush);
+        gdix_vtable->fn_SetPenWidth(c->pen, fStrokeWidth);
+        gdix_vtable->fn_DrawPath(c->graphics, (void*) c->pen, (void*) hPath);
     }
 }
 
@@ -109,9 +110,9 @@ wdDrawPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle,
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
         float d = 2.0f * pCircle->r;
 
-        gdix_SetPenBrushFill(c->pen, (void*) hBrush);
-        gdix_SetPenWidth(c->pen, fStrokeWidth);
-        gdix_DrawPie(c->graphics, c->pen, pCircle->x - pCircle->r,
+        gdix_vtable->fn_SetPenBrushFill(c->pen, (void*) hBrush);
+        gdix_vtable->fn_SetPenWidth(c->pen, fStrokeWidth);
+        gdix_vtable->fn_DrawPie(c->graphics, c->pen, pCircle->x - pCircle->r,
                      pCircle->y - pCircle->r, d, d, fBaseAngle, fSweepAngle);
     }
 }
@@ -133,9 +134,9 @@ wdDrawRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_RECT* pRect,
         float x1 = WD_MAX(pRect->x0, pRect->x1);
         float y1 = WD_MAX(pRect->y0, pRect->y1);
 
-        gdix_SetPenBrushFill(c->pen, (void*) hBrush);
-        gdix_SetPenWidth(c->pen, fStrokeWidth);
-        gdix_DrawRectangle(c->graphics, c->pen, x0, y0, x1 - x0, y1 - y0);
+        gdix_vtable->fn_SetPenBrushFill(c->pen, (void*) hBrush);
+        gdix_vtable->fn_SetPenWidth(c->pen, fStrokeWidth);
+        gdix_vtable->fn_DrawRectangle(c->graphics, c->pen, x0, y0, x1 - x0, y1 - y0);
     }
 }
 

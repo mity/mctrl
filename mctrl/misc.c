@@ -687,7 +687,19 @@ void xcom_dllmain_fini(void);
 
 
 /* Critical section for WinDrawLib */
-static CRITICAL_SECTION dllmain_wdl_lock;
+static CRITICAL_SECTION dllmain_wdl_critsection;
+
+static void
+dllmain_lock_wdl(void)
+{
+    EnterCriticalSection(&dllmain_wdl_critsection);
+}
+
+static void
+dllmain_unlock_wdl(void)
+{
+    LeaveCriticalSection(&dllmain_wdl_critsection);
+}
 
 static int
 dllmain_init(HINSTANCE instance)
@@ -707,8 +719,8 @@ dllmain_init(HINSTANCE instance)
             (BOOL (WINAPI*)(CRITICAL_SECTION*, DWORD, DWORD))
             GetProcAddress(mc_instance_kernel32, "InitializeCriticalSectionEx");
 
-    InitializeCriticalSection(&dllmain_wdl_lock);
-    wdPreInitialize(&dllmain_wdl_lock, 0);
+    InitializeCriticalSection(&dllmain_wdl_critsection);
+    wdPreInitialize(dllmain_lock_wdl, dllmain_unlock_wdl, 0);
 
     /* BEWARE when changing this: All these functions are very limited in what
      * they can do because of DllMain() context.
@@ -731,7 +743,7 @@ dllmain_init(HINSTANCE instance)
 static void
 dllmain_fini(void)
 {
-    DeleteCriticalSection(&dllmain_wdl_lock);
+    DeleteCriticalSection(&dllmain_wdl_critsection);
 
     xcom_dllmain_fini();
     mousewheel_dllmain_fini();

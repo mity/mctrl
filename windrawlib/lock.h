@@ -22,21 +22,22 @@
 #include "misc.h"
 
 
-extern CRITICAL_SECTION* wd_critical_section;
+extern void (*wd_fn_lock)(void);
+extern void (*wd_fn_unlock)(void);
 
 
 static inline void
 wd_lock(void)
 {
-    if(wd_critical_section != NULL)
-        EnterCriticalSection(wd_critical_section);
+    if(wd_fn_lock != NULL)
+        wd_fn_lock();
 }
 
 static inline void
 wd_unlock(void)
 {
-    if(wd_critical_section != NULL)
-        LeaveCriticalSection(wd_critical_section);
+    if(wd_fn_unlock != NULL)
+        wd_fn_unlock();
 }
 
 

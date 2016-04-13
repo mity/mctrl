@@ -153,9 +153,9 @@ wdDestroyCanvas(WD_HCANVAS hCanvas)
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
 
-        gdix_DeleteStringFormat(c->string_format);
-        gdix_DeletePen(c->pen);
-        gdix_DeleteGraphics(c->graphics);
+        gdix_vtable->fn_DeleteStringFormat(c->string_format);
+        gdix_vtable->fn_DeletePen(c->pen);
+        gdix_vtable->fn_DeleteGraphics(c->graphics);
 
         if(c->real_dc != NULL) {
             HBITMAP mem_bmp;
@@ -271,7 +271,7 @@ wdStartGdi(WD_HCANVAS hCanvas, BOOL bKeepContents)
         int status;
         HDC dc;
 
-        status = gdix_GetDC(c->graphics, &dc);
+        status = gdix_vtable->fn_GetDC(c->graphics, &dc);
         if(status != 0) {
             WD_TRACE_ERR_("wdStartGdi: GdipGetDC() failed.", status);
             return NULL;
@@ -292,7 +292,7 @@ wdEndGdi(WD_HCANVAS hCanvas, HDC hDC)
         c->gdi_interop = NULL;
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        gdix_ReleaseDC(c->graphics, hDC);
+        gdix_vtable->fn_ReleaseDC(c->graphics, hDC);
     }
 }
 
@@ -307,7 +307,7 @@ wdClear(WD_HCANVAS hCanvas, WD_COLOR color)
         ID2D1RenderTarget_Clear(c->target, &clr);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        gdix_GraphicsClear(c->graphics, color);
+        gdix_vtable->fn_GraphicsClear(c->graphics, color);
     }
 }
 
@@ -364,20 +364,20 @@ wdSetClip(WD_HCANVAS hCanvas, const WD_RECT* pRect, const WD_HPATH hPath)
         int mode;
 
         if(pRect == NULL  &&  hPath == NULL) {
-            gdix_ResetClip(c->graphics);
+            gdix_vtable->fn_ResetClip(c->graphics);
             return;
         }
 
         mode = dummy_CombineModeReplace;
 
         if(pRect != NULL) {
-            gdix_SetClipRect(c->graphics, pRect->x0, pRect->y0,
+            gdix_vtable->fn_SetClipRect(c->graphics, pRect->x0, pRect->y0,
                              pRect->x1, pRect->y1, mode);
             mode = dummy_CombineModeIntersect;
         }
 
         if(hPath != NULL)
-            gdix_SetClipPath(c->graphics, (void*) hPath, mode);
+            gdix_vtable->fn_SetClipPath(c->graphics, (void*) hPath, mode);
     }
 }
 
@@ -402,9 +402,9 @@ wdRotateWorld(WD_HCANVAS hCanvas, float cx, float cy, float fAngle)
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
 
-        gdix_TranslateWorldTransform(c->graphics, -cx, -cy, dummy_MatrixOrderAppend);
-        gdix_RotateWorldTransform(c->graphics, fAngle, dummy_MatrixOrderAppend);
-        gdix_TranslateWorldTransform(c->graphics, cx, cy, dummy_MatrixOrderAppend);
+        gdix_vtable->fn_TranslateWorldTransform(c->graphics, -cx, -cy, dummy_MatrixOrderAppend);
+        gdix_vtable->fn_RotateWorldTransform(c->graphics, fAngle, dummy_MatrixOrderAppend);
+        gdix_vtable->fn_TranslateWorldTransform(c->graphics, cx, cy, dummy_MatrixOrderAppend);
     }
 }
 
@@ -421,7 +421,7 @@ wdTranslateWorld(WD_HCANVAS hCanvas, float dx, float dy)
         ID2D1RenderTarget_SetTransform(c->target, &matrix);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        gdix_TranslateWorldTransform(c->graphics, dx, dy, dummy_MatrixOrderAppend);
+        gdix_vtable->fn_TranslateWorldTransform(c->graphics, dx, dy, dummy_MatrixOrderAppend);
     }
 }
 
@@ -433,7 +433,7 @@ wdResetWorld(WD_HCANVAS hCanvas)
         d2d_reset_transform(c->target);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        gdix_ResetWorldTransform(c->graphics);
+        gdix_vtable->fn_ResetWorldTransform(c->graphics);
     }
 }
 

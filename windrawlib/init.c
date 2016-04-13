@@ -24,14 +24,17 @@
 #include "lock.h"
 
 
-CRITICAL_SECTION* wd_critical_section = NULL;
+void (*wd_fn_lock)(void) = NULL;
+void (*wd_fn_unlock)(void) = NULL;
+
 static DWORD wd_preinit_flags = 0;
 
 
 void
-wdPreInitialize(CRITICAL_SECTION* pCritSection, DWORD dwFlags)
+wdPreInitialize(void (*fnLock)(void), void (*fnUnlock)(void), DWORD dwFlags)
 {
-    wd_critical_section = pCritSection;
+    wd_fn_lock = fnLock;
+    wd_fn_unlock = fnUnlock;
     wd_preinit_flags = dwFlags;
 }
 

@@ -30,82 +30,8 @@ static HMODULE gdix_dll = NULL;
 static ULONG_PTR gdix_token;
 static void (WINAPI* gdix_Shutdown)(ULONG_PTR);
 
-/* Graphics functions */
-int (WINAPI* gdix_CreateFromHDC)(HDC, dummy_GpGraphics**);
-int (WINAPI* gdix_DeleteGraphics)(dummy_GpGraphics*);
-int (WINAPI* gdix_GraphicsClear)(dummy_GpGraphics*, dummy_ARGB);
-int (WINAPI* gdix_GetDC)(dummy_GpGraphics*, HDC*);
-int (WINAPI* gdix_ReleaseDC)(dummy_GpGraphics*, HDC);
-int (WINAPI* gdix_ResetWorldTransform)(dummy_GpGraphics*);
-int (WINAPI* gdix_RotateWorldTransform)(dummy_GpGraphics*, float, dummy_GpMatrixOrder);
-int (WINAPI* gdix_SetPixelOffsetMode)(dummy_GpGraphics*, dummy_GpPixelOffsetMode);
-int (WINAPI* gdix_SetSmoothingMode)(dummy_GpGraphics*, dummy_GpSmoothingMode);
-int (WINAPI* gdix_TranslateWorldTransform)(dummy_GpGraphics*, float, float, dummy_GpMatrixOrder);
-int (WINAPI* gdix_SetClipRect)(dummy_GpGraphics*, float, float, float, float, dummy_GpCombineMode);
-int (WINAPI* gdix_SetClipPath)(dummy_GpGraphics*, dummy_GpPath*, dummy_GpCombineMode);
-int (WINAPI* gdix_ResetClip)(dummy_GpGraphics*);
+gdix_vtable_t* gdix_vtable = NULL;
 
-/* Brush functions */
-int (WINAPI* gdix_CreateSolidFill)(dummy_ARGB, dummy_GpSolidFill**);
-int (WINAPI* gdix_DeleteBrush)(dummy_GpBrush*);
-int (WINAPI* gdix_SetSolidFillColor)(dummy_GpSolidFill*, dummy_ARGB);
-
-/* Pen functions */
-int (WINAPI* gdix_CreatePen1)(dummy_ARGB, float, dummy_GpUnit, dummy_GpPen**);
-int (WINAPI* gdix_DeletePen)(dummy_GpPen*);
-int (WINAPI* gdix_SetPenBrushFill)(dummy_GpPen*, dummy_GpBrush*);
-int (WINAPI* gdix_SetPenWidth)(dummy_GpPen*, float);
-
-/* Path functions */
-int (WINAPI* gdix_CreatePath)(dummy_GpFillMode, dummy_GpPath**);
-int (WINAPI* gdix_DeletePath)(dummy_GpPath*);
-int (WINAPI* gdix_ClosePathFigure)(dummy_GpPath*);
-int (WINAPI* gdix_StartPathFigure)(dummy_GpPath*);
-int (WINAPI* gdix_GetPathLastPoint)(dummy_GpPath*, dummy_GpPointF*);
-int (WINAPI* gdix_AddPathArc)(dummy_GpPath*, float, float, float, float, float, float);
-int (WINAPI* gdix_AddPathLine)(dummy_GpPath*, float, float, float, float);
-
-/* Font functions */
-int (WINAPI* gdix_CreateFontFromLogfontW)(HDC, const LOGFONTW*, dummy_GpFont**);
-int (WINAPI* gdix_DeleteFont)(dummy_GpFont*);
-int (WINAPI* gdix_DeleteFontFamily)(dummy_GpFont*);
-int (WINAPI* gdix_GetCellAscent)(const dummy_GpFont*, int, UINT16*);
-int (WINAPI* gdix_GetCellDescent)(const dummy_GpFont*, int, UINT16*);
-int (WINAPI* gdix_GetEmHeight)(const dummy_GpFont*, int, UINT16*);
-int (WINAPI* gdix_GetFamily)(dummy_GpFont*, void**);
-int (WINAPI* gdix_GetFontSize)(dummy_GpFont*, float*);
-int (WINAPI* gdix_GetFontStyle)(dummy_GpFont*, int*);
-int (WINAPI* gdix_GetLineSpacing)(const dummy_GpFont*, int, UINT16*);
-
-/* Image & bitmap functions */
-int (WINAPI* gdix_LoadImageFromFile)(const WCHAR*, dummy_GpImage**);
-int (WINAPI* gdix_LoadImageFromStream)(IStream*, dummy_GpImage**);
-int (WINAPI* gdix_CreateBitmapFromHBITMAP)(HBITMAP, HPALETTE, dummy_GpBitmap**);
-int (WINAPI* gdix_CreateBitmapFromHICON)(HICON, dummy_GpBitmap**);
-int (WINAPI* gdix_DisposeImage)(dummy_GpImage*);
-int (WINAPI* gdix_GetImageWidth)(dummy_GpImage*, UINT*);
-int (WINAPI* gdix_GetImageHeight)(dummy_GpImage*, UINT*);
-
-/* String format functions */
-int (WINAPI* gdix_CreateStringFormat)(int, LANGID, dummy_GpStringFormat**);
-int (WINAPI* gdix_DeleteStringFormat)(dummy_GpStringFormat*);
-int (WINAPI* gdix_SetStringFormatAlign)(dummy_GpStringFormat*, dummy_GpStringAlignment);
-int (WINAPI* gdix_SetStringFormatFlags)(dummy_GpStringFormat*, int);
-int (WINAPI* gdix_SetStringFormatTrimming)(dummy_GpStringFormat*, dummy_GpStringTrimming);
-
-/* Draw/fill functions */
-int (WINAPI* gdix_DrawArc)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float);
-int (WINAPI* gdix_DrawImageRectRect)(dummy_GpGraphics*, dummy_GpImage*, float, float, float, float, float, float, float, float, dummy_GpUnit, const void*, void*, void*);
-int (WINAPI* gdix_DrawLine)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float);
-int (WINAPI* gdix_DrawPath)(dummy_GpGraphics*, dummy_GpPen*, dummy_GpPath*);
-int (WINAPI* gdix_DrawPie)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float);
-int (WINAPI* gdix_DrawRectangle)(dummy_GpGraphics*, void*, float, float, float, float);
-int (WINAPI* gdix_DrawString)(dummy_GpGraphics*, const WCHAR*, int, const dummy_GpFont*, const dummy_GpRectF*, const dummy_GpStringFormat*, const dummy_GpBrush*);
-int (WINAPI* gdix_FillEllipse)(dummy_GpGraphics*, dummy_GpBrush*, float, float, float, float);
-int (WINAPI* gdix_FillPath)(dummy_GpGraphics*, dummy_GpBrush*, dummy_GpPath*);
-int (WINAPI* gdix_FillPie)(dummy_GpGraphics*, dummy_GpBrush*, float, float, float, float, float, float);
-int (WINAPI* gdix_FillRectangle)(dummy_GpGraphics*, void*, float, float, float, float);
-int (WINAPI* gdix_MeasureString)(dummy_GpGraphics*, const WCHAR*, int, const dummy_GpFont*, const dummy_GpRectF*, const dummy_GpStringFormat*, dummy_GpRectF*, int*, int*);
 
 int
 gdix_init(void)
@@ -135,6 +61,13 @@ gdix_init(void)
         }
     }
 
+    gdix_vtable = (gdix_vtable_t*) malloc(sizeof(gdix_vtable_t));
+    if(gdix_vtable == NULL) {
+        WD_TRACE("gdix_init: malloc() failed.");
+        goto err_malloc;
+    }
+
+
     gdix_Startup = (int (WINAPI*)(ULONG_PTR*, const dummy_GpStartupInput*, void*))
                         GetProcAddress(gdix_dll, "GdiplusStartup");
     if(gdix_Startup == NULL) {
@@ -151,9 +84,9 @@ gdix_init(void)
 
 #define GPA(name, params)                                                      \
         do {                                                                   \
-            gdix_##name = (int (WINAPI*)params)                                \
+            gdix_vtable->fn_##name = (int (WINAPI*)params)                     \
                         GetProcAddress(gdix_dll, "Gdip"#name);                 \
-            if(gdix_##name == NULL) {                                          \
+            if(gdix_vtable->fn_##name == NULL) {                               \
                 WD_TRACE_ERR("gdix_init: GetProcAddress(Gdip"#name") failed"); \
                 goto err_GetProcAddress;                                       \
             }                                                                  \
@@ -215,6 +148,11 @@ gdix_init(void)
     GPA(GetImageWidth, (dummy_GpImage*, UINT*));
     GPA(GetImageHeight, (dummy_GpImage*, UINT*));
 
+    /* Cached bitmap functions */
+    GPA(CreateCachedBitmap, (dummy_GpBitmap*, dummy_GpGraphics*, dummy_GpCachedBitmap**));
+    GPA(DeleteCachedBitmap, (dummy_GpCachedBitmap*));
+    GPA(DrawCachedBitmap, (dummy_GpGraphics*, dummy_GpCachedBitmap*, INT, INT));
+
     /* String format functions */
     GPA(CreateStringFormat, (int, LANGID, dummy_GpStringFormat**));
     GPA(DeleteStringFormat, (dummy_GpStringFormat*));
@@ -252,6 +190,9 @@ gdix_init(void)
     /* Error path */
 err_Startup:
 err_GetProcAddress:
+    free(gdix_vtable);
+    gdix_vtable = NULL;
+err_malloc:
     FreeLibrary(gdix_dll);
     gdix_dll = NULL;
 err_LoadLibrary:
@@ -261,6 +202,9 @@ err_LoadLibrary:
 void
 gdix_fini(void)
 {
+    free(gdix_vtable);
+    gdix_vtable = NULL;
+
     gdix_Shutdown(gdix_token);
 
     FreeLibrary(gdix_dll);
@@ -313,15 +257,18 @@ no_doublebuffer:
         c->dc = dc;
     }
 
-    status = gdix_CreateFromHDC(c->dc, &c->graphics);
+    status = gdix_vtable->fn_CreateFromHDC(c->dc, &c->graphics);
     if(status != 0) {
         WD_TRACE_ERR_("gdix_canvas_alloc: GdipCreateFromHDC() failed.", status);
         goto err_creategraphics;
     }
 
-    status = gdix_SetSmoothingMode(c->graphics, dummy_SmoothingModeAntiAlias8x8);  /* GDI+ 1.1 */
-    if(status != 0)
-        gdix_SetSmoothingMode(c->graphics, dummy_SmoothingModeHighQuality);        /* GDI+ 1.0 */
+    status = gdix_vtable->fn_SetSmoothingMode(c->graphics,      /* GDI+ 1.1 */
+                dummy_SmoothingModeAntiAlias8x8);
+    if(status != 0) {
+        gdix_vtable->fn_SetSmoothingMode(c->graphics,           /* GDI+ 1.0 */
+                    dummy_SmoothingModeHighQuality);
+    }
 
     /* GDI+ has, unlike D2D, a concept of pens, which are used for "draw"
      * operations, while brushes are used for "fill" operations.
@@ -329,14 +276,14 @@ no_doublebuffer:
      * Our interface works only with brushes as D2D does. Hence we create
      * a pen as part of GDI+ canvas and we update it with GdipSetPenBrushFill()
      * and GdipSetPenWidth() every time whenever we need to use a pen. */
-    status = gdix_CreatePen1(0, 1.0f, dummy_UnitPixel, &c->pen);
+    status = gdix_vtable->fn_CreatePen1(0, 1.0f, dummy_UnitPixel, &c->pen);
     if(status != 0) {
         WD_TRACE_ERR_("gdix_canvas_alloc: GdipCreatePen1() failed.", status);
         goto err_createpen;
     }
 
     /* Needed for wdDrawString() and wdMeasureString() */
-    status = gdix_CreateStringFormat(0, LANG_NEUTRAL, &c->string_format);
+    status = gdix_vtable->fn_CreateStringFormat(0, LANG_NEUTRAL, &c->string_format);
     if(status != 0) {
         WD_TRACE("gdix_canvas_alloc: "
                  "GdipCreateStringFormat() failed. [%d]", status);
@@ -347,9 +294,9 @@ no_doublebuffer:
 
     /* Error path */
 err_createstringformat:
-    gdix_DeletePen(c->pen);
+    gdix_vtable->fn_DeletePen(c->pen);
 err_createpen:
-    gdix_DeleteGraphics(c->graphics);
+    gdix_vtable->fn_DeleteGraphics(c->graphics);
 err_creategraphics:
     if(c->real_dc != NULL) {
         HBITMAP mem_bmp = SelectObject(c->dc, c->orig_bmp);
@@ -374,14 +321,14 @@ gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags)
         sfa = dummy_StringAlignmentCenter;
     else
         sfa = dummy_StringAlignmentNear;
-    gdix_SetStringFormatAlign(c->string_format, sfa);
+    gdix_vtable->fn_SetStringFormatAlign(c->string_format, sfa);
 
     sff = 0;
     if(flags & WD_STR_NOWRAP)
         sff |= dummy_StringFormatFlagsNoWrap;
     if(flags & WD_STR_NOCLIP)
         sff |= dummy_StringFormatFlagsNoClip;
-    gdix_SetStringFormatFlags(c->string_format, sff);
+    gdix_vtable->fn_SetStringFormatFlags(c->string_format, sff);
 
     switch(flags & WD_STR_ELLIPSISMASK) {
         case WD_STR_ENDELLIPSIS:    trim = dummy_StringTrimmingEllipsisCharacter; break;
@@ -389,6 +336,6 @@ gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags)
         case WD_STR_PATHELLIPSIS:   trim = dummy_StringTrimmingEllipsisPath; break;
         default:                    trim = dummy_StringTrimmingNone; break;
     }
-    gdix_SetStringFormatTrimming(c->string_format, trim);
+    gdix_vtable->fn_SetStringFormatTrimming(c->string_format, trim);
 }
 

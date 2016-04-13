@@ -56,7 +56,7 @@ wdCreateImageFromHBITMAP(HBITMAP hBmp)
         dummy_GpBitmap* b;
         int status;
 
-        status = gdix_CreateBitmapFromHBITMAP(hBmp, NULL, &b);
+        status = gdix_vtable->fn_CreateBitmapFromHBITMAP(hBmp, NULL, &b);
         if(status != 0) {
             WD_TRACE("wdCreateImageFromHBITMAP: "
                      "GdipCreateBitmapFromHBITMAP() failed. [%d]", status);
@@ -109,7 +109,7 @@ err_CreateDecoderFromFilename:
         dummy_GpImage* img;
         int status;
 
-        status = gdix_LoadImageFromFile(pszPath, &img);
+        status = gdix_vtable->fn_LoadImageFromFile(pszPath, &img);
         if(status != 0) {
             WD_TRACE("wdLoadImageFromFile: "
                      "GdipLoadImageFromFile() failed. [%d]", status);
@@ -162,7 +162,7 @@ err_CreateDecoderFromFilename:
         dummy_GpImage* img;
         int status;
 
-        status = gdix_LoadImageFromStream(pStream, &img);
+        status = gdix_vtable->fn_LoadImageFromStream(pStream, &img);
         if(status != 0) {
             WD_TRACE("wdLoadImageFromIStream: "
                      "GdipLoadImageFromFile() failed. [%d]", status);
@@ -201,7 +201,7 @@ wdDestroyImage(WD_HIMAGE hImage)
     if(d2d_enabled()) {
         IWICBitmapSource_Release((IWICBitmapSource*) hImage);
     } else {
-        gdix_DisposeImage((dummy_GpImage*) hImage);
+        gdix_vtable->fn_DisposeImage((dummy_GpImage*) hImage);
     }
 }
 
@@ -218,9 +218,9 @@ wdGetImageSize(WD_HIMAGE hImage, UINT* puWidth, UINT* puHeight)
             *puHeight = h;
     } else {
         if(puWidth != NULL)
-            gdix_GetImageWidth((dummy_GpImage*) hImage, puWidth);
+            gdix_vtable->fn_GetImageWidth((dummy_GpImage*) hImage, puWidth);
         if(puHeight != NULL)
-            gdix_GetImageHeight((dummy_GpImage*) hImage, puHeight);
+            gdix_vtable->fn_GetImageHeight((dummy_GpImage*) hImage, puHeight);
     }
 }
 
