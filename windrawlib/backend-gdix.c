@@ -163,6 +163,7 @@ gdix_init(void)
     /* Draw/fill functions */
     GPA(DrawArc, (dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float));
     GPA(DrawImageRectRect, (dummy_GpGraphics*, dummy_GpImage*, float, float, float, float, float, float, float, float, dummy_GpUnit, const void*, void*, void*));
+    GPA(DrawEllipse, (dummy_GpGraphics*, dummy_GpPen*, float, float, float, float));
     GPA(DrawLine, (dummy_GpGraphics*, dummy_GpPen*, float, float, float, float));
     GPA(DrawPath, (dummy_GpGraphics*, dummy_GpPen*, dummy_GpPath*));
     GPA(DrawPie, (dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float));

@@ -23,20 +23,19 @@
 
 
 void
-wdFillCircle(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle)
+wdFillCircle(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, float cx, float cy, float r)
 {
     if(d2d_enabled()) {
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
         ID2D1Brush* b = (ID2D1Brush*) hBrush;
-        D2D1_ELLIPSE e = { { pCircle->x, pCircle->y }, pCircle->r, pCircle->r };
+        D2D1_ELLIPSE e = { { cx, cy }, r, r };
 
         ID2D1RenderTarget_FillEllipse(c->target, &e, b);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        float d = 2.0f * pCircle->r;
+        float d = 2.0f * r;
 
-        gdix_vtable->fn_FillEllipse(c->graphics, (void*) hBrush,
-                pCircle->x - pCircle->r, pCircle->y - pCircle->r, d, d);
+        gdix_vtable->fn_FillEllipse(c->graphics, (void*) hBrush, cx - r, cy - r, d, d);
     }
 }
 
@@ -57,7 +56,7 @@ wdFillPath(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_HPATH hPath)
 }
 
 void
-wdFillPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle,
+wdFillPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, float cx, float cy, float r,
           float fBaseAngle, float fSweepAngle)
 {
     if(d2d_enabled()) {
@@ -65,7 +64,7 @@ wdFillPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle,
         ID2D1Brush* b = (ID2D1Brush*) hBrush;
         ID2D1Geometry* g;
 
-        g = d2d_create_arc_geometry(pCircle, fBaseAngle, fSweepAngle, TRUE);
+        g = d2d_create_arc_geometry(cx, cy, r, fBaseAngle, fSweepAngle, TRUE);
         if(g == NULL) {
             WD_TRACE("wdFillPie: d2d_create_arc_geometry() failed.");
             return;
@@ -75,28 +74,30 @@ wdFillPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_CIRCLE* pCircle,
         ID2D1Geometry_Release(g);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        float d = 2.0f * pCircle->r;
+        float d = 2.0f * r;
 
         gdix_vtable->fn_FillPie(c->graphics, (void*) hBrush,
-                pCircle->x - pCircle->r, pCircle->y - pCircle->r,
-                d, d, fBaseAngle, fSweepAngle);
+                cx - r, cy - r, d, d, fBaseAngle, fSweepAngle);
     }
 }
 
 void
-wdFillRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_RECT* pRect)
+wdFillRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+           float x0, float y0, float x1, float y1)
 {
     if(d2d_enabled()) {
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
         ID2D1Brush* b = (ID2D1Brush*) hBrush;
+        D2D1_RECT_F r = { x0, y0, x1, y1 };
 
-        ID2D1RenderTarget_FillRectangle(c->target, (const D2D1_RECT_F*) pRect, b);
+        ID2D1RenderTarget_FillRectangle(c->target, &r, b);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        float x0 = WD_MIN(pRect->x0, pRect->x1);
-        float y0 = WD_MIN(pRect->y0, pRect->y1);
-        float x1 = WD_MAX(pRect->x0, pRect->x1);
-        float y1 = WD_MAX(pRect->y0, pRect->y1);
+        float tmp;
+
+        /* Make sure x0 <= x1 and y0 <= y1. */
+        if(x0 > x1) { tmp = x0; x0 = x1; x1 = tmp; }
+        if(y0 > y1) { tmp = y0; y0 = y1; y1 = tmp; }
 
         gdix_vtable->fn_FillRectangle(c->graphics, (void*) hBrush,
                 x0, y0, x1 - x0, y1 - y0);

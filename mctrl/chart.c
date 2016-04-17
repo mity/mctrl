@@ -455,7 +455,9 @@ pie_value(chart_t* chart, int set_ix)
 
 typedef struct pie_geometry_tag pie_geometry_t;
 struct pie_geometry_tag {
-    WD_CIRCLE circle;
+    float cx;
+    float cy;
+    float r;
     float sum;
 };
 
@@ -465,9 +467,9 @@ pie_calc_geometry(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layo
 {
     int set_ix, n;
 
-    geom->circle.x = (layout->body_rect.left + layout->body_rect.right) / 2.0f;
-    geom->circle.y = (layout->body_rect.top + layout->body_rect.bottom) / 2.0f;
-    geom->circle.r = MC_MIN(mc_width(&layout->body_rect), mc_height(&layout->body_rect)) / 2.0f - 10.0f;
+    geom->cx = (layout->body_rect.left + layout->body_rect.right) / 2.0f;
+    geom->cy = (layout->body_rect.top + layout->body_rect.bottom) / 2.0f;
+    geom->r = MC_MIN(mc_width(&layout->body_rect), mc_height(&layout->body_rect)) / 2.0f - 10.0f;
 
     geom->sum = 0.0f;
     n = dsa_size(&chart->data);
@@ -481,16 +483,12 @@ pie_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
     pie_geometry_t geom;
     int set_ix, n, val;
     float angle, sweep;
-    WD_CIRCLE tmp_circle;
     float label_angle_rads;
     WD_RECT label_rect;
     WD_RECT label_measure;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
 
     pie_calc_geometry(chart, ctx, layout, &geom);
-
-    tmp_circle.x = geom.circle.x;
-    tmp_circle.y = geom.circle.y;
 
     angle = -90.0f;
     n = dsa_size(&chart->data);
@@ -501,33 +499,34 @@ pie_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
         /* Paint the pie */
         wdSetSolidBrushColor(ctx->solid_brush,
                 WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-        wdFillPie(ctx->canvas, ctx->solid_brush, &geom.circle, angle, sweep);
+        wdFillPie(ctx->canvas, ctx->solid_brush,
+                geom.cx, geom.cy, geom.r, angle, sweep);
 
         /* Paint active aura */
         if(set_ix == chart->hot_set_ix) {
             wdSetSolidBrushColor(ctx->solid_brush,
                     WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-            tmp_circle.r = geom.circle.r + 6.0f;
-            wdDrawArc(ctx->canvas, ctx->solid_brush, &tmp_circle, angle, sweep, 8.0f);
+            wdDrawArc(ctx->canvas, ctx->solid_brush,
+                    geom.cx, geom.cy, geom.r + 6.0f, angle, sweep, 8.0f);
         }
 
         /* Paint white borders */
         wdSetSolidBrushColor(ctx->solid_brush,
                 WD_COLOR_FROM_GDI(GetSysColor(COLOR_WINDOW)));
-        tmp_circle.r = geom.circle.r + 16.0f;
-        wdDrawPie(ctx->canvas, ctx->solid_brush, &tmp_circle, angle, sweep, 1.0f);
+        wdDrawPie(ctx->canvas, ctx->solid_brush,
+                geom.cx, geom.cy, geom.r + 16.0f, angle, sweep, 1.0f);
 
         /* Paint label (if it fits in) */
         label_angle_rads = (angle + 0.5f * sweep) * (MC_PIf / 180.0f);
-        label_rect.x0 = geom.circle.x + 0.75f * geom.circle.r * cosf(label_angle_rads);
-        label_rect.y0 = geom.circle.y + 0.75f * geom.circle.r * sinf(label_angle_rads)
+        label_rect.x0 = geom.cx + 0.75f * geom.r * cosf(label_angle_rads);
+        label_rect.y0 = geom.cy + 0.75f * geom.r * sinf(label_angle_rads)
                         - layout->font_size.cy / 2.0f;
         label_rect.x1 = label_rect.x0;
         label_rect.y1 = label_rect.y0 + layout->font_size.cy;
         chart_str_value(&chart->axis1, val, buffer);
         wdMeasureString(ctx->canvas, ctx->font, &label_rect, buffer, -1,
                     &label_measure, WD_STR_NOWRAP | WD_STR_CENTERALIGN);
-        if(pie_rect_in_sweep(angle, sweep, geom.circle.x, geom.circle.y, &label_measure)) {
+        if(pie_rect_in_sweep(angle, sweep, geom.cx, geom.cy, &label_measure)) {
             wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(255,255,255));
             wdDrawString(ctx->canvas, ctx->font, &label_rect, buffer, -1, ctx->solid_brush,
                     WD_STR_NOCLIP | WD_STR_NOWRAP | WD_STR_CENTERALIGN);
@@ -548,9 +547,9 @@ pie_hit_test(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout,
 
     pie_calc_geometry(chart, ctx, layout, &geom);
 
-    dx = geom.circle.x - x;
-    dy = geom.circle.y - y;
-    if(dx * dx + dy * dy > geom.circle.r * geom.circle.r)
+    dx = geom.cx - x;
+    dy = geom.cy - y;
+    if(dx * dx + dy * dy > geom.r * geom.r)
         return;
 
     angle = -90.0f;
@@ -558,7 +557,7 @@ pie_hit_test(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout,
     for(set_ix = 0; set_ix < n; set_ix++) {
         sweep = (360.0f * (float)pie_value(chart, set_ix)) / geom.sum;
 
-        if(pie_pt_in_sweep(angle, sweep, geom.circle.x, geom.circle.y, x, y)) {
+        if(pie_pt_in_sweep(angle, sweep, geom.cx, geom.cy, x, y)) {
             *p_set_ix = set_ix;
             *p_i = 0;
             break;
@@ -750,7 +749,7 @@ scatter_paint_grid(chart_t* chart, chart_paint_t* ctx,
                    const chart_layout_t* layout, const scatter_geometry_t* geom)
 {
     int x, y;
-    WD_LINE line;
+    float x0, y0, x1, y1;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
 
     /* Axis legends */
@@ -771,35 +770,35 @@ scatter_paint_grid(chart_t* chart, chart_paint_t* ctx,
         if(x == 0)
             continue;
 
-        line.x0 = scatter_map_x(x, geom);
-        line.y0 = geom->core_rect.y0;
-        line.x1 = line.x0;
-        line.y1 = geom->core_rect.y1;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        x0 = scatter_map_x(x, geom);
+        y0 = geom->core_rect.y0;
+        x1 = x0;
+        y1 = geom->core_rect.y1;
+        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
     }
     for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
         if(y == 0)
             continue;
 
-        line.x0 = geom->core_rect.x0;
-        line.y0 = scatter_map_y(y, geom);
-        line.x1 = geom->core_rect.x1;
-        line.y1 = line.y0;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        x0 = geom->core_rect.x0;
+        y0 = scatter_map_y(y, geom);
+        x1 = geom->core_rect.x1;
+        y1 = y0;
+        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
     }
 
     /* Primary lines (axis) */
     wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    line.x0 = scatter_map_x(0, geom);
-    line.y0 = geom->core_rect.y0;
-    line.x1 = line.x0;
-    line.y1 = geom->core_rect.y1;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
-    line.x0 = geom->core_rect.x0;
-    line.y0 = scatter_map_y(0, geom);
-    line.x1 = geom->core_rect.x1;
-    line.y1 = line.y0;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+    x0 = scatter_map_x(0, geom);
+    y0 = geom->core_rect.y0;
+    x1 = x0;
+    y1 = geom->core_rect.y1;
+    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
+    x0 = geom->core_rect.x0;
+    y0 = scatter_map_y(0, geom);
+    x1 = geom->core_rect.x1;
+    y1 = y0;
+    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
 
     /* Labels */
     for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
@@ -859,11 +858,10 @@ scatter_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
         }
 
         for(i = i0; i < i1; i += 2) {
-            WD_CIRCLE c;
-            c.x = scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom);
-            c.y = scatter_map_y(CACHE_VALUE(&cache, set_ix, i+1), &geom);
-            c.r = 4.0f;
-            wdFillCircle(ctx->canvas, ctx->solid_brush, &c);
+            wdFillCircle(ctx->canvas, ctx->solid_brush,
+                    scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom),
+                    scatter_map_y(CACHE_VALUE(&cache, set_ix, i+1), &geom),
+                    4.0f);
         }
     }
 
@@ -873,11 +871,10 @@ scatter_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
         wdSetSolidBrushColor(ctx->solid_brush,
                         WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
         for(i = 0; i < data->count-1; i += 2) {  /* '-1' to protect if ->count is odd */
-            WD_CIRCLE c;
-            c.x = scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom);
-            c.y = scatter_map_y(CACHE_VALUE(&cache, set_ix, i+1), &geom);
-            c.r = 2.0f;
-            wdFillCircle(ctx->canvas, ctx->solid_brush, &c);
+            wdFillCircle(ctx->canvas, ctx->solid_brush,
+                    scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom),
+                    scatter_map_y(CACHE_VALUE(&cache, set_ix, i+1), &geom),
+                    2.0f);
         }
     }
 
@@ -1114,7 +1111,7 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx,
                 const chart_layout_t* layout, const line_geometry_t* geom)
 {
     int x, y;
-    WD_LINE line;
+    float x0, y0, x1, y1;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
 
     /* Axis legends */
@@ -1135,35 +1132,35 @@ line_paint_grid(chart_t* chart, chart_paint_t* ctx,
         if(x == 0)
             continue;
 
-        line.x0 = line_map_x(x, geom);
-        line.y0 = geom->core_rect.y0;
-        line.x1 = line.x0;
-        line.y1 = geom->core_rect.y1;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        x0 = line_map_x(x, geom);
+        y0 = geom->core_rect.y0;
+        x1 = x0;
+        y1 = geom->core_rect.y1;
+        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
     }
     for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
         if(y == 0)
             continue;
 
-        line.x0 = geom->core_rect.x0;
-        line.y0 = line_map_y(y, geom);
-        line.x1 = geom->core_rect.x1;
-        line.y1 = line.y0;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        x0 = geom->core_rect.x0;
+        y0 = line_map_y(y, geom);
+        x1 = geom->core_rect.x1;
+        y1 = y0;
+        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
     }
 
     /* Primary lines (axis) */
     wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    line.x0 = line_map_x(0, geom);
-    line.y0 = geom->core_rect.y0;
-    line.x1 = line.x0;
-    line.y1 = geom->core_rect.y1;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
-    line.x0 = geom->core_rect.x0;
-    line.y0 = line_map_y(0, geom);
-    line.x1 = geom->core_rect.x1;
-    line.y1 = line.y0;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+    x0 = line_map_x(0, geom);
+    y0 = geom->core_rect.y0;
+    x1 = x0;
+    y1 = geom->core_rect.y1;
+    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
+    x0 = geom->core_rect.x0;
+    y0 = line_map_y(0, geom);
+    x1 = geom->core_rect.x1;
+    y1 = y0;
+    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
 
     /* Labels */
     for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
@@ -1196,9 +1193,8 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
 {
     cache_t cache;
     line_geometry_t geom;
-    int set_ix, n, x, y;
-    WD_CIRCLE circle;
-    WD_LINE line;
+    int set_ix, n;
+    int x, y;
 
     n = dsa_size(&chart->data);
 
@@ -1212,8 +1208,7 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
         for(set_ix = 0; set_ix < n; set_ix++) {
             WD_HPATH path;
             WD_PATHSINK sink;
-            float ry0;
-            WD_POINT pt;
+            float fy0;
             BYTE alpha;
 
             path = wdCreatePath(ctx->canvas);
@@ -1228,31 +1223,23 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
                 continue;
             }
 
-            ry0 = line_map_y(0, &geom);
-            pt.x = line_map_x(0, &geom);
-            pt.y = ry0;
-
-            wdBeginFigure(&sink, &pt);
+            fy0 = line_map_y(0, &geom);
+            wdBeginFigure(&sink, line_map_x(0, &geom), fy0);
 
             for(x = 0; x < geom.min_count; x++) {
                 if(is_stacked)
                     y = cache_stack(&cache, set_ix, x);
                 else
                     y = CACHE_VALUE(&cache, set_ix, x);
-                pt.x = line_map_x(x, &geom);
-                pt.y = line_map_y(y, &geom);
-                wdAddLine(&sink, &pt);
+                wdAddLine(&sink, line_map_x(x, &geom), line_map_y(y, &geom));
             }
 
             if(!is_stacked || set_ix == 0) {
-                pt.y = ry0;
-                wdAddLine(&sink, &pt);
+                wdAddLine(&sink, line_map_x(geom.min_count - 1, &geom), fy0);
             } else {
                 for(x = geom.min_count - 1; x >= 0; x--) {
                     y = cache_stack(&cache, set_ix-1, x);
-                    pt.x = line_map_x(x, &geom);
-                    pt.y = line_map_y(y, &geom);
-                    wdAddLine(&sink, &pt);
+                    wdAddLine(&sink, line_map_x(x, &geom), line_map_y(y, &geom));
                 }
             }
 
@@ -1274,6 +1261,8 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
     /* Paint hot aura */
     if(chart->hot_set_ix >= 0) {
         int x0, x1;
+        float fx, fy;
+        float prev_fx, prev_fy;
 
         set_ix = chart->hot_set_ix;
 
@@ -1286,7 +1275,7 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
         }
 
         wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
+                WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
 
         for(x = x0; x < x1; x++) {
             if(is_stacked)
@@ -1294,26 +1283,23 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
             else
                 y = CACHE_VALUE(&cache, set_ix, x);
 
-            circle.x = line_map_x(x, &geom);
-            circle.y = line_map_y(y, &geom);
-            circle.r = 4.0f;
-            wdFillCircle(ctx->canvas, ctx->solid_brush, &circle);
+            fx = line_map_x(x, &geom);
+            fy = line_map_y(y, &geom);
+            wdFillCircle(ctx->canvas, ctx->solid_brush, fx, fy, 4.0f);
 
-            if(x > x0) {
-                line.x0 = line.x1;
-                line.y0 = line.y1;
-                line.x1 = circle.x;
-                line.y1 = circle.y;
-                wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 3.5f);
-            } else {
-                line.x1 = circle.x;
-                line.y1 = circle.y;
-            }
+            if(x > x0)
+                wdDrawLine(ctx->canvas, ctx->solid_brush, prev_fx, prev_fy, fx, fy, 3.5f);
+
+            prev_fx = fx;
+            prev_fy = fy;
         }
     }
 
     /* Paint all data sets */
     for(set_ix = 0; set_ix < n; set_ix++) {
+        float fx, fy;
+        float prev_fx, prev_fy;
+
         wdSetSolidBrushColor(ctx->solid_brush,
                         WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
         for(x = 0; x < geom.min_count; x++) {
@@ -1322,21 +1308,15 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
             else
                 y = CACHE_VALUE(&cache, set_ix, x);
 
-            circle.x = line_map_x(x, &geom);
-            circle.y = line_map_y(y, &geom);
-            circle.r = 2.0f;
-            wdFillCircle(ctx->canvas, ctx->solid_brush, &circle);
+            fx = line_map_x(x, &geom);
+            fy = line_map_y(y, &geom);
+            wdFillCircle(ctx->canvas, ctx->solid_brush, fx, fy, 2.0f);
 
-            if(x > 0) {
-                line.x0 = line.x1;
-                line.y0 = line.y1;
-                line.x1 = circle.x;
-                line.y1 = circle.y;
-                wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
-            } else {
-                line.x1 = circle.x;
-                line.y1 = circle.y;
-            }
+            if(x > 0)
+                wdDrawLine(ctx->canvas, ctx->solid_brush, prev_fx, prev_fy, fx, fy, 1.0f);
+
+            prev_fx = fx;
+            prev_fy = fy;
         }
     }
 
@@ -1576,7 +1556,7 @@ static void
 column_paint_grid(chart_t* chart, chart_paint_t* ctx,
                   const chart_layout_t* layout, const column_geometry_t* geom)
 {
-    WD_LINE line;
+    float x0, y0, x1, y1;
     WD_RECT rect;
     int x, y;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
@@ -1595,20 +1575,18 @@ column_paint_grid(chart_t* chart, chart_paint_t* ctx,
 
     /* Horizontal grid lines */
     wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(191,191,191));
-    line.x0 = geom->core_rect.x0;
-    line.x1 = geom->core_rect.x1;
+    x0 = geom->core_rect.x0;
+    x1 = geom->core_rect.x1;
     for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
         if(y == 0)
             continue;
 
-        line.y0 = column_map_y(y, geom);
-        line.y1 = line.y0;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        y1 = y0 = column_map_y(y, geom);
+        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
     }
     wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    line.y0 = column_map_y(0, geom);
-    line.y1 = line.y0;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+    y1 = y0 = column_map_y(0, geom);
+    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
 
     /* Labels */
     for(x = 0; x < geom->min_count; x++) {
@@ -1665,20 +1643,19 @@ column_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                    (chart->hot_i == i  ||  chart->hot_i < 0))
                 {
                     float aura_inlate = 0.75f * geom.group_padding;
-                    WD_RECT aura_rect = {
-                            column_rect.x0 - aura_inlate, column_rect.y0,
-                            column_rect.x1 + aura_inlate, column_rect.y1
-                    };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
                             WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
+                    wdFillRect(ctx->canvas, ctx->solid_brush,
+                            column_rect.x0 - aura_inlate, column_rect.y0,
+                            column_rect.x1 + aura_inlate, column_rect.y1);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
                         WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush, &column_rect);
+                wdFillRect(ctx->canvas, ctx->solid_brush,
+                        column_rect.x0, column_rect.y0, column_rect.x1, column_rect.y1);
                 column_rect.y1 = column_rect.y0;
             }
 
@@ -1700,20 +1677,19 @@ column_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                    (chart->hot_i == i  ||  chart->hot_i < 0))
                 {
                     float aura_inlate = 0.75f * geom.group_padding;
-                    WD_RECT aura_rect = {
-                            column_rect.x0 - aura_inlate, column_rect.y0,
-                            column_rect.x1 + aura_inlate, column_rect.y1
-                    };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
                             WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
+                    wdFillRect(ctx->canvas, ctx->solid_brush,
+                            column_rect.x0 - aura_inlate, column_rect.y0,
+                            column_rect.x1 + aura_inlate, column_rect.y1);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
                         WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush, &column_rect);
+                wdFillRect(ctx->canvas, ctx->solid_brush,
+                        column_rect.x0, column_rect.y0, column_rect.x1, column_rect.y1);
                 column_rect.x0 = column_rect.x1 + geom.column_padding;
             }
 
@@ -1967,9 +1943,9 @@ static void
 bar_paint_grid(chart_t* chart, chart_paint_t* ctx,
                const chart_layout_t* layout, const bar_geometry_t* geom)
 {
-    WD_LINE line;
-    WD_RECT rect;
     int x, y;
+    float x0, y0, x1, y1;
+    WD_RECT rect;
     WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
 
     /* Axis legends */
@@ -1986,19 +1962,17 @@ bar_paint_grid(chart_t* chart, chart_paint_t* ctx,
 
     /* Vertical grid lines */
     wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(191,191,191));
-    line.y0 = geom->core_rect.y0;
-    line.y1 = geom->core_rect.y1;
+    y0 = geom->core_rect.y0;
+    y1 = geom->core_rect.y1;
     for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
         if(x == 0)
             continue;
-        line.x0 = bar_map_x(x, geom);
-        line.x1 = line.x0;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        x1 = x0 = bar_map_x(x, geom);
+        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
     }
     wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    line.x0 = bar_map_x(0, geom);
-    line.x1 = line.x0;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+    x1 = x0 = bar_map_x(0, geom);
+    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
 
     /* Labels */
     for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
@@ -2056,20 +2030,19 @@ bar_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                    (chart->hot_i == i  ||  chart->hot_i < 0))
                 {
                     float aura_inlate = 0.75f * geom.group_padding;
-                    WD_RECT aura_rect = {
-                            bar_rect.x0, bar_rect.y0 - aura_inlate,
-                            bar_rect.x1, bar_rect.y1 + aura_inlate
-                    };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
                             WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
+                    wdFillRect(ctx->canvas, ctx->solid_brush,
+                            bar_rect.x0, bar_rect.y0 - aura_inlate,
+                            bar_rect.x1, bar_rect.y1 + aura_inlate);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
                         WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush, &bar_rect);
+                wdFillRect(ctx->canvas, ctx->solid_brush,
+                        bar_rect.x0, bar_rect.y0, bar_rect.x1, bar_rect.y1);
                 bar_rect.x0 = bar_rect.x1;
             }
 
@@ -2090,20 +2063,19 @@ bar_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
                    (chart->hot_i == i  ||  chart->hot_i < 0))
                 {
                     float aura_inlate = 0.8f * geom.bar_padding;
-                    WD_RECT aura_rect = {
-                            bar_rect.x0, bar_rect.y0 - aura_inlate,
-                            bar_rect.x1, bar_rect.y1 + aura_inlate
-                    };
 
                     wdSetSolidBrushColor(ctx->solid_brush,
                             WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush, &aura_rect);
+                    wdFillRect(ctx->canvas, ctx->solid_brush,
+                            bar_rect.x0, bar_rect.y0 - aura_inlate,
+                            bar_rect.x1, bar_rect.y1 + aura_inlate);
                 }
 
                 /* Paint bar */
                 wdSetSolidBrushColor(ctx->solid_brush,
                         WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush, &bar_rect);
+                wdFillRect(ctx->canvas, ctx->solid_brush,
+                        bar_rect.x0, bar_rect.y0, bar_rect.x1, bar_rect.y1);
                 bar_rect.y1 = bar_rect.y0 - geom.bar_padding;
             }
 
@@ -2260,17 +2232,18 @@ chart_paint_legend(chart_t* chart, chart_paint_t* ctx,
 
         /* Paint active aura */
         if(set_ix == chart->hot_set_ix) {
-            WD_RECT r = { color_rect.x0 - 2.5f, color_rect.y0 - 2.5f,
-                               color_rect.x1 + 2.5f, color_rect.y1 + 2.5f };
             wdSetSolidBrushColor(ctx->solid_brush,
                     WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-            wdDrawRect(ctx->canvas, ctx->solid_brush, &r, 2.0);
+            wdDrawRect(ctx->canvas, ctx->solid_brush,
+                    color_rect.x0 - 2.5f, color_rect.y0 - 2.5f,
+                    color_rect.x1 + 2.5f, color_rect.y1 + 2.5f, 2.0);
         }
 
         /* Legend color */
         wdSetSolidBrushColor(ctx->solid_brush,
                 WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-        wdFillRect(ctx->canvas, ctx->solid_brush, &color_rect);
+        wdFillRect(ctx->canvas, ctx->solid_brush,
+                color_rect.x0, color_rect.y0, color_rect.x1, color_rect.y1);
 
         /* Legend text */
         if(data->name != NULL) {

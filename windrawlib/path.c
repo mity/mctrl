@@ -74,9 +74,9 @@ wdCreatePolygonPath(WD_HCANVAS hCanvas, const WD_POINT* pPoints, UINT uCount)
             return NULL;
         }
 
-        wdBeginFigure(&sink, &pPoints[0]);
+        wdBeginFigure(&sink, pPoints[0].x, pPoints[0].y);
         for(i = 1; i < uCount; i++)
-            wdAddLine(&sink, &pPoints[i]);
+            wdAddLine(&sink, pPoints[i].x, pPoints[i].y);
         wdEndFigure(&sink, TRUE);
 
         wdClosePathSink(&sink);
@@ -132,18 +132,19 @@ wdClosePathSink(WD_PATHSINK* pSink)
 }
 
 void
-wdBeginFigure(WD_PATHSINK* pSink, const WD_POINT* pStartPoint)
+wdBeginFigure(WD_PATHSINK* pSink, float x, float y)
 {
     if(d2d_enabled()) {
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
-        ID2D1GeometrySink_BeginFigure(s, *((D2D1_POINT_2F*) pStartPoint),
-                                      D2D1_FIGURE_BEGIN_FILLED);
+        D2D1_POINT_2F pt = { x, y };
+
+        ID2D1GeometrySink_BeginFigure(s, pt, D2D1_FIGURE_BEGIN_FILLED);
     } else {
         gdix_vtable->fn_StartPathFigure(pSink->pData);
     }
 
-    pSink->ptEnd.x = pStartPoint->x;
-    pSink->ptEnd.y = pStartPoint->y;
+    pSink->ptEnd.x = x;
+    pSink->ptEnd.y = y;
 }
 
 void
@@ -159,25 +160,25 @@ wdEndFigure(WD_PATHSINK* pSink, BOOL bCloseFigure)
 }
 
 void
-wdAddLine(WD_PATHSINK* pSink, const WD_POINT* pEndPoint)
+wdAddLine(WD_PATHSINK* pSink, float x, float y)
 {
     if(d2d_enabled()) {
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
-        ID2D1GeometrySink_AddLine(s, *((D2D1_POINT_2F*) pEndPoint));
+        D2D1_POINT_2F pt = { x, y };
+
+        ID2D1GeometrySink_AddLine(s, pt);
     } else {
-        gdix_vtable->fn_AddPathLine(pSink->pData, pSink->ptEnd.x, pSink->ptEnd.y,
-                         pEndPoint->x, pEndPoint->y);
+        gdix_vtable->fn_AddPathLine(pSink->pData,
+                        pSink->ptEnd.x, pSink->ptEnd.y, x, y);
     }
 
-    pSink->ptEnd.x = pEndPoint->x;
-    pSink->ptEnd.y = pEndPoint->y;
+    pSink->ptEnd.x = x;
+    pSink->ptEnd.y = y;
 }
 
 void
-wdAddArc(WD_PATHSINK* pSink, const WD_POINT* pCenter, float fSweepAngle)
+wdAddArc(WD_PATHSINK* pSink, float cx, float cy, float fSweepAngle)
 {
-    float cx = pCenter->x;
-    float cy = pCenter->y;
     float ax = pSink->ptEnd.x;
     float ay = pSink->ptEnd.y;
     float xdiff = ax - cx;
@@ -195,10 +196,9 @@ wdAddArc(WD_PATHSINK* pSink, const WD_POINT* pCenter, float fSweepAngle)
 
     if(d2d_enabled()) {
         ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
-        WD_CIRCLE circle = { cx, cy, r };
         D2D1_ARC_SEGMENT arc_seg;
 
-        d2d_setup_arc_segment(&arc_seg, &circle, base_angle, fSweepAngle);
+        d2d_setup_arc_segment(&arc_seg, cx, cy, r, base_angle, fSweepAngle);
         ID2D1GeometrySink_AddArc(s, &arc_seg);
         pSink->ptEnd.x = arc_seg.point.x;
         pSink->ptEnd.y = arc_seg.point.y;

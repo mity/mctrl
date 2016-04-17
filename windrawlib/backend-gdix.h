@@ -112,6 +112,7 @@ struct gdix_vtable_tag {
     /* Draw/fill functions */
     int (WINAPI* fn_DrawArc)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float);
     int (WINAPI* fn_DrawImageRectRect)(dummy_GpGraphics*, dummy_GpImage*, float, float, float, float, float, float, float, float, dummy_GpUnit, const void*, void*, void*);
+    int (WINAPI* fn_DrawEllipse)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float);
     int (WINAPI* fn_DrawLine)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float);
     int (WINAPI* fn_DrawPath)(dummy_GpGraphics*, dummy_GpPen*, dummy_GpPath*);
     int (WINAPI* fn_DrawPie)(dummy_GpGraphics*, dummy_GpPen*, float, float, float, float, float, float);

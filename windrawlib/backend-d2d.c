@@ -155,12 +155,9 @@ d2d_apply_transform(ID2D1RenderTarget* target, D2D1_MATRIX_3X2_F* matrix)
 }
 
 void
-d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg, const WD_CIRCLE* circle,
+d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg, float cx, float cy, float r,
                       float base_angle, float sweep_angle)
 {
-    float cx = circle->x;
-    float cy = circle->y;
-    float r = circle->r;
     float sweep_rads = (base_angle + sweep_angle) * (WD_PI / 180.0f);
 
     arc_seg->point.x = cx + r * cosf(sweep_rads);
@@ -181,8 +178,8 @@ d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg, const WD_CIRCLE* circle,
 }
 
 ID2D1Geometry*
-d2d_create_arc_geometry(const WD_CIRCLE* circle, float base_angle,
-                        float sweep_angle, BOOL pie)
+d2d_create_arc_geometry(float cx, float cy, float r,
+                        float base_angle, float sweep_angle, BOOL pie)
 {
     ID2D1PathGeometry* g = NULL;
     ID2D1GeometrySink* s;
@@ -206,16 +203,16 @@ d2d_create_arc_geometry(const WD_CIRCLE* circle, float base_angle,
         return NULL;
     }
 
-    pt.x = circle->x + circle->r * cosf(base_rads);
-    pt.y = circle->y + circle->r * sinf(base_rads);
+    pt.x = cx + r * cosf(base_rads);
+    pt.y = cy + r * sinf(base_rads);
     ID2D1GeometrySink_BeginFigure(s, pt, D2D1_FIGURE_BEGIN_FILLED);
 
-    d2d_setup_arc_segment(&arc_seg, circle, base_angle, sweep_angle);
+    d2d_setup_arc_segment(&arc_seg, cx, cy, r, base_angle, sweep_angle);
     ID2D1GeometrySink_AddArc(s, &arc_seg);
 
     if(pie) {
-        pt.x = circle->x;
-        pt.y = circle->y;
+        pt.x = cx;
+        pt.y = cy;
         ID2D1GeometrySink_AddLine(s, pt);
         ID2D1GeometrySink_EndFigure(s, D2D1_FIGURE_END_CLOSED);
     } else {

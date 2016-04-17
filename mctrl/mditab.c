@@ -1274,46 +1274,49 @@ mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
                        WD_RECT* rect, int state)
 {
     static const struct {
-        const WD_LINE lines[2];
+        float ax0;
+        float ay0;
+        float ax1;
+        float ay1;
+        float bx0;
+        float by0;
+        float bx1;
+        float by1;
     } dies[] = {
-        { { { 0.6f, 0.3f, 0.4f, 0.5f }, { 0.4f, 0.5f, 0.6f, 0.7f } } },
-        { { { 0.4f, 0.3f, 0.6f, 0.5f }, { 0.6f, 0.5f, 0.4f, 0.7f } } },
-        { { { 0.3f, 0.4f, 0.5f, 0.6f }, { 0.5f, 0.6f, 0.7f, 0.4f } } },
-        { { { 0.3f, 0.3f, 0.7f, 0.7f }, { 0.3f, 0.7f, 0.7f, 0.3f } } }
+        { 0.6f, 0.3f, 0.4f, 0.5f,   0.4f, 0.5f, 0.6f, 0.7f },
+        { 0.4f, 0.3f, 0.6f, 0.5f,   0.6f, 0.5f, 0.4f, 0.7f },
+        { 0.3f, 0.4f, 0.5f, 0.6f,   0.5f, 0.6f, 0.7f, 0.4f },
+        { 0.3f, 0.3f, 0.7f, 0.7f,   0.3f, 0.7f, 0.7f, 0.3f }
     };
 
-    const WD_LINE* die_lines = dies[btn_id].lines;
     float w = rect->x1 - rect->x0;
     float h = rect->y1 - rect->y0;
     WD_COLOR c;
-    WD_LINE line;
-    int i;
+    float stroke_width;
 
     if(state == BTNSTATE_HOT  ||  state == BTNSTATE_PRESSED) {
-        WD_CIRCLE circle = { rect->x0 + w/2.0f, rect->y0 + h/2.0f, MC_MIN(w, h) / 2.0f - 1.0f };
-
         c = (state == BTNSTATE_HOT
                 ? WD_COLOR_FROM_GDI_EX(191, GetSysColor(COLOR_BTNFACE))
                 : WD_COLOR_FROM_GDI_EX(127, GetSysColor(COLOR_BTNFACE)));
         wdSetSolidBrushColor(ctx->solid_brush, c);
-        wdFillCircle(ctx->canvas, ctx->solid_brush, &circle);
 
+        wdFillCircle(ctx->canvas, ctx->solid_brush,
+                rect->x0 + w/2.0f, rect->y0 + h/2.0f, MC_MIN(w, h) / 2.0f - 1.0f);
     }
+
+    stroke_width = (mc_win_version >= MC_WIN_10 ? 1.0f : 2.0f);
 
     c = (state == BTNSTATE_DISABLED
             ? WD_COLOR_FROM_GDI_EX(63, GetSysColor(COLOR_BTNTEXT))
             : WD_COLOR_FROM_GDI(GetSysColor(COLOR_BTNTEXT)));
-
     wdSetSolidBrushColor(ctx->solid_brush, c);
-    for(i = 0; i < 2; i++) {
-        float stroke_width = (mc_win_version >= MC_WIN_10 ? 1.0f : 2.0f);
 
-        line.x0 = rect->x0 + w * die_lines[i].x0;
-        line.y0 = rect->y0 + h * die_lines[i].y0;
-        line.x1 = rect->x0 + w * die_lines[i].x1;
-        line.y1 = rect->y0 + h * die_lines[i].y1;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, stroke_width);
-    }
+    wdDrawLine(ctx->canvas, ctx->solid_brush,
+            dies[btn_id].ax0, dies[btn_id].ay0, dies[btn_id].ax1, dies[btn_id].ay1,
+            stroke_width);
+    wdDrawLine(ctx->canvas, ctx->solid_brush,
+            dies[btn_id].bx0, dies[btn_id].by0, dies[btn_id].bx1, dies[btn_id].by1,
+            stroke_width);
 }
 
 static void
@@ -1345,28 +1348,22 @@ static void
 mditab_paint_scroll_block(mditab_t* mditab, mditab_paint_t* ctx,
                           float x, float y0, float y1, int direction)
 {
-    WD_LINE line;
     WD_COLOR color = MDITAB_COLOR_BORDER;
     COLORREF rgb;
     BYTE a;
     int i;
     int ydiff = 1;
 
-    line.x0 = x;
-    line.y0 = y0 - MDITAB_ITEM_TOP_MARGIN / 2;
-    line.x1 = x;
-    line.y1 = y1;
-
     rgb = WD_COLOR_TO_GDI(color);
     a = WD_AVALUE(color);
 
+    y0 -= MDITAB_ITEM_TOP_MARGIN / 2;
     for(i = 0; i < 8; i++) {
         wdSetSolidBrushColor(ctx->solid_brush, WD_COLOR_FROM_GDI_EX(a, rgb));
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        wdDrawLine(ctx->canvas, ctx->solid_brush, x, y0, x, y1, 1.0f);
 
-        line.x0 += direction;
-        line.y0 += ydiff;
-        line.x1 += direction;
+        x += direction;
+        y0 += ydiff;
         a /= 2;
         ydiff *= 2;
     }
@@ -1386,12 +1383,10 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     float r;
     WD_HPATH path;
     WD_PATHSINK sink;
-    WD_POINT pt;
     BOOL left_block;
     BOOL right_block;
     WD_RECT clip_rect;
     WD_RECT blit_rect;
-    WD_LINE line;
     mditab_item_layout_t layout;
     BOOL degenerate_shape = FALSE;
 
@@ -1421,32 +1416,15 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
         r = (x1 - x0) / 2.0f;
         degenerate_shape = TRUE;
     }
-    pt.x = x0 - r - 5.0f;
-    pt.y = y1;
-    wdBeginFigure(&sink, &pt);
-    pt.x = x0 - r;
-    pt.y = y1 - 1.0f;
-    wdAddLine(&sink, &pt);
-    pt.x = x0 - r;
-    pt.y = y1 - r;
-    wdAddArc(&sink, &pt, -90.0f);
-    pt.x = x0 + r;
-    pt.y = y1 - r;
-    wdAddArc(&sink, &pt, 90.0f);
-    if(!degenerate_shape) {
-        pt.x = x1 - r;
-        pt.y = y0;
-        wdAddLine(&sink, &pt);
-    }
-    pt.x = x1 - r;
-    pt.y = y1 - r;
-    wdAddArc(&sink, &pt, 90.0f);
-    pt.x = x1 + r;
-    pt.y = y1 - r;
-    wdAddArc(&sink, &pt, -90.0f);
-    pt.x = x1 + r + 5.0f;
-    pt.y = y1;
-    wdAddLine(&sink, &pt);
+    wdBeginFigure(&sink, x0-r-5.0f, y1);
+    wdAddLine(&sink, x0-r, y1-1.0f);
+    wdAddArc(&sink, x0-r, y1-r, -90.0f);
+    wdAddArc(&sink, x0+r, y1-r, 90.0f);
+    if(!degenerate_shape)
+        wdAddLine(&sink, x1-r, y0);
+    wdAddArc(&sink, x1-r, y1-r, 90.0f);
+    wdAddArc(&sink, x1+r, y1-r, -90.0f);
+    wdAddLine(&sink, x1+r+5.0f, y1);
     wdEndFigure(&sink, TRUE);
     wdClosePathSink(&sink);
 
@@ -1527,14 +1505,10 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     wdSetClip(ctx->canvas, NULL, NULL);
 
     /* For the active tab, paint the bottom line. */
-    line.x0 = 0.0f;
-    line.y0 = y1 - 1.0f;
-    line.x1 = blit_rect.x0 - 1.0f;
-    line.y1 = y1 - 1.0f;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
-    line.x0 = blit_rect.x1;
-    line.x1 = client->right;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+    wdDrawLine(ctx->canvas, ctx->solid_brush,
+            0.0f, y1-1.0f, blit_rect.x0 - 1.0f, y1-1.0f, 1.0f);
+    wdDrawLine(ctx->canvas, ctx->solid_brush,
+            blit_rect.x1, y1-1.0f, client->right, y1-1.0f, 1.0f);
 
     /* Destroy the item shape path. */
     wdDestroyPath(path);
@@ -1683,13 +1657,9 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
      * If there are no items or selected items is out of the view port, we have
      * to paint it here. */
     if(!paint_selected_item) {
-        WD_LINE line;
-        line.x0 = -1.0f;
-        line.y0 = client.bottom - 1.0f;
-        line.x1 = client.right;
-        line.y1 = client.bottom - 1.0f;
         wdSetSolidBrushColor(ctx->solid_brush, MDITAB_COLOR_BORDER);
-        wdDrawLine(ctx->canvas, ctx->solid_brush, &line, 1.0f);
+        wdDrawLine(ctx->canvas, ctx->solid_brush,
+                -1.0f, client.bottom - 1.0f,  client.right, client.bottom - 1.0f, 1.0f);
     }
 
     /* Clean-up */

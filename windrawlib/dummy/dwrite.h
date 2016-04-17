@@ -148,6 +148,7 @@ typedef struct dummy_IDWriteFactory_tag         dummy_IDWriteFactory;
 typedef struct dummy_IDWriteFont_tag            dummy_IDWriteFont;
 typedef struct dummy_IDWriteFontCollection_tag  dummy_IDWriteFontCollection;
 typedef struct dummy_IDWriteFontFamily_tag      dummy_IDWriteFontFamily;
+typedef struct dummy_IDWriteInlineObject_tag    dummy_IDWriteInlineObject;
 typedef struct dummy_IDWriteTextFormat_tag      dummy_IDWriteTextFormat;
 typedef struct dummy_IDWriteTextLayout_tag      dummy_IDWriteTextLayout;
 
@@ -183,7 +184,7 @@ struct dummy_IDWriteFactoryVtbl_tag {
     STDMETHOD(CreateTextLayout)(dummy_IDWriteFactory*, WCHAR const*, UINT32, dummy_IDWriteTextFormat*,
             FLOAT, FLOAT, dummy_IDWriteTextLayout**);
     STDMETHOD(dummy_CreateGdiCompatibleTextLayout)(void);
-    STDMETHOD(CreateEllipsisTrimmingSign)(dummy_IDWriteFactory*, dummy_IDWriteTextFormat*, void**);
+    STDMETHOD(CreateEllipsisTrimmingSign)(dummy_IDWriteFactory*, dummy_IDWriteTextFormat*, dummy_IDWriteInlineObject**);
     STDMETHOD(dummy_CreateTextAnalyzer)(void);
     STDMETHOD(dummy_CreateNumberSubstitution)(void);
     STDMETHOD(dummy_CreateGlyphRunAnalysis)(void);
@@ -300,6 +301,33 @@ struct dummy_IDWriteFontFamily_tag {
 #define dummy_IDWriteFontFamily_GetFirstMatchingFont(self,a,b,c,d)  (self)->vtbl->GetFirstMatchingFont(self,a,b,c,d)
 
 
+/***************************************
+ ***  Interface IDWriteInlineObject  ***
+ ***************************************/
+
+typedef struct dummy_IDWriteInlineObjectVtbl_tag dummy_IDWriteInlineObjectVtbl;
+struct dummy_IDWriteInlineObjectVtbl_tag {
+    /* IUnknown methods */
+    STDMETHOD(QueryInterface)(dummy_IDWriteInlineObject*, REFIID, void**);
+    STDMETHOD_(ULONG, AddRef)(dummy_IDWriteInlineObject*);
+    STDMETHOD_(ULONG, Release)(dummy_IDWriteInlineObject*);
+
+    /* IDWriteInlineObject methods */
+    STDMETHOD(dummy_Draw)(void);
+    STDMETHOD(dummy_GetMetrics)(void);
+    STDMETHOD(dummy_GetOverhangMetrics)(void);
+    STDMETHOD(dummy_GetBreakConditions)(void);
+};
+
+struct dummy_IDWriteInlineObject_tag {
+    dummy_IDWriteInlineObjectVtbl* vtbl;
+};
+
+#define dummy_IDWriteInlineObject_QueryInterface(self,a,b)  (self)->vtbl->QueryInterface(self,a,b)
+#define dummy_IDWriteInlineObject_AddRef(self)              (self)->vtbl->AddRef(self)
+#define dummy_IDWriteInlineObject_Release(self)             (self)->vtbl->Release(self)
+
+
 /*************************************
  ***  Interface IDWriteTextFormat  ***
  *************************************/
@@ -373,7 +401,7 @@ struct dummy_IDWriteTextLayoutVtbl_tag {
     STDMETHOD(dummy_SetReadingDirection)(void);
     STDMETHOD(dummy_SetFlowDirection)(void);
     STDMETHOD(dummy_SetIncrementalTabStop)(void);
-    STDMETHOD(SetTrimming)(dummy_IDWriteTextLayout*, const dummy_DWRITE_TRIMMING*, void*);
+    STDMETHOD(SetTrimming)(dummy_IDWriteTextLayout*, const dummy_DWRITE_TRIMMING*, dummy_IDWriteInlineObject*);
     STDMETHOD(dummy_SetLineSpacing)(void);
     STDMETHOD(dummy_GetTextAlignment)(void);
     STDMETHOD(dummy_GetParagraphAlignment)(void);

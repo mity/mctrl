@@ -73,9 +73,10 @@ void d2d_reset_clip(d2d_canvas_t* c);
 void d2d_reset_transform(ID2D1RenderTarget* target);
 void d2d_apply_transform(ID2D1RenderTarget* target, D2D1_MATRIX_3X2_F* matrix);
 
-void d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg, const WD_CIRCLE* circle,
+void d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg,
+                    float cx, float cy, float r,
                     float base_angle, float sweep_angle);
-ID2D1Geometry* d2d_create_arc_geometry(const WD_CIRCLE* circle,
+ID2D1Geometry* d2d_create_arc_geometry(float cx, float cy, float r,
                     float base_angle, float sweep_angle, BOOL pie);
 
 
