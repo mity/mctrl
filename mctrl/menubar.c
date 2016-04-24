@@ -256,6 +256,13 @@ menubar_perform_dropdown(menubar_t* mb)
                         MAKELONG(btn_state | TBSTATE_PRESSED, 0));
 
         MENUBAR_SENDMSG(mb->win, TB_GETITEMRECT, item, &pmparams.rcExclude);
+
+        if(mc_win_version >= MC_WIN_VISTA  &&  mcIsAppThemed()) {
+            /* Fix for consistency with a native menu on newer Windows
+             * when styles are enabled. */
+            pmparams.rcExclude.bottom--;
+        }
+
         MapWindowPoints(mb->win, HWND_DESKTOP, (POINT*)&pmparams.rcExclude, 2);
 
         MENUBAR_TRACE("menubar_perform_dropdown: ENTER TrackPopupMenuEx()");
