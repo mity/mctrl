@@ -1289,6 +1289,8 @@ mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
         { 0.3f, 0.3f, 0.7f, 0.7f,   0.3f, 0.7f, 0.7f, 0.3f }
     };
 
+    float x = rect->x0;
+    float y = rect->y0;
     float w = rect->x1 - rect->x0;
     float h = rect->y1 - rect->y0;
     WD_COLOR c;
@@ -1301,7 +1303,7 @@ mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
         wdSetSolidBrushColor(ctx->solid_brush, c);
 
         wdFillCircle(ctx->canvas, ctx->solid_brush,
-                rect->x0 + w/2.0f, rect->y0 + h/2.0f, MC_MIN(w, h) / 2.0f - 1.0f);
+                x + w/2.0f, y + h/2.0f, w / 2.0f - 1.0f);
     }
 
     stroke_width = (mc_win_version >= MC_WIN_10 ? 1.0f : 2.0f);
@@ -1312,10 +1314,12 @@ mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
     wdSetSolidBrushColor(ctx->solid_brush, c);
 
     wdDrawLine(ctx->canvas, ctx->solid_brush,
-            dies[btn_id].ax0, dies[btn_id].ay0, dies[btn_id].ax1, dies[btn_id].ay1,
+            x + w * dies[btn_id].ax0, y + h * dies[btn_id].ay0,
+            x + w * dies[btn_id].ax1, y + h * dies[btn_id].ay1,
             stroke_width);
     wdDrawLine(ctx->canvas, ctx->solid_brush,
-            dies[btn_id].bx0, dies[btn_id].by0, dies[btn_id].bx1, dies[btn_id].by1,
+            x + w * dies[btn_id].bx0, y + h * dies[btn_id].by0,
+            x + w * dies[btn_id].bx1, y + h * dies[btn_id].by1,
             stroke_width);
 }
 
@@ -1547,8 +1551,16 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
 
     wdBeginPaint(ctx->canvas);
 
-    if(erase)
-        wdClear(ctx->canvas, (mditab->dwm_extend_frame ? WD_RGB(0,0,0) : MDITAB_COLOR_BACKGROUND));
+    if(erase) {
+        WD_COLOR color;
+
+        if(mditab->dwm_extend_frame)
+            color = WD_ARGB(0,0,0,0);
+        else
+            color = MDITAB_COLOR_BACKGROUND;
+
+        wdClear(ctx->canvas, color);
+    }
 
     /* Paint auxiliary buttons */
     if(mditab->btn_mask & BTNMASK_LSCROLL)
