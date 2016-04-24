@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Martin Mitas
+ * Copyright (c) 2012-2016 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -225,9 +225,13 @@ static void
 menubar_perform_dropdown(menubar_t* mb)
 {
     int item;
+    BOOL rtl_layout;
     DWORD btn_state;
     TPMPARAMS pmparams = {0};
+
     MENUBAR_TRACE("menubar_perform_dropdown(%p)", mb);
+
+    rtl_layout = mc_is_rtl_win(mb->win);
 
     pmparams.cbSize = sizeof(TPMPARAMS);
 
@@ -256,9 +260,9 @@ menubar_perform_dropdown(menubar_t* mb)
 
         MENUBAR_TRACE("menubar_perform_dropdown: ENTER TrackPopupMenuEx()");
         TrackPopupMenuEx(GetSubMenu(mb->menu, item),
-                         TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_VERTICAL,
-                         pmparams.rcExclude.left, pmparams.rcExclude.bottom,
-                         mb->win, &pmparams);
+                (rtl_layout ? TPM_LAYOUTRTL : 0) | TPM_LEFTBUTTON | TPM_VERTICAL,
+                (rtl_layout ? pmparams.rcExclude.right : pmparams.rcExclude.left),
+                pmparams.rcExclude.bottom, mb->win, &pmparams);
         MENUBAR_TRACE("menubar_perform_dropdown: LEAVE TrackPopupMenuEx()");
 
         MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(btn_state, 0));
@@ -922,6 +926,7 @@ BOOL MCTRL_API
 mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
                                    NMREBARCHEVRON* lpRebarChevron)
 {
+    BOOL rtl_layout;
     REBARBANDINFO band_info;
     menubar_t* mb;
     RECT rect;
@@ -930,6 +935,8 @@ mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
     TCHAR buffer[MENUBAR_ITEM_LABEL_MAXSIZE];
     int i, n;
     TPMPARAMS params;
+
+    rtl_layout = mc_is_rtl_win(lpRebarChevron->hdr.hwndFrom);
 
     /* Verify lpRebarChevron is from notification we assume. */
     if(MC_ERR(lpRebarChevron->hdr.code != RBN_CHEVRONPUSHED)) {
@@ -987,9 +994,11 @@ mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
     mc_rect_copy(&params.rcExclude, &lpRebarChevron->rc);
 
     /* Run the menu */
-    MapWindowPoints(hwndMenubar, NULL, (POINT*) &params.rcExclude, 2);
-    TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_VERTICAL,
-                     params.rcExclude.left, params.rcExclude.bottom, mb->win, &params);
+    MapWindowPoints(lpRebarChevron->hdr.hwndFrom, NULL, (POINT*) &params.rcExclude, 2);
+    TrackPopupMenuEx(menu,
+            (rtl_layout ? TPM_LAYOUTRTL : 0) | TPM_LEFTBUTTON | TPM_VERTICAL,
+            (rtl_layout ? params.rcExclude.right : params.rcExclude.left),
+            params.rcExclude.bottom, mb->win, &params);
 
     /* Destroy the popup menu. Note submenus have to survive as they are shared
      * with the menubar itself. */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015 Martin Mitas
+ * Copyright (c) 2008-2016 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -475,6 +475,23 @@ mc_clip_reset(HDC dc, HRGN old_clip)
 
 /* InitCommonControlsEx() wrapper. */
 int mc_init_comctl32(DWORD icc);
+
+/* Check whether the window uses right-to-left layout. */
+static inline BOOL
+mc_is_rtl_win(HWND win)
+{
+    DWORD exstyle;
+    DWORD rtl_layout;
+    DWORD rtl_reading;
+
+    exstyle = GetWindowLong(win, GWL_EXSTYLE);
+    rtl_layout = (exstyle & WS_EX_LAYOUTRTL);
+    rtl_reading = (exstyle & WS_EX_RTLREADING);
+
+    /* If both, WS_EX_LAYOUTRTL and WS_EX_RTLREADING are set, they cancel
+     * each other. */
+    return (rtl_layout && !rtl_reading) || (!rtl_layout && rtl_reading);
+}
 
 /* Detect icon size */
 void mc_icon_size(HICON icon, SIZE* size);
