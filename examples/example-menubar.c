@@ -55,7 +55,7 @@ CreateMenuBar(HWND hWnd)
     /* Embed the menubar in the ReBar */
     band.cbSize = sizeof(REBARBANDINFO);
     band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE | RBBIM_IDEALSIZE | RBBIM_ID;
-    band.fStyle = RBBS_GRIPPERALWAYS | RBBS_TOPALIGN | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
+    band.fStyle = RBBS_GRIPPERALWAYS | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
     band.hwndChild = hwndMenubar;
     dwBtnSize = (DWORD)SendMessage(band.hwndChild, TB_GETBUTTONSIZE, 0, 0);
     band.cyChild = HIWORD(dwBtnSize);
