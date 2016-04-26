@@ -404,6 +404,7 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
             SetFocus(mb->old_focus);
             menubar_reset_hot_item(mb);
             active_menubar = NULL;
+            menubar_update_ui_state(mb, FALSE);
             return TRUE;
 
         case VK_LEFT:
@@ -758,7 +759,6 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                             MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_LEFT");
                             if(item != mb->pressed_item)
                                 menubar_ht_change_dropdown(mb, item, TRUE);
-                            menubar_update_ui_state(mb, TRUE);
                         }
                         break;
 
@@ -773,7 +773,6 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                             MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_RIGHT");
                             if(item != mb->pressed_item)
                                 menubar_ht_change_dropdown(mb, item, TRUE);
-                            menubar_update_ui_state(mb, TRUE);
                         }
                         break;
                 }
