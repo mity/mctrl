@@ -289,6 +289,9 @@ menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
     MENUBAR_TRACE("menubar_dropdown(%p, %d)", mb, item);
 
+    if(item == mb->pressed_item)
+        return;
+
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
 
