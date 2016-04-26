@@ -585,6 +585,21 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_GETDLGCODE:
             return MENUBAR_SENDMSG(win, msg, wp, lp) | DLGC_WANTALLKEYS | DLGC_WANTARROWS;
 
+        case WM_SETFOCUS:
+            MENUBAR_TRACE("menubar_proc(WM_SETFOCUS): old focus %p", (HWND) wp);
+            if(win != (HWND) wp)
+                mb->old_focus = (HWND) wp;
+            active_menubar = mb;
+            break;
+
+        case WM_KILLFOCUS:
+            MENUBAR_TRACE("menubar_proc(WM_KILLFOCUS)");
+            mb->old_focus = NULL;
+            MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
+            menubar_update_ui_state(mb, FALSE);
+            active_menubar = NULL;
+            break;
+
         case WM_NCCREATE:
             if(MC_ERR(MENUBAR_SENDMSG(win, msg, wp, lp) == FALSE)) {
                 MC_TRACE_ERR("menubar_proc: MENUBAR_SENDMSG(WM_NCCREATE) failed");
@@ -595,21 +610,6 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 return FALSE;
             SetWindowLongPtr(win, extra_offset, (LONG_PTR)mb);
             return TRUE;
-
-        case WM_SETFOCUS:
-            MENUBAR_TRACE("menubar_proc(WM_SETFOCUS): old focus %p", (HWND) wp);
-            if(win != (HWND) wp)
-                mb->old_focus = (HWND) wp;
-            active_menubar = mb;
-            break;
-
-        case WM_KILLFOCUS:
-            MENUBAR_TRACE("menubar_proc: WM_KILLFOCUS");
-            mb->old_focus = NULL;
-            MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
-            menubar_update_ui_state(mb, FALSE);
-            active_menubar = NULL;
-            break;
 
         case WM_CREATE:
             return menubar_create(mb, (CREATESTRUCT*) lp);
