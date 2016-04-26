@@ -120,7 +120,7 @@ menubar_update_ui_state(menubar_t* mb, BOOL keyboard_activity)
         action = (show_accel_always ? UIS_CLEAR : UIS_SET);
     }
 
-    MENUBAR_SENDMSG(mb->win, WM_CHANGEUISTATE, MAKELONG(action, UISF_HIDEACCEL), 0);
+    MC_POST(mb->win, WM_CHANGEUISTATE, MAKELONG(action, UISF_HIDEACCEL), 0);
 }
 
 static int
