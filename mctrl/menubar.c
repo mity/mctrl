@@ -387,6 +387,12 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
 static BOOL
 menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
 {
+    if(vk == VK_LEFT || vk == VK_RIGHT) {
+        /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
+        if(mc_is_rtl_win(mb->win))
+            vk = (vk == VK_LEFT ? VK_RIGHT : VK_LEFT);
+    }
+
     switch(vk) {
         case VK_ESCAPE:
         case VK_F10:
@@ -724,7 +730,16 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
 
             case WM_KEYDOWN:
             case WM_SYSKEYDOWN:
-                switch(msg->wParam) {
+            {
+                int vk = msg->wParam;
+
+                if(vk == VK_LEFT || vk == VK_RIGHT) {
+                    /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
+                    if(mc_is_rtl_win(mb->win))
+                        vk = (vk == VK_LEFT ? VK_RIGHT : VK_LEFT);
+                }
+
+                switch(vk) {
                     case VK_MENU:
                     case VK_F10:
                         menubar_ht_change_dropdown(mb, -1, TRUE);
@@ -760,6 +775,7 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                         break;
                 }
                 break;
+            }
         }
     }
 
