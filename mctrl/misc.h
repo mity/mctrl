@@ -477,21 +477,7 @@ mc_clip_reset(HDC dc, HRGN old_clip)
 int mc_init_comctl32(DWORD icc);
 
 /* Check whether the window uses right-to-left layout. */
-static inline BOOL
-mc_is_rtl_win(HWND win)
-{
-    DWORD exstyle;
-    DWORD rtl_layout;
-    DWORD rtl_reading;
-
-    exstyle = GetWindowLong(win, GWL_EXSTYLE);
-    rtl_layout = (exstyle & WS_EX_LAYOUTRTL);
-    rtl_reading = (exstyle & WS_EX_RTLREADING);
-
-    /* If both, WS_EX_LAYOUTRTL and WS_EX_RTLREADING are set, they cancel
-     * each other. */
-    return (rtl_layout && !rtl_reading) || (!rtl_layout && rtl_reading);
-}
+BOOL mc_is_rtl_exstyle(DWORD exstyle);
 
 /* Detect icon size */
 void mc_icon_size(HICON icon, SIZE* size);

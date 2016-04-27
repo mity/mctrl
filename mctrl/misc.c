@@ -386,6 +386,20 @@ mc_init_comctl32(DWORD icc)
     return 0;
 }
 
+BOOL
+mc_is_rtl_exstyle(DWORD exstyle)
+{
+    BOOL rtl = FALSE;
+
+    /* If both are set, they cancel each other. */
+    if(exstyle & WS_EX_LAYOUTRTL)
+        rtl = !rtl;
+    if(exstyle & WS_EX_RTLREADING)
+        rtl = !rtl;
+
+    return rtl;
+}
+
 void
 mc_icon_size(HICON icon, SIZE* size)
 {

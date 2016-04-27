@@ -79,6 +79,7 @@ struct menubar_tag {
     HMENU menu;
     short hot_item;
     short pressed_item;
+    WORD rtl                    : 1;
     WORD continue_hot_track     : 1;
     WORD select_from_keyboard   : 1;
     WORD is_dropdown_active     : 1;
@@ -225,13 +226,10 @@ static void
 menubar_perform_dropdown(menubar_t* mb)
 {
     int item;
-    BOOL rtl_layout;
     DWORD btn_state;
     TPMPARAMS pmparams = {0};
 
     MENUBAR_TRACE("menubar_perform_dropdown(%p)", mb);
-
-    rtl_layout = mc_is_rtl_win(mb->win);
 
     pmparams.cbSize = sizeof(TPMPARAMS);
 
@@ -267,8 +265,8 @@ menubar_perform_dropdown(menubar_t* mb)
 
         MENUBAR_TRACE("menubar_perform_dropdown: ENTER TrackPopupMenuEx()");
         TrackPopupMenuEx(GetSubMenu(mb->menu, item),
-                (rtl_layout ? TPM_LAYOUTRTL : 0) | TPM_LEFTBUTTON | TPM_VERTICAL,
-                (rtl_layout ? pmparams.rcExclude.right : pmparams.rcExclude.left),
+                (mb->rtl ? TPM_LAYOUTRTL : 0) | TPM_LEFTBUTTON | TPM_VERTICAL,
+                (mb->rtl ? pmparams.rcExclude.right : pmparams.rcExclude.left),
                 pmparams.rcExclude.bottom, mb->win, &pmparams);
         MENUBAR_TRACE("menubar_perform_dropdown: LEAVE TrackPopupMenuEx()");
 
@@ -390,10 +388,12 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
 static BOOL
 menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
 {
-    if(vk == VK_LEFT || vk == VK_RIGHT) {
-        /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
-        if(mc_is_rtl_win(mb->win))
-            vk = (vk == VK_LEFT ? VK_RIGHT : VK_LEFT);
+    /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
+    if(mb->rtl) {
+        if(vk == VK_LEFT)
+            vk = VK_RIGHT;
+        else if(vk ==VK_LEFT)
+            vk = VK_RIGHT;
     }
 
     switch(vk) {
@@ -477,6 +477,7 @@ menubar_nccreate(HWND win, CREATESTRUCT *cs)
 
     mb->hot_item = -1;
     mb->pressed_item = -1;
+    mb->rtl = mc_is_rtl_exstyle(cs->dwExStyle);
 
     return mb;
 }
@@ -598,6 +599,14 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             MENUBAR_SENDMSG(mb->win, TB_SETHOTITEM, -1, 0);
             menubar_update_ui_state(mb, FALSE);
             active_menubar = NULL;
+            break;
+
+        case WM_STYLECHANGED:
+            if(wp == GWL_EXSTYLE) {
+                STYLESTRUCT* ss = (STYLESTRUCT*) lp;
+                mb->rtl = mc_is_rtl_exstyle(ss->styleNew);
+                InvalidateRect(mb->win, NULL, TRUE);
+            }
             break;
 
         case WM_NCCREATE:
@@ -737,10 +746,12 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
             {
                 int vk = msg->wParam;
 
-                if(vk == VK_LEFT || vk == VK_RIGHT) {
-                    /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
-                    if(mc_is_rtl_win(mb->win))
-                        vk = (vk == VK_LEFT ? VK_RIGHT : VK_LEFT);
+                /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
+                if(mb->rtl) {
+                    if(vk == VK_LEFT)
+                        vk = VK_RIGHT;
+                    else if(vk ==VK_LEFT)
+                        vk = VK_RIGHT;
                 }
 
                 switch(vk) {
@@ -951,7 +962,6 @@ BOOL MCTRL_API
 mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
                                    NMREBARCHEVRON* lpRebarChevron)
 {
-    BOOL rtl_layout;
     REBARBANDINFO band_info;
     menubar_t* mb;
     RECT rect;
@@ -960,8 +970,6 @@ mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
     TCHAR buffer[MENUBAR_ITEM_LABEL_MAXSIZE];
     int i, n;
     TPMPARAMS params;
-
-    rtl_layout = mc_is_rtl_win(lpRebarChevron->hdr.hwndFrom);
 
     /* Verify lpRebarChevron is from notification we assume. */
     if(MC_ERR(lpRebarChevron->hdr.code != RBN_CHEVRONPUSHED)) {
@@ -1021,8 +1029,8 @@ mcMenubar_HandleRebarChevronPushed(HWND hwndMenubar,
     /* Run the menu */
     MapWindowPoints(lpRebarChevron->hdr.hwndFrom, NULL, (POINT*) &params.rcExclude, 2);
     TrackPopupMenuEx(menu,
-            (rtl_layout ? TPM_LAYOUTRTL : 0) | TPM_LEFTBUTTON | TPM_VERTICAL,
-            (rtl_layout ? params.rcExclude.right : params.rcExclude.left),
+            (mb->rtl ? TPM_LAYOUTRTL : 0) | TPM_LEFTBUTTON | TPM_VERTICAL,
+            (mb->rtl ? params.rcExclude.right : params.rcExclude.left),
             params.rcExclude.bottom, mb->win, &params);
 
     /* Destroy the popup menu. Note submenus have to survive as they are shared
