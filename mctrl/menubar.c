@@ -392,8 +392,8 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
     if(mb->rtl) {
         if(vk == VK_LEFT)
             vk = VK_RIGHT;
-        else if(vk ==VK_LEFT)
-            vk = VK_RIGHT;
+        else if(vk == VK_RIGHT)
+            vk = VK_LEFT;
     }
 
     switch(vk) {
@@ -750,8 +750,8 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                 if(mb->rtl) {
                     if(vk == VK_LEFT)
                         vk = VK_RIGHT;
-                    else if(vk ==VK_LEFT)
-                        vk = VK_RIGHT;
+                    else if(vk == VK_RIGHT)
+                        vk = VK_LEFT;
                 }
 
                 switch(vk) {
