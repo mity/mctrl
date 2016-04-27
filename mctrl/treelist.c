@@ -200,6 +200,7 @@ struct treelist_tag {
     DWORD style                  : 16;
     DWORD no_redraw              :  1;
     DWORD unicode_notifications  :  1;
+    DWORD rtl                    :  1;
     DWORD dirty_scrollbars       :  1;
     DWORD item_height_set        :  1;
     DWORD focus                  :  1;
@@ -2289,8 +2290,8 @@ treelist_key_down(treelist_t* tl, int key)
             case VK_END:    treelist_vscroll(tl, SB_BOTTOM); break;
             case VK_UP:     treelist_vscroll(tl, SB_LINEUP); break;
             case VK_DOWN:   treelist_vscroll(tl, SB_LINEDOWN); break;
-            case VK_LEFT:   treelist_hscroll(tl, SB_LINELEFT); break;
-            case VK_RIGHT:  treelist_hscroll(tl, SB_LINERIGHT); break;
+            case VK_LEFT:   treelist_hscroll(tl, !tl->rtl ? SB_LINELEFT : SB_LINERIGHT); break;
+            case VK_RIGHT:  treelist_hscroll(tl, !tl->rtl ? SB_LINERIGHT : SB_LINELEFT); break;
         }
         return;
     }
@@ -3725,6 +3726,15 @@ treelist_style_changed(treelist_t* tl, STYLESTRUCT* ss)
         InvalidateRect(tl->win, NULL, TRUE);
 }
 
+static void
+treelist_exstyle_changed(treelist_t* tl, STYLESTRUCT* ss)
+{
+    tl->rtl = mc_is_rtl_exstyle(ss->styleNew);
+
+    if(!tl->no_redraw)
+        InvalidateRect(tl->win, NULL, TRUE);
+}
+
 static LRESULT
 treelist_tooltip_notify(treelist_t* tl, NMHDR* hdr)
 {
@@ -3784,6 +3794,7 @@ treelist_nccreate(HWND win, CREATESTRUCT* cs)
     tl->item_height = treelist_natural_item_height(tl);
     tl->item_indent = ITEM_INDENT_MIN;
     tl->hot_col = -1;
+    tl->rtl = mc_is_rtl_exstyle(cs->dwExStyle);
 
     treelist_notify_format(tl);
 
@@ -4099,6 +4110,8 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_STYLECHANGED:
             if(wp == GWL_STYLE)
                 treelist_style_changed(tl, (STYLESTRUCT*) lp);
+            if(wp == GWL_EXSTYLE)
+                treelist_exstyle_changed(tl, (STYLESTRUCT*) lp);
             break;
 
         case WM_THEMECHANGED:
