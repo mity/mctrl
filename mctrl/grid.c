@@ -96,6 +96,7 @@ struct grid_tag {
     DWORD style                  : 16;
     DWORD no_redraw              :  1;
     DWORD unicode_notifications  :  1;
+    DWORD rtl                    :  1;
     DWORD focus                  :  1;
     DWORD theme_listitem_defined :  1;
     DWORD tracking_leave         :  1;
@@ -2946,6 +2947,14 @@ grid_key_down(grid_t* grid, int key)
         return;
     }
 
+    /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
+    if(grid->rtl) {
+        if(key == VK_LEFT)
+            key = VK_RIGHT;
+        else if(key == VK_RIGHT)
+            key = VK_LEFT;
+    }
+
     /* Move focused cell or scroll */
     switch(key) {
         case VK_LEFT:
@@ -3309,6 +3318,15 @@ grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
         InvalidateRect(grid->win, NULL, TRUE);
 }
 
+static void
+grid_exstyle_changed(grid_t* grid, STYLESTRUCT* ss)
+{
+    grid->rtl = mc_is_rtl_exstyle(ss->styleNew);
+
+    if(!grid->no_redraw)
+        InvalidateRect(grid->win, NULL, TRUE);
+}
+
 static grid_t*
 grid_nccreate(HWND win, CREATESTRUCT* cs)
 {
@@ -3324,6 +3342,7 @@ grid_nccreate(HWND win, CREATESTRUCT* cs)
     grid->win = win;
     grid->notify_win = cs->hwndParent;
     grid->style = cs->style;
+    grid->rtl = mc_is_rtl_exstyle(cs->dwExStyle);
 
     rgn16_init(&grid->selection);
 
@@ -3621,8 +3640,14 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_STYLECHANGED:
-            if(wp == GWL_STYLE)
-                grid_style_changed(grid, (STYLESTRUCT*) lp);
+            switch(wp) {
+                case GWL_STYLE:
+                    grid_style_changed(grid, (STYLESTRUCT*) lp);
+                    break;
+                case GWL_EXSTYLE:
+                    grid_exstyle_changed(grid, (STYLESTRUCT*) lp);
+                    break;
+            }
             break;
 
         case WM_THEMECHANGED:
