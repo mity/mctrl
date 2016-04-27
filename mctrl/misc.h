@@ -449,7 +449,6 @@ mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom)
     HRGN clip;
     POINT pt[2] = { {left, top}, {right, bottom} };
 
-    LPtoDP(dc, pt, 2);
     clip = CreateRectRgn(pt[0].x, pt[0].y, pt[1].x, pt[1].y);
     if(MC_ERR(clip == NULL)) {
         MC_TRACE("mc_clip_set: CreateRectRgn() failed.");
