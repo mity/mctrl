@@ -1557,15 +1557,17 @@ grid_setup_MC_GSELECTION(MC_GSELECTION* gsel, rgn16_t* rgn)
     gsel->rcData = (MC_GRECT*) vec;
 }
 
-/* Warning: the function consumes the 'sel'. */
+/* Warning: This function always consumes the 'sel', even when it fails. */
 static int
 grid_install_selection(grid_t* grid, rgn16_t* sel)
 {
     MC_NMGSELECTIONCHANGE notif;
     rgn16_t tmp;
 
-    if(rgn16_equals_rgn(&grid->selection, sel))
+    if(rgn16_equals_rgn(&grid->selection, sel)) {
+        rgn16_fini(sel);
         return 0;
+    }
 
     /* Fire notification MC_GN_SELECTIONCHANGING */
     notif.hdr.hwndFrom = grid->win;
@@ -1578,10 +1580,12 @@ grid_install_selection(grid_t* grid, rgn16_t* sel)
         /* Application suppresses the processing */
         GRID_TRACE("grid_install_selection: "
                    "MC_GN_SELECTIONCHANGING suppresses the change.");
+        rgn16_fini(sel);
         return -1;
     }
 
-    /* Install the new selection. */
+    /* Install the new selection
+     * (by swapping rgn16_t guts with the old selection). */
     memcpy(&tmp, &grid->selection, sizeof(rgn16_t));
     memcpy(&grid->selection, sel, sizeof(rgn16_t));
     memcpy(sel, &tmp, sizeof(rgn16_t));
