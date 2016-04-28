@@ -3175,7 +3175,7 @@ grid_resize_table(grid_t* grid, WORD col_count, WORD row_count)
     if(grid->labeledit_started)
         grid_end_label_edit(grid, FALSE);
 
-    if(grid->table != 0) {
+    if(grid->table != NULL) {
         if(MC_ERR(table_resize(grid->table, col_count, row_count) != 0)) {
             MC_TRACE("grid_resize_table: table_resize() failed.");
             return -1;
@@ -3183,7 +3183,7 @@ grid_resize_table(grid_t* grid, WORD col_count, WORD row_count)
     } else {
         if(grid->col_widths != NULL)
             grid_realloc_col_widths(grid, grid->col_count, col_count, TRUE);
-        if(grid->row_heights)
+        if(grid->row_heights != NULL)
             grid_realloc_row_heights(grid, grid->row_count, row_count, TRUE);
 
         grid->col_count = col_count;
