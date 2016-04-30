@@ -42,7 +42,8 @@ struct imgview_tag {
     WD_HCANVAS canvas;
     WD_HIMAGE image;
     DWORD style       : 16;
-    DWORD no_redraw   : 1;
+    DWORD no_redraw   :  1;
+    DWORD rtl         :  1;
 };
 
 
@@ -128,7 +129,8 @@ imgview_paint(imgview_t* iv)
 
     canvas = iv->canvas;
     if(canvas == NULL) {
-        canvas = wdCreateCanvasWithPaintStruct(iv->win, &ps, 0);
+        canvas = wdCreateCanvasWithPaintStruct(iv->win, &ps,
+                    (iv->rtl ? WD_CANVAS_LAYOUTRTL : 0));
         if(MC_ERR(canvas == NULL))
             goto no_paint;
     }
@@ -152,7 +154,8 @@ imgview_printclient(imgview_t* iv, HDC dc)
     WD_HCANVAS canvas;
 
     GetClientRect(iv->win, &rect);
-    canvas = wdCreateCanvasWithHDC(dc, &rect, 0);
+    canvas = wdCreateCanvasWithHDC(dc, &rect,
+                (iv->rtl ? WD_CANVAS_LAYOUTRTL : 0));
     if(MC_ERR(canvas == NULL))
         return;
     imgview_paint_to_canvas(iv, canvas, &rect, TRUE);
@@ -165,6 +168,26 @@ imgview_style_changed(imgview_t* iv, STYLESTRUCT* ss)
     iv->style = ss->styleNew;
     if(!iv->no_redraw)
         InvalidateRect(iv->win, NULL, TRUE);
+}
+
+static void
+imgview_exstyle_changed(imgview_t* iv, STYLESTRUCT* ss)
+{
+    BOOL rtl;
+
+    rtl = mc_is_rtl_exstyle(ss->styleNew);
+    if(iv->rtl == rtl) {
+        iv->rtl = rtl;
+
+        if(iv->canvas != NULL) {
+            /* Force recreation of canvas with proper layout. */
+            wdDestroyCanvas(iv->canvas);
+            iv->canvas = NULL;
+        }
+
+        if(!iv->no_redraw)
+            InvalidateRect(iv->win, NULL, TRUE);
+    }
 }
 
 static int
@@ -262,6 +285,7 @@ imgview_nccreate(HWND win, CREATESTRUCT* cs)
     iv->win = win;
     iv->notify_win = cs->hwndParent;
     iv->style = cs->style;
+    iv->rtl = mc_is_rtl_exstyle(cs->dwExStyle);
 
     if(cs->lpszName != NULL) {
 #ifdef UNICODE
@@ -335,8 +359,15 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_STATIC;
 
         case WM_STYLECHANGED:
-            if(wp == GWL_STYLE)
-                imgview_style_changed(iv, (STYLESTRUCT*) lp);
+            switch(wp) {
+                case GWL_STYLE:
+                    imgview_style_changed(iv, (STYLESTRUCT*) lp);
+                    break;
+
+                case GWL_EXSTYLE:
+                    imgview_exstyle_changed(iv, (STYLESTRUCT*) lp);
+                    break;
+            }
             break;
 
         case CCM_SETNOTIFYWINDOW:
