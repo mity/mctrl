@@ -1,19 +1,24 @@
 /*
+ * WinDrawLib
  * Copyright (c) 2015 Martin Mitas
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 #ifndef DUMMY_DWRITE_H
@@ -80,6 +85,12 @@ enum dummy_DWRITE_FONT_STRETCH_tag {
     dummy_DWRITE_FONT_STRETCH_ULTRA_EXPANDED
 };
 
+typedef enum dummy_DWRITE_READING_DIRECTION_tag dummy_DWRITE_READING_DIRECTION;
+enum dummy_DWRITE_READING_DIRECTION_tag {
+    dummy_DWRITE_READING_DIRECTION_LEFT_TO_RIGHT = 0,
+    dummy_DWRITE_READING_DIRECTION_RIGHT_TO_LEFT
+};
+
 typedef enum dummy_DWRITE_WORD_WRAPPING_tag dummy_DWRITE_WORD_WRAPPING;
 enum dummy_DWRITE_WORD_WRAPPING_tag {
     dummy_DWRITE_WORD_WRAPPING_WRAP = 0,
@@ -144,13 +155,15 @@ struct dummy_DWRITE_TEXT_METRICS_tag {
  ***  Forward declarations  ***
  ******************************/
 
-typedef struct dummy_IDWriteFactory_tag         dummy_IDWriteFactory;
-typedef struct dummy_IDWriteFont_tag            dummy_IDWriteFont;
-typedef struct dummy_IDWriteFontCollection_tag  dummy_IDWriteFontCollection;
-typedef struct dummy_IDWriteFontFamily_tag      dummy_IDWriteFontFamily;
-typedef struct dummy_IDWriteInlineObject_tag    dummy_IDWriteInlineObject;
-typedef struct dummy_IDWriteTextFormat_tag      dummy_IDWriteTextFormat;
-typedef struct dummy_IDWriteTextLayout_tag      dummy_IDWriteTextLayout;
+typedef struct dummy_IDWriteFactory_tag             dummy_IDWriteFactory;
+typedef struct dummy_IDWriteFont_tag                dummy_IDWriteFont;
+typedef struct dummy_IDWriteFontCollection_tag      dummy_IDWriteFontCollection;
+typedef struct dummy_IDWriteFontFamily_tag          dummy_IDWriteFontFamily;
+typedef struct dummy_IDWriteGdiInterop_tag          dummy_IDWriteGdiInterop;
+typedef struct dummy_IDWriteInlineObject_tag        dummy_IDWriteInlineObject;
+typedef struct dummy_IDWriteLocalizedStrings_tag    dummy_IDWriteLocalizedStrings;
+typedef struct dummy_IDWriteTextFormat_tag          dummy_IDWriteTextFormat;
+typedef struct dummy_IDWriteTextLayout_tag          dummy_IDWriteTextLayout;
 
 
 /**********************************
@@ -180,7 +193,7 @@ struct dummy_IDWriteFactoryVtbl_tag {
     STDMETHOD(CreateTextFormat)(dummy_IDWriteFactory*, WCHAR const*, void*, dummy_DWRITE_FONT_WEIGHT,
             dummy_DWRITE_FONT_STYLE, dummy_DWRITE_FONT_STRETCH, FLOAT, WCHAR const*, dummy_IDWriteTextFormat**);
     STDMETHOD(dummy_CreateTypography)(void);
-    STDMETHOD(dummy_GetGdiInterop)(void);
+    STDMETHOD(GetGdiInterop)(dummy_IDWriteFactory*, dummy_IDWriteGdiInterop**);
     STDMETHOD(CreateTextLayout)(dummy_IDWriteFactory*, WCHAR const*, UINT32, dummy_IDWriteTextFormat*,
             FLOAT, FLOAT, dummy_IDWriteTextLayout**);
     STDMETHOD(dummy_CreateGdiCompatibleTextLayout)(void);
@@ -194,13 +207,14 @@ struct dummy_IDWriteFactory_tag {
     dummy_IDWriteFactoryVtbl* vtbl;
 };
 
-#define dummy_IDWriteFactory_QueryInterface(self,a,b)                 (self)->vtbl->QueryInterface(self,a,b)
-#define dummy_IDWriteFactory_AddRef(self)                             (self)->vtbl->AddRef(self)
-#define dummy_IDWriteFactory_Release(self)                            (self)->vtbl->Release(self)
-#define dummy_IDWriteFactory_GetSystemFontCollection(self,a,b)        (self)->vtbl->GetSystemFontCollection(self,a,b)
-#define dummy_IDWriteFactory_CreateTextFormat(self,a,b,c,d,e,f,g,h)   (self)->vtbl->CreateTextFormat(self,a,b,c,d,e,f,g,h)
-#define dummy_IDWriteFactory_CreateTextLayout(self,a,b,c,d,e,f)       (self)->vtbl->CreateTextLayout(self,a,b,c,d,e,f)
-#define dummy_IDWriteFactory_CreateEllipsisTrimmingSign(self,a,b)     (self)->vtbl->CreateEllipsisTrimmingSign(self,a,b)
+#define dummy_IDWriteFactory_QueryInterface(self,a,b)                   (self)->vtbl->QueryInterface(self,a,b)
+#define dummy_IDWriteFactory_AddRef(self)                               (self)->vtbl->AddRef(self)
+#define dummy_IDWriteFactory_Release(self)                              (self)->vtbl->Release(self)
+#define dummy_IDWriteFactory_GetSystemFontCollection(self,a,b)          (self)->vtbl->GetSystemFontCollection(self,a,b)
+#define dummy_IDWriteFactory_GetGdiInterop(self,a)                      (self)->vtbl->GetGdiInterop(self,a)
+#define dummy_IDWriteFactory_CreateTextFormat(self,a,b,c,d,e,f,g,h)     (self)->vtbl->CreateTextFormat(self,a,b,c,d,e,f,g,h)
+#define dummy_IDWriteFactory_CreateTextLayout(self,a,b,c,d,e,f)         (self)->vtbl->CreateTextLayout(self,a,b,c,d,e,f)
+#define dummy_IDWriteFactory_CreateEllipsisTrimmingSign(self,a,b)       (self)->vtbl->CreateEllipsisTrimmingSign(self,a,b)
 
 
 /*******************************
@@ -215,10 +229,10 @@ struct dummy_IDWriteFontVtbl_tag {
     STDMETHOD_(ULONG, Release)(dummy_IDWriteFont*);
 
     /* IDWriteFont methods */
-    STDMETHOD(dummy_GetFontFamily)(void);
-    STDMETHOD(dummy_GetWeight)(void);
-    STDMETHOD(dummy_GetStretch)(void);
-    STDMETHOD(dummy_GetStyle)(void);
+    STDMETHOD(GetFontFamily)(dummy_IDWriteFont*, dummy_IDWriteFontFamily**);
+    STDMETHOD_(dummy_DWRITE_FONT_WEIGHT, GetWeight)(dummy_IDWriteFont*);
+    STDMETHOD_(dummy_DWRITE_FONT_STRETCH, GetStretch)(dummy_IDWriteFont*);
+    STDMETHOD_(dummy_DWRITE_FONT_STYLE, GetStyle)(dummy_IDWriteFont*);
     STDMETHOD(dummy_IsSymbolFont)(void);
     STDMETHOD(dummy_GetFaceNames)(void);
     STDMETHOD(dummy_GetInformationalStrings)(void);
@@ -235,7 +249,11 @@ struct dummy_IDWriteFont_tag {
 #define dummy_IDWriteFont_QueryInterface(self,a,b)  (self)->vtbl->QueryInterface(self,a,b)
 #define dummy_IDWriteFont_AddRef(self)              (self)->vtbl->AddRef(self)
 #define dummy_IDWriteFont_Release(self)             (self)->vtbl->Release(self)
+#define dummy_IDWriteFont_GetWeight(self)           (self)->vtbl->GetWeight(self)
+#define dummy_IDWriteFont_GetStretch(self)          (self)->vtbl->GetStretch(self)
+#define dummy_IDWriteFont_GetStyle(self)            (self)->vtbl->GetStyle(self)
 #define dummy_IDWriteFont_GetMetrics(self,a)        (self)->vtbl->GetMetrics(self,a)
+#define dummy_IDWriteFont_GetFontFamily(self,a)     (self)->vtbl->GetFontFamily(self,a)
 
 
 /*****************************************
@@ -285,7 +303,7 @@ struct dummy_IDWriteFontFamilyVtbl_tag {
     STDMETHOD(dummy_GetFont)(void);
 
     /* IDWriteFontFamily methods */
-    STDMETHOD(dummy_GetFamilyNames)(void);
+    STDMETHOD(GetFamilyNames)(dummy_IDWriteFontFamily*, dummy_IDWriteLocalizedStrings**);
     STDMETHOD(GetFirstMatchingFont)(dummy_IDWriteFontFamily*, dummy_DWRITE_FONT_WEIGHT,
             dummy_DWRITE_FONT_STRETCH, dummy_DWRITE_FONT_STYLE, dummy_IDWriteFont**);
     STDMETHOD(dummy_GetMatchingFonts)(void);
@@ -299,6 +317,67 @@ struct dummy_IDWriteFontFamily_tag {
 #define dummy_IDWriteFontFamily_AddRef(self)                        (self)->vtbl->AddRef(self)
 #define dummy_IDWriteFontFamily_Release(self)                       (self)->vtbl->Release(self)
 #define dummy_IDWriteFontFamily_GetFirstMatchingFont(self,a,b,c,d)  (self)->vtbl->GetFirstMatchingFont(self,a,b,c,d)
+#define dummy_IDWriteFontFamily_GetFamilyNames(self,a)              (self)->vtbl->GetFamilyNames(self,a)
+
+
+/*************************************
+ ***  Interface IDWriteGdiInterop  ***
+ *************************************/
+
+typedef struct dummy_IDWriteGdiInteropVtbl_tag dummy_IDWriteGdiInteropVtbl;
+struct dummy_IDWriteGdiInteropVtbl_tag {
+    /* IUnknown methods */
+    STDMETHOD(QueryInterface)(dummy_IDWriteGdiInterop*, REFIID, void**);
+    STDMETHOD_(ULONG, AddRef)(dummy_IDWriteGdiInterop*);
+    STDMETHOD_(ULONG, Release)(dummy_IDWriteGdiInterop*);
+
+    /* IDWriteGdiInterop methods */
+    STDMETHOD(CreateFontFromLOGFONT)(dummy_IDWriteGdiInterop*, LOGFONTW const*, dummy_IDWriteFont**);
+    STDMETHOD(dummy_ConvertFontToLOGFONT)(void);
+    STDMETHOD(dummy_ConvertFontFaceToLOGFONT)(void);
+    STDMETHOD(dummy_CreateFontFaceFromHdc)(void);
+    STDMETHOD(dummy_CreateBitmapRenderTarget)(void);
+};
+
+struct dummy_IDWriteGdiInterop_tag {
+    dummy_IDWriteGdiInteropVtbl* vtbl;
+};
+
+#define dummy_IDWriteGdiInterop_QueryInterface(self,a,b)            (self)->vtbl->QueryInterface(self,a,b)
+#define dummy_IDWriteGdiInterop_AddRef(self)                        (self)->vtbl->AddRef(self)
+#define dummy_IDWriteGdiInterop_Release(self)                       (self)->vtbl->Release(self)
+#define dummy_IDWriteGdiInterop_CreateFontFromLOGFONT(self,a,b)     (self)->vtbl->CreateFontFromLOGFONT(self,a,b)
+
+
+/*******************************************
+ ***  Interface IDWriteLocalizedStrings  ***
+ *******************************************/
+
+typedef struct dummy_IDWriteLocalizedStringsVtbl_tag dummy_IDWriteLocalizedStringsVtbl;
+struct dummy_IDWriteLocalizedStringsVtbl_tag {
+    /* IUnknown methods */
+    STDMETHOD(QueryInterface)(dummy_IDWriteLocalizedStrings*, REFIID, void**);
+    STDMETHOD_(ULONG, AddRef)(dummy_IDWriteLocalizedStrings*);
+    STDMETHOD_(ULONG, Release)(dummy_IDWriteLocalizedStrings*);
+
+    /* IDWriteLocalizedStrings methods */
+    STDMETHOD(dummy_GetCount)(void);
+    STDMETHOD(dummy_FindLocaleName)(void);
+    STDMETHOD(dummy_GetLocaleNameLength)(void);
+    STDMETHOD(dummy_GetLocaleName)(void);
+    STDMETHOD(GetStringLength)(dummy_IDWriteLocalizedStrings*, UINT32, UINT32*);
+    STDMETHOD(GetString)(dummy_IDWriteLocalizedStrings*, UINT32, WCHAR*, UINT32);
+};
+
+struct dummy_IDWriteLocalizedStrings_tag {
+    dummy_IDWriteLocalizedStringsVtbl* vtbl;
+};
+
+#define dummy_IDWriteLocalizedStrings_QueryInterface(self,a,b)      (self)->vtbl->QueryInterface(self,a,b)
+#define dummy_IDWriteLocalizedStrings_AddRef(self)                  (self)->vtbl->AddRef(self)
+#define dummy_IDWriteLocalizedStrings_Release(self)                 (self)->vtbl->Release(self)
+#define dummy_IDWriteLocalizedStrings_GetStringLength(self,a,b)     (self)->vtbl->GetStringLength(self,a,b)
+#define dummy_IDWriteLocalizedStrings_GetString(self,a,b,c)         (self)->vtbl->GetString(self,a,b,c)
 
 
 /***************************************
@@ -398,7 +477,7 @@ struct dummy_IDWriteTextLayoutVtbl_tag {
     STDMETHOD(SetTextAlignment)(dummy_IDWriteTextLayout*, dummy_DWRITE_TEXT_ALIGNMENT);
     STDMETHOD(dummy_SetParagraphAlignment)(void);
     STDMETHOD(SetWordWrapping)(dummy_IDWriteTextLayout*, dummy_DWRITE_WORD_WRAPPING);
-    STDMETHOD(dummy_SetReadingDirection)(void);
+    STDMETHOD(SetReadingDirection)(dummy_IDWriteTextLayout*, dummy_DWRITE_READING_DIRECTION);
     STDMETHOD(dummy_SetFlowDirection)(void);
     STDMETHOD(dummy_SetIncrementalTabStop)(void);
     STDMETHOD(SetTrimming)(dummy_IDWriteTextLayout*, const dummy_DWRITE_TRIMMING*, dummy_IDWriteInlineObject*);
@@ -472,6 +551,7 @@ struct dummy_IDWriteTextLayout_tag {
 #define dummy_IDWriteTextLayout_Release(self)               (self)->vtbl->Release(self)
 #define dummy_IDWriteTextLayout_SetTextAlignment(self,a)    (self)->vtbl->SetTextAlignment(self,a)
 #define dummy_IDWriteTextLayout_SetWordWrapping(self,a)     (self)->vtbl->SetWordWrapping(self,a)
+#define dummy_IDWriteTextLayout_SetReadingDirection(self,a) (self)->vtbl->SetReadingDirection(self,a)
 #define dummy_IDWriteTextLayout_SetTrimming(self,a,b)       (self)->vtbl->SetTrimming(self,a,b)
 #define dummy_IDWriteTextLayout_GetMetrics(self,a)          (self)->vtbl->GetMetrics(self,a)
 

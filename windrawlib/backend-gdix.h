@@ -1,19 +1,24 @@
 /*
+ * WinDrawLib
  * Copyright (c) 2015-2016 Martin Mitas
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 #ifndef WD_BACKEND_GDIX_H
@@ -29,6 +34,9 @@ struct gdix_canvas_tag {
     dummy_GpGraphics* graphics;
     dummy_GpPen* pen;
     dummy_GpStringFormat* string_format;
+    int dc_layout;
+    UINT width  : 31;
+    UINT rtl    :  1;
 
     HDC real_dc;        /* non-NULL if double buffering is enabled. */
     HBITMAP orig_bmp;
@@ -47,14 +55,16 @@ struct gdix_vtable_tag {
     int (WINAPI* fn_GraphicsClear)(dummy_GpGraphics*, dummy_ARGB);
     int (WINAPI* fn_GetDC)(dummy_GpGraphics*, HDC*);
     int (WINAPI* fn_ReleaseDC)(dummy_GpGraphics*, HDC);
+    int (WINAPI* fn_ResetClip)(dummy_GpGraphics*);
     int (WINAPI* fn_ResetWorldTransform)(dummy_GpGraphics*);
     int (WINAPI* fn_RotateWorldTransform)(dummy_GpGraphics*, float, dummy_GpMatrixOrder);
+    int (WINAPI* fn_ScaleWorldTransform)(dummy_GpGraphics*, float, float, dummy_GpMatrixOrder);
+    int (WINAPI* fn_SetClipPath)(dummy_GpGraphics*, dummy_GpPath*, dummy_GpCombineMode);
+    int (WINAPI* fn_SetClipRect)(dummy_GpGraphics*, float, float, float, float, dummy_GpCombineMode);
+    int (WINAPI* fn_SetPageUnit)(dummy_GpGraphics*, dummy_GpUnit);
     int (WINAPI* fn_SetPixelOffsetMode)(dummy_GpGraphics*, dummy_GpPixelOffsetMode);
     int (WINAPI* fn_SetSmoothingMode)(dummy_GpGraphics*, dummy_GpSmoothingMode);
     int (WINAPI* fn_TranslateWorldTransform)(dummy_GpGraphics*, float, float, dummy_GpMatrixOrder);
-    int (WINAPI* fn_SetClipRect)(dummy_GpGraphics*, float, float, float, float, dummy_GpCombineMode);
-    int (WINAPI* fn_SetClipPath)(dummy_GpGraphics*, dummy_GpPath*, dummy_GpCombineMode);
-    int (WINAPI* fn_ResetClip)(dummy_GpGraphics*);
 
     /* Brush functions */
     int (WINAPI* fn_CreateSolidFill)(dummy_ARGB, dummy_GpSolidFill**);
@@ -134,7 +144,9 @@ void gdix_fini(void);
 
 
 /* Helpers */
-gdix_canvas_t* gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect);
+gdix_canvas_t* gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect, UINT width, BOOL rtl);
+void gdix_rtl_transform(gdix_canvas_t* c);
+void gdix_reset_transform(gdix_canvas_t* c);
 void gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags);
 
 

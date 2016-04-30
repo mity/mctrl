@@ -1,19 +1,24 @@
 /*
+ * WinDrawLib
  * Copyright (c) 2015-2016 Martin Mitas
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 #include "backend-d2d.h"
@@ -25,16 +30,17 @@ static HMODULE d2d_dll = NULL;
 ID2D1Factory* d2d_factory = NULL;
 
 
-/* We want horizontal and vertical lines with non-fractional coordinates
- * and with stroke width 1.0 to really affect single line of pixels to match
- * GDI and GDI+. To achieve that, we need to setup our coordinate system
- * to match the pixel grid accordingly. */
-const D2D1_MATRIX_3X2_F d2d_base_transform = {
-    1.0f, 0.0f,
-    0.0f, 1.0f,
-    0.5f, 0.5f
-};
-
+static inline void
+d2d_matrix_mult(D2D1_MATRIX_3X2_F* res,
+                const D2D1_MATRIX_3X2_F* a, const D2D1_MATRIX_3X2_F* b)
+{
+    res->_11 = a->_11 * b->_11 + a->_12 * b->_21;
+    res->_12 = a->_11 * b->_12 + a->_12 * b->_22;
+    res->_21 = a->_21 * b->_11 + a->_22 * b->_21;
+    res->_22 = a->_21 * b->_12 + a->_22 * b->_22;
+    res->_31 = a->_31 * b->_11 + a->_32 * b->_21 + b->_31;
+    res->_32 = a->_31 * b->_12 + a->_32 * b->_22 + b->_32;
+}
 
 int
 d2d_init(void)
@@ -49,6 +55,7 @@ d2d_init(void)
         WD_TRACE_ERR("d2d_init: wd_load_system_dll(D2D1.DLL) failed.");
         goto err_LoadLibrary;
     }
+
     fn_D2D1CreateFactory = (HRESULT (WINAPI*)(D2D1_FACTORY_TYPE, REFIID, const D2D1_FACTORY_OPTIONS*, void**))
                 GetProcAddress(d2d_dll, "D2D1CreateFactory");
     if(fn_D2D1CreateFactory == NULL) {
@@ -89,7 +96,7 @@ d2d_fini(void)
 }
 
 d2d_canvas_t*
-d2d_canvas_alloc(ID2D1RenderTarget* target, WORD type)
+d2d_canvas_alloc(ID2D1RenderTarget* target, WORD type, UINT width, BOOL rtl)
 {
     d2d_canvas_t* c;
 
@@ -102,6 +109,8 @@ d2d_canvas_alloc(ID2D1RenderTarget* target, WORD type)
     memset(c, 0, sizeof(d2d_canvas_t));
 
     c->type = type;
+    c->flags = (rtl ? D2D_CANVASFLAG_RTL : 0);
+    c->width = width;
     c->target = target;
 
     /* We use raw pixels as units. D2D by default works with DIPs ("device
@@ -109,7 +118,7 @@ d2d_canvas_alloc(ID2D1RenderTarget* target, WORD type)
      * So we enforce the render target to think we have this DPI. */
     ID2D1RenderTarget_SetDpi(c->target, 96.0f, 96.0f);
 
-    d2d_reset_transform(target);
+    d2d_reset_transform(c);
 
     return c;
 }
@@ -129,29 +138,57 @@ d2d_reset_clip(d2d_canvas_t* c)
 }
 
 void
-d2d_reset_transform(ID2D1RenderTarget* target)
+d2d_reset_transform(d2d_canvas_t* c)
 {
-    ID2D1RenderTarget_SetTransform(target, &d2d_base_transform);
+    D2D1_MATRIX_3X2_F m;
+
+    if(c->flags & D2D_CANVASFLAG_RTL) {
+        m._11 = -1.0f;  m._12 = 0.0f;
+        m._21 = 0.0f;   m._22 = 1.0f;
+        m._31 = (float)c->width - 1.0f + D2D_BASEDELTA_X;
+        m._32 = D2D_BASEDELTA_Y;
+    } else {
+        m._11 = 1.0f;   m._12 = 0.0f;
+        m._21 = 0.0f;   m._22 = 1.0f;
+        m._31 = D2D_BASEDELTA_X;
+        m._32 = D2D_BASEDELTA_Y;
+    }
+
+    ID2D1RenderTarget_SetTransform(c->target, &m);
 }
 
 void
-d2d_apply_transform(ID2D1RenderTarget* target, D2D1_MATRIX_3X2_F* matrix)
+d2d_apply_transform(d2d_canvas_t* c, const D2D1_MATRIX_3X2_F* matrix)
 {
     D2D1_MATRIX_3X2_F res;
     D2D1_MATRIX_3X2_F old_matrix;
-    D2D1_MATRIX_3X2_F* a = matrix;
-    D2D1_MATRIX_3X2_F* b = &old_matrix;
 
-    ID2D1RenderTarget_GetTransform(target, b);
+    ID2D1RenderTarget_GetTransform(c->target, &old_matrix);
+    d2d_matrix_mult(&res, matrix, &old_matrix);
+    ID2D1RenderTarget_SetTransform(c->target, &res);
+}
 
-    res._11 = a->_11 * b->_11 + a->_12 * b->_21;
-    res._12 = a->_11 * b->_12 + a->_12 * b->_22;
-    res._21 = a->_21 * b->_11 + a->_22 * b->_21;
-    res._22 = a->_21 * b->_12 + a->_22 * b->_22;
-    res._31 = a->_31 * b->_11 + a->_32 * b->_21 + b->_31;
-    res._32 = a->_31 * b->_12 + a->_32 * b->_22 + b->_32;
+void
+d2d_disable_rtl_transform(d2d_canvas_t* c, D2D1_MATRIX_3X2_F* old_matrix)
+{
+    D2D1_MATRIX_3X2_F r;    /* Reflection + transition for WD_CANVAS_LAYOUTRTL. */
+    D2D1_MATRIX_3X2_F ur;   /* R * user's transformation. */
+    D2D1_MATRIX_3X2_F u;    /* Only user's transformation. */
 
-    ID2D1RenderTarget_SetTransform(target, &res);
+    r._11 = -1.0f;     r._12 = 0.0f;
+    r._21 = 0.0f;      r._22 = 1.0f;
+    r._31 = c->width;  r._32 = 0.0f;
+
+    ID2D1RenderTarget_GetTransform(c->target, &ur);
+    if(old_matrix != NULL)
+        memcpy(old_matrix, &ur, sizeof(D2D1_MATRIX_3X2_F));
+    ur._31 += D2D_BASEDELTA_X;
+    ur._32 -= D2D_BASEDELTA_Y;
+
+    /* Note R is inverse to itself. */
+    d2d_matrix_mult(&u, &ur, &r);
+
+    ID2D1RenderTarget_SetTransform(c->target, &u);
 }
 
 void

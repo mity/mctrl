@@ -1,19 +1,24 @@
 /*
+ * WinDrawLib
  * Copyright (c) 2015-2016 Martin Mitas
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 #include "backend-gdix.h"
@@ -98,14 +103,16 @@ gdix_init(void)
     GPA(GraphicsClear, (dummy_GpGraphics*, dummy_ARGB));
     GPA(GetDC, (dummy_GpGraphics*, HDC*));
     GPA(ReleaseDC, (dummy_GpGraphics*, HDC));
+    GPA(ResetClip, (dummy_GpGraphics*));
     GPA(ResetWorldTransform, (dummy_GpGraphics*));
     GPA(RotateWorldTransform, (dummy_GpGraphics*, float, dummy_GpMatrixOrder));
+    GPA(ScaleWorldTransform, (dummy_GpGraphics*, float, float, dummy_GpMatrixOrder));
+    GPA(SetClipPath, (dummy_GpGraphics*, dummy_GpPath*, dummy_GpCombineMode));
+    GPA(SetClipRect, (dummy_GpGraphics*, float, float, float, float, dummy_GpCombineMode));
+    GPA(SetPageUnit, (dummy_GpGraphics*, dummy_GpUnit));
     GPA(SetPixelOffsetMode, (dummy_GpGraphics*, dummy_GpPixelOffsetMode));
     GPA(SetSmoothingMode, (dummy_GpGraphics*, dummy_GpSmoothingMode));
     GPA(TranslateWorldTransform, (dummy_GpGraphics*, float, float, dummy_GpMatrixOrder));
-    GPA(SetClipRect, (dummy_GpGraphics*, float, float, float, float, dummy_GpCombineMode));
-    GPA(SetClipPath, (dummy_GpGraphics*, dummy_GpPath*, dummy_GpCombineMode));
-    GPA(ResetClip, (dummy_GpGraphics*));
 
     /* Brush functions */
     GPA(CreateSolidFill, (dummy_ARGB, dummy_GpSolidFill**));
@@ -213,7 +220,7 @@ gdix_fini(void)
 }
 
 gdix_canvas_t*
-gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect)
+gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect, UINT width, BOOL rtl)
 {
     gdix_canvas_t* c;
     int status;
@@ -225,6 +232,8 @@ gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect)
     }
 
     memset(c, 0, sizeof(gdix_canvas_t));
+    c->width = width;
+    c->rtl = (rtl ? TRUE : FALSE);
 
     if(doublebuffer_rect != NULL) {
         int cx = doublebuffer_rect->right - doublebuffer_rect->left;
@@ -238,6 +247,7 @@ gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect)
             DeleteDC(mem_dc);
             goto no_doublebuffer;
         }
+        SetLayout(mem_dc, 0);
         mem_bmp = CreateCompatibleBitmap(dc, cx, cy);
         if(mem_bmp == NULL) {
             DeleteObject(mem_dc);
@@ -248,20 +258,41 @@ gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect)
         c->dc = mem_dc;
         c->real_dc = dc;
         c->orig_bmp = SelectObject(mem_dc, mem_bmp);
-        c->x = doublebuffer_rect->left;
+        c->x = (GetLayout(dc) & LAYOUT_RTL)
+                 ? width - 1 - doublebuffer_rect->right
+                 : doublebuffer_rect->left;
         c->y = doublebuffer_rect->top;
         c->cx = doublebuffer_rect->right - doublebuffer_rect->left;
         c->cy = doublebuffer_rect->bottom - doublebuffer_rect->top;
-        OffsetViewportOrgEx(mem_dc, -c->x, -c->y, NULL);
+        SetViewportOrgEx(mem_dc, -c->x, -c->y, NULL);
     } else {
 no_doublebuffer:
         c->dc = dc;
     }
 
+    /* Different GDIPLUS.DLL versions treat RTL very differently.
+     *
+     * E.g. on Win 2000 and XP, it installs a reflection transformation is
+     * that origin is at right top corner of the window, but this reflection
+     * applies also on text (wdDrawString()).
+     *
+     * Windows 7 or 10 seem to ignore the RTL layout altogether.
+     *
+     * Hence we enforce left-to-right layout to get consistent behavior from
+     * GDIPLUS.DLL and implement RTL manually on top of it.
+     */
+    c->dc_layout = SetLayout(dc, 0);
+
     status = gdix_vtable->fn_CreateFromHDC(c->dc, &c->graphics);
     if(status != 0) {
         WD_TRACE_ERR_("gdix_canvas_alloc: GdipCreateFromHDC() failed.", status);
         goto err_creategraphics;
+    }
+
+    status = gdix_vtable->fn_SetPageUnit(c->graphics, dummy_UnitPixel);
+    if(status != 0) {
+        WD_TRACE_ERR_("gdix_canvas_alloc: GdipSetPageUnit() failed.", status);
+        goto err_setpageunit;
     }
 
     status = gdix_vtable->fn_SetSmoothingMode(c->graphics,      /* GDI+ 1.1 */
@@ -291,12 +322,14 @@ no_doublebuffer:
         goto err_createstringformat;
     }
 
+    gdix_reset_transform(c);
     return c;
 
     /* Error path */
 err_createstringformat:
     gdix_vtable->fn_DeletePen(c->pen);
 err_createpen:
+err_setpageunit:
     gdix_vtable->fn_DeleteGraphics(c->graphics);
 err_creategraphics:
     if(c->real_dc != NULL) {
@@ -304,9 +337,25 @@ err_creategraphics:
         DeleteObject(mem_bmp);
         DeleteDC(c->dc);
     }
+    SetLayout(dc, c->dc_layout);
     free(c);
 err_malloc:
     return NULL;
+}
+
+void
+gdix_rtl_transform(gdix_canvas_t* c)
+{
+    gdix_vtable->fn_ScaleWorldTransform(c->graphics, -1.0f, 1.0f, dummy_MatrixOrderAppend);
+    gdix_vtable->fn_TranslateWorldTransform(c->graphics, (float)(c->width-1), 0.0f, dummy_MatrixOrderAppend);
+}
+
+void
+gdix_reset_transform(gdix_canvas_t* c)
+{
+    gdix_vtable->fn_ResetWorldTransform(c->graphics);
+    if(c->rtl)
+        gdix_rtl_transform(c);
 }
 
 void
@@ -325,6 +374,8 @@ gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags)
     gdix_vtable->fn_SetStringFormatAlign(c->string_format, sfa);
 
     sff = 0;
+    if(c->rtl)
+        sff |= dummy_StringFormatFlagsDirectionRightToLeft;
     if(flags & WD_STR_NOWRAP)
         sff |= dummy_StringFormatFlagsNoWrap;
     if(flags & WD_STR_NOCLIP)

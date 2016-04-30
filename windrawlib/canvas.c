@@ -1,19 +1,24 @@
 /*
+ * WinDrawLib
  * Copyright (c) 2015-2016 Martin Mitas
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 #include "misc.h"
@@ -25,6 +30,10 @@
 WD_HCANVAS
 wdCreateCanvasWithPaintStruct(HWND hWnd, PAINTSTRUCT* pPS, DWORD dwFlags)
 {
+    RECT rect;
+
+    GetClientRect(hWnd, &rect);
+
     if(d2d_enabled()) {
         D2D1_RENDER_TARGET_PROPERTIES props = {
             D2D1_RENDER_TARGET_TYPE_DEFAULT,
@@ -36,11 +45,8 @@ wdCreateCanvasWithPaintStruct(HWND hWnd, PAINTSTRUCT* pPS, DWORD dwFlags)
         };
         D2D1_HWND_RENDER_TARGET_PROPERTIES props2;
         d2d_canvas_t* c;
-        RECT rect;
         ID2D1HwndRenderTarget* target;
         HRESULT hr;
-
-        GetClientRect(hWnd, &rect);
 
         props2.hwnd = hWnd;
         props2.pixelSize.width = rect.right - rect.left;
@@ -57,7 +63,8 @@ wdCreateCanvasWithPaintStruct(HWND hWnd, PAINTSTRUCT* pPS, DWORD dwFlags)
             return NULL;
         }
 
-        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, D2D_CANVASTYPE_HWND);
+        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, D2D_CANVASTYPE_HWND,
+                    rect.right, (dwFlags & WD_CANVAS_LAYOUTRTL));
         if(c == NULL) {
             WD_TRACE("wdCreateCanvasWithPaintStruct: d2d_canvas_alloc() failed.");
             ID2D1RenderTarget_Release((ID2D1RenderTarget*)target);
@@ -69,7 +76,8 @@ wdCreateCanvasWithPaintStruct(HWND hWnd, PAINTSTRUCT* pPS, DWORD dwFlags)
         BOOL use_doublebuffer = (dwFlags & WD_CANVAS_DOUBLEBUFFER);
         gdix_canvas_t* c;
 
-        c = gdix_canvas_alloc(pPS->hdc, (use_doublebuffer ? &pPS->rcPaint : NULL));
+        c = gdix_canvas_alloc(pPS->hdc, (use_doublebuffer ? &pPS->rcPaint : NULL),
+                    rect.right, (dwFlags & WD_CANVAS_LAYOUTRTL));
         if(c == NULL) {
             WD_TRACE("wdCreateCanvasWithPaintStruct: gdix_canvas_alloc() failed.");
             return NULL;
@@ -98,21 +106,22 @@ wdCreateCanvasWithHDC(HDC hDC, const RECT* pRect, DWORD dwFlags)
         hr = ID2D1Factory_CreateDCRenderTarget(d2d_factory, &props, &target);
         wd_unlock();
         if(FAILED(hr)) {
-            WD_TRACE_HR("wgCreateCanvasWithHDC: "
+            WD_TRACE_HR("wdCreateCanvasWithHDC: "
                         "ID2D1Factory::CreateDCRenderTarget() failed.");
             goto err_CreateDCRenderTarget;
         }
 
         hr = ID2D1DCRenderTarget_BindDC(target, hDC, pRect);
         if(FAILED(hr)) {
-            WD_TRACE_HR("wgCreateCanvasWithHDC: "
+            WD_TRACE_HR("wdCreateCanvasWithHDC: "
                         "ID2D1Factory::BindDC() failed.");
             goto err_BindDC;
         }
 
-        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, D2D_CANVASTYPE_DC);
+        c = d2d_canvas_alloc((ID2D1RenderTarget*)target, D2D_CANVASTYPE_DC,
+                pRect->right - pRect->left, (dwFlags & WD_CANVAS_LAYOUTRTL));
         if(c == NULL) {
-            WD_TRACE("wgCreateCanvasWithHDC: d2d_canvas_alloc() failed.");
+            WD_TRACE("wdCreateCanvasWithHDC: d2d_canvas_alloc() failed.");
             goto err_d2d_canvas_alloc;
         }
 
@@ -127,7 +136,8 @@ err_CreateDCRenderTarget:
         BOOL use_doublebuffer = (dwFlags & WD_CANVAS_DOUBLEBUFFER);
         gdix_canvas_t* c;
 
-        c = gdix_canvas_alloc(hDC, (use_doublebuffer ? pRect : NULL));
+        c = gdix_canvas_alloc(hDC, (use_doublebuffer ? pRect : NULL),
+                pRect->right - pRect->left, (dwFlags & WD_CANVAS_LAYOUTRTL));
         if(c == NULL) {
             WD_TRACE("wdCreateCanvasWithHDC: gdix_canvas_alloc() failed.");
             return NULL;
@@ -176,7 +186,8 @@ wdBeginPaint(WD_HCANVAS hCanvas)
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
         ID2D1RenderTarget_BeginDraw(c->target);
     } else {
-        /* noop */
+        gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
+        SetLayout(c->dc, 0);
     }
 }
 
@@ -203,6 +214,8 @@ wdEndPaint(WD_HCANVAS hCanvas)
         if(c->real_dc != NULL)
             BitBlt(c->real_dc, c->x, c->y, c->cx, c->cy, c->dc, 0, 0, SRCCOPY);
 
+        SetLayout(c->real_dc, c->dc_layout);
+
         /* For GDI+, disable caching. */
         return FALSE;
     }
@@ -222,6 +235,19 @@ wdResizeCanvas(WD_HCANVAS hCanvas, UINT uWidth, UINT uHeight)
                 WD_TRACE_HR("wdResizeCanvas: "
                             "ID2D1HwndRenderTarget_Resize() failed.");
                 return FALSE;
+            }
+
+            /* In RTL mode, we have to update the transformation matrix
+             * accordingly. */
+            if(c->flags & D2D_CANVASFLAG_RTL) {
+                D2D1_MATRIX_3X2_F m;
+
+                ID2D1RenderTarget_GetTransform(c->target, &m);
+                m._31 = m._11 * (float)(uWidth - c->width);
+                m._32 = m._12 * (float)(uWidth - c->width);
+                ID2D1RenderTarget_SetTransform(c->target, &m);
+
+                c->width = uWidth;
             }
             return TRUE;
         } else {
@@ -265,6 +291,10 @@ wdStartGdi(WD_HCANVAS hCanvas, BOOL bKeepContents)
         }
 
         c->gdi_interop = gdi_interop;
+
+        if(c->flags & D2D_CANVASFLAG_RTL)
+            SetLayout(dc, LAYOUT_RTL);
+
         return dc;
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
@@ -276,6 +306,11 @@ wdStartGdi(WD_HCANVAS hCanvas, BOOL bKeepContents)
             WD_TRACE_ERR_("wdStartGdi: GdipGetDC() failed.", status);
             return NULL;
         }
+
+        SetLayout(dc, c->dc_layout);
+
+        if(c->dc_layout & LAYOUT_RTL)
+            SetViewportOrgEx(dc, c->x + c->cx - (c->width-1), -c->y, NULL);
 
         return dc;
     }
@@ -292,6 +327,9 @@ wdEndGdi(WD_HCANVAS hCanvas, HDC hDC)
         c->gdi_interop = NULL;
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
+
+        if(c->rtl)
+            SetLayout(hDC, 0);
         gdix_vtable->fn_ReleaseDC(c->graphics, hDC);
     }
 }
@@ -391,20 +429,17 @@ wdRotateWorld(WD_HCANVAS hCanvas, float cx, float cy, float fAngle)
         float a_sin = sinf(a_rads);
         float a_cos = cosf(a_rads);
 
-        m._11 = a_cos;
-        m._12 = a_sin;
-        m._21 = -a_sin;
-        m._22 = a_cos;
+        m._11 = a_cos;  m._12 = a_sin;
+        m._21 = -a_sin; m._22 = a_cos;
         m._31 = cx - cx*a_cos + cy*a_sin;
         m._32 = cy - cx*a_sin - cy*a_cos;
-
-        d2d_apply_transform(c->target, &m);
+        d2d_apply_transform(c, &m);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
 
-        gdix_vtable->fn_TranslateWorldTransform(c->graphics, -cx, -cy, dummy_MatrixOrderAppend);
-        gdix_vtable->fn_RotateWorldTransform(c->graphics, fAngle, dummy_MatrixOrderAppend);
-        gdix_vtable->fn_TranslateWorldTransform(c->graphics, cx, cy, dummy_MatrixOrderAppend);
+        gdix_vtable->fn_TranslateWorldTransform(c->graphics, cx, cy, dummy_MatrixOrderPrepend);
+        gdix_vtable->fn_RotateWorldTransform(c->graphics, fAngle, dummy_MatrixOrderPrepend);
+        gdix_vtable->fn_TranslateWorldTransform(c->graphics, -cx, -cy, dummy_MatrixOrderPrepend);
     }
 }
 
@@ -413,12 +448,12 @@ wdTranslateWorld(WD_HCANVAS hCanvas, float dx, float dy)
 {
     if(d2d_enabled()) {
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
-        D2D1_MATRIX_3X2_F matrix;
+        D2D1_MATRIX_3X2_F m;
 
-        ID2D1RenderTarget_GetTransform(c->target, &matrix);
-        matrix._31 += dx;
-        matrix._32 += dy;
-        ID2D1RenderTarget_SetTransform(c->target, &matrix);
+        ID2D1RenderTarget_GetTransform(c->target, &m);
+        m._31 += dx;
+        m._32 += dy;
+        ID2D1RenderTarget_SetTransform(c->target, &m);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
         gdix_vtable->fn_TranslateWorldTransform(c->graphics, dx, dy, dummy_MatrixOrderAppend);
@@ -430,10 +465,10 @@ wdResetWorld(WD_HCANVAS hCanvas)
 {
     if(d2d_enabled()) {
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
-        d2d_reset_transform(c->target);
+        d2d_reset_transform(c);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
-        gdix_vtable->fn_ResetWorldTransform(c->graphics);
+        gdix_reset_transform(c);
     }
 }
 

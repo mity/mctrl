@@ -1,19 +1,24 @@
 /*
+ * WinDrawLib
  * Copyright (c) 2015-2016 Martin Mitas
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
  */
 
 #include "backend-dwrite.h"
@@ -101,6 +106,105 @@ dwrite_default_user_locale(WCHAR buffer[LOCALE_NAME_MAX_LENGTH])
     }
 
     buffer[0] = L'\0';
+}
+
+dummy_IDWriteTextFormat*
+dwrite_create_text_format(const WCHAR* locale_name, const LOGFONTW* logfont,
+                          dummy_DWRITE_FONT_METRICS* metrics)
+{
+    dummy_IDWriteTextFormat* tf = NULL;
+    dummy_IDWriteGdiInterop* gdi_interop;
+    dummy_IDWriteFont* font;
+    dummy_IDWriteFontFamily* family;
+    dummy_IDWriteLocalizedStrings* family_names;
+    UINT32 family_name_buffer_size;
+    WCHAR* family_name_buffer;
+    float font_size;
+    HRESULT hr;
+
+    hr = dummy_IDWriteFactory_GetGdiInterop(dwrite_factory, &gdi_interop);
+    if(FAILED(hr)) {
+        WD_TRACE_HR("dwrite_create_text_format: "
+                    "IDWriteFactory::GetGdiInterop() failed.");
+        goto err_IDWriteFactory_GetGdiInterop;
+    }
+
+    hr = dummy_IDWriteGdiInterop_CreateFontFromLOGFONT(gdi_interop, logfont, &font);
+    if(FAILED(hr)) {
+        WD_TRACE_HR("dwrite_create_text_format: "
+                    "IDWriteGdiInterop::CreateFontFromLOGFONT() failed.");
+        goto err_IDWriteGdiInterop_CreateFontFromLOGFONT;
+    }
+
+    dummy_IDWriteFont_GetMetrics(font, metrics);
+
+    hr = dummy_IDWriteFont_GetFontFamily(font, &family);
+    if(FAILED(hr)) {
+        WD_TRACE_HR("dwrite_create_text_format: "
+                    "IDWriteFont::GetFontFamily() failed.");
+        goto err_IDWriteFont_GetFontFamily;
+    }
+
+    hr = dummy_IDWriteFontFamily_GetFamilyNames(family, &family_names);
+    if(FAILED(hr)) {
+        WD_TRACE_HR("dwrite_create_text_format: "
+                    "IDWriteFontFamily::GetFamilyNames() failed.");
+        goto err_IDWriteFontFamily_GetFamilyNames;
+    }
+
+    hr = dummy_IDWriteLocalizedStrings_GetStringLength(family_names, 0, &family_name_buffer_size);
+    if(FAILED(hr)) {
+        WD_TRACE_HR("dwrite_create_text_format: "
+                    "IDWriteLocalizedStrings::GetStringLength() failed.");
+        goto err_IDWriteLocalizedStrings_GetStringLength;
+    }
+
+    family_name_buffer = (WCHAR*) _malloca(sizeof(WCHAR) * (family_name_buffer_size + 1));
+    if(family_name_buffer == NULL) {
+        WD_TRACE("dwrite_create_text_format: _malloca() failed.");
+        goto err_malloca;
+    }
+
+    hr = dummy_IDWriteLocalizedStrings_GetString(family_names, 0,
+            family_name_buffer, family_name_buffer_size + 1);
+    if(FAILED(hr)) {
+        WD_TRACE_HR("dwrite_create_text_format: "
+                    "IDWriteLocalizedStrings::GetString() failed.");
+        goto err_IDWriteLocalizedStrings_GetString;
+    }
+
+    if(logfont->lfHeight < 0) {
+        font_size = (float) -logfont->lfHeight;
+    } else if(logfont->lfHeight > 0) {
+        font_size = ((float)metrics->ascent + (float)metrics->descent)
+                / (float)metrics->designUnitsPerEm;
+    } else {
+        font_size = 12.0f;
+    }
+
+    hr = dummy_IDWriteFactory_CreateTextFormat(dwrite_factory, family_name_buffer,
+            NULL, dummy_IDWriteFont_GetWeight(font), dummy_IDWriteFont_GetStyle(font),
+            dummy_IDWriteFont_GetStretch(font), font_size, locale_name, &tf);
+    if(FAILED(hr)) {
+        WD_TRACE_HR("dwrite_create_text_format: "
+                    "IDWriteFactory::CreateTextFormat() failed.");
+        goto err_IDWriteFactory_CreateTextFormat;
+    }
+
+err_IDWriteFactory_CreateTextFormat:
+err_IDWriteLocalizedStrings_GetString:
+    _freea(family_name_buffer);
+err_malloca:
+err_IDWriteLocalizedStrings_GetStringLength:
+    dummy_IDWriteLocalizedStrings_Release(family_names);
+err_IDWriteFontFamily_GetFamilyNames:
+    dummy_IDWriteFontFamily_Release(family);
+err_IDWriteFont_GetFontFamily:
+    dummy_IDWriteFont_Release(font);
+err_IDWriteGdiInterop_CreateFontFromLOGFONT:
+    dummy_IDWriteGdiInterop_Release(gdi_interop);
+err_IDWriteFactory_GetGdiInterop:
+    return tf;
 }
 
 dummy_IDWriteTextLayout*
