@@ -966,6 +966,9 @@ mditab_update_layout(mditab_t* mditab, BOOL refresh)
     btn_size = mditab_button_size(&client);
     n = mditab_count(mditab);
 
+    if(n == 0)
+        animate = FALSE;
+
     /* When animating, compute how many pixels we can move an item, or
      * scroll all items. (Those two movements are independent on each other,
      * but they share the same max. speed.) */
