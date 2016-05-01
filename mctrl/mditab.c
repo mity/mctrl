@@ -142,6 +142,7 @@ struct mditab_tag {
     DWORD style                 : 16;
     DWORD btn_mask              :  4;
     DWORD no_redraw             :  1;
+    DWORD rtl                   :  1;
     DWORD unicode_notifications :  1;
     DWORD hide_focus            :  1;
     DWORD tracking_leave        :  1;
@@ -319,7 +320,7 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
 
                 GetClientRect(mditab->win, &client);
                 dc = GetDCEx(NULL, NULL, DCX_CACHE);
-                canvas = wdCreateCanvasWithHDC(dc, &client, 0);
+                canvas = wdCreateCanvasWithHDC(dc, &client, WD_CANVAS_LAYOUTRTL);
                 if(MC_ERR(canvas == NULL)) {
                     MC_TRACE("mditab_item_ideal_width: "
                              "wdCreateCanvasWithHDC() failed.");
@@ -1485,6 +1486,7 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
        (di.text != NULL || mditab->img_list != NULL))
     {
         HDC dc;
+        HRGN old_clip;
         RECT focus_rect;
 
         focus_rect.left = (LONG)(mditab->img_list != NULL ? layout.icon_rect.x0 : layout.text_rect.x0) - 1;
@@ -1501,7 +1503,10 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
         }
 
         dc = wdStartGdi(ctx->canvas, TRUE);
+        old_clip = mc_clip_get(dc);
+        mc_clip_set(dc, area_x0 - (int)r, client->top, area_x1 + (int)r, client->bottom);
         DrawFocusRect(dc, &focus_rect);
+        mc_clip_reset(dc, old_clip);
         wdEndGdi(ctx->canvas, dc);
     }
 
@@ -1705,7 +1710,12 @@ mditab_paint(mditab_t* mditab)
     } else {
         /* Initialize new context. */
         WD_HCANVAS c;
-        DWORD flags = (mditab->style & MC_MTS_DOUBLEBUFFER) ? WD_CANVAS_DOUBLEBUFFER : 0;
+        DWORD flags = 0;
+
+        if(mditab->style & MC_MTS_DOUBLEBUFFER)
+            flags |= WD_CANVAS_DOUBLEBUFFER;
+        if(mditab->rtl)
+            flags |= WD_CANVAS_LAYOUTRTL;
 
         c = wdCreateCanvasWithPaintStruct(mditab->win, &ps, flags);
         if(MC_ERR(c == NULL))
@@ -1749,7 +1759,7 @@ mditab_printclient(mditab_t* mditab, HDC dc)
 
     GetClientRect(mditab->win, &rect);
 
-    c = wdCreateCanvasWithHDC(dc, &rect, 0);
+    c = wdCreateCanvasWithHDC(dc, &rect, (mditab->rtl ? WD_CANVAS_LAYOUTRTL : 0));
     if(MC_ERR(c == NULL)) {
         MC_TRACE("wdCreateCanvasWithHDC: wdCreateCanvasWithHDC() failed.");
         return;
@@ -2348,6 +2358,14 @@ mditab_key_down(mditab_t* mditab, int key_code, DWORD key_data)
 {
     MDITAB_TRACE("mditab_key_down(%p, %d, 0x%x)", mditab, key_code, key_data);
 
+    /* Swap meaning of VK_LEFT and VK_RIGHT if having right-to-left layout. */
+    if(mditab->rtl) {
+        if(key_code == VK_LEFT)
+            key_code = VK_RIGHT;
+        else if(key_code == VK_RIGHT)
+            key_code = VK_LEFT;
+    }
+
     switch(key_code) {
         case VK_LEFT:
             if(mditab->item_selected > 0)
@@ -2378,6 +2396,7 @@ mditab_list_items(mditab_t* mditab)
     MENUINFO mi;
     MENUITEMINFO mii;
     TPMPARAMS tpm_param;
+    UINT tpm_flags;
     int i, n;
     int cmd;
 
@@ -2425,9 +2444,14 @@ mditab_list_items(mditab_t* mditab)
     tpm_param.cbSize = sizeof(TPMPARAMS);
     mditab_button_rect(mditab, BTNID_LIST, &tpm_param.rcExclude);
     MapWindowPoints(mditab->win, HWND_DESKTOP, (POINT*) &tpm_param.rcExclude, 2);
-    cmd = TrackPopupMenuEx(popup, TPM_LEFTBUTTON | TPM_RIGHTALIGN | TPM_RETURNCMD | TPM_NONOTIFY,
-                     tpm_param.rcExclude.right, tpm_param.rcExclude.bottom,
-                     mditab->win, &tpm_param);
+
+    /* Win 2000 do not know TPM_LAYOUTRTL. */
+    tpm_flags = TPM_LEFTBUTTON | TPM_RIGHTALIGN | TPM_RETURNCMD | TPM_NONOTIFY;
+    if(mditab->rtl  &&  mc_win_version > MC_WIN_2000)
+        tpm_flags |= TPM_LAYOUTRTL;
+    cmd = TrackPopupMenuEx(popup, tpm_flags,
+            (mditab->rtl ? tpm_param.rcExclude.left : tpm_param.rcExclude.right),
+            tpm_param.rcExclude.bottom, mditab->win, &tpm_param);
     DestroyMenu(popup);
     if(cmd != 0)
         mditab_set_cur_sel(mditab, cmd - 1000);
@@ -2660,6 +2684,22 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 }
 
 static void
+mditab_exstyle_changed(mditab_t* mditab, STYLESTRUCT* ss)
+{
+    BOOL rtl;
+
+    rtl = mc_is_rtl_exstyle(ss->styleNew);
+    if(mditab->rtl != rtl) {
+        mditab->rtl = rtl;
+
+        mditab_free_cached_paint_ctx(mditab);
+
+        if(!mditab->no_redraw)
+            InvalidateRect(mditab->win, NULL, TRUE);
+    }
+}
+
+static void
 mditab_set_tooltip_pos(mditab_t* mditab)
 {
     RECT item_rect;
@@ -2742,6 +2782,7 @@ mditab_nccreate(HWND win, CREATESTRUCT* cs)
     mditab->item_min_width = DEFAULT_ITEM_MIN_WIDTH;
     mditab->item_def_width = DEFAULT_ITEM_DEF_WIDTH;
     mditab->style = cs->style;
+    mditab->rtl = mc_is_rtl_exstyle(cs->dwExStyle);
 
     mditab_notify_format(mditab);
 
@@ -2814,7 +2855,8 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_DISPLAYCHANGE:
             mditab_free_cached_paint_ctx(mditab);
-            InvalidateRect(win, NULL, FALSE);
+            if(!mditab->no_redraw)
+                InvalidateRect(win, NULL, FALSE);
             break;
 
         case WM_ERASEBKGND:
@@ -3007,8 +3049,14 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return DLGC_WANTARROWS;
 
         case WM_STYLECHANGED:
-            if(wp == GWL_STYLE)
-                mditab_style_changed(mditab, (STYLESTRUCT*) lp);
+            switch(wp) {
+                case GWL_STYLE:
+                    mditab_style_changed(mditab, (STYLESTRUCT*) lp);
+                    break;
+                case GWL_EXSTYLE:
+                    mditab_exstyle_changed(mditab, (STYLESTRUCT*) lp);
+                    break;
+            }
             break;
 
         case WM_SYSCOLORCHANGE:
