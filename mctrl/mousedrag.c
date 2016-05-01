@@ -115,7 +115,7 @@ mousedrag_start(HWND win, int start_x, int start_y)
 void
 mousedrag_stop(HWND win)
 {
-    LeaveCriticalSection(&mousedrag_cs);
+    EnterCriticalSection(&mousedrag_cs);
     MC_ASSERT(mousedrag_running);
     MC_ASSERT(win == mousedrag_win);
     mousedrag_running = FALSE;
