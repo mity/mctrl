@@ -2788,6 +2788,7 @@ mditab_ncdestroy(mditab_t* mditab)
     if(mditab->animation != NULL)
         anim_stop(mditab->animation);
 
+    mditab_free_cached_paint_ctx(mditab);
     free(mditab);
 }
 
