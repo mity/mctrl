@@ -680,6 +680,8 @@ rgn16_test_check(int (*func)(rgn16_complex_t*,
         MC_ASSERT(rgn16_rect_equals_rect(&c.vec[0], &extentsR));
     for(i = 0; i < nR; i++)
         MC_ASSERT(rgn16_rect_equals_rect(&c.vec[i+1], &vecR[i]));
+
+    free(c.vec);
 }
 
 void
