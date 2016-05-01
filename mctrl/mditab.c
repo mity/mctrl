@@ -800,15 +800,15 @@ mditab_end_drag(mditab_t* mditab, BOOL cancel)
         mditab_set_item_order(mditab, mousedrag_index, i);
     }
 
-    if(mditab->mouse_captured)
-        ReleaseCapture();
-    mc_send_notify(mditab->notify_win, mditab->win, NM_RELEASEDCAPTURE);
-    mditab->mouse_captured = FALSE;
-
     if(mditab->itemdrag_started)
         mousedrag_stop(mditab->win);
     mditab->itemdrag_considering = FALSE;
     mditab->itemdrag_started = FALSE;
+
+    if(mditab->mouse_captured)
+        ReleaseCapture();
+    mc_send_notify(mditab->notify_win, mditab->win, NM_RELEASEDCAPTURE);
+    mditab->mouse_captured = FALSE;
 
     mditab_reset_hot(mditab);
     mditab_update_layout(mditab, TRUE);
@@ -2941,14 +2941,18 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_CAPTURECHANGED:
             MDITAB_TRACE("mditab_proc(WM_CAPTURECHANGED)");
-            if(mditab->itemdrag_started)
+            if(mditab->itemdrag_started) {
+                MDITAB_TRACE("mditab_proc(WM_CAPTURECHANGED): cancel drag");
                 mditab_cancel_drag(mditab);
+            }
             if(mditab->btn_pressed) {
+                MDITAB_TRACE("mditab_proc(WM_CAPTURECHANGED): cancel pressed");
                 if(mditab->item_hot < 0  &&  mditab->item_hot != ITEM_HOT_NONE)
                     mditab_invalidate_button(mditab, mditab_hot_button(mditab));
                 mditab->btn_pressed = FALSE;
                 mditab->item_hot = ITEM_HOT_NONE;
             }
+            mditab->mouse_captured = FALSE;
             return 0;
 
         case WM_DWMCOMPOSITIONCHANGED:
