@@ -310,13 +310,13 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
         if(di.text != NULL) {
             WD_HCANVAS canvas;
             WD_HFONT font;
+            HDC dc;
 
             if(mditab->paint_ctx != NULL) {
                 canvas = mditab->paint_ctx->canvas;
                 font = mditab->paint_ctx->font;
             } else {
                 RECT client;
-                HDC dc;
 
                 GetClientRect(mditab->win, &client);
                 dc = GetDCEx(NULL, NULL, DCX_CACHE);
@@ -342,7 +342,7 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
 err_wdCreateFontWithGdiHandle:
                 wdDestroyCanvas(canvas);
 err_wdCreateCanvasWithHDC:
-                ;  /* noop */
+                ReleaseDC(NULL, dc);
             }
         }
 
