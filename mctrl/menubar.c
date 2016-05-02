@@ -228,6 +228,7 @@ menubar_perform_dropdown(menubar_t* mb)
     int item;
     DWORD btn_state;
     TPMPARAMS pmparams = {0};
+    UINT pmflags;
 
     MENUBAR_TRACE("menubar_perform_dropdown(%p)", mb);
 
@@ -263,9 +264,13 @@ menubar_perform_dropdown(menubar_t* mb)
 
         MapWindowPoints(mb->win, HWND_DESKTOP, (POINT*)&pmparams.rcExclude, 2);
 
+        /* Win 2000 do not know TPM_LAYOUTRTL. */
+        pmflags = TPM_LEFTBUTTON | TPM_VERTICAL;
+        if(mb->rtl  &&  mc_win_version > MC_WIN_2000)
+            mb->rtl |= TPM_LAYOUTRTL;
+
         MENUBAR_TRACE("menubar_perform_dropdown: ENTER TrackPopupMenuEx()");
-        TrackPopupMenuEx(GetSubMenu(mb->menu, item),
-                (mb->rtl ? TPM_LAYOUTRTL : 0) | TPM_LEFTBUTTON | TPM_VERTICAL,
+        TrackPopupMenuEx(GetSubMenu(mb->menu, item), pmflags,
                 (mb->rtl ? pmparams.rcExclude.right : pmparams.rcExclude.left),
                 pmparams.rcExclude.bottom, mb->win, &pmparams);
         MENUBAR_TRACE("menubar_perform_dropdown: LEAVE TrackPopupMenuEx()");
