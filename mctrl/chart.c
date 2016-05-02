@@ -2548,6 +2548,7 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
 {
     chart_paint_t* ctx;
     chart_paint_t tmp_ctx;
+    HDC dc = NULL;
 
     if(chart->paint_ctx != NULL) {
         /* Use the cached paint context. */
@@ -2557,8 +2558,9 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
         RECT rect;
         WD_HCANVAS c;
 
+        dc = GetDCEx(NULL, NULL, DCX_CACHE);
         GetClientRect(chart->win, &rect);
-        c = wdCreateCanvasWithHDC(GetDCEx(NULL, NULL, DCX_CACHE), &rect, 0);
+        c = wdCreateCanvasWithHDC(dc, &rect, 0);
         if(MC_ERR(c == NULL)) {
             MC_TRACE("chart_hit_test: wdCreateCanvasWithHDC() failed.");
             *set_ix = -1;
@@ -2576,6 +2578,8 @@ chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
 
     if(ctx == &tmp_ctx)
         chart_paint_ctx_fini(ctx);
+    if(dc != NULL)
+        ReleaseDC(NULL, dc);
 }
 
 static void
