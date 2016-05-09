@@ -27,7 +27,7 @@
 #define XCOM_MODE_MCTRL         2
 
 static volatile int xcom_mode = XCOM_MODE_UNKNOWN;
-static CRITICAL_SECTION xcom_lock;
+static mc_mutex_t xcom_mutex;
 
 
 void*
@@ -68,9 +68,9 @@ redo:
             return obj;
 
         case XCOM_MODE_UNKNOWN:
-            EnterCriticalSection(&xcom_lock);
+            mc_mutex_lock(&xcom_mutex);
             if(xcom_mode != XCOM_MODE_UNKNOWN) {   /* Resolve a race. */
-                LeaveCriticalSection(&xcom_lock);
+                mc_mutex_unlock(&xcom_mutex);
                 goto redo;
             }
             hr = CoCreateInstance(clsid, NULL, context, iid, &obj);
@@ -82,7 +82,7 @@ redo:
                 MC_TRACE_HR("xcom_create_init: CoCreateInstance(3) failed.");
                 obj = NULL;
             }
-            LeaveCriticalSection(&xcom_lock);
+            mc_mutex_unlock(&xcom_mutex);
             if(hr == CO_E_NOTINITIALIZED)
                 goto redo;
             return obj;
@@ -103,11 +103,11 @@ xcom_uninit(void)
 void
 xcom_dllmain_init(void)
 {
-    InitializeCriticalSection(&xcom_lock);
+    mc_mutex_init(&xcom_mutex);
 }
 
 void
 xcom_dllmain_fini(void)
 {
-    DeleteCriticalSection(&xcom_lock);
+    mc_mutex_fini(&xcom_mutex);
 }

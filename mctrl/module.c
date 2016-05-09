@@ -23,18 +23,18 @@
  *** Module abstraction ***
  **************************/
 
-static CRITICAL_SECTION mod_lock;
+static mc_mutex_t mod_mutex;
 
 void
 module_dllmain_init(void)
 {
-    InitializeCriticalSection(&mod_lock);
+    mc_mutex_init(&mod_mutex);
 }
 
 void
 module_dllmain_fini(void)
 {
-    DeleteCriticalSection(&mod_lock);
+    mc_mutex_fini(&mod_mutex);
 }
 
 
@@ -56,7 +56,7 @@ module_init_modules(module_t** modules, int n)
     int res = 0;
     int i = 0;
 
-    EnterCriticalSection(&mod_lock);
+    mc_mutex_lock(&mod_mutex);
     while(i < n) {
         if(modules[i]->refs == 0) {
             res = modules[i]->fn_init();
@@ -75,7 +75,7 @@ module_init_modules(module_t** modules, int n)
         modules[i]->refs++;
         i++;
     }
-    LeaveCriticalSection(&mod_lock);
+    mc_mutex_unlock(&mod_mutex);
     return res;
 }
 
@@ -84,14 +84,14 @@ module_fini_modules(module_t** modules, int n)
 {
     int i;
 
-    EnterCriticalSection(&mod_lock);
+    mc_mutex_lock(&mod_mutex);
     for(i = n-1; i >= 0; i--) {
         MC_ASSERT(modules[i]->refs > 0);
         modules[i]->refs--;
         if(modules[i]->refs == 0)
             modules[i]->fn_fini();
     }
-    LeaveCriticalSection(&mod_lock);
+    mc_mutex_unlock(&mod_mutex);
 }
 
 

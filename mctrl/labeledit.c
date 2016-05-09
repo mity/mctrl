@@ -31,7 +31,7 @@ struct labeledit_data_tag {
     BOOL want_save;
 };
 
-static CRITICAL_SECTION labeledit_lock;
+static mc_mutex_t labeledit_mutex;
 static labeledit_data_t* labeledit_current = NULL;
 static HWND labeledit_current_parent_win = NULL;
 static WNDPROC labeledit_orig_proc = NULL;
@@ -64,12 +64,12 @@ labeledit_call_callback(labeledit_data_t* data, BOOL save)
     if(buffer != NULL)
         _freea(buffer);
 
-    EnterCriticalSection(&labeledit_lock);
+    mc_mutex_lock(&labeledit_mutex);
     if(data == labeledit_current) {
         labeledit_current = NULL;
         labeledit_current_parent_win = NULL;
     }
-    LeaveCriticalSection(&labeledit_lock);
+    mc_mutex_unlock(&labeledit_mutex);
 }
 
 static LRESULT CALLBACK
@@ -130,7 +130,7 @@ labeledit_start(HWND parent_win, const TCHAR* text,
     }
 
     /* Success. */
-    EnterCriticalSection(&labeledit_lock);
+    mc_mutex_lock(&labeledit_mutex);
     if(labeledit_current != NULL)
         MC_SEND(labeledit_current->edit_win, WM_CLOSE, 0, 0);
 
@@ -138,7 +138,7 @@ labeledit_start(HWND parent_win, const TCHAR* text,
                 GWLP_WNDPROC, (DWORD_PTR) labeledit_subclass_proc);
     labeledit_current_parent_win = parent_win;
     labeledit_current = data;
-    LeaveCriticalSection(&labeledit_lock);
+    mc_mutex_unlock(&labeledit_mutex);
     return data->edit_win;
 
     /* Error paths */
@@ -155,12 +155,12 @@ void
 labeledit_end(HWND parent_win, BOOL save)
 {
     if(parent_win == labeledit_current_parent_win) {
-        EnterCriticalSection(&labeledit_lock);
+        mc_mutex_lock(&labeledit_mutex);
         if(parent_win == labeledit_current_parent_win) {
             labeledit_current->want_save = save;
             MC_SEND(labeledit_current->edit_win, WM_CLOSE, 0, 0);
         }
-        LeaveCriticalSection(&labeledit_lock);
+        mc_mutex_unlock(&labeledit_mutex);
     }
 }
 
@@ -170,10 +170,10 @@ labeledit_win(HWND parent_win)
     HWND edit_win = NULL;
 
     if(parent_win == labeledit_current_parent_win) {
-        EnterCriticalSection(&labeledit_lock);
+        mc_mutex_lock(&labeledit_mutex);
         if(parent_win == labeledit_current_parent_win)
             edit_win = labeledit_current->edit_win;
-        LeaveCriticalSection(&labeledit_lock);
+        mc_mutex_unlock(&labeledit_mutex);
     }
 
     return edit_win;
@@ -182,11 +182,11 @@ labeledit_win(HWND parent_win)
 void
 labeledit_dllmain_init(void)
 {
-    InitializeCriticalSection(&labeledit_lock);
+    mc_mutex_init(&labeledit_mutex);
 }
 
 void
 labeledit_dllmain_fini(void)
 {
-    DeleteCriticalSection(&labeledit_lock);
+    mc_mutex_fini(&labeledit_mutex);
 }

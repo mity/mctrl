@@ -19,7 +19,7 @@
 #include "mousedrag.h"
 
 
-static CRITICAL_SECTION mousedrag_cs;
+static mc_mutex_t mousedrag_mutex;
 
 static BOOL mousedrag_running = FALSE;
 static HWND mousedrag_win = NULL;
@@ -36,7 +36,7 @@ mousedrag_set_candidate(HWND win, int start_x, int start_y,
 {
     BOOL ret = FALSE;
 
-    EnterCriticalSection(&mousedrag_cs);
+    mc_mutex_lock(&mousedrag_mutex);
     if(!mousedrag_running) {
         mousedrag_win = win;
         mousedrag_start_x = start_x;
@@ -53,7 +53,7 @@ mousedrag_set_candidate(HWND win, int start_x, int start_y,
         MC_ASSERT(mousedrag_win != NULL);
         MC_ASSERT(GetWindowThreadProcessId(win, NULL) != GetWindowThreadProcessId(mousedrag_win, NULL));
     }
-    LeaveCriticalSection(&mousedrag_cs);
+    mc_mutex_unlock(&mousedrag_mutex);
 
     return ret;
 }
@@ -63,7 +63,7 @@ mousedrag_consider_start(HWND win, int x, int y)
 {
     mousedrag_state_t ret;
 
-    EnterCriticalSection(&mousedrag_cs);
+    mc_mutex_lock(&mousedrag_mutex);
     if(!mousedrag_running  &&  win == mousedrag_win) {
         int drag_cx, drag_cy;
         RECT rect;
@@ -87,7 +87,7 @@ mousedrag_consider_start(HWND win, int x, int y)
     } else {
         ret = MOUSEDRAG_CANCELED;
     }
-    LeaveCriticalSection(&mousedrag_cs);
+    mc_mutex_unlock(&mousedrag_mutex);
 
     return ret;
 }
@@ -97,7 +97,7 @@ mousedrag_start(HWND win, int start_x, int start_y)
 {
     mousedrag_state_t ret;
 
-    EnterCriticalSection(&mousedrag_cs);
+    mc_mutex_lock(&mousedrag_mutex);
     if(!mousedrag_running) {
         mousedrag_running = TRUE;
         mousedrag_win = win;
@@ -107,7 +107,7 @@ mousedrag_start(HWND win, int start_x, int start_y)
     } else {
         ret = MOUSEDRAG_CANCELED;
     }
-    LeaveCriticalSection(&mousedrag_cs);
+    mc_mutex_unlock(&mousedrag_mutex);
 
     return ret;
 }
@@ -115,11 +115,11 @@ mousedrag_start(HWND win, int start_x, int start_y)
 void
 mousedrag_stop(HWND win)
 {
-    EnterCriticalSection(&mousedrag_cs);
+    mc_mutex_lock(&mousedrag_mutex);
     MC_ASSERT(mousedrag_running);
     MC_ASSERT(win == mousedrag_win);
     mousedrag_running = FALSE;
-    LeaveCriticalSection(&mousedrag_cs);
+    mc_mutex_unlock(&mousedrag_mutex);
 }
 
 BOOL
@@ -128,9 +128,9 @@ mousedrag_lock(HWND win)
     if(win != mousedrag_win)
         return FALSE;
 
-    EnterCriticalSection(&mousedrag_cs);
+    mc_mutex_lock(&mousedrag_mutex);
     if(win != mousedrag_win) {
-        LeaveCriticalSection(&mousedrag_cs);
+        mc_mutex_unlock(&mousedrag_mutex);
         return FALSE;
     }
 
@@ -140,17 +140,17 @@ mousedrag_lock(HWND win)
 void
 mousedrag_unlock(void)
 {
-    LeaveCriticalSection(&mousedrag_cs);
+    mc_mutex_unlock(&mousedrag_mutex);
 }
 
 void
 mousedrag_dllmain_init(void)
 {
-    InitializeCriticalSection(&mousedrag_cs);
+    mc_mutex_init(&mousedrag_mutex);
 }
 
 void
 mousedrag_dllmain_fini(void)
 {
-    DeleteCriticalSection(&mousedrag_cs);
+    mc_mutex_fini(&mousedrag_mutex);
 }

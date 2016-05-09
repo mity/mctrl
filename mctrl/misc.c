@@ -37,24 +37,54 @@ DWORD mc_comctl32_version;
 HIMAGELIST mc_bmp_glyphs;
 
 
-/*********************************************
- *** InitialzeCriticalSection() Workaround ***
- *********************************************/
+/**************************
+ *** Light-Weight Mutex ***
+ **************************/
 
-#undef InitializeCriticalSection
+/* Our mutex is implemented as a SRWLock (strictly with the exclusive locking)
+ * or as a CRITICAL_SECTION. The former is much more light-weighted and
+ * implemented completely in user-space (no kernel Event object) but it's
+ * available only newer Windows versions.
+ */
 
+/* These pointer either to [Acquire|Release]SRWLockExclusive() or, on older
+ * Windows versions, to [Enter|Leave]CriticalSection().
+ */
+void (WINAPI* mc_mutex_lock_fn_)(void*);
+void (WINAPI* mc_mutex_unlock_fn_)(void*);
+
+/* Since Windows Vista, InitializeCriticalSection() is leaking memory because
+ * Microsoft made it to allocate some debug info block which is NOT released
+ * in DeleteCriticalSection(). So we prefer to call the -Ex variant of the
+ * function which allows to disable the leak.
+ *
+ * See http://stackoverflow.com/questions/804848/
+ */
 static BOOL (WINAPI* mc_InitializeCriticalSectionEx)(CRITICAL_SECTION*, DWORD, DWORD);
 
-void WINAPI
-mc_InitializeCriticalSection(CRITICAL_SECTION* cs)
+void
+mc_mutex_init(mc_mutex_t* mutex)
 {
-    if(mc_InitializeCriticalSectionEx != NULL)
-        mc_InitializeCriticalSectionEx(cs, 0, CRITICAL_SECTION_NO_DEBUG_INFO);
-    else
-        InitializeCriticalSection(cs);
+    if(mc_mutex_lock_fn_ != (void (WINAPI*)(void*)) EnterCriticalSection) {
+        static const SRWLOCK factory = SRWLOCK_INIT;
+        memcpy(mutex, &factory, sizeof(SRWLOCK));
+    } else if(mc_InitializeCriticalSectionEx != NULL) {
+        mc_InitializeCriticalSectionEx((CRITICAL_SECTION*) mutex, 0,
+                CRITICAL_SECTION_NO_DEBUG_INFO);
+    } else {
+        InitializeCriticalSection((CRITICAL_SECTION*) mutex);
+    }
 }
 
-#define InitializeCriticalSection mc_InitializeCriticalSection
+void
+mc_mutex_fini(mc_mutex_t* mutex)
+{
+    if(mc_mutex_lock_fn_ != (void (WINAPI*)(void*)) EnterCriticalSection) {
+        /* noop */
+    } else {
+        DeleteCriticalSection((CRITICAL_SECTION*) mutex);
+    }
+}
 
 
 /************************
@@ -701,18 +731,18 @@ void xcom_dllmain_fini(void);
 
 
 /* Critical section for WinDrawLib */
-static CRITICAL_SECTION dllmain_wdl_critsection;
+static mc_mutex_t dllmain_wdl_mutex;
 
 static void
 dllmain_lock_wdl(void)
 {
-    EnterCriticalSection(&dllmain_wdl_critsection);
+    mc_mutex_lock(&dllmain_wdl_mutex);
 }
 
 static void
 dllmain_unlock_wdl(void)
 {
-    LeaveCriticalSection(&dllmain_wdl_critsection);
+    mc_mutex_unlock(&dllmain_wdl_mutex);
 }
 
 static int
@@ -729,11 +759,22 @@ dllmain_init(HINSTANCE instance)
         return -1;
     }
 
-    mc_InitializeCriticalSectionEx =
-            (BOOL (WINAPI*)(CRITICAL_SECTION*, DWORD, DWORD))
-            GetProcAddress(mc_instance_kernel32, "InitializeCriticalSectionEx");
+    /* Make our mc_mutex_t functioning. */
+    mc_mutex_lock_fn_ = (void (WINAPI*)(void*))
+            GetProcAddress(mc_instance_kernel32, "AcquireSRWLockExclusive");
+    mc_mutex_unlock_fn_ = (void (WINAPI*)(void*))
+            GetProcAddress(mc_instance_kernel32, "ReleaseSRWLockExclusive");
+    if(mc_mutex_lock_fn_ == NULL  ||  mc_mutex_unlock_fn_ == NULL) {
+        mc_InitializeCriticalSectionEx =
+                (BOOL (WINAPI*)(CRITICAL_SECTION*, DWORD, DWORD))
+                GetProcAddress(mc_instance_kernel32, "InitializeCriticalSectionEx");
 
-    InitializeCriticalSection(&dllmain_wdl_critsection);
+        mc_mutex_lock_fn_ = (void (WINAPI*)(void*)) EnterCriticalSection;
+        mc_mutex_unlock_fn_ = (void (WINAPI*)(void*)) LeaveCriticalSection;
+    }
+
+    /* Enable WinDrawLib's multi-threading support. */
+    mc_mutex_init(&dllmain_wdl_mutex);
     wdPreInitialize(dllmain_lock_wdl, dllmain_unlock_wdl, 0);
 
     /* BEWARE when changing this: All these functions are very limited in what
@@ -741,8 +782,7 @@ dllmain_init(HINSTANCE instance)
      *
      * More complex stuff, especially any registration of window classes, has
      * to be deferred into public functions exposed from the DLL.
-     *
-     * (See module.c)
+     * (That is handled in module.c.)
      */
     debug_dllmain_init();   /* <-- Keep 1st, must precede any malloc(). */
     labeledit_dllmain_init();
@@ -757,7 +797,7 @@ dllmain_init(HINSTANCE instance)
 static void
 dllmain_fini(void)
 {
-    DeleteCriticalSection(&dllmain_wdl_critsection);
+    mc_mutex_fini(&dllmain_wdl_mutex);
 
     xcom_dllmain_fini();
     mousewheel_dllmain_fini();

@@ -138,7 +138,7 @@ struct mem_info_tag {
 #define MEM_HASHTABLE_INDEX(mem) ((ULONG_PTR)(mem) % MEM_HASHTABLE_SIZE)
 static mem_info_t* mem_hashtable[MEM_HASHTABLE_SIZE] = { 0 };
 static HANDLE mem_heap;
-static CRITICAL_SECTION mem_lock;
+static mc_mutex_t mem_mutex;
 
 
 /* Head and tail bytes are prepended/appended to the allocated memory
@@ -176,7 +176,7 @@ debug_malloc(const char* fname, int line, size_t size)
     memset(mem, 0xff, size);
 
     /* Register info about the allocated memory */
-    EnterCriticalSection(&mem_lock);
+    mc_mutex_lock(&mem_mutex);
     mi = (mem_info_t*) HeapAlloc(mem_heap, 0, sizeof(mem_info_t));
     MC_ASSERT(mi != NULL);
     mi->next = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
@@ -185,7 +185,7 @@ debug_malloc(const char* fname, int line, size_t size)
     mi->size = size;
     mi->fname = fname;
     mi->line = line;
-    LeaveCriticalSection(&mem_lock);
+    mc_mutex_unlock(&mem_mutex);
 
     DEBUG_TRACE("%s:%d: \tdebug_malloc(%lu) -> %p", fname, line, mi->size, mem);
     return mem;
@@ -230,7 +230,7 @@ debug_free(const char* fname, int line, void* mem)
 
     MC_ASSERT(mem != NULL);
 
-    EnterCriticalSection(&mem_lock);
+    mc_mutex_lock(&mem_mutex);
 
     /* Find memory info for the memory chunk */
     mi = mem_hashtable[MEM_HASHTABLE_INDEX(mem)];
@@ -286,7 +286,7 @@ debug_free(const char* fname, int line, void* mem)
         mem_hashtable[MEM_HASHTABLE_INDEX(mem)] = mi->next;
     HeapFree(mem_heap, 0, mi);
 
-    LeaveCriticalSection(&mem_lock);
+    mc_mutex_unlock(&mem_mutex);
 
     /* Finally we can free it */
     free(head);
@@ -295,7 +295,7 @@ debug_free(const char* fname, int line, void* mem)
 void
 debug_dllmain_init(void)
 {
-    InitializeCriticalSection(&mem_lock);
+    mc_mutex_init(&mem_mutex);
 
     /* We guard the heap with our own locking as we need the critical section
      * around it anyway. Hence HEAP_NO_SERIALIZE. */
@@ -312,7 +312,7 @@ debug_dllmain_fini(void)
     mem_info_t* mi;
 
     /* Generate report about memory leaks */
-    EnterCriticalSection(&mem_lock);
+    mc_mutex_lock(&mem_mutex);
     for(i = 0; i < MEM_HASHTABLE_SIZE; i++) {
         for(mi = mem_hashtable[i]; mi != NULL; mi = mi->next) {
             if(n == 0) {
@@ -337,7 +337,7 @@ debug_dllmain_fini(void)
             size += mi->size;
         }
     }
-    LeaveCriticalSection(&mem_lock);
+    mc_mutex_unlock(&mem_mutex);
     if(n > 0) {
         MC_TRACE("debug_dllmain_fini: --------------------------------------------------");
         MC_TRACE("debug_dllmain_fini: Lost %lu bytes in %d leaks.", size, n);
@@ -348,7 +348,7 @@ debug_dllmain_fini(void)
 
     /* Uninitialize */
     HeapDestroy(mem_heap);
-    DeleteCriticalSection(&mem_lock);
+    mc_mutex_fini(&mem_mutex);
 }
 
 #else  /* #if defined DEBUG && DEBUG >= 2 */

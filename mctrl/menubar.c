@@ -691,7 +691,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
  *** Hot Tracking ***
  ********************/
 
-static CRITICAL_SECTION menubar_ht_lock;
+static mc_mutex_t menubar_ht_mutex;
 static HHOOK menubar_ht_hook = NULL;
 static menubar_t* menubar_ht_mb = NULL;
 static HMENU menubar_ht_sel_menu = NULL;
@@ -818,7 +818,7 @@ menubar_ht_enable(menubar_t* mb)
 {
     MENUBAR_TRACE("menubar_ht_enable(%p)", mb);
 
-    EnterCriticalSection(&menubar_ht_lock);
+    mc_mutex_lock(&menubar_ht_mutex);
 
     if(MC_ERR(menubar_ht_hook != NULL)) {
         MC_TRACE("menubar_ht_enable: Another menubar hot tracks???");
@@ -836,7 +836,7 @@ menubar_ht_enable(menubar_t* mb)
     MapWindowPoints(NULL, mb->win, &menubar_ht_last_pos, 1);
 
 err_hook:
-    LeaveCriticalSection(&menubar_ht_lock);
+    mc_mutex_unlock(&menubar_ht_mutex);
 }
 
 static void
@@ -844,14 +844,14 @@ menubar_ht_disable(menubar_t* mb)
 {
     MENUBAR_TRACE("menubar_ht_disable(%p)", mb);
 
-    EnterCriticalSection(&menubar_ht_lock);
+    mc_mutex_lock(&menubar_ht_mutex);
 
     if(MC_ERR(menubar_ht_mb != mb))
         MC_TRACE("menubar_ht_disable: Another menubar hot tracks???");
     else
         menubar_ht_perform_disable();
 
-    LeaveCriticalSection(&menubar_ht_lock);
+    mc_mutex_unlock(&menubar_ht_mutex);
 }
 
 
@@ -889,7 +889,7 @@ menubar_init_module(void)
         return -1;
     }
 
-    InitializeCriticalSection(&menubar_ht_lock);
+    mc_mutex_init(&menubar_ht_mutex);
 
     return 0;
 }
@@ -897,7 +897,7 @@ menubar_init_module(void)
 void
 menubar_fini_module(void)
 {
-    DeleteCriticalSection(&menubar_ht_lock);
+    mc_mutex_fini(&menubar_ht_mutex);
     UnregisterClass(menubar_wc, NULL);
 }
 

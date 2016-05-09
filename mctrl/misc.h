@@ -210,24 +210,32 @@ extern DWORD mc_comctl32_version;
 extern HIMAGELIST mc_bmp_glyphs;
 
 
-/*********************************************
- *** InitialzeCriticalSection() Workaround ***
- *********************************************/
+/**************************
+ *** Light-Weight Mutex ***
+ **************************/
 
-/* Since Windows Vista, InitializeCriticalSection() is leaking memory on
- * purpose because Microsoft made it to allocate some debug info block
- * which is NOT released in DeleteCriticalSection().
- *
- * So lets do this hack to replace InitializeCriticalSection() with
- * InitializeCriticalSectionEx() (available since Vista), which allows to
- * suppress the silly behavior.
- *
- * See http://stackoverflow.com/questions/804848/
- */
+/* Beware: Our mutex is not recursive. */
 
-void WINAPI mc_InitializeCriticalSection(CRITICAL_SECTION* cs);
-#undef InitializeCriticalSection
-#define InitializeCriticalSection  mc_InitializeCriticalSection
+typedef char mc_mutex_t[sizeof(CRITICAL_SECTION)];
+
+extern void (WINAPI* mc_mutex_lock_fn_)(void*);  /* Do not call these directly. */
+extern void (WINAPI* mc_mutex_unlock_fn_)(void*);
+
+
+void mc_mutex_init(mc_mutex_t* mutex);
+void mc_mutex_fini(mc_mutex_t* mutex);
+
+static inline void
+mc_mutex_lock(mc_mutex_t* mutex)
+{
+    mc_mutex_lock_fn_((void*) mutex);
+}
+
+static inline void
+mc_mutex_unlock(mc_mutex_t* mutex)
+{
+    mc_mutex_unlock_fn_((void*) mutex);
+}
 
 
 /************************

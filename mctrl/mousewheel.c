@@ -19,7 +19,7 @@
 #include "mousewheel.h"
 
 
-static CRITICAL_SECTION mousewheel_lock;
+static mc_mutex_t mousewheel_mutex;
 
 
 int
@@ -52,7 +52,7 @@ mousewheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
     if(lines_per_WHEEL_DELTA == WHEEL_PAGESCROLL  ||  lines_per_WHEEL_DELTA >= page)
         lines_per_WHEEL_DELTA = page;
 
-    EnterCriticalSection(&mousewheel_lock);
+    mc_mutex_lock(&mousewheel_mutex);
 
     /* Reset the accumulated value(s) when switching to another window, when
      * changing scrolling direction, or when the wheel was not used for some
@@ -78,18 +78,18 @@ mousewheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
     }
     last_time[dir] = now;
 
-    LeaveCriticalSection(&mousewheel_lock);
+    mc_mutex_unlock(&mousewheel_mutex);
     return (is_vertical ? -lines : lines);
 }
 
 void
 mousewheel_dllmain_init(void)
 {
-    InitializeCriticalSection(&mousewheel_lock);
+    mc_mutex_init(&mousewheel_mutex);
 }
 
 void
 mousewheel_dllmain_fini(void)
 {
-    DeleteCriticalSection(&mousewheel_lock);
+    mc_mutex_fini(&mousewheel_mutex);
 }

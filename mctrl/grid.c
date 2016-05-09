@@ -2854,6 +2854,8 @@ grid_left_button_up(grid_t* grid, int x, int y)
             SetTimer(grid->win, (UINT_PTR) grid_start_label_edit,
                      GetDoubleClickTime(), NULL);
         }
+
+        grid->labeledit_considering = FALSE;
     }
 }
 
@@ -3667,10 +3669,8 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_COMMAND:
-            if(grid->labeledit_started  &&  HIWORD(wp) == EN_KILLFOCUS) {
-                MC_TRACE("HIT THERE");
+            if(grid->labeledit_started  &&  HIWORD(wp) == EN_KILLFOCUS)
                 grid_end_label_edit(grid, FALSE);
-            }
             break;
 
         case WM_NOTIFYFORMAT:
