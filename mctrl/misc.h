@@ -238,6 +238,23 @@ mc_mutex_unlock(mc_mutex_t* mutex)
 }
 
 
+#if 0
+    /* Enable this for debugging locking issues. */
+
+    #define mc_mutex_lock(m)                                                \
+            do {                                                            \
+                MC_TRACE("LOCK(%p, %s:%d)", m, __FILE__, __LINE__);         \
+                mc_mutex_lock(m);                                           \
+            } while(0)
+
+    #define mc_mutex_unlock(m)                                              \
+            do {                                                            \
+                MC_TRACE("UNLOCK(%p, %s:%d)", m, __FILE__, __LINE__);       \
+                mc_mutex_unlock(m);                                         \
+            } while(0)
+#endif
+
+
 /************************
  *** String Utilities ***
  ************************/
