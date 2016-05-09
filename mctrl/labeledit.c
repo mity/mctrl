@@ -154,14 +154,19 @@ err_malloc:
 void
 labeledit_end(HWND parent_win, BOOL save)
 {
+    HWND edit_win = NULL;
+
     if(parent_win == labeledit_current_parent_win) {
         mc_mutex_lock(&labeledit_mutex);
         if(parent_win == labeledit_current_parent_win) {
             labeledit_current->want_save = save;
-            MC_SEND(labeledit_current->edit_win, WM_CLOSE, 0, 0);
+            edit_win = labeledit_current->edit_win;
         }
         mc_mutex_unlock(&labeledit_mutex);
     }
+
+    if(edit_win != NULL)
+        MC_SEND(edit_win, WM_CLOSE, 0, 0);
 }
 
 HWND
