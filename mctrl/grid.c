@@ -2714,6 +2714,9 @@ grid_left_button_down(grid_t* grid, int x, int y)
         return;
     }
 
+    if(grid->labeledit_started)
+        grid_end_label_edit(grid, FALSE);
+
     info.pt.x = x;
     info.pt.y = y;
     grid_hit_test_ex(grid, &info, &cell_rect);
