@@ -298,14 +298,16 @@ chart_draw_vert_string(WD_HCANVAS canvas, const WD_HFONT font,
                        const WD_RECT* rect, const TCHAR* str, int len,
                        const WD_HBRUSH brush)
 {
-    float w_half = (rect->x1 - rect->x0) * 0.5f;
-    float h_half = (rect->y1 - rect->y0) * 0.5f;
-    WD_RECT r = { floorf(-h_half), floorf(-w_half), floorf(+h_half), floorf(+w_half) };
+    float cx = (rect->x0 + rect->x1) * 0.5f;
+    float cy = (rect->y0 + rect->y1) * 0.5f;
+    float w_half = (rect->x1 - rect->x0 + 1.0f) * 0.5f;
+    float h_half = (rect->y1 - rect->y0 + 1.0f) * 0.5f;
+    WD_RECT r = { cx - h_half, cy - w_half, cx + h_half, cy + w_half };
 
-    wdRotateWorld(canvas, rect->x0 + w_half, rect->y0 + h_half, -90.0f);
+    wdRotateWorld(canvas, cx, cy, -90.0f);
     wdDrawString(canvas, font, &r, str, len, brush,
-                      WD_STR_NOCLIP | WD_STR_NOWRAP | WD_STR_CENTERALIGN);
-    wdResetWorld(canvas);
+            WD_STR_NOCLIP | WD_STR_NOWRAP | WD_STR_CENTERALIGN);
+    wdRotateWorld(canvas, cx, cy, +90.0f);
 }
 
 
