@@ -660,7 +660,7 @@ expand_nccreate(HWND win, CREATESTRUCT* cs)
     expand->notify_win = cs->hwndParent;
     expand->style = cs->style;
 
-    doublebuffer_fini();
+    doublebuffer_init();
 
     return expand;
 }
@@ -694,7 +694,7 @@ expand_ncdestroy(expand_t* expand)
     if(expand->anim != NULL)
         anim_stop(expand->anim);
 
-    doublebuffer_init();
+    doublebuffer_fini();
     free(expand);
 }
 
