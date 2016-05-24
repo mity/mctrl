@@ -727,7 +727,12 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     is_hot = (col == grid->hot_col  &&  row == grid->hot_row  &&
               col < grid->col_count  &&  row < grid->row_count);  /* <-- avoid headers */
 
-    grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
+    if(col == MC_TABLE_HEADER  &&  row == MC_TABLE_HEADER) {
+        grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_FLAGS);
+        di.text = NULL;
+    } else {
+        grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_FLAGS);
+    }
 
     text_color = GetSysColor(COLOR_BTNTEXT);
     back_color = MC_CLR_NONE;
