@@ -16,7 +16,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-LANGUAGE LANG_CZECH, SUBLANG_DEFAULT
+LANGUAGE LANG_CZECH, SUBLANG_NEUTRAL
 #pragma code_page(1250)
 
 #define STR(s)    MC_STRINGIZE(s ## \\0x)

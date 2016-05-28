@@ -16,7 +16,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-LANGUAGE LANG_FRENCH, SUBLANG_DEFAULT
+LANGUAGE LANG_FRENCH, SUBLANG_NEUTRAL
 #pragma code_page(1252)
 
 STRINGTABLE
