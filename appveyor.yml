@@ -1,7 +1,7 @@
 # YAML definition for Appveyor.com continuous integration.
 # See http://www.appveyor.com/docs/appveyor-yml
 
-version: '{build}'
+version: '{branch}-{build}'
 
 before_build:
   - 'cmake --version'
