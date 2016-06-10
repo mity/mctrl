@@ -673,10 +673,19 @@ mc_init_module(void)
     dll_comctl32 = GetModuleHandle(_T("COMCTL32.DLL"));
     MC_ASSERT(dll_comctl32 != NULL);
 
-    /* Init common controls. */
-    if(MC_ERR(mc_init_comctl32(ICC_STANDARD_CLASSES) != 0)) {
-        MC_TRACE("mc_init_module: mc_init_comctl32() failed.");
-        return -1;
+    /* Retrieve version of Windows and COMCTL32.DLL */
+    setup_win_version();
+    setup_load_sys_dll();
+    setup_comctl32_version(dll_comctl32);
+
+    /* Init ICC_STANDARD_CLASSES if we are using COMCTL32.DLL version 6.0
+     * or higher. With older versions, the legacy std. controls from USER32.DLL
+     * are used. */
+    if(mc_comctl32_version >= MC_DLL_VER(6, 0)) {
+        if(MC_ERR(mc_init_comctl32(ICC_STANDARD_CLASSES) != 0)) {
+            MC_TRACE("mc_init_module: mc_init_comctl32() failed.");
+            return -1;
+        }
     }
 
     /* Load set of helper symbols used for helper buttons of more complex
@@ -687,11 +696,6 @@ mc_init_module(void)
         MC_TRACE_ERR("mc_init_module: ImageList_LoadBitmap() failed");
         return -1;
     }
-
-    /* Retrieve version of Windows and COMCTL32.DLL */
-    setup_win_version();
-    setup_load_sys_dll();
-    setup_comctl32_version(dll_comctl32);
 
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
