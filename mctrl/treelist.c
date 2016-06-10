@@ -1729,16 +1729,19 @@ treelist_set_sel(treelist_t* tl, treelist_item_t* item)
 static void
 treelist_toggle_sel(treelist_t* tl, treelist_item_t* item)
 {
-    BOOL do_select;
+    BOOL do_select = !(item->state & MC_TLIS_SELECTED);
 
-    MC_ASSERT(tl->style & MC_TLS_MULTISELECT);
     MC_ASSERT(item != NULL);
 
-    do_select = !(item->state & MC_TLIS_SELECTED);
+    /* Without the multi-selection mode, we degenerate to treelist_set_sel(). */
+    if(!(tl->style & MC_TLS_MULTISELECT)) {
+        treelist_set_sel(tl, (do_select ? item : NULL));
+        return;
+    }
 
-    /* If we toggle elsewhere in the tree elsewhere then the current selection
-     * is, we may need to unselect old selection. Function treelist_set_sel()
-     * already knows how to do that. */
+    /* If we toggle in the tree elsewhere then the current selection is, we may
+     * need to unselect old selection. Function treelist_set_sel() already
+     * knows how to do that. */
     if(do_select  &&  tl->selected_count > 0  &&  tl->selected_last->parent != item->parent) {
         treelist_set_sel(tl, item);
         return;
