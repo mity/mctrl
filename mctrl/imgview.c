@@ -354,6 +354,7 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             iv->no_redraw = !wp;
             if(!iv->no_redraw)
                 InvalidateRect(win, NULL, TRUE);
+            return 0;
 
         case WM_GETDLGCODE:
             return DLGC_STATIC;
