@@ -24,11 +24,6 @@
 #include "backend-dwrite.h"
 
 
-static const GUID dwrite_IID_ID2D1Factory =
-        {0x06152247,0x6f50,0x465a,{0x92,0x45,0x11,0x8b,0xfd,0x3b,0x60,0x07}};
-static const GUID dwrite_IID_ID2D1GdiInteropRenderTarget =
-        {0xe0db51c3,0x6f77,0x4bae,{0xb3,0xd5,0xe4,0x75,0x09,0xb3,0x58,0x38}};
-
 static HMODULE dwrite_dll;
 
 dummy_IDWriteFactory* dwrite_factory = NULL;
@@ -208,7 +203,7 @@ err_IDWriteFactory_GetGdiInterop:
 }
 
 dummy_IDWriteTextLayout*
-dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, const WD_RECT* rect,
+dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, float width, float height,
                           const WCHAR* str, int len, DWORD flags)
 {
     dummy_IDWriteTextLayout* layout;
@@ -219,7 +214,7 @@ dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, const WD_RECT* rect,
         len = wcslen(str);
 
     hr = dummy_IDWriteFactory_CreateTextLayout(dwrite_factory, str, len, tf,
-                rect->x1 - rect->x0, rect->y1 - rect->y0, &layout);
+                width, height, &layout);
     if(FAILED(hr)) {
         WD_TRACE_HR("dwrite_create_text_layout: "
                     "IDWriteFactory::CreateTextLayout() failed.");
