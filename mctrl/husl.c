@@ -78,9 +78,7 @@ static const float m_inv[3][3] = { { 0.4124f, 0.3576f, 0.1805f },
                                    { 0.2126f, 0.7152f, 0.0722f },
                                    { 0.0193f, 0.1192f, 0.9505f } };
 
-static const float refX = 0.95047f;
 static const float refY = 1.00000f;
-static const float refZ = 1.08883f;
 static const float refU = 0.19784f;
 static const float refV = 0.46834f;
 static const float lab_e = 0.008856f;
