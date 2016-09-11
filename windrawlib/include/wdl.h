@@ -443,7 +443,7 @@ void wdMeasureString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
 
 /* Convenient wdMeasureString() wrapper. */
 float wdStringWidth(WD_HCANVAS hCanvas, WD_HFONT hFont, const WCHAR* pszText);
-
+float wdStringHeight(WD_HFONT hFont, const WCHAR* pszText);
 
 #ifdef __cplusplus
 }  /* extern "C" */

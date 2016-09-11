@@ -117,8 +117,8 @@ wdOpenPathSink(WD_PATHSINK* pSink, WD_HPATH hPath)
         pSink->pData = (void*) s;
         return TRUE;
     } else {
-        /* GDI+ does no concept of path sink as Direct2D does, it operates
-         * directly with the path object. */
+        /* GDI+ doesn't have any concept of path sink as Direct2D does, it
+         * operates directly with the path object. */
         pSink->pData = (void*) hPath;
         return TRUE;
     }

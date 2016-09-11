@@ -203,7 +203,7 @@ err_IDWriteFactory_GetGdiInterop:
 }
 
 dummy_IDWriteTextLayout*
-dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, float width, float height,
+dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, const WD_RECT* rect,
                           const WCHAR* str, int len, DWORD flags)
 {
     dummy_IDWriteTextLayout* layout;
@@ -214,7 +214,7 @@ dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, float width, float height
         len = wcslen(str);
 
     hr = dummy_IDWriteFactory_CreateTextLayout(dwrite_factory, str, len, tf,
-                width, height, &layout);
+                rect->x1 - rect->x0, rect->y1 - rect->y0, &layout);
     if(FAILED(hr)) {
         WD_TRACE_HR("dwrite_create_text_layout: "
                     "IDWriteFactory::CreateTextLayout() failed.");

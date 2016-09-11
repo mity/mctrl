@@ -153,3 +153,12 @@ wdStringWidth(WD_HCANVAS hCanvas, WD_HFONT hFont, const WCHAR* pszText)
                 &rcResult, WD_STR_LEFTALIGN | WD_STR_NOWRAP);
     return WD_ABS(rcResult.x1 - rcResult.x0);
 }
+
+float
+wdStringHeight(WD_HFONT hFont, const WCHAR* pszText)
+{
+    WD_FONTMETRICS metrics;
+
+    wdFontMetrics(hFont, &metrics);
+    return metrics.fLeading;
+}

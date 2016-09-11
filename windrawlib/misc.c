@@ -63,7 +63,7 @@ wd_load_system_dll(const TCHAR* dll_name)
     HMODULE dll_kernel32;
     HMODULE dll;
 
-    /* Check whether flag LOAD_LIBRARY_SEARCH_SYSTEM32 is support on this
+    /* Check whether flag LOAD_LIBRARY_SEARCH_SYSTEM32 is supported on this
      * system. It has been added in Win Vista/7 with the security update
      * KB2533623. The update also added new symbol AddDllDirectory() so we
      * use that as a canary. */
