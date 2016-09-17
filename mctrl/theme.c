@@ -76,7 +76,7 @@ HRESULT  (WINAPI* theme_GetThemeSysFont)(HTHEME,int,LOGFONTW*) = NULL;
 HRESULT  (WINAPI* theme_GetThemeSysInt)(HTHEME,int,int*) = NULL;
 int      (WINAPI* theme_GetThemeSysSize)(HTHEME,int) = NULL;
 HRESULT  (WINAPI* theme_GetThemeSysString)(HTHEME,int,WCHAR*,int) = NULL;
-HRESULT  (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*) = NULL;
+HRESULT  (WINAPI* theme_GetThemeTextExtent)(HTHEME,HDC,int,int,const WCHAR*,int,DWORD,const RECT*,RECT*) = NULL;
 HRESULT  (WINAPI* theme_GetThemeTextMetrics)(HTHEME,HDC,int,int,TEXTMETRIC*) = NULL;
 HRESULT  (WINAPI* theme_GetThemeTransitionDuration)(HTHEME,int,int,int,int,DWORD*) = NULL;
 HTHEME   (WINAPI* theme_GetWindowTheme)(HWND) = NULL;
@@ -1202,7 +1202,7 @@ theme_init_module(void)
     GPA(HRESULT,  GetThemeSysInt, (HTHEME,int,int*));
     GPA(int,      GetThemeSysSize, (HTHEME,int));
     GPA(HRESULT,  GetThemeSysString, (HTHEME,int,WCHAR*,int));
-    GPA(HRESULT,  GetThemeTextExtent, (HTHEME,HDC,int,int,const TCHAR*,int,DWORD,const RECT*,RECT*));
+    GPA(HRESULT,  GetThemeTextExtent, (HTHEME,HDC,int,int,const WCHAR*,int,DWORD,const RECT*,RECT*));
     GPA(HRESULT,  GetThemeTextMetrics, (HTHEME,HDC,int,int,TEXTMETRIC*));
     GPA(HTHEME,   GetWindowTheme, (HWND));
     GPA(HRESULT,  HitTestThemeBackground, (HTHEME,HDC,int,int,DWORD,const RECT*,HRGN,POINT,WORD*));
