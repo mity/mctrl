@@ -53,7 +53,7 @@ CreateMenuBar(HWND hWnd)
     SendMessage(hwndMenubar, TB_GETIDEALSIZE, FALSE, (LPARAM) &szIdeal);
 
     /* Embed the menubar in the ReBar */
-    band.cbSize = sizeof(REBARBANDINFO);
+    band.cbSize = REBARBANDINFO_V3_SIZE;
     band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE | RBBIM_IDEALSIZE | RBBIM_ID;
     band.fStyle = RBBS_GRIPPERALWAYS | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
     band.hwndChild = hwndMenubar;
