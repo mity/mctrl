@@ -52,15 +52,19 @@
 #if defined MC_COMPILER_MSVC  &&  MC_COMPILER_MSVC < 1600
     /* Old MSVC versions miss <stdint.h> so lets provide our own (incomplete)
      * replacement. */
-    typedef __int8  int8_t;
-    typedef __int16 int16_t;
-    typedef __int32 int32_t;
-    typedef __int64 int64_t;
+    typedef signed __int8  int8_t;
+    typedef signed __int16 int16_t;
+    typedef signed __int32 int32_t;
+    typedef signed __int64 int64_t;
+
+    typedef signed long intptr_t;
 
     typedef unsigned __int8  uint8_t;
     typedef unsigned __int16 uint16_t;
     typedef unsigned __int32 uint32_t;
     typedef unsigned __int64 uint64_t;
+
+    typedef unsigned long uintptr_t;
 
     #define INT8_MIN  (-0x7f - 1)
     #define INT16_MIN (-0x7fff - 1)
@@ -145,9 +149,46 @@
     #endif
 
     #include <math.h>
+
     /* MSVC does not know roundf() */
     static inline float roundf(float x)
         { return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f); }
+
+    #if MC_COMPILER_MSVC <= 1200
+        /* With MSVC 6.0, these are missing in <malloc.h>. */
+        static inline void*
+        _malloca(size_t size)
+        {
+            void* ptr = (size > 1024 ? malloc(size + sizeof(void*)) : _alloca(size) + sizeof(void*));
+            if(ptr == NULL)
+                return NULL;
+            *((unsigned*)ptr) = (size > 1024 ? 0xdddd : 0xcccc);
+            return (void*) ((char*)ptr + sizeof(void*));
+        }
+
+        static inline void
+        _freea(void* ptr)
+        {
+            if(ptr != NULL) {
+                ptr = (void*) ((char*)ptr - sizeof(void*));
+                if(*((unsigned*)ptr) == 0xdddd)
+                    free(ptr);
+            }
+        }
+
+        /* With MSVC 6.0, these are missing in <math.h>. */
+        static inline float floorf(float x)             { return (float)floor((double)x); }
+        static inline float ceilf(float x)              { return (float)ceil((double)x); }
+        static inline float powf(float x, float y)      { return (float)pow((double)x, (double)y); }
+        static inline float cosf(float x)               { return (float)cos((double)x); }
+        static inline float sinf(float x)               { return (float)sin((double)x); }
+        static inline float atan2f(float x, float y)    { return (float)atan2((double)x, (double)y); }
+        static inline float sqrtf(float x)              { return (float)sqrt((double)x); }
+
+        /* With MSVC 6.0, these is swprintf() and not _swprintf(). */
+        #undef _swprintf
+        #define _swprintf swprintf
+    #endif
 
     #if MC_COMPILER_MSVC < 1700
         /* MSVC older then 2013 does not know cbrtf() */
