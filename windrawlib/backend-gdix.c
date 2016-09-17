@@ -164,6 +164,7 @@ gdix_init(void)
     GPA(CreateStringFormat, (int, LANGID, dummy_GpStringFormat**));
     GPA(DeleteStringFormat, (dummy_GpStringFormat*));
     GPA(SetStringFormatAlign, (dummy_GpStringFormat*, dummy_GpStringAlignment));
+    GPA(SetStringFormatLineAlign, (dummy_GpStringFormat*, dummy_GpStringAlignment));
     GPA(SetStringFormatFlags, (dummy_GpStringFormat*, int));
     GPA(SetStringFormatTrimming, (dummy_GpStringFormat*, dummy_GpStringTrimming));
 
@@ -372,6 +373,14 @@ gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags)
     else
         sfa = dummy_StringAlignmentNear;
     gdix_vtable->fn_SetStringFormatAlign(c->string_format, sfa);
+
+    if(flags & WD_STR_BOTTOMALIGN)
+        sfa = dummy_StringAlignmentFar;
+    else if(flags & WD_STR_MIDDLEALIGN)
+        sfa = dummy_StringAlignmentCenter;
+    else
+        sfa = dummy_StringAlignmentNear;
+    gdix_vtable->fn_SetStringFormatLineAlign(c->string_format, sfa);
 
     sff = 0;
     if(c->rtl)

@@ -255,7 +255,7 @@ memstream_create(const BYTE* buffer, ULONG size)
 
 IStream*
 memstream_create_from_resource(HINSTANCE instance,
-            const TCHAR* res_type, const TCHAR* res_name)
+            const WCHAR* res_type, const WCHAR* res_name)
 {
     HRSRC res;
     DWORD res_size;
@@ -274,7 +274,7 @@ memstream_create_from_resource(HINSTANCE instance,
      * does not need to do any bookkeeping for the resource.
      */
 
-    res = FindResource(instance, res_name, res_type);
+    res = FindResourceW(instance, res_name, res_type);
     if(res == NULL) {
         WD_TRACE_ERR("memstream_create_from_resource: FindResource() failed.");
         return NULL;

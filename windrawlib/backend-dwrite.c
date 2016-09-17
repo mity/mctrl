@@ -229,6 +229,14 @@ dwrite_create_text_layout(dummy_IDWriteTextFormat* tf, const WD_RECT* rect,
         tla = dummy_DWRITE_TEXT_ALIGNMENT_LEADING;
     dummy_IDWriteTextLayout_SetTextAlignment(layout, tla);
 
+    if(flags & WD_STR_BOTTOMALIGN)
+        tla = dummy_DWRITE_PARAGRAPH_ALIGNMENT_FAR;
+    else if(flags & WD_STR_MIDDLEALIGN)
+        tla = dummy_DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+    else
+        tla = dummy_DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+    dummy_IDWriteTextLayout_SetParagraphAlignment(layout, tla);
+
     if(flags & WD_STR_NOWRAP)
         dummy_IDWriteTextLayout_SetWordWrapping(layout, dummy_DWRITE_WORD_WRAPPING_NO_WRAP);
 

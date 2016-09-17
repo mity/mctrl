@@ -300,6 +300,7 @@ void wdSetSolidBrushColor(WD_HBRUSH hBrush, WD_COLOR color);
 
 WD_HPATH wdCreatePath(WD_HCANVAS hCanvas);
 WD_HPATH wdCreatePolygonPath(WD_HCANVAS hCanvas, const WD_POINT* pPoints, UINT uCount);
+WD_HPATH wdCreateRoundedRectPath(WD_HCANVAS hCanvas, const WD_RECT* prc, float r);
 void wdDestroyPath(WD_HPATH hPath);
 
 typedef struct WD_PATHSINK_tag WD_PATHSINK;
@@ -424,13 +425,17 @@ void wdBitBltHICON(WD_HCANVAS hCanvas, HICON hIcon,
 #define WD_STR_LEFTALIGN        0x0000
 #define WD_STR_CENTERALIGN      0x0001
 #define WD_STR_RIGHTALIGN       0x0002
-#define WD_STR_NOCLIP           0x0004
-#define WD_STR_NOWRAP           0x0008
-#define WD_STR_ENDELLIPSIS      0x0010
-#define WD_STR_WORDELLIPSIS     0x0020
-#define WD_STR_PATHELLIPSIS     0x0040
+#define WD_STR_TOPALIGN         0x0000
+#define WD_STR_MIDDLEALIGN      0x0004
+#define WD_STR_BOTTOMALIGN      0x0008
+#define WD_STR_NOCLIP           0x0010
+#define WD_STR_NOWRAP           0x0020
+#define WD_STR_ENDELLIPSIS      0x0040
+#define WD_STR_WORDELLIPSIS     0x0080
+#define WD_STR_PATHELLIPSIS     0x0100
 
 #define WD_STR_ALIGNMASK        (WD_STR_LEFTALIGN | WD_STR_CENTERALIGN | WD_STR_RIGHTALIGN)
+#define WD_STR_VALIGNMASK       (WD_STR_TOPALIGN | WD_STR_MIDDLEALIGN | WD_STR_BOTTOMALIGN)
 #define WD_STR_ELLIPSISMASK     (WD_STR_ENDELLIPSIS | WD_STR_WORDELLIPSIS | WD_STR_PATHELLIPSIS)
 
 void wdDrawString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,

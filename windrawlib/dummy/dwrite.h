@@ -104,6 +104,13 @@ enum dummy_DWRITE_TEXT_ALIGNMENT_tag {
     dummy_DWRITE_TEXT_ALIGNMENT_CENTER
 };
 
+typedef enum dummy_DWRITE_PARAGRAPH_ALIGNMENT_tag dummy_DWRITE_PARAGRAPH_ALIGNMENT;
+enum dummy_DWRITE_PARAGRAPH_ALIGNMENT_tag {
+    dummy_DWRITE_PARAGRAPH_ALIGNMENT_NEAR = 0,
+    dummy_DWRITE_PARAGRAPH_ALIGNMENT_FAR,
+    dummy_DWRITE_PARAGRAPH_ALIGNMENT_CENTER
+};
+
 typedef enum dummy_DWRITE_TRIMMING_GRANULARITY_tag dummy_DWRITE_TRIMMING_GRANULARITY;
 enum dummy_DWRITE_TRIMMING_GRANULARITY_tag {
     dummy_DWRITE_TRIMMING_GRANULARITY_NONE = 0,
@@ -475,7 +482,7 @@ struct dummy_IDWriteTextLayoutVtbl_tag {
 
     /* IDWriteTextFormat methods */
     STDMETHOD(SetTextAlignment)(dummy_IDWriteTextLayout*, dummy_DWRITE_TEXT_ALIGNMENT);
-    STDMETHOD(dummy_SetParagraphAlignment)(void);
+    STDMETHOD(SetParagraphAlignment)(dummy_IDWriteTextLayout*, dummy_DWRITE_PARAGRAPH_ALIGNMENT);
     STDMETHOD(SetWordWrapping)(dummy_IDWriteTextLayout*, dummy_DWRITE_WORD_WRAPPING);
     STDMETHOD(SetReadingDirection)(dummy_IDWriteTextLayout*, dummy_DWRITE_READING_DIRECTION);
     STDMETHOD(dummy_SetFlowDirection)(void);
@@ -546,14 +553,15 @@ struct dummy_IDWriteTextLayout_tag {
     dummy_IDWriteTextLayoutVtbl* vtbl;
 };
 
-#define dummy_IDWriteTextLayout_QueryInterface(self,a,b)    (self)->vtbl->QueryInterface(self,a,b)
-#define dummy_IDWriteTextLayout_AddRef(self)                (self)->vtbl->AddRef(self)
-#define dummy_IDWriteTextLayout_Release(self)               (self)->vtbl->Release(self)
-#define dummy_IDWriteTextLayout_SetTextAlignment(self,a)    (self)->vtbl->SetTextAlignment(self,a)
-#define dummy_IDWriteTextLayout_SetWordWrapping(self,a)     (self)->vtbl->SetWordWrapping(self,a)
-#define dummy_IDWriteTextLayout_SetReadingDirection(self,a) (self)->vtbl->SetReadingDirection(self,a)
-#define dummy_IDWriteTextLayout_SetTrimming(self,a,b)       (self)->vtbl->SetTrimming(self,a,b)
-#define dummy_IDWriteTextLayout_GetMetrics(self,a)          (self)->vtbl->GetMetrics(self,a)
+#define dummy_IDWriteTextLayout_QueryInterface(self,a,b)        (self)->vtbl->QueryInterface(self,a,b)
+#define dummy_IDWriteTextLayout_AddRef(self)                    (self)->vtbl->AddRef(self)
+#define dummy_IDWriteTextLayout_Release(self)                   (self)->vtbl->Release(self)
+#define dummy_IDWriteTextLayout_SetTextAlignment(self,a)        (self)->vtbl->SetTextAlignment(self,a)
+#define dummy_IDWriteTextLayout_SetParagraphAlignment(self,a)   (self)->vtbl->SetParagraphAlignment(self,a)
+#define dummy_IDWriteTextLayout_SetWordWrapping(self,a)         (self)->vtbl->SetWordWrapping(self,a)
+#define dummy_IDWriteTextLayout_SetReadingDirection(self,a)     (self)->vtbl->SetReadingDirection(self,a)
+#define dummy_IDWriteTextLayout_SetTrimming(self,a,b)           (self)->vtbl->SetTrimming(self,a,b)
+#define dummy_IDWriteTextLayout_GetMetrics(self,a)              (self)->vtbl->GetMetrics(self,a)
 
 
 #endif  /* DUMMY_DWRITE_H */

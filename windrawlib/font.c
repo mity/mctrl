@@ -31,10 +31,13 @@
 static void
 wd_get_default_gui_fontface(WCHAR buffer[LF_FACESIZE])
 {
-    NONCLIENTMETRICS metrics;
+    NONCLIENTMETRICSW metrics;
 
-    metrics.cbSize = sizeof(NONCLIENTMETRICS);
-    SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, (void*) &metrics, 0);
+    metrics.cbSize = sizeof(NONCLIENTMETRICSW);
+#if WINVER >= 0x0600
+    metrics.cbSize -= sizeof(metrics.iPaddedBorderWidth);
+#endif
+    SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, 0, (void*) &metrics, 0);
     wcsncpy(buffer, metrics.lfMessageFont.lfFaceName, LF_FACESIZE);
 }
 

@@ -90,6 +90,51 @@ wdCreatePolygonPath(WD_HCANVAS hCanvas, const WD_POINT* pPoints, UINT uCount)
     return p;
 }
 
+WD_HPATH
+wdCreateRoundedRectPath(WD_HCANVAS hCanvas, const WD_RECT* prc, float r)
+{
+    WD_HPATH    p;
+    WD_PATHSINK sink;
+    float       w_2, h_2;
+
+    /* Adjust the radius according to the maximum size allowed */
+    w_2 = (prc->x1 - prc->x0) / 2.f + 0.5f;
+    h_2 = (prc->y1 - prc->y0) / 2.f + 0.5f;
+
+    if (r > w_2) r = w_2;
+    if (r > h_2) r = h_2;
+
+    /* Create the path */
+    p = wdCreatePath(hCanvas);
+    if(p == NULL) {
+        WD_TRACE("wdCreateRoundRectPath: wdCreatePath() failed.");
+        return NULL;
+    }
+
+    if(!wdOpenPathSink(&sink, p))
+    {
+        WD_TRACE("wdCreateRoundRectPath: wdOpenPathSink() failed.");
+        wdDestroyPath(p);
+        return NULL;
+    }
+
+    wdBeginFigure(&sink, prc->x0+r, prc->y0);
+
+    wdAddLine(&sink, prc->x1-r, prc->y0);
+    wdAddArc (&sink, prc->x1-r, prc->y0+r, 90.0f);
+    wdAddLine(&sink, prc->x1,   prc->y1-r);
+    wdAddArc (&sink, prc->x1-r, prc->y1-r, 90.0f);
+    wdAddLine(&sink, prc->x0+r, prc->y1);
+    wdAddArc (&sink, prc->x0+r, prc->y1-r, 90.0f);
+    wdAddLine(&sink, prc->x0,   prc->y0+r);
+    wdAddArc (&sink, prc->x0+r, prc->y0+r, 90.0f);
+
+    wdEndFigure(&sink, TRUE);
+    wdClosePathSink(&sink);
+
+    return p;
+}
+
 void
 wdDestroyPath(WD_HPATH hPath)
 {

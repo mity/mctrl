@@ -116,6 +116,7 @@ struct gdix_vtable_tag {
     int (WINAPI* fn_CreateStringFormat)(int, LANGID, dummy_GpStringFormat**);
     int (WINAPI* fn_DeleteStringFormat)(dummy_GpStringFormat*);
     int (WINAPI* fn_SetStringFormatAlign)(dummy_GpStringFormat*, dummy_GpStringAlignment);
+    int (WINAPI* fn_SetStringFormatLineAlign)(dummy_GpStringFormat*, dummy_GpStringAlignment);
     int (WINAPI* fn_SetStringFormatFlags)(dummy_GpStringFormat*, int);
     int (WINAPI* fn_SetStringFormatTrimming)(dummy_GpStringFormat*, dummy_GpStringTrimming);
 

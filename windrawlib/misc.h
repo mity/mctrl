@@ -38,11 +38,17 @@
  ***  Debug Logging  ***
  ***********************/
 
+#if !defined _MSC_VER || (defined _MSC_VER && _MSC_VER > 1200)
+#define no_log(...)     do { } while(0)
+#else
+static void no_log(const char* fmt, ...) {}
+#endif
+
 #ifdef DEBUG
     void wd_log(const char* fmt, ...);
-    #define WD_TRACE(...)       do { wd_log(__VA_ARGS__); } while(0)
+    #define WD_TRACE    wd_log
 #else
-    #define WD_TRACE(...)       do { } while(0)
+    #define WD_TRACE    no_log
 #endif
 
 #define WD_TRACE_ERR_(msg, err)          WD_TRACE(msg " [%lu]", (err))
@@ -77,6 +83,38 @@ HMODULE wd_load_system_dll(const TCHAR* dll_name);
      * However it understands "__inline" */
     #ifndef __cplusplus
         #define inline __inline
+    #endif
+
+    #if _MSC_VER <= 1200
+        /* With MSVC 6.0, these are missing in <malloc.h>. */
+        static inline void*
+        _malloca(size_t size)
+        {
+            void* ptr = (size > 1024 ? malloc(size + sizeof(void*)) : _alloca(size) + sizeof(void*));
+            if(ptr == NULL)
+                return NULL;
+            *((unsigned*)ptr) = (size > 1024 ? 0xdddd : 0xcccc);
+            return (void*) ((char*)ptr + sizeof(void*));
+        }
+
+        static inline void
+        _freea(void* ptr)
+        {
+            if(ptr != NULL) {
+                ptr = (void*) ((char*)ptr - sizeof(void*));
+                if(*((unsigned*)ptr) == 0xdddd)
+                    free(ptr);
+            }
+        }
+
+        /* With MSVC 6.0, these are missing in <math.h>. */
+        static inline float floorf(float x)             { return (float)floor((double)x); }
+        static inline float ceilf(float x)              { return (float)ceil((double)x); }
+        static inline float powf(float x, float y)      { return (float)pow((double)x, (double)y); }
+        static inline float cosf(float x)               { return (float)cos((double)x); }
+        static inline float sinf(float x)               { return (float)sin((double)x); }
+        static inline float atan2f(float x, float y)    { return (float)atan2((double)x, (double)y); }
+        static inline float sqrtf(float x)              { return (float)sqrt((double)x); }
     #endif
 #endif
 
