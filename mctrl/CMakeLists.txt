@@ -103,6 +103,13 @@ elseif(MSVC)
     # We provide our own manifest, so tell the linker to not generate it:
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MANIFEST:NO")
 
+    # MSVC 6.0 does not expose GdiAlphaBlend() and friends from import lib
+    # for GDI32.DLL. We have to use the wrappers from MSIMG32.DLL.
+    # (See also preprocessor magic in mctrl/compat.h)
+    if(NOT(MSVC_VERSION GREATER 1200))
+        target_link_libraries(mCtrl msimg32)
+    endif()
+
     # Specify proper C runtime library:
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")

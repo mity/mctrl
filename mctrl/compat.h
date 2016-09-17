@@ -188,6 +188,10 @@
         /* With MSVC 6.0, these is swprintf() and not _swprintf(). */
         #undef _swprintf
         #define _swprintf swprintf
+
+        /* With MSVC 6.0, we have to use AlphaBlend() et al. from MSIMG32.DLL,
+         * instead of GdiAlphaBlend() et al. from GDI32.DLL. */
+        #define GdiAlphaBlend AlphaBlend
     #endif
 
     #if MC_COMPILER_MSVC < 1700
