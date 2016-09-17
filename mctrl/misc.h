@@ -19,6 +19,7 @@
 #ifndef MC_MISC_H
 #define MC_MISC_H
 
+#include <limits.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -381,7 +382,7 @@ mc_ref(mc_ref_t* i)
     return __atomic_add_fetch(i, 1, __ATOMIC_RELAXED);
 #elif defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40100
     return __sync_add_and_fetch(i, 1);
-#elif defined MC_COMPILER_MSVC
+#elif defined MC_COMPILER_MSVC  &&  MC_COMPILER_MSVC > 1200
     return _InterlockedIncrement(i);
 #else
     return InterlockedIncrement(i);
@@ -399,7 +400,7 @@ mc_unref(mc_ref_t* i)
     return ref;
 #elif defined MC_COMPILER_GCC  &&  MC_COMPILER_GCC >= 40100
     return __sync_sub_and_fetch(i, 1);
-#elif defined MC_COMPILER_MSVC
+#elif defined MC_COMPILER_MSVC  &&  MC_COMPILER_MSVC > 1200
     return _InterlockedDecrement(i);
 #else
     return InterlockedDecrement(i);
