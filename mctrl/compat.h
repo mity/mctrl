@@ -150,31 +150,10 @@
 
     #include <math.h>
 
-    /* MSVC does not know roundf() */
-    static inline float roundf(float x)
-        { return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f); }
-
     #if MC_COMPILER_MSVC <= 1200
         /* With MSVC 6.0, these are missing in <malloc.h>. */
-        static inline void*
-        _malloca(size_t size)
-        {
-            void* ptr = (size > 1024 ? malloc(size + sizeof(void*)) : _alloca(size + sizeof(void*)));
-            if(ptr == NULL)
-                return NULL;
-            *((unsigned*)ptr) = (size > 1024 ? 0xdddd : 0xcccc);
-            return (void*) ((char*)ptr + sizeof(void*));
-        }
-
-        static inline void
-        _freea(void* ptr)
-        {
-            if(ptr != NULL) {
-                ptr = (void*) ((char*)ptr - sizeof(void*));
-                if(*((unsigned*)ptr) == 0xdddd)
-                    free(ptr);
-            }
-        }
+        #define _malloca    malloc
+        #define _freea      free
 
         /* With MSVC 6.0, these are missing in <math.h>. */
         static inline float floorf(float x)             { return (float)floor((double)x); }
@@ -209,6 +188,10 @@
             #define TB_SETBOUNDINGSIZE              (WM_USER+93)
         #endif
     #endif
+
+    /* MSVC does not know roundf() */
+    static inline float roundf(float x)
+        { return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f); }
 
     /* With recent SDK versions, <shlwapi.h> started to #undefine COM C wrapper
      * macros IStream_Read and IStream_Write and instead it provides its own

@@ -28,9 +28,9 @@
 
 #if defined _MSC_VER  &&  _MSC_VER <= 1200
     /* MSVC 6.0 does not support variadic macros. */
-    static inline void MC_NOOP(...)     {}
+    static inline void MC_NOOP(const char* dummy, ...)      {}
 #else
-    #define MC_NOOP(...)                do {} while(0)
+    #define MC_NOOP(dummy, ...)                 do {} while(0)
 #endif
 
 #if defined DEBUG && DEBUG >= 1
