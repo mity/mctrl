@@ -90,7 +90,7 @@ HMODULE wd_load_system_dll(const TCHAR* dll_name);
         static inline void*
         _malloca(size_t size)
         {
-            void* ptr = (size > 1024 ? malloc(size + sizeof(void*)) : _alloca(size) + sizeof(void*));
+            void* ptr = (size > 1024 ? malloc(size + sizeof(void*)) : _alloca(size + sizeof(void*)));
             if(ptr == NULL)
                 return NULL;
             *((unsigned*)ptr) = (size > 1024 ? 0xdddd : 0xcccc);
