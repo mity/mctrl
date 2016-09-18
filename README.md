@@ -196,22 +196,7 @@ as part of the mCtrl build process.
 
 ## License
 
-mCtrl itself is covered with the GNU Lesser General Public License 2.1 or
-(at your option) any later version. See file `COPYING.lib` for more info.
-
-In brief, this generally means that:
-
-* Any program or library, even commercial, covered with any proprietary
-  license, is allowed to link against the mCtrl's import libraries and
-  distribute `MCTRL.DLL` along with the program.
-
-* You can modify `MCTRL.DLL` (or its source code) and distribute such modified
-  `MCTRL.DLL` only if the modifications are also licensed under the terms of
-  the LGPL 2.1 (or any later version); or under the terms of GPL 2 (or any
-  later version).
-
-Source code of all examples, i.e. contents of the directory `examples` within
-the source package (see below), are in public domain.
+Refer to the file `LICENSE.md` for more information about licensing terms.
 
 
 ## Reporting Bugs
