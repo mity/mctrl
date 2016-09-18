@@ -26,9 +26,9 @@
 /*#define IMGVIEW_DEBUG     1*/
 
 #ifdef IMGVIEW_DEBUG
-    #define IMGVIEW_TRACE       MC_TRACE
+    #define IMGVIEW_TRACE   MC_TRACE
 #else
-    #define IMGVIEW_TRACE(...)  do {} while(0)
+    #define IMGVIEW_TRACE   MC_NOOP
 #endif
 
 

@@ -33,7 +33,7 @@
 #define DEBUG_DUMP_PER_LINE         16
 
 void
-debug_trace(const char* fmt, ...)
+MC_TRACE(const char* fmt, ...)
 {
     DWORD last_error;
     va_list args;
@@ -58,7 +58,7 @@ debug_trace(const char* fmt, ...)
 }
 
 void
-debug_dump(const char* msg, void* addr, size_t n)
+MC_DUMP(const char* msg, void* addr, size_t n)
 {
     DWORD last_error;
     BYTE* bytes = (BYTE*) addr;
@@ -69,7 +69,7 @@ debug_dump(const char* msg, void* addr, size_t n)
     int i;
 
     last_error = GetLastError();
-    debug_trace(msg);
+    MC_TRACE(msg);
 
     while(offset < n) {
         count = MC_MIN(n - offset, DEBUG_DUMP_PER_LINE);
@@ -83,11 +83,11 @@ debug_dump(const char* msg, void* addr, size_t n)
                 ptr += sprintf(ptr, "  ");
         }
 
-        debug_trace(buffer);
+        MC_TRACE(buffer);
         offset += count;
     }
 
-    debug_trace("            (%lu bytes)", (ULONG)n);
+    MC_TRACE("            (%lu bytes)", (ULONG)n);
     SetLastError(last_error);
 }
 
@@ -102,9 +102,9 @@ debug_dump(const char* msg, void* addr, size_t n)
 
 /* Trace out all malloc() and free() calls? */
 #if DEBUG >= 3
-    #define DEBUG_TRACE          MC_TRACE
+    #define DEBUG_TRACE     MC_TRACE
 #else
-    #define DEBUG_TRACE(...)     do { } while(0)
+    #define DEBUG_TRACE     MC_NOOP
 #endif
 
 /* Undefine the replacing macros from debug.h */

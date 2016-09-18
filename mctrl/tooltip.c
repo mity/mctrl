@@ -23,9 +23,9 @@
 /* #define TOOLTIP_DEBUG     1 */
 
 #ifdef TOOLTIP_DEBUG
-    #define TOOLTIP_TRACE        MC_TRACE
+    #define TOOLTIP_TRACE   MC_TRACE
 #else
-    #define TOOLTIP_TRACE(...)   do {} while(0)
+    #define TOOLTIP_TRACE   MC_NOOP
 #endif
 
 

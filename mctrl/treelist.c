@@ -35,9 +35,9 @@
 /* #define TREELIST_DEBUG     1 */
 
 #ifdef TREELIST_DEBUG
-    #define TREELIST_TRACE       MC_TRACE
+    #define TREELIST_TRACE      MC_TRACE
 #else
-    #define TREELIST_TRACE(...)  do {} while(0)
+    #define TREELIST_TRACE      MC_NOOP
 #endif
 
 

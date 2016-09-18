@@ -60,9 +60,9 @@
 /*#define MENUBAR_DEBUG     1*/
 
 #ifdef MENUBAR_DEBUG
-    #define MENUBAR_TRACE          MC_TRACE
+    #define MENUBAR_TRACE   MC_TRACE
 #else
-    #define MENUBAR_TRACE(...)     do { } while(0)
+    #define MENUBAR_TRACE   MC_NOOP
 #endif
 
 

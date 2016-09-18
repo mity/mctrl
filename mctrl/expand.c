@@ -26,9 +26,9 @@
 /*#define EXPAND_DEBUG     1*/
 
 #ifdef EXPAND_DEBUG
-    #define EXPAND_TRACE       MC_TRACE
+    #define EXPAND_TRACE    MC_TRACE
 #else
-    #define EXPAND_TRACE(...)  do {} while(0)
+    #define EXPAND_TRACE    MC_NOOP
 #endif
 
 

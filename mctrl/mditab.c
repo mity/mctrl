@@ -33,9 +33,9 @@
 /*#define MDITAB_DEBUG     1*/
 
 #ifdef MDITAB_DEBUG
-    #define MDITAB_TRACE       MC_TRACE
+    #define MDITAB_TRACE    MC_TRACE
 #else
-    #define MDITAB_TRACE(...)  do {} while(0)
+    #define MDITAB_TRACE    MC_NOOP
 #endif
 
 

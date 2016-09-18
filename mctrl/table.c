@@ -23,9 +23,9 @@
 /*#define TABLE_DEBUG     1*/
 
 #ifdef TABLE_DEBUG
-    #define TABLE_TRACE         MC_TRACE
+    #define TABLE_TRACE     MC_TRACE
 #else
-    #define TABLE_TRACE(...)    do { } while(0)
+    #define TABLE_TRACE     MC_NOOP
 #endif
 
 

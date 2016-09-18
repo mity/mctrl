@@ -23,11 +23,11 @@
 /*#define DLG_DEBUG     1*/
 
 #ifdef DLG_DEBUG
-    #define DLG_TRACE         MC_TRACE
-    #define DLG_DUMP          MC_DUMP
+    #define DLG_TRACE       MC_TRACE
+    #define DLG_DUMP        MC_DUMP
 #else
-    #define DLG_TRACE(...)    do {} while(0)
-    #define DLG_DUMP(...)     do {} while(0)
+    #define DLG_TRACE       MC_NOOP
+    #define DLG_DUMP        MC_NOOP
 #endif
 
 

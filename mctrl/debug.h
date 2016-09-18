@@ -26,23 +26,22 @@
  *** Debug Tracing ***
  *********************/
 
+#if defined _MSC_VER  &&  _MSC_VER <= 1200
+    /* MSVC 6.0 does not support variadic macros. */
+    static inline void MC_NOOP(...)     {}
+#else
+    #define MC_NOOP(...)                do {} while(0)
+#endif
+
 #if defined DEBUG && DEBUG >= 1
     #include <windows.h>
     #include <stdlib.h>
 
-    void debug_trace(const char* fmt, ...);
-    void debug_dump(const char* msg, void* addr, size_t n);
-
-    #define MC_TRACE(...)        debug_trace(__VA_ARGS__)
-    #define MC_DUMP(msg,addr,n)  debug_dump((msg), (addr), (n))
-#endif
-
-/* Fallback to no-op macros */
-#ifndef MC_TRACE
-    #define MC_TRACE(...)                do { } while(0)
-#endif
-#ifndef MC_DUMP
-    #define MC_DUMP(...)                 do { } while(0)
+    void MC_TRACE(const char* fmt, ...);
+    void MC_DUMP(const char* msg, void* addr, size_t n);
+#else
+    #define MC_TRACE    MC_NOOP
+    #define MC_DUMP     MC_NOOP
 #endif
 
 /* Helper for tracing message with GetLastError() or HRESULT */
@@ -71,7 +70,7 @@
             if(MC_ERR(!(cond))) {                                             \
                 const char msg[] = __FILE__ ":" MC_STRINGIZE(__LINE__) ": "   \
                             "Assertion '" #cond "' failed.";                  \
-                debug_trace(msg);                                             \
+                MC_TRACE(msg);                                                \
                 if(IsDebuggerPresent()) {                                     \
                     __debugbreak();                                           \
                 } else {                                                      \
@@ -100,7 +99,7 @@
     #if defined __GNUC__
         #define MC_ASSERT(cond)          \
                     do { if(!(cond)) { __builtin_unreachable(); } } while(0)
-    #elif defined _MSC_VER
+    #elif defined _MSC_VER  &&  _MSC_VER > 1200
         #include <intrin.h>
         #define MC_ASSERT(cond)          do { __assume(cond); } while(0)
     #else
@@ -111,7 +110,7 @@
     #define MC_STATIC_ASSERT(cond)       /* empty */
 #endif
 
-/* Marking code is unreachable so compiler can optimize accordingly. */
+/* Marking code as unreachable so compiler can optimize accordingly. */
 #ifndef MC_UNREACHABLE
     #define MC_UNREACHABLE               MC_ASSERT(FALSE)
 #endif

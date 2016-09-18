@@ -30,9 +30,9 @@
 /*#define CHART_DEBUG     1*/
 
 #ifdef CHART_DEBUG
-    #define CHART_TRACE       MC_TRACE
+    #define CHART_TRACE     MC_TRACE
 #else
-    #define CHART_TRACE(...)  do {} while(0)
+    #define CHART_TRACE     MC_NOOP
 #endif
 
 

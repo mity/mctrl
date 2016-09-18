@@ -30,9 +30,9 @@
 /*#define GRID_DEBUG     1*/
 
 #ifdef GRID_DEBUG
-    #define GRID_TRACE         MC_TRACE
+    #define GRID_TRACE  MC_TRACE
 #else
-    #define GRID_TRACE(...)    do {} while(0)
+    #define GRID_TRACE  MC_NOOP
 #endif
 
 

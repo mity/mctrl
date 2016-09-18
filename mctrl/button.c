@@ -24,9 +24,9 @@
 /*#define BUTTON_DEBUG     1*/
 
 #ifdef BUTTON_DEBUG
-    #define BUTTON_TRACE       MC_TRACE
+    #define BUTTON_TRACE        MC_TRACE
 #else
-    #define BUTTON_TRACE(...)  do {} while(0)
+    #define BUTTON_TRACE        MC_NOOP
 #endif
 
 

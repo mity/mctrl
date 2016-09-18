@@ -23,9 +23,9 @@
 /*#define DSA_DEBUG     1*/
 
 #ifdef DSA_DEBUG
-    #define DSA_TRACE         MC_TRACE
+    #define DSA_TRACE   MC_TRACE
 #else
-    #define DSA_TRACE(...)    do { } while(0)
+    #define DSA_TRACE   MC_NOOP
 #endif
 
 

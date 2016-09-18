@@ -42,11 +42,11 @@
 
 
 #ifdef HTML_DEBUG
-    #define HTML_TRACE        MC_TRACE
-    #define HTML_TRACE_GUID   MC_TRACE_GUID
+    #define HTML_TRACE          MC_TRACE
+    #define HTML_TRACE_GUID     MC_TRACE_GUID
 #else
-    #define HTML_TRACE(...)        do {} while(0)
-    #define HTML_TRACE_GUID(...)   do {} while(0)
+    #define HTML_TRACE          MC_NOOP
+    #define HTML_TRACE_GUID     MC_NOOP
 #endif
 
 
