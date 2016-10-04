@@ -187,7 +187,7 @@ SetupTreeList(void)
         /* We may need to indicate it is a parent item even though we do not
          * insert and child items. This tells the control to display the
          * expand/collapse button next to the item. When user clicks on it,
-         * we will add the childs items dynamically. */
+         * we will add the child items dynamically. */
         insert.item.cChildren = (KeyHasChildren(rootKeys[i].hKey) ? 1 : 0);
         SendMessage(hwndTreeList, MC_TLM_INSERTITEM, 0, (LPARAM) &insert);
     }
@@ -202,6 +202,11 @@ InsertChildren(MC_HTREELISTITEM hItem, HKEY hKey)
     LONG status;
     DWORD dwBufferLen;
     TCHAR pszBuffer[260];
+
+    /* This makes this noop for values, if user tries to expand them e.g.
+     * by double-click. */
+    if(hKey == NULL)
+        return;
 
     insert.hParent = hItem;
     insert.hInsertAfter = MC_TLI_LAST;
