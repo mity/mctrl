@@ -223,12 +223,8 @@ InsertChildren(MC_HTREELISTITEM hItem, HKEY hKey)
         dwBufferLen = 260;
         status = RegEnumKeyEx(hKey, dwIndex, pszBuffer, &dwBufferLen, NULL, NULL, NULL, NULL);
         dwIndex++;
-        if(status != ERROR_SUCCESS) {
-            if(status == ERROR_NO_MORE_ITEMS)
-                break;
-            else
-                continue;
-        }
+        if(status != ERROR_SUCCESS)
+            break;
 
         status = RegOpenKeyEx(hKey, pszBuffer, 0, KEY_READ, &hSubKey);
         if(status != ERROR_SUCCESS)
