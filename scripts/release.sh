@@ -296,9 +296,9 @@ cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bi
 cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
 cp -r $TMP/mCtrl-$VERSION-src/include $TMP/mCtrl-$VERSION/
 cp -r $TMP/mCtrl-$VERSION-src/examples $TMP/mCtrl-$VERSION/
-cp $TMP/mCtrl-$VERSION-src/AUTHORS $TMP/mCtrl-$VERSION/
-cp $TMP/mCtrl-$VERSION-src/COPYING $TMP/mCtrl-$VERSION/
-cp $TMP/mCtrl-$VERSION-src/COPYING.lib $TMP/mCtrl-$VERSION/
+cp $TMP/mCtrl-$VERSION-src/AUTHORS.md $TMP/mCtrl-$VERSION/
+cp $TMP/mCtrl-$VERSION-src/COPYING.md $TMP/mCtrl-$VERSION/
+cp $TMP/mCtrl-$VERSION-src/COPYING.lib.md $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/LICENSE.md $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/README.md $TMP/mCtrl-$VERSION/
 find $TMP/mCtrl-$VERSION -name .git -exec rm -rf {} \;

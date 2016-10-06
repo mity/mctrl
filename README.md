@@ -196,7 +196,17 @@ as part of the mCtrl build process.
 
 ## License
 
-Refer to the file `LICENSE.md` for more information about licensing terms.
+mCtrl itself is covered by the GNU Lesser General Public License. Refer to
+the file `COPYING.lib.md` for more information about licensing terms.
+
+Some source files and libraries incorporated into mCtrl may have different
+(but compatible) licensing terms and some may be put into the public domain:
+
+* CUTest (`tests/cutest.h`): MIT license
+* Examples (`examples/*`): Public domain
+* HUSL (`src/husl.c`): MIT license
+* Unit tests (`tests/*.c`): Public domain
+* WinDrawLib: MIT license
 
 
 ## Reporting Bugs
