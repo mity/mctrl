@@ -73,6 +73,9 @@ struct html_tag {
     DWORD unicode_notifications :  1;
     DWORD can_back              :  1;
     DWORD can_forward           :  1;
+    DWORD has_advice_cookie     :  1;
+    DWORD advice_cookie;
+    mc_ref_t refs;
 
     /* Pointer to the COM-object representing the embedded Internet Explorer */
     IOleObject* ole_obj;
@@ -101,6 +104,23 @@ struct html_tag {
 #define MC_HTML_FROM_UI_HANDLER(ptr_ui_handler)                               \
     MC_CONTAINEROF(ptr_ui_handler, html_t, ui_handler)
 
+
+static ULONG STDMETHODCALLTYPE
+html_AddRef(html_t* html)
+{
+    return (ULONG) mc_ref(&html->refs);
+}
+
+static ULONG STDMETHODCALLTYPE
+html_Release(html_t* html)
+{
+    mc_ref_t refs = mc_unref(&html->refs);
+    if(refs == 0) {
+        HTML_TRACE("html_Release: freeing %p", html);
+        free(html);
+    }
+    return (ULONG) refs;
+}
 
 static HRESULT
 html_QueryInterface(html_t* html, REFIID riid, void** obj)
@@ -133,36 +153,9 @@ html_QueryInterface(html_t* html, REFIID riid, void** obj)
         return E_NOINTERFACE;
     }
 
+    html_AddRef(html);
     return S_OK;
 }
-
-
-/********************************
- *** Dummy reference counting ***
- ********************************/
-
-/* Lifetime of html_t is determined by the lifetime of host window. When the
- * host window is being destroyed, the embedded browser is destroyed too.
- * Hence we don't need to reference count and delay html_t deallocation
- * when it drops back to zero. It simplifies the cleaning code quite a lot. */
-
-static ULONG STDMETHODCALLTYPE
-dummy_AddRef(void* self)
-{
-    return 2;
-}
-
-static ULONG STDMETHODCALLTYPE
-dummy_Release(void* self)
-{
-    return 1;
-}
-
-#define DUMMY_ADDREF(type)                                                    \
-        ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_AddRef)
-
-#define DUMMY_RELEASE(type)                                                   \
-        ((ULONG (STDMETHODCALLTYPE*)(type*)) dummy_Release)
 
 
 /********************************
@@ -173,6 +166,18 @@ static HRESULT STDMETHODCALLTYPE
 dispatch_QueryInterface(IDispatch* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_DISPTACH(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+dispatch_AddRef(IDispatch* self)
+{
+    return html_AddRef(MC_HTML_FROM_DISPTACH(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+dispatch_Release(IDispatch* self)
+{
+    return html_Release(MC_HTML_FROM_DISPTACH(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -401,8 +406,8 @@ dispatch_Invoke(IDispatch* self, DISPID disp_id, REFIID riid, LCID lcid,
 
 static IDispatchVtbl dispatch_vtable = {
     dispatch_QueryInterface,
-    DUMMY_ADDREF(IDispatch),
-    DUMMY_RELEASE(IDispatch),
+    dispatch_AddRef,
+    dispatch_Release,
     dispatch_GetTypeInfoCount,
     dispatch_GetTypeInfo,
     dispatch_GetIDsOfNames,
@@ -418,6 +423,18 @@ static HRESULT STDMETHODCALLTYPE
 client_site_QueryInterface(IOleClientSite* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_CLIENT_SITE(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+client_site_AddRef(IOleClientSite* self)
+{
+    return html_AddRef(MC_HTML_FROM_CLIENT_SITE(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+client_site_Release(IOleClientSite* self)
+{
+    return html_Release(MC_HTML_FROM_CLIENT_SITE(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -468,8 +485,8 @@ client_site_RequestNewObjectLayout(IOleClientSite* self)
 
 static IOleClientSiteVtbl client_site_vtable = {
     client_site_QueryInterface,
-    DUMMY_ADDREF(IOleClientSite),
-    DUMMY_RELEASE(IOleClientSite),
+    client_site_AddRef,
+    client_site_Release,
     client_site_SaveObject,
     client_site_GetMoniker,
     client_site_GetContainer,
@@ -488,6 +505,18 @@ static HRESULT STDMETHODCALLTYPE
 inplace_site_ex_QueryInterface(IOleInPlaceSiteEx* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_INPLACE_SITE_EX(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_site_ex_AddRef(IOleInPlaceSiteEx* self)
+{
+    return html_AddRef(MC_HTML_FROM_INPLACE_SITE_EX(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_site_ex_Release(IOleInPlaceSiteEx* self)
+{
+    return html_Release(MC_HTML_FROM_INPLACE_SITE_EX(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -631,8 +660,8 @@ inplace_site_ex_RequestUIActivate(IOleInPlaceSiteEx* self)
 
 static IOleInPlaceSiteExVtbl inplace_site_ex_vtable = {
     inplace_site_ex_QueryInterface,
-    DUMMY_ADDREF(IOleInPlaceSiteEx),
-    DUMMY_RELEASE(IOleInPlaceSiteEx),
+    inplace_site_ex_AddRef,
+    inplace_site_ex_Release,
     inplace_site_ex_GetWindow,
     inplace_site_ex_ContextSensitiveHelp,
     inplace_site_ex_CanInPlaceActivate,
@@ -659,6 +688,18 @@ static HRESULT STDMETHODCALLTYPE
 inplace_frame_QueryInterface(IOleInPlaceFrame* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_INPLACE_FRAME(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_frame_AddRef(IOleInPlaceFrame* self)
+{
+    return html_AddRef(MC_HTML_FROM_INPLACE_FRAME(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+inplace_frame_Release(IOleInPlaceFrame* self)
+{
+    return html_Release(MC_HTML_FROM_INPLACE_FRAME(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -752,8 +793,8 @@ inplace_frame_TranslateAccelerator(IOleInPlaceFrame* self, MSG* msg, WORD id)
 
 static IOleInPlaceFrameVtbl inplace_frame_vtable = {
     inplace_frame_QueryInterface,
-    DUMMY_ADDREF(IOleInPlaceFrame),
-    DUMMY_RELEASE(IOleInPlaceFrame),
+    inplace_frame_AddRef,
+    inplace_frame_Release,
     inplace_frame_GetWindow,
     inplace_frame_ContextSensitiveHelp,
     inplace_frame_GetBorder,
@@ -778,6 +819,18 @@ static HRESULT STDMETHODCALLTYPE
 ui_handler_QueryInterface(IDocHostUIHandler* self, REFIID riid, void** obj)
 {
     return html_QueryInterface(MC_HTML_FROM_UI_HANDLER(self), riid, obj);
+}
+
+static ULONG STDMETHODCALLTYPE
+ui_handler_AddRef(IDocHostUIHandler* self)
+{
+    return html_AddRef(MC_HTML_FROM_UI_HANDLER(self));
+}
+
+static ULONG STDMETHODCALLTYPE
+ui_handler_Release(IDocHostUIHandler* self)
+{
+    return html_Release(MC_HTML_FROM_UI_HANDLER(self));
 }
 
 static HRESULT STDMETHODCALLTYPE
@@ -918,8 +971,8 @@ ui_handler_FilterDataObject(IDocHostUIHandler* self, IDataObject* obj,
 
 static IDocHostUIHandlerVtbl ui_handler_vtable = {
     ui_handler_QueryInterface,
-    DUMMY_ADDREF(IDocHostUIHandler),
-    DUMMY_RELEASE(IDocHostUIHandler),
+    ui_handler_AddRef,
+    ui_handler_Release,
     ui_handler_ShowContextMenu,
     ui_handler_GetHostInfo,
     ui_handler_ShowUI,
@@ -1418,11 +1471,13 @@ html_nccreate(HWND win, CREATESTRUCT* cs)
         MC_TRACE("html_nccreate: malloc() failed.");
         return NULL;
     }
+    HTML_TRACE("html_nccreate: creating %p", html);
     memset(html, 0, sizeof(html_t));
 
     html->win = win;
     html->notify_win = cs->hwndParent;
     html->style = cs->style;
+    html->refs = 1;
     html->dispatch.lpVtbl = &dispatch_vtable;
     html->client_site.lpVtbl = &client_site_vtable;
     html->inplace_site_ex.lpVtbl = &inplace_site_ex_vtable;
@@ -1440,7 +1495,6 @@ html_create(html_t* html, CREATESTRUCT* cs)
 {
     IConnectionPointContainer* conn_point_container;
     IConnectionPoint* conn_point;
-    DWORD cookie;
     RECT rect;
     HRESULT hr;
 
@@ -1489,8 +1543,13 @@ html_create(html_t* html, CREATESTRUCT* cs)
                     "FindConnectionPoint(DIID_DWebBrowserEvents2) failed.");
         return -1;
     }
-    IConnectionPoint_Advise(conn_point, (IUnknown*)&html->client_site, &cookie);
+    hr = IConnectionPoint_Advise(conn_point, (IUnknown*)&html->client_site, &html->advice_cookie);
     IConnectionPoint_Release(conn_point);
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE_HR("html_create: IConnectionPoint::Advise() failed.");
+        return -1;
+    }
+    html->has_advice_cookie = 1;
 
     /* Set browser position and size according to the host window */
     IWebBrowser2_put_Left(html->browser2, 0);
@@ -1517,15 +1576,50 @@ html_destroy(html_t* html)
         html->ie_win = NULL;
     }
 
+    /* Destruction of the embedded browser seems to be quite tricky.
+     * See http://stackoverflow.com/a/14652605/917880. */
+
     if(html->browser2 != NULL) {
+        /* Unadvise DIID_DWebBrowserEvents2 */
+        if(html->has_advice_cookie) {
+            IConnectionPointContainer* conn_point_container;
+            IConnectionPoint* conn_point;
+            HRESULT hr;
+
+            hr = IOleObject_QueryInterface(html->browser2,
+                        &IID_IConnectionPointContainer, (void**)&conn_point_container);
+            if(hr == S_OK  &&  conn_point_container != NULL) {
+                hr = IConnectionPointContainer_FindConnectionPoint(conn_point_container,
+                            &DIID_DWebBrowserEvents2, &conn_point);
+                IConnectionPointContainer_Release(conn_point_container);
+
+                if(hr == S_OK  &&  conn_point != NULL) {
+                    IConnectionPoint_Unadvise(conn_point, html->advice_cookie);
+                    IConnectionPoint_Release(conn_point);
+                }
+            }
+        }
+
+        /* Make MSIE invisible, i.e. stop accepting any input from user. */
+        IWebBrowser2_put_Visible(html->browser2, VARIANT_FALSE);
+        /* Cancel any ongoing activity like downloading or animating anything. */
+        IWebBrowser2_Stop(html->browser2);
+
         IWebBrowser2_Release(html->browser2);
         html->browser2 = NULL;
     }
 
     if(html->ole_obj != NULL) {
+        IOleObject_DoVerb(html->ole_obj, OLEIVERB_HIDE, NULL,
+                                &html->client_site, 0, html->win, NULL);
         IOleObject_Close(html->ole_obj, OLECLOSE_NOSAVE);
+        OleSetContainedObject((IUnknown*) html->ole_obj, FALSE);
+        IOleObject_SetClientSite(html->ole_obj, NULL);
+        CoDisconnectObject((IUnknown*) html->ole_obj, 0);
         IOleObject_Release(html->ole_obj);
         html->ole_obj = NULL;
+
+        /* Uninitialize COM subsystem if we have initialized it. */
         xcom_uninit();
     }
 }
@@ -1533,7 +1627,14 @@ html_destroy(html_t* html)
 static inline void
 html_ncdestroy(html_t* html)
 {
-    free(html);
+    /* Some browser COM objects may live little longer due to properties of
+     * the COM subsystem. Reset our window handles so under no possible
+     * circumstances any zombie COM object can cause sending them
+     * some notifications or whatever. */
+    html->win = NULL;
+    html->notify_win = NULL;
+
+    html_Release(html);
 }
 
 
