@@ -5,7 +5,7 @@
 # as a standalone CMakefile when deployed with the directory examples into
 # a release binary package.
 
-# === Extra stuff the stand-alone mode ===
+# === The stand-alone mode ==================================
 if(NOT "${BUILD_COMPLETE_MCTRL}" STREQUAL "TRUE")
     cmake_minimum_required(VERSION 3.1)
     project(mCtrl-examples C)
@@ -17,7 +17,7 @@ if(NOT "${BUILD_COMPLETE_MCTRL}" STREQUAL "TRUE")
         link_directories("${PROJECT_SOURCE_DIR}/../lib")
     endif()
 endif()
-# ========================================
+# ===========================================================
 
 
 add_definitions(-DUNICODE -D_UNICODE)

@@ -164,26 +164,28 @@ extern "C" {
  * As noted in the introduction, the control is implemented as a thin wrapper
  * of Internet Explorer COM object (COM interface @c IWebBrowser2).
  *
- * Because of the compatibility reasons, Microsoft has decided that by default
- * the control will behave as Internet Explorer version 7 (assuming IE 7
- * or newer is installed in the computer).
+ * This has an impact on how the HTML pages are rendered and, more importantly,
+ * on JavaScript dialect understood by various versions of MSIE.
  *
- * This has some impact on how the HTML pages are rendered and, more
- * importantly, on java-script dialect understood by it. Unfortunately the API
- * does not allow reasonable to change the compatibility mode on a per-control
- * (or rather on a per-COM-object-instance) manner.
+ * Therefore, to mitigate the compatibility issues, Microsoft has decided that
+ * by default all versions of Internet Explorer newer then version 7 will still
+ * behave as Internet Explorer 7, when being embedded in a 3rd party application.
  *
- * Furthermore, the switching is done through a change in the registry, which
+ * Unfortunately, there is no API that can change the compatibility mode on
+ * a per-control (or rather on a per-COM-object-instance) manner.
+ *
+ * To change the compatibility mode is possible only in Windows registry, which
  * should likely be done during installation phase of the application (and
- * possibly undone when it is uninstalled). Therefore the mCtrl does not offer
+ * possibly undone when it is uninstalled). Therefore, mCtrl does not offer
  * any API to change this and instead you are on your own to deal with the
  * registry keys.
  *
- * To change the behavior, you need to create the following registry key
+ * To change the compatibility mode of MSIE, you need to create the key
  * "HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION"
- * if it does not already exist, and in it, create a DWORD value named as a
- * binary name of your application (e.g. "MyApplication.exe"). The DWORD value
- * then determines the compatibility version (taken from MSDN documentation):
+ * if it does not already exist, and inside of it, create a DWORD value named
+ * as name of your application executable (e.g. "MyApplication.exe"). The DWORD
+ * value then determines the compatibility version (as taken from MSDN
+ * documentation):
  *
  * - 7000 (0x1b58): IE 7 mode (the default).
  * - 8000 (0x1f40): IE 8 mode or IE 10 mode depending on !DOCTYPE directives
@@ -201,7 +203,8 @@ extern "C" {
  *
  * Note that only IE version 8 and newer can understand this registry value and,
  * of course, the maximal value understood by it is limited by version of IE
- * installed on the system. E.g. asking IE 8 to behave as IE 10 won't work.
+ * installed on the system. Obviously, asking IE 8 to behave as IE 10 won't
+ * work.
  *
  * Further recommendations:
  *  - When using this, you should consider to make name of your .exe file as
@@ -710,7 +713,7 @@ typedef struct MC_NMHTTPERRORA_tag {
 /** Unicode-resolution alias. @sa MC_NMHTTPERRORW MC_NMHTTPERRORA */
 #define MC_NMHTTPERROR         MCTRL_NAME_AW(MC_NMHTTPERROR)
 /** Unicode-resolution alias. @sa MC_HMCALLSCRIPTFUNCW MC_HMCALLSCRIPTFUNCA */
-#define MC_HMCALLSCRIPTFUNC   MCTRL_NAME_AW(MC_HMCALLSCRIPTFUNC)
+#define MC_HMCALLSCRIPTFUNC    MCTRL_NAME_AW(MC_HMCALLSCRIPTFUNC)
 
 /*@}*/
 
