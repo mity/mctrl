@@ -438,6 +438,13 @@ typedef struct MC_HMCALLSCRIPTFUNCEX_tag {
 
 /**
  * @brief Calls script function in HTML page (Unicode variant).
+ *
+ * This message is easier to use then more general @ref MC_HM_CALLSCRIPTFUNCEX
+ * but it is somewhat limited:
+ * - The called script function cannot take more then four arguments.
+ * - All arguments may be only of integer or string type.
+ * - The return value (if there is any) may be only of integer or string type.
+ *
  * @param[in] wParam (@c LPCWSTR*) Name of the function to call.
  * @param[in,out] lParam (@ref MC_HMCALLSCRIPTFUNCW*) Pointer to a function
  * specifying function arguments and receiving the return value. May be @c NULL
@@ -449,6 +456,13 @@ typedef struct MC_HMCALLSCRIPTFUNCEX_tag {
 
 /**
  * @brief Calls script function in HTML page (ANSI variant).
+ *
+ * This message is easier to use then more general @ref MC_HM_CALLSCRIPTFUNCEX
+ * but it is somewhat limited:
+ * - The called script function cannot take more then four arguments.
+ * - All arguments may be only of integer or string type.
+ * - The return value (if there is any) may be only of integer or string type.
+ *
  * @param[in] wParam (@c LPCSTR*) Name of the function to call.
  * @param[in,out] lParam (@ref MC_HMCALLSCRIPTFUNCA*) Pointer to a function
  * specifying function arguments and receiving the return value. May be @c NULL
@@ -459,7 +473,7 @@ typedef struct MC_HMCALLSCRIPTFUNCEX_tag {
 #define MC_HM_CALLSCRIPTFUNCA    (MC_HM_FIRST + 17)
 
 /**
- * @brief Call script function in HTML page.
+ * @brief Calls script function in HTML page.
  * @param wParam Reserved, set to zero.
  * @param[in,out] lParam (@ref MC_HMCALLSCRIPTFUNCEX*) Pointer to structure
  * specifying function to call, arguments to pass, and receiving the return
@@ -582,7 +596,7 @@ typedef struct MC_NMHTTPERRORA_tag {
 /*@{*/
 
 /**
- * @brief Fired when the browser should navigates to to URL with application protocol.
+ * @brief Fired when the browser should navigate to URL with application protocol.
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMHTMLURL*) Pointer to a structure specifying
  * details about the URL.
@@ -602,7 +616,7 @@ typedef struct MC_NMHTTPERRORA_tag {
 /**
  * @brief Fired to inform application about download progress.
  *
- * This allows example for example to show a progress indicator.
+ * This allows application for example to update a download progress indicator.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMHTMLPROGRESS*) Pointer to a structure specifying
@@ -667,7 +681,7 @@ typedef struct MC_NMHTTPERRORA_tag {
 #define MC_HN_NEWWINDOW          (MC_HN_FIRST + 6)
 
 /**
- * @brief Fired to indicate that HTTP error has occurred.
+ * @brief Fired to indicate that an HTTP error has occurred.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMHTTPERROR*) Pointer to a structure specifying
