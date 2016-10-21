@@ -196,8 +196,9 @@ as part of the mCtrl build process.
 
 ## License
 
-mCtrl itself is covered by the GNU Lesser General Public License. Refer to
-the file `COPYING.lib.md` for more information about licensing terms.
+mCtrl itself is covered by the GNU Lesser General Public License 2.1 or
+(if you choose so) any later version. Refer to the file `COPYING.lib.md` for
+more information about licensing terms.
 
 Some source files and libraries incorporated into mCtrl may have different
 (but compatible) licensing terms and some may be put into the public domain:
