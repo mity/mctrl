@@ -299,7 +299,7 @@ cp -r $TMP/mCtrl-$VERSION-src/examples $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/AUTHORS.md $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/COPYING.md $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/COPYING.lib.md $TMP/mCtrl-$VERSION/
-cp $TMP/mCtrl-$VERSION-src/LICENSE.md $TMP/mCtrl-$VERSION/
+cp $TMP/mCtrl-$VERSION-src/CONTRIBUTING.md $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/README.md $TMP/mCtrl-$VERSION/
 find $TMP/mCtrl-$VERSION -name .git -exec rm -rf {} \;
 find $TMP/mCtrl-$VERSION -name .gitignore -exec rm {} \;
