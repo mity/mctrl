@@ -92,29 +92,6 @@ HandleNotify(HWND hwnd, NMHDR* hdr)
         /* The HTML control has sent us info about some change in its internal
          * state so we may need to update user interface to reflect it. */
 
-        if (hdr->code == MC_HN_BEFORENAVIGATE) {
-            /* User has clicked a link (possibly an "app:" link), or performed
-             * another navigation action and this notification allows us to
-             * intercept the navigation.
-             */
-
-            MC_NMHTMLURL* nmhtmlurl = (MC_NMHTMLURL*)hdr;
-
-            if(_tcsncmp(nmhtmlurl->pszUrl, _T("http://"), 7) == 0  ||
-               _tcsncmp(nmhtmlurl->pszUrl, _T("https://"), 8) == 0)
-            {
-                TCHAR pszBuffer[1024];
-
-                _sntprintf(pszBuffer, sizeof(pszBuffer) / sizeof(pszBuffer[0]),
-                           _T("Allow navigation to %s?"), nmhtmlurl->pszUrl);
-
-                if(MessageBox(hwnd, pszBuffer, _T("C code prompt"), MB_YESNO) == IDYES)
-                    return 0;    /* Allow the navigation */
-                else
-                    return -1;   /* Ignore it. */
-            }
-        }
-
         if(hdr->code == MC_HN_APPLINK) {
             /* User has activated the application link (app: protocol).
              * If it is the "Say Hello" link in our resource page, we greet
