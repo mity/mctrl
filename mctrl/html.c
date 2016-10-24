@@ -105,6 +105,43 @@ struct html_tag {
     MC_CONTAINEROF(ptr_ui_handler, html_t, ui_handler)
 
 
+
+static BSTR
+html_bstr(const void* from_str, int from_type)
+{
+    WCHAR* str_w;
+    BSTR str_b;
+
+    if(from_str == NULL) {
+        /* According to MSDN, BSTR should never be NULL. */
+        from_str = L"";
+        from_type = MC_STRW;
+    }
+
+    if(from_type == MC_STRW) {
+        str_w = (WCHAR*) from_str;
+    } else {
+        char* str_a;
+        MC_ASSERT(from_type == MC_STRA);
+        str_a = (char*) from_str;
+        str_w = (WCHAR*) mc_str(str_a, from_type, MC_STRW);
+        if(MC_ERR(str_w == NULL)) {
+            MC_TRACE("html_bstr: mc_str() failed.");
+            return NULL;
+        }
+    }
+
+    str_b = SysAllocString(str_w);
+    if(MC_ERR(str_b == NULL))
+        MC_TRACE("html_bstr: SysAllocString() failed.");
+
+    if(str_w != from_str)
+        free(str_w);
+
+    return str_b;
+}
+
+
 static ULONG STDMETHODCALLTYPE
 html_AddRef(html_t* html)
 {
@@ -991,45 +1028,159 @@ static IDocHostUIHandlerVtbl ui_handler_vtable = {
 };
 
 
+/*****************************
+ *** Subclass of IE Window ***
+ *****************************/
+
+/* We subclass the embedded browser window to handle keyboard messages.
+ * We need to call IOleInPlaceActiveObject::TranslateAccelerator().
+ *
+ * Normally the call should be done directly in application's main loop, but
+ * hey, we are DLL and cannot do that.
+ *
+ * Furthermore, the embedded window likely does some magic to get <tab>
+ * keystrokes. I do not know how to replicate this for our host window but
+ * the subclassing works around this issue.
+ *
+ * (As far as I can understand it, the culprit is that main message pump
+ * usually handles <tab> in IsDialogMessage(), before DispatchMessage(), so it
+ * does not propagate into window procedure. So how the embedded window achieves
+ * to get it is mystery to me.)
+ *
+ * Propagating the keystroke messages from html_proc() into the embedded
+ * window procedure and resetting the focus to the embedded window whenever
+ * our host window gets it works around these issues.
+ */
+
+static BOOL
+html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
+{
+    DWORD pos;
+    MSG message;
+    IOleInPlaceActiveObject* active_iface;
+    HRESULT hr;
+    BOOL ret = FALSE;
+
+    pos = GetMessagePos();
+
+    /* Setup the message structure */
+    message.hwnd = html->ie_win;
+    message.message = msg;
+    message.wParam = wp;
+    message.lParam = lp;
+    message.time = GetMessageTime();
+    message.pt.x = GET_X_LPARAM(pos);
+    message.pt.y = GET_Y_LPARAM(pos);
+
+    /* ->TranslateAccelerator() */
+    hr = IWebBrowser2_QueryInterface(html->browser2,
+                        &IID_IOleInPlaceActiveObject, (void**)&active_iface);
+    if(MC_ERR(hr != S_OK  ||  active_iface == NULL)) {
+        MC_TRACE_HR("html_key_msg: "
+                    "QueryInterface(IID_IOleInPlaceActiveObject) failed.");
+        goto err_active;
+    }
+
+    hr = IOleInPlaceActiveObject_TranslateAccelerator(active_iface, &message);
+    switch(hr) {
+        case S_OK:    ret = TRUE; break;
+        case S_FALSE: /*noop */ break;
+        default:
+            MC_TRACE_ERR("html_key_msg: ->TranslateAccelerator() failed.");
+            break;
+    }
+
+    /* Cleanup */
+    IOleInPlaceActiveObject_Release(active_iface);
+err_active:
+    return ret;
+}
+
+static LRESULT CALLBACK
+html_ie_subclass_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
+{
+    html_t* html;
+    WNDPROC ie_proc;
+
+    html = (html_t*) GetProp(win, ie_prop);
+    ie_proc = html->ie_proc;
+
+    if(WM_KEYFIRST <= msg && msg <= WM_KEYLAST) {
+        if(html_key_msg(html, msg, wp, lp))
+            return 0;
+    }
+
+    switch(msg) {
+        case WM_GETDLGCODE:
+            return DLGC_WANTALLKEYS;
+
+        case WM_NCDESTROY:
+            SetWindowLongPtr(html->ie_win, GWLP_WNDPROC, (LONG_PTR) ie_proc);
+            RemoveProp(html->ie_win, ie_prop);
+            html_Release(html);
+            break;
+    }
+
+    return CallWindowProc(ie_proc, win, msg, wp, lp);
+}
+
+static HWND
+html_find_ie_window(HWND win)
+{
+    static const TCHAR ie_wc[] = _T("Internet Explorer_Server");
+    HWND w;
+
+    w = FindWindowEx(win, NULL, ie_wc, NULL);
+    if(w != NULL)
+        return w;
+
+    win = GetWindow(win, GW_CHILD);
+    while(win != NULL) {
+        w = html_find_ie_window(win);
+        if(w != NULL)
+            return w;
+
+        win = GetWindow(win, GW_HWNDNEXT);
+    }
+
+    return NULL;
+}
+
+static HWND
+html_get_ie_win(html_t* html)
+{
+    if(html->ie_win != NULL)
+        return html->ie_win;
+
+    html->ie_win = html_find_ie_window(html->win);
+
+    if(html->ie_win != NULL) {
+        /* The IE maybe may live in another thread, let it have its own
+         * reference of the html_t. */
+        html_AddRef(html);
+
+        /* Subclass the IE window. */
+        html->ie_proc = (WNDPROC) SetWindowLongPtr(html->ie_win,
+                        GWLP_WNDPROC, (LONG_PTR) html_ie_subclass_proc);
+        SetProp(html->ie_win, ie_prop, (HANDLE) html);
+
+        /* Propagate focus to it from our window. */
+        if(GetFocus() == html->win) {
+            SetFocus(html->ie_win);
+
+            /* FIXME: SetFocus() does not really work here. */
+            MC_SEND(html->ie_win, WM_LBUTTONDOWN, 0, 0);
+            MC_SEND(html->ie_win, WM_LBUTTONUP, 0, 0);
+        }
+    }
+
+    return html->ie_win;
+}
+
 
 /**********************************
  *** Host window implementation ***
  **********************************/
-
-static BSTR
-html_bstr(const void* from_str, int from_type)
-{
-    WCHAR* str_w;
-    BSTR str_b;
-
-    if(from_str == NULL) {
-        /* According to MSDN, BSTR should never be NULL. */
-        from_str = L"";
-        from_type = MC_STRW;
-    }
-
-    if(from_type == MC_STRW) {
-        str_w = (WCHAR*) from_str;
-    } else {
-        char* str_a;
-        MC_ASSERT(from_type == MC_STRA);
-        str_a = (char*) from_str;
-        str_w = (WCHAR*) mc_str(str_a, from_type, MC_STRW);
-        if(MC_ERR(str_w == NULL)) {
-            MC_TRACE("html_bstr: mc_str() failed.");
-            return NULL;
-        }
-    }
-
-    str_b = SysAllocString(str_w);
-    if(MC_ERR(str_b == NULL))
-        MC_TRACE("html_bstr: SysAllocString() failed.");
-
-    if(str_w != from_str)
-        free(str_w);
-
-    return str_b;
-}
 
 static LRESULT
 html_notify_http_error(html_t* html, int http_status, const WCHAR* url)
@@ -1280,24 +1431,6 @@ err_dispatch:
     return hr;
 }
 
-static HRESULT
-html_call_script_func_ex(html_t* html, MC_HMCALLSCRIPTFUNCEX* csfe)
-{
-    if(MC_ERR(csfe->cbSize != sizeof(MC_HMCALLSCRIPTFUNCEX))) {
-        MC_TRACE("html_call_script_func_ex: Unsupported cbSize %u", csfe->cbSize);
-        return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
-    }
-
-    if(MC_ERR(csfe->lpRet != NULL  &&  V_VT(csfe->lpRet) != VT_EMPTY)) {
-        MC_TRACE("html_call_script_func_ex: "
-                 "MC_HMCALLSCRIPTFUNCEX::lpRet is not VT_EMPTY.");
-        return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
-    }
-
-    return html_do_call_script_func(html, csfe->pszFuncName, csfe->cArgs,
-                                    csfe->lpvArgs, csfe->lpRet);
-}
-
 static int
 html_call_script_func(html_t* html, void* func_name, MC_HMCALLSCRIPTFUNCW* csf,
                       BOOL unicode)
@@ -1416,48 +1549,22 @@ html_call_script_func(html_t* html, void* func_name, MC_HMCALLSCRIPTFUNCW* csf,
     return 0;
 }
 
-static BOOL
-html_key_msg(html_t* html, UINT msg, WPARAM wp, LPARAM lp)
+static HRESULT
+html_call_script_func_ex(html_t* html, MC_HMCALLSCRIPTFUNCEX* csfe)
 {
-    DWORD pos;
-    MSG message;
-    IOleInPlaceActiveObject* active_iface;
-    HRESULT hr;
-    BOOL ret = FALSE;
-
-    pos = GetMessagePos();
-
-    /* Setup the message structure */
-    message.hwnd = html->ie_win;
-    message.message = msg;
-    message.wParam = wp;
-    message.lParam = lp;
-    message.time = GetMessageTime();
-    message.pt.x = GET_X_LPARAM(pos);
-    message.pt.y = GET_Y_LPARAM(pos);
-
-    /* ->TranslateAccelerator() */
-    hr = IWebBrowser2_QueryInterface(html->browser2,
-                        &IID_IOleInPlaceActiveObject, (void**)&active_iface);
-    if(MC_ERR(hr != S_OK  ||  active_iface == NULL)) {
-        MC_TRACE_HR("html_key_msg: "
-                    "QueryInterface(IID_IOleInPlaceActiveObject) failed.");
-        goto err_active;
+    if(MC_ERR(csfe->cbSize != sizeof(MC_HMCALLSCRIPTFUNCEX))) {
+        MC_TRACE("html_call_script_func_ex: Unsupported cbSize %u", csfe->cbSize);
+        return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
     }
 
-    hr = IOleInPlaceActiveObject_TranslateAccelerator(active_iface, &message);
-    switch(hr) {
-        case S_OK:    ret = TRUE; break;
-        case S_FALSE: /*noop */ break;
-        default:
-            MC_TRACE_ERR("html_key_msg: ->TranslateAccelerator() failed.");
-            break;
+    if(MC_ERR(csfe->lpRet != NULL  &&  V_VT(csfe->lpRet) != VT_EMPTY)) {
+        MC_TRACE("html_call_script_func_ex: "
+                 "MC_HMCALLSCRIPTFUNCEX::lpRet is not VT_EMPTY.");
+        return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
     }
 
-    /* Cleanup */
-    IOleInPlaceActiveObject_Release(active_iface);
-err_active:
-    return ret;
+    return html_do_call_script_func(html, csfe->pszFuncName, csfe->cArgs,
+                                    csfe->lpvArgs, csfe->lpRet);
 }
 
 static html_t*
@@ -1569,13 +1676,6 @@ html_create(html_t* html, CREATESTRUCT* cs)
 static void
 html_destroy(html_t* html)
 {
-    /* Unsubclass IE window */
-    if(html->ie_win != NULL) {
-        SetWindowLongPtr(html->ie_win, GWLP_WNDPROC, (LONG_PTR)html->ie_proc);
-        RemoveProp(html->ie_win, ie_prop);
-        html->ie_win = NULL;
-    }
-
     /* Destruction of the embedded browser seems to be quite tricky.
      * See http://stackoverflow.com/a/14652605/917880. */
 
@@ -1637,57 +1737,6 @@ html_ncdestroy(html_t* html)
     html_Release(html);
 }
 
-
-static LRESULT CALLBACK
-html_ie_subclass_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
-{
-    html_t* html;
-    LRESULT ret;
-
-    html = (html_t*) GetProp(win, ie_prop);
-
-    if(WM_KEYFIRST <= msg && msg <= WM_KEYLAST) {
-        if(html_key_msg(html, msg, wp, lp))
-            return 0;
-    }
-
-    if(msg == WM_GETDLGCODE)
-        return DLGC_WANTALLKEYS;
-
-    ret = CallWindowProc(html->ie_proc, win, msg, wp, lp);
-
-    if(msg == WM_DESTROY) {
-        SetWindowLongPtr(win, GWLP_WNDPROC, (LONG_PTR)html->ie_proc);
-        RemoveProp(win, ie_prop);
-        html->ie_win = NULL;
-    }
-
-    return ret;
-}
-
-static HWND
-html_find_ie_window(HWND win)
-{
-    static const TCHAR ie_wc[] = _T("Internet Explorer_Server");
-    HWND w;
-
-    w = FindWindowEx(win, NULL, ie_wc, NULL);
-    if(w != NULL)
-        return w;
-
-    win = GetWindow(win, GW_CHILD);
-    while(win != NULL) {
-        w = html_find_ie_window(win);
-        if(w != NULL)
-            return w;
-
-        win = GetWindow(win, GW_HWNDNEXT);
-    }
-
-    return NULL;
-}
-
-
 static LRESULT CALLBACK
 html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -1696,26 +1745,12 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     /* This shuts up Coverity issue CID989764. */
     MC_ASSERT(html != NULL  ||  msg == WM_NCCREATE  ||  msg == WM_NCDESTROY);
 
-    if(html != NULL  &&  html->ie_win == NULL) {
-        /* Let's try to subclass IE window. This is very dirty hack,
-         * which allows us to forward keyboard messages properly to
-         * IOleInPlaceActiveObject::TranslateAccelerator().
-         *
-         * Normally this should be done from main app. loop but we do not
-         * have it under control in the DLL. */
-        html->ie_win = html_find_ie_window(win);
-        if(html->ie_win != NULL) {
-            HTML_TRACE("html_proc: Subclassing MSIE.");
-            html->ie_proc = (WNDPROC) SetWindowLongPtr(html->ie_win,
-                            GWLP_WNDPROC, (LONG_PTR) html_ie_subclass_proc);
-            SetProp(html->ie_win, ie_prop, (HANDLE) html);
-
-            if(GetFocus() == win) {
-                SetFocus(html->ie_win);
-                MC_SEND(html->ie_win, WM_LBUTTONDOWN, 0, 0);
-                MC_SEND(html->ie_win, WM_LBUTTONUP, 0, 0);
-            }
-        }
+    /* Forward keystrokes to the IE window. */
+    if(WM_KEYFIRST <= msg  &&  msg <= WM_KEYLAST) {
+        HWND ie_win = html_get_ie_win(html);
+        if(ie_win != NULL)
+            MC_SEND(ie_win, msg, wp, lp);
+        return 0;
     }
 
     switch(msg) {
@@ -1794,12 +1829,17 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case WM_SETFOCUS:
-            if(html->ie_win) {
-                SetFocus(html->ie_win);
-                MC_SEND(html->ie_win, WM_LBUTTONDOWN, 0, 0);
-                MC_SEND(html->ie_win, WM_LBUTTONUP, 0, 0);
+        {
+            HWND ie_win = html_get_ie_win(html);
+            if(ie_win != NULL) {
+                SetFocus(ie_win);
+
+                /* FIXME: SetFocus() does not really work here. */
+                MC_SEND(ie_win, WM_LBUTTONDOWN, 0, 0);
+                MC_SEND(ie_win, WM_LBUTTONUP, 0, 0);
             }
             return 0;
+        }
 
         case WM_GETDLGCODE:
             return DLGC_WANTALLKEYS;
@@ -1833,13 +1873,6 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(html != NULL)
                 html_ncdestroy(html);
             return 0;
-    }
-
-    /* Forward keystrokes to the IE */
-    if(WM_KEYFIRST <= msg  &&  msg <= WM_KEYLAST) {
-        if(html->ie_win)
-            MC_SEND(html->ie_win, msg, wp, lp);
-        return 0;
     }
 
     return DefWindowProc(win, msg, wp, lp);
