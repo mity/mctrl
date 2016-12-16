@@ -66,6 +66,8 @@ int table_resize(table_t* table, WORD col_count, WORD row_count);
 static inline table_cell_t* table_cell(table_t* table, WORD col, WORD row)
     { return &table->cells[row * table->col_count + col]; }
 
+table_cell_t* table_get_cell(table_t* table, WORD col, WORD row);
+
 static inline void table_ref(table_t* table)
     { mc_ref(&table->refs); }
 static inline void table_unref(table_t* table)

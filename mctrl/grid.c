@@ -3247,17 +3247,35 @@ grid_set_cell(grid_t* grid, WORD col, WORD row, MC_TABLECELL* cell, BOOL unicode
 static int
 grid_get_cell(grid_t* grid, WORD col, WORD row, MC_TABLECELL* cell, BOOL unicode)
 {
+    table_cell_t* c;
+    grid_dispinfo_t di;
+
     if(MC_ERR(grid->table == NULL)) {
         SetLastError(ERROR_INVALID_HANDLE);
         MC_TRACE("grid_get_cell: No table installed.");
         return -1;
     }
 
-    if(MC_ERR(table_get_cell_data(grid->table, col, row, cell, unicode) != 0)) {
-        MC_TRACE("grid_get_cell: table_get_cell_data() failed.");
+    c = table_get_cell(grid->table, col, row);
+    if(MC_ERR(c == NULL)) {
+        MC_TRACE("grid_get_cell: table_get_cell() failed.");
         return -1;
     }
 
+    grid_get_dispinfo(grid, col, row, c, &di, cell->fMask);
+
+    if(cell->fMask & MC_TCMF_TEXT) {
+        mc_str_inbuf(c->text, MC_STRT, cell->pszText,
+             (unicode ? MC_STRW : MC_STRA), cell->cchTextMax);
+    }
+
+    if(cell->fMask & MC_TCMF_PARAM)
+        cell->lParam = c->lp;
+
+    if(cell->fMask & MC_TCMF_FLAGS)
+        cell->dwFlags = c->flags;
+
+    grid_free_dispinfo(grid, c, &di);
     return 0;
 }
 

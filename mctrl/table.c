@@ -406,7 +406,7 @@ table_destroy(table_t* table)
     free(table);
 }
 
-static table_cell_t*
+table_cell_t*
 table_get_cell(table_t* table, WORD col, WORD row)
 {
     TABLE_TRACE("table_get_cell(%p, %hd, %hd)", table, col, row);
@@ -460,7 +460,9 @@ table_set_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
     if(cell_data->fMask & MC_TCMF_TEXT) {
         TCHAR* str;
 
-        if(cell_data->pszText != NULL) {
+        if(cell_data->pszText == MC_LPSTR_TEXTCALLBACK) {
+            str = MC_LPSTR_TEXTCALLBACK;
+        } else if(cell_data->pszText != NULL) {
             str = mc_str(cell_data->pszText, (unicode ? MC_STRW : MC_STRA), MC_STRT);
             if(MC_ERR(str == NULL)) {
                 MC_TRACE("table_set_cell_data: mc_str() failed.");
@@ -509,8 +511,15 @@ table_get_cell_data(table_t* table, WORD col, WORD row, MC_TABLECELL* cell_data,
     }
 
     if(cell_data->fMask & MC_TCMF_TEXT) {
-        mc_str_inbuf(cell->text, MC_STRT, cell_data->pszText,
-                     (unicode ? MC_STRW : MC_STRA), cell_data->cchTextMax);
+        if(cell->text == MC_LPSTR_TEXTCALLBACK) {
+            MC_TRACE("table_get_cell_data: Table cell contains "
+                     "MC_LPSTR_TEXTCALLBACK and that cannot be asked for.");
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return -1;
+        } else {
+            mc_str_inbuf(cell->text, MC_STRT, cell_data->pszText,
+                         (unicode ? MC_STRW : MC_STRA), cell_data->cchTextMax);
+        }
     }
 
     if(cell_data->fMask & MC_TCMF_PARAM)
