@@ -104,7 +104,6 @@ struct dummy_HPAINTBUFFER_tag {
     HDC dc_target;
     HDC dc_buffered;
     HBITMAP old_bmp;
-    POINT old_origin;
     RECT rect;
 };
 
@@ -153,7 +152,7 @@ dummy_BeginBufferedPaint(HDC dc_target, const RECT* rect, BP_BUFFERFORMAT fmt,
 
     mc_rect_copy(&pb->rect, rect);
     pb->old_bmp = SelectObject(pb->dc_buffered, bmp);
-    OffsetViewportOrgEx(pb->dc_buffered, -rect->left, -rect->top, &pb->old_origin);
+    SetWindowOrgEx(pb->dc_buffered, rect->left, rect->top, NULL);
 
     if(dc_buffered != NULL)
         *dc_buffered = pb->dc_buffered;
@@ -178,7 +177,7 @@ dummy_EndBufferedPaint(dummy_HPAINTBUFFER pb, BOOL update_target)
     HBITMAP bmp;
 
     if(update_target) {
-        SetViewportOrgEx(pb->dc_buffered, pb->old_origin.x, pb->old_origin.y, NULL);
+        SetWindowOrgEx(pb->dc_buffered, 0, 0, NULL);
         BitBlt(pb->dc_target, pb->rect.left, pb->rect.top, mc_width(&pb->rect),
                mc_height(&pb->rect), pb->dc_buffered, 0, 0, SRCCOPY);
     }
@@ -188,6 +187,25 @@ dummy_EndBufferedPaint(dummy_HPAINTBUFFER pb, BOOL update_target)
     DeleteDC(pb->dc_buffered);
     free(pb);
 
+    return S_OK;
+}
+
+static HDC WINAPI
+dummy_GetBufferedPaintDC(dummy_HPAINTBUFFER pb)
+{
+    return pb->dc_buffered;
+}
+
+static HDC WINAPI
+dummy_GetBufferedPaintTargetDC(dummy_HPAINTBUFFER pb)
+{
+    return pb->dc_target;
+}
+
+static HRESULT WINAPI
+dummy_GetBufferedPaintTargetRect(dummy_HPAINTBUFFER pb, RECT* rect)
+{
+    mc_rect_copy(rect, &pb->rect);
     return S_OK;
 }
 
@@ -492,8 +510,7 @@ mcGetBufferedPaintDC(HPAINTBUFFER hBufferedPaint)
     if(theme_GetBufferedPaintDC != NULL)
         return theme_GetBufferedPaintDC(hBufferedPaint);
 
-    MC_TRACE("mcGetBufferedPaintDC: Stub [NULL]");
-    return NULL;
+    return dummy_GetBufferedPaintDC((dummy_HPAINTBUFFER) hBufferedPaint);
 }
 
 HDC MCTRL_API
@@ -502,8 +519,7 @@ mcGetBufferedPaintTargetDC(HPAINTBUFFER hBufferedPaint)
     if(theme_GetBufferedPaintTargetDC != NULL)
         return theme_GetBufferedPaintTargetDC(hBufferedPaint);
 
-    MC_TRACE("mcGetBufferedPaintTargetDC: Stub [NULL]");
-    return NULL;
+    return dummy_GetBufferedPaintTargetDC((dummy_HPAINTBUFFER) hBufferedPaint);
 }
 
 HRESULT MCTRL_API
@@ -512,10 +528,7 @@ mcGetBufferedPaintTargetRect(HPAINTBUFFER hBufferedPaint, RECT* prc)
     if(theme_GetBufferedPaintTargetRect != NULL)
         return theme_GetBufferedPaintTargetRect(hBufferedPaint, prc);
 
-    if(prc != NULL)  mc_rect_set(prc, 0, 0, 0, 0);
-
-    MC_TRACE("mcGetBufferedPaintTargetRect: Stub [E_NOTIMPL]");
-    return E_NOTIMPL;
+    return dummy_GetBufferedPaintTargetRect((dummy_HPAINTBUFFER) hBufferedPaint, prc);
 }
 
 HRESULT MCTRL_API
