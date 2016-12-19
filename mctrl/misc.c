@@ -397,6 +397,57 @@ mc_load_redist_dll(const TCHAR* dll_name)
 
 
 /**************************
+ *** Clipping Utilities ***
+ **************************/
+
+HRGN
+mc_clip_get(HDC dc)
+{
+    HRGN old_clip;
+
+    old_clip = CreateRectRgn(0, 0, 0, 0);
+    if(GetClipRgn(dc, old_clip) != 1) {
+        DeleteObject(old_clip);
+        return NULL;
+    }
+
+    return old_clip;
+}
+
+void
+mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom)
+{
+    HRGN clip;
+    POINT origin;
+
+    /* SelectClipRgn() uses physical coordinates. We need to use logical ones
+     * as we may change origin in case of double-buffered painting.
+     *
+     * See https://github.com/mity/mctrl/issues/45
+     */
+    GetWindowOrgEx(dc, &origin);
+
+    clip = CreateRectRgn(left - origin.x, top - origin.y,
+                         right - origin.x, bottom - origin.y);
+    if(MC_ERR(clip == NULL)) {
+        MC_TRACE("mc_clip_set: CreateRectRgn() failed.");
+        return;
+    }
+
+    SelectClipRgn(dc, clip);
+    DeleteObject(clip);
+}
+
+void
+mc_clip_reset(HDC dc, HRGN old_clip)
+{
+    SelectClipRgn(dc, old_clip);
+    if(old_clip != NULL)
+        DeleteObject(old_clip);
+}
+
+
+/**************************
  *** Assorted Utilities ***
  **************************/
 

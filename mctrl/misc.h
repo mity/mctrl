@@ -455,43 +455,9 @@ static inline BOOL mc_rect_overlaps_rect(const RECT* r0, const RECT* r1)
  *** Clipping Utilities ***
  **************************/
 
-static inline HRGN
-mc_clip_get(HDC dc)
-{
-    HRGN old_clip;
-
-    old_clip = CreateRectRgn(0, 0, 0, 0);
-    if(GetClipRgn(dc, old_clip) != 1) {
-        DeleteObject(old_clip);
-        return NULL;
-    }
-
-    return old_clip;
-}
-
-static inline void
-mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom)
-{
-    HRGN clip;
-    POINT pt[2] = { {left, top}, {right, bottom} };
-
-    clip = CreateRectRgn(pt[0].x, pt[0].y, pt[1].x, pt[1].y);
-    if(MC_ERR(clip == NULL)) {
-        MC_TRACE("mc_clip_set: CreateRectRgn() failed.");
-        return;
-    }
-
-    SelectClipRgn(dc, clip);
-    DeleteObject(clip);
-}
-
-static inline void
-mc_clip_reset(HDC dc, HRGN old_clip)
-{
-    SelectClipRgn(dc, old_clip);
-    if(old_clip != NULL)
-        DeleteObject(old_clip);
-}
+HRGN mc_clip_get(HDC dc);
+void mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom);
+void mc_clip_reset(HDC dc, HRGN old_clip);
 
 
 /**************************
