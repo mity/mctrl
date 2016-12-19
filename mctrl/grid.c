@@ -1032,7 +1032,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
        dirty->left < header_w  &&  dirty->top < header_h)
     {
         mc_rect_set(&rect, 0, 0, grid->header_width, grid->header_height);
-        mc_clip_set(dc, 0, 0, MC_MIN(header_w, client.right), MC_MIN(header_h, client.bottom));
+        mc_clip_set(dc, 0, 0, header_w, header_h);
         grid_paint_header_cell(grid, MC_TABLE_HEADER, MC_TABLE_HEADER, NULL, dc,
                                &rect, -1, 0, cd_mode, &cd);
     }
@@ -1045,8 +1045,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
         for(col = col0; col < col_count; col++) {
             rect.right = rect.left + grid_col_width(grid, col);
-            mc_clip_set(dc, MC_MAX(header_w, rect.left), rect.top,
-                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
+            mc_clip_set(dc, MC_MAX(header_w, rect.left), rect.top, rect.right, rect.bottom);
             grid_paint_header_cell(grid, col, MC_TABLE_HEADER, (table ? &table->cols[col] : NULL),
                                    dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK),
                                    cd_mode, &cd);
@@ -1064,8 +1063,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
         for(row = row0; row < row_count; row++) {
             rect.bottom = rect.top + grid_row_height(grid, row);
-            mc_clip_set(dc, rect.left, MC_MAX(header_h, rect.top),
-                        MC_MIN(rect.right, client.right), MC_MIN(rect.bottom, client.bottom));
+            mc_clip_set(dc, rect.left, MC_MAX(header_h, rect.top), rect.right, rect.bottom);
             grid_paint_header_cell(grid, MC_TABLE_HEADER, row, (table ? &table->rows[row] : NULL),
                                    dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK),
                                    cd_mode, &cd);
@@ -1131,7 +1129,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     }
 
     /* Paint grid cells */
-    mc_clip_set(dc, header_w, header_h, client.right, client.bottom);
+    mc_clip_set(dc, header_w, header_h, dirty->right, dirty->bottom);
     rect.top = y0;
     for(row = row0; row < row_count; row++) {
         rect.bottom = rect.top + grid_row_height(grid, row) - gridline_w;
@@ -1169,7 +1167,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             RECT r;
 
             mc_clip_set(dc, MC_MAX(0, header_w-1), MC_MAX(0, header_h-1),
-                            client.right, client.bottom);
+                            dirty->right, dirty->bottom);
             grid_cell_rect(grid, grid->focused_col, grid->focused_row, &r);
             r.right -= gridline_w;
             r.bottom -= gridline_w;
