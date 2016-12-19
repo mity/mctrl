@@ -414,7 +414,9 @@ static inline void
 treelist_free_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
                           treelist_subdispinfo_t* si)
 {
-    if(si->text != NULL  &&  (!item->has_alloced_subitems || si->text != item->subitems[subitem_id-1]))
+    if(tl->unicode_notifications != MC_IS_UNICODE  &&
+       treelist_subitem_text(tl, item, subitem_id) == MC_LPSTR_TEXTCALLBACK  &&
+       si->text != NULL)
         free(si->text);
 }
 
