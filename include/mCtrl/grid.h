@@ -1034,7 +1034,7 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
  *
  * When sending the notification, the control sets @c MC_NMGDISPINFO::wColumn
  * and @c MC_NMGDISPINFO::wRow to identify the cell. The control also sets
- * @c MC_NMGDISPINFO::item::lParam (however if the style @ref MC_GS_OWNERDATA
+ * @c MC_NMGDISPINFO::cell::lParam (however if the style @ref MC_GS_OWNERDATA
  * is in effect, it is always set to zero).
  *
  * The control specifies what members in @c MC_NMGDISPINFO::cell the application
@@ -1057,7 +1057,7 @@ typedef struct MC_NMGSELECTIONCHANGE_tag {
  *
  * When sending the notification, the control sets @c MC_NMGDISPINFO::wColumn
  * and @c MC_NMGDISPINFO::wRow to identify the cell. The control also sets
- * @c MC_NMTLDISPINFO::item::lParam (however if the style @ref MC_GS_OWNERDATA
+ * @c MC_NMTLDISPINFO::cell::lParam (however if the style @ref MC_GS_OWNERDATA
  * is in effect, it is always set to zero).
  *
  * The control specifies what members in @c MC_NMGDISPINFO::cell the application
