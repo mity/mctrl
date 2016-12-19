@@ -44,7 +44,6 @@ doublebuffer_open(doublebuffer_t* dblbuf, HDC dc, const RECT* rect)
         return dc;
     }
 
-    MC_TRACE("BUFFERING: %ld, %ld, %ld, %ld", rect->left, rect->top, rect->right, rect->bottom);
     return dc_buffered;
 }
 
