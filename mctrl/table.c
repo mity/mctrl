@@ -35,7 +35,7 @@
 static inline void
 table_cell_clear(table_cell_t* cell)
 {
-    if(cell->text != NULL)
+    if(cell->text != NULL && cell->text != MC_LPSTR_TEXTCALLBACK)
         free(cell->text);
 }
 
