@@ -959,13 +959,13 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     if(cd_mode & (CDRF_SKIPDEFAULT | CDRF_DOERASE))
         goto skip_control_paint;
 
-    /* Find 1st visible column */
+    /* Find 1st column in the dirty area. */
     rect.left = header_w - grid->scroll_x;
-    col0 = col_count;
+    col0 = 0;
     x0 = 0;
     for(col = 0; col < col_count; col++) {
         rect.right = rect.left + grid_col_width(grid, col);
-        if(rect.right > header_w) {
+        if(rect.right > header_w  &&  rect.right > dirty->left) {
             col0 = col;
             x0 = rect.left;
             break;
@@ -973,13 +973,13 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.left = rect.right;
     }
 
-    /* Find 1st visible row */
-    row0 = row_count;
+    /* Find 1st row in the dirty area. */
+    row0 = 0;
     y0 = 0;
     rect.top = header_h - grid->scroll_y;
     for(row = 0; row < row_count; row++) {
         rect.bottom = rect.top + grid_row_height(grid, row);
-        if(rect.bottom > header_h) {
+        if(rect.bottom > header_h  &&  rect.bottom > dirty->top) {
             row0 = row;
             y0 = rect.top;
             break;
@@ -994,14 +994,14 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.right = x0;
         for(col1 = col0; col1+1 < grid->col_count; col1++) {
             rect.right += grid_col_width(grid, col1);
-            if(rect.right >= client.right)
+            if(rect.right >= dirty->right)
                 break;
         }
 
         rect.bottom = y0;
         for(row1 = row0; row1+1 < grid->row_count; row1++) {
             rect.bottom += grid_row_height(grid, row1);
-            if(rect.bottom >= client.bottom)
+            if(rect.bottom >= dirty->bottom)
                 break;
         }
 
@@ -1051,13 +1051,13 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                                    dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK),
                                    cd_mode, &cd);
             rect.left = rect.right;
-            if(rect.right >= client.right)
+            if(rect.right >= dirty->right)
                 break;
         }
     }
 
     /* Paint row headers */
-    if(header_w > 0  &&  dirty->left <= header_w) {
+    if(header_w > 0  &&  dirty->left < header_w) {
         rect.left = 0;
         rect.top = y0;
         rect.right = header_w;
@@ -1070,7 +1070,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                                    dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK),
                                    cd_mode, &cd);
             rect.top = rect.bottom;
-            if(rect.bottom >= client.bottom)
+            if(rect.bottom >= dirty->bottom)
                 break;
         }
     }
@@ -1098,7 +1098,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             x += grid_col_width(grid, col);
             MoveToEx(dc, x, 0, NULL);
             LineTo(dc, x, y);
-            if(x >= client.right)
+            if(x >= dirty->right)
                 break;
         }
 
@@ -1108,7 +1108,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
             y += grid_row_height(grid, row);
             MoveToEx(dc, 0, y, NULL);
             LineTo(dc, x, y);
-            if(y >= client.bottom)
+            if(y >= dirty->bottom)
                 break;
         }
 
@@ -1143,11 +1143,11 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 cell = NULL;
             rect.right = rect.left + grid_col_width(grid, col) - gridline_w;
             grid_paint_cell(grid, col, row, cell, dc, &rect, cd_mode, &cd);
-            if(rect.right >= client.right)
+            if(rect.right >= dirty->right)
                 break;
             rect.left = rect.right + gridline_w;
         }
-        if(rect.bottom >= client.bottom)
+        if(rect.bottom >= dirty->bottom)
             break;
         rect.top = rect.bottom + gridline_w;
     }
