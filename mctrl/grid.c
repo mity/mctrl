@@ -1051,7 +1051,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                                    dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK),
                                    cd_mode, &cd);
             rect.left = rect.right;
-            if(rect.right >= dirty->right)
+            if(rect.left >= dirty->right)
                 break;
         }
     }
@@ -1070,7 +1070,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                                    dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK),
                                    cd_mode, &cd);
             rect.top = rect.bottom;
-            if(rect.bottom >= dirty->bottom)
+            if(rect.top >= dirty->bottom)
                 break;
         }
     }
@@ -1143,13 +1143,13 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 cell = NULL;
             rect.right = rect.left + grid_col_width(grid, col) - gridline_w;
             grid_paint_cell(grid, col, row, cell, dc, &rect, cd_mode, &cd);
-            if(rect.right >= dirty->right)
-                break;
             rect.left = rect.right + gridline_w;
+            if(rect.left >= dirty->right)
+                break;
         }
-        if(rect.bottom >= dirty->bottom)
-            break;
         rect.top = rect.bottom + gridline_w;
+        if(rect.top >= dirty->bottom)
+            break;
     }
 
     if(!(cd_mode & CDRF_SKIPPOSTPAINT)) {
