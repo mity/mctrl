@@ -341,7 +341,12 @@ treelist_get_dispinfo(treelist_t* tl, treelist_item_t* item, treelist_dispinfo_t
     info.hdr.code = (tl->unicode_notifications ? MC_TLN_GETDISPINFOW : MC_TLN_GETDISPINFOA);
     info.hItem = (MC_HTREELISTITEM) item;
     info.item.fMask = mask;
+    info.item.pszText = NULL;
     info.item.lParam = item->lp;
+    info.item.iImage = MC_I_IMAGENONE;
+    info.item.iSelectedImage = MC_I_IMAGENONE;
+    info.item.iExpandedImage = MC_I_IMAGENONE;
+    info.item.cChildren = 0;
     MC_SEND(tl->notify_win, WM_NOTIFY, 0, &info);
 
     if(mask & MC_TLIF_TEXT) {
@@ -384,7 +389,6 @@ treelist_get_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
     MC_ASSERT((mask & ~MC_TLSIF_TEXT) == 0);
 
     text = treelist_subitem_text(tl, item, subitem_id);
-
     if(text != MC_LPSTR_TEXTCALLBACK) {
         si->text = text;
         mask &= ~MC_TLIF_TEXT;
@@ -399,6 +403,7 @@ treelist_get_subdispinfo(treelist_t* tl, treelist_item_t* item, int subitem_id,
     info.hItem = (MC_HTREELISTITEM) item;
     info.lItemParam = item->lp;
     info.subitem.fMask = mask;
+    info.subitem.pszText = NULL;
     info.subitem.iSubItem = subitem_id;
     MC_SEND(tl->notify_win, WM_NOTIFY, 0, &info);
 
