@@ -2834,6 +2834,8 @@ grid_left_button_down(grid_t* grid, int x, int y)
             grid->selmark_row = ROW_INVALID;
             break;
     }
+
+    SetFocus(grid->win);
 }
 
 static void
