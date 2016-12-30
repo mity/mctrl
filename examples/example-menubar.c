@@ -27,6 +27,14 @@ static HWND hwndMenubarSmall;
 #define BAND_MENUBAR        1
 #define BAND_TOOLBAR        2
 
+/* Windows kit headers only provide REBARBANDINFOA_V3_SIZE (Win 95) and
+ * REBARBANDINFOA_V6_SIZE (>= Vista).
+ * However REBARBANDINFOA_V3_SIZE does not work on Windows 2000
+ * and REBARBANDINFOA_V6_SIZE does not work on Windows XP.
+ */
+#ifndef REBARBANDINFO_V5_SIZE
+    #define REBARBANDINFO_V5_SIZE   CCSIZEOF_STRUCT(REBARBANDINFO, cxHeader)
+#endif
 
 /* Create the menubar control */
 static void
@@ -53,7 +61,7 @@ CreateMenuBar(HWND hWnd)
     SendMessage(hwndMenubar, TB_GETIDEALSIZE, FALSE, (LPARAM) &szIdeal);
 
     /* Embed the menubar in the ReBar */
-    band.cbSize = REBARBANDINFO_V3_SIZE;
+    band.cbSize = REBARBANDINFO_V5_SIZE;
     band.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE | RBBIM_IDEALSIZE | RBBIM_ID;
     band.fStyle = RBBS_GRIPPERALWAYS | RBBS_USECHEVRON | RBBS_VARIABLEHEIGHT;
     band.hwndChild = hwndMenubar;
