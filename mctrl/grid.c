@@ -645,7 +645,7 @@ grid_get_dispinfo(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
         info.cell.lParam = 0;
         info.cell.dwFlags = 0;
     }
-    MC_SEND(grid->notify_win, WM_NOTIFY, 0, &info);
+    MC_SEND(grid->notify_win, WM_NOTIFY, info.hdr.idFrom, &info);
 
     /* If needed, convert the text from parent to the expected format. */
     if(mask & MC_TCMF_TEXT) {
