@@ -46,8 +46,8 @@ repository hosted on github:
 The pre-built release package has the following directory structure:
 ```
 mCtrl-x.y.z/
- |  AUTHORS               # List of authors contributing to the project
- |  COPYING               # GNU General Public License
+ |  AUTHORS.md            # List of authors contributing to the project
+ |  CONTRIBUTING.md       # Info how to contribute to the project
  |  COPYING.lib           # GNU Lesser General Public License
  |  README.md             # This file
  |
