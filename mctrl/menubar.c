@@ -917,7 +917,8 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             /* Handle <F10> or <ALT> */
             if(active_menubar != NULL)
                 break;
-            if((lpMsg->wParam == VK_MENU || (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
+            if(((lpMsg->wParam == VK_MENU && lpMsg->message == WM_SYSKEYDOWN) ||
+                (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
                !(GetKeyState(VK_SHIFT) & 0x8000))
             {
                 if(lpMsg->wParam == VK_MENU)
@@ -933,7 +934,8 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             /* Handle <F10> or <ALT> */
             if(active_menubar != NULL)
                 break;
-            if((lpMsg->wParam == VK_MENU || (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
+            if(((lpMsg->wParam == VK_MENU && lpMsg->message == WM_SYSKEYUP) ||
+                (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
                !(GetKeyState(VK_SHIFT) & 0x8000))
             {
                 if(mb == activate_with_f10) {
