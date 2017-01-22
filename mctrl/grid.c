@@ -2877,7 +2877,21 @@ grid_left_button_dblclick(grid_t* grid, int x, int y)
         grid->labeledit_considering = FALSE;
     }
 
-    mc_send_notify(grid->notify_win, grid->win, NM_DBLCLK);
+    if(mc_send_notify(grid->notify_win, grid->win, NM_DBLCLK)) {
+        /* Application suppresses the default processing of the message. */
+        return;
+    }
+
+    /* Edit cell if MC_GS_EDITLABELS is set. */
+    if(grid->style & MC_GS_EDITLABELS) {
+        MC_GHITTESTINFO info;
+
+        info.pt.x = x;
+        info.pt.y = y;
+        grid_hit_test(grid, &info);
+
+        grid_start_label_edit(grid, info.wColumn, info.wRow);
+    }
 }
 
 static void
