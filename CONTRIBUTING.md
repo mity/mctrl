@@ -8,7 +8,7 @@ processes when accepting patches. The crucial question is always "Does the
 change make mCtrl better?"
 
 The prefered way how to contribute code is making [pull requests][1] for
-out [Github repository][2] but it is not strong condition.
+our [Github repository][2] but it is not strong condition.
 
 
 ## Reporting Bugs
