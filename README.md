@@ -205,7 +205,7 @@ Some source files and libraries incorporated into mCtrl may have different
 
 * CUTest (`tests/cutest.h`): MIT license
 * Examples (`examples/*`): Public domain
-* HUSL (`src/husl.c`): MIT license
+* HSLuv-c (`src/hsluv.c`): MIT license
 * Unit tests (`tests/*.c`): Public domain
 * WinDrawLib (`windrawlib/`): MIT license
 
