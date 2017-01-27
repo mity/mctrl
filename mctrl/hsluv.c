@@ -1,6 +1,6 @@
 /*
- * hsluv-c: Human-friendly HSL
- * <http://github.com/mity/hsluv-c>
+ * HSLuv-C: Human-friendly HSL
+ * <http://github.com/hsluv/hsluv-c>
  * <http://www.hsluv.org/>
  *
  * Copyright (c) 2015 Alexei Boronine (original idea, JavaScript implementation)
@@ -41,25 +41,23 @@ struct Triplet_tag {
 
 /* for RGB */
 static const Triplet m[3] = {
-    {  3.2409699419045214,   -1.5373831775700935, -0.49861076029300328  },
-    { -0.96924363628087983,   1.8759675015077207,  0.041555057407175613 },
-    {  0.055630079696993609, -0.20397695888897657, 1.0569715142428786   }
+    {  3.24096994190452134377, -1.53738317757009345794, -0.49861076029300328366 },
+    { -0.96924363628087982613,  1.87596750150772066772,  0.04155505740717561247 },
+    {  0.05563007969699360846, -0.20397695888897656435,  1.05697151424287856072 }
 };
 
 /* for XYZ */
 static const Triplet m_inv[3] = {
-    { 0.41239079926595948,  0.35758433938387796, 0.18048078840183429  },
-    { 0.21263900587151036,  0.71516867876775593, 0.072192315360733715 },
-    { 0.019330818715591851, 0.11919477979462599, 0.95053215224966058  }
+    {  0.41239079926595948129,  0.35758433938387796373,  0.18048078840183428751 },
+    {  0.21263900587151035754,  0.71516867876775592746,  0.07219231536073371500 },
+    {  0.01933081871559185069,  0.11919477979462598791,  0.95053215224966058086 }
 };
 
-static const double pi = 3.14159265358979323846;
+static const double ref_u = 0.19783000664283680764;
+static const double ref_v = 0.46831999493879100370;
 
-static const double ref_u = 0.19783000664283681;
-static const double ref_v = 0.468319994938791;
-
-static const double kappa = 903.2962962962963;
-static const double epsilon = 0.0088564516790356308;
+static const double kappa = 903.29629629629629629630;
+static const double epsilon = 0.00885645167903563082;
 
 
 typedef struct Bounds_tag Bounds;
@@ -72,7 +70,8 @@ struct Bounds_tag {
 static void
 get_bounds(double l, Bounds bounds[6])
 {
-    double sub1 = pow(l + 16.0, 3.0) / 1560896.0;
+    double tl = l + 16.0;
+    double sub1 = (tl * tl * tl) / 1560896.0;
     double sub2 = (sub1 > epsilon ? sub1 : (l / kappa));
     int channel;
     int t;
@@ -127,11 +126,8 @@ max_safe_chroma_for_l(double l)
         double x = intersect_line_line(&bounds[i], &line2);
         double distance = dist_from_pole(x, b1 + x * m1);
 
-        if(distance >= 0) {
-            if(distance < min_len) {
-                min_len = distance;
-            }
-        }
+        if(distance >= 0.0  &&  distance < min_len)
+            min_len = distance;
     }
 
     return min_len;
@@ -141,7 +137,7 @@ static double
 max_chroma_for_lh(double l, double h)
 {
     double min_len = DBL_MAX;
-    double hrad = h / 360.0 * pi * 2.0;
+    double hrad = h * 0.01745329251994329577; /* (2 * pi / 260) */
     Bounds bounds[6];
     int i;
 
@@ -149,11 +145,8 @@ max_chroma_for_lh(double l, double h)
     for(i = 0; i < 6; i++) {
         double l = ray_length_until_intersect(hrad, &bounds[i]);
 
-        if(l >= 0)  {
-            if(l < min_len) {
-                min_len = l;
-            }
-        }
+        if(l >= 0  &&  l < min_len)
+            min_len = l;
     }
     return min_len;
 }
@@ -178,7 +171,7 @@ static double
 to_linear(double c)
 {
     if (c > 0.04045)
-        return pow((c + 0.055) / (1 + 0.055), 2.4);
+        return pow((c + 0.055) / 1.055, 2.4);
     else
         return c / 12.92;
 }
@@ -217,16 +210,18 @@ y2l(double y)
     if(y <= epsilon)
         return y * kappa;
     else
-        return 116.0 * powl(y, 1.0/3.0) - 16.0;
+        return 116.0 * cbrt(y) - 16.0;
 }
 
 static double
 l2y(double l)
 {
-    if(l <= 8.0)
+    if(l <= 8.0) {
         return l / kappa;
-    else
-        return powl((l + 16.0) / 116.0, 3.0);
+    } else {
+        double x = (l + 16.0) / 116.0;
+        return (x * x * x);
+    }
 }
 
 static void
@@ -263,7 +258,7 @@ luv2xyz(Triplet* in_out)
     double var_v = in_out->c / (13.0 * in_out->a) + ref_v;
     double y = l2y(in_out->a);
     double x = -(9.0 * y * var_u) / ((var_u - 4.0) * var_v - var_u * var_v);
-    double z = (9.0 * y - (15.0 * var_v * y) - (var_v * x)) / (3 * var_v);
+    double z = (9.0 * y - (15.0 * var_v * y) - (var_v * x)) / (3.0 * var_v);
     in_out->a = x;
     in_out->b = y;
     in_out->c = z;
@@ -276,13 +271,13 @@ luv2lch(Triplet* in_out)
     double u = in_out->b;
     double v = in_out->c;
     double h;
-    double c = sqrtf(powf(u, 2.0) + powf(v, 2.0));
+    double c = sqrt(u * u + v * v);
 
-    // Grays: disambiguate hue
+    /* Grays: disambiguate hue */
     if(c < 0.00000001) {
         h = 0;
     } else {
-        h = atan2(v, u) * (360.0 / 2.0 / pi);
+        h = atan2(v, u) * 57.29577951308232087680;  /* (180 / pi) */
         if(h < 0.0)
             h += 360.0;
     }
@@ -295,7 +290,7 @@ luv2lch(Triplet* in_out)
 static void
 lch2luv(Triplet* in_out)
 {
-    double hrad = in_out->c * (2.0 * pi / 360.0);
+    double hrad = in_out->c * 0.01745329251994329577;  /* (pi / 180.0) */
     double u = cos(hrad) * in_out->b;
     double v = sin(hrad) * in_out->b;
 
@@ -319,7 +314,7 @@ hsluv2lch(Triplet* in_out)
 
     /* Grays: disambiguate hue */
     if (s < 0.00000001)
-        h = 0;
+        h = 0.0;
 
     in_out->a = l;
     in_out->b = c;
@@ -336,13 +331,13 @@ lch2hsluv(Triplet* in_out)
 
     /* White and black: disambiguate saturation */
     if(l > 99.9999999 || l < 0.00000001)
-        s = 0;
+        s = 0.0;
     else
         s = c / max_chroma_for_lh(l, h) * 100.0;
 
     /* Grays: disambiguate hue */
     if (c < 0.00000001)
-        h = 0;
+        h = 0.0;
 
     in_out->a = h;
     in_out->b = s;
@@ -388,7 +383,7 @@ lch2hpluv(Triplet* in_out)
 
     /* Grays: disambiguate hue */
     if (c < 0.00000001)
-        h = 0;
+        h = 0.0;
 
     in_out->a = h;
     in_out->b = s;
