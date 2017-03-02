@@ -1004,8 +1004,8 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     COLORREF subitem_text_color;
     COLORREF subitem_bk_color;
 
-    /* We handle WM_ERASEBKGND, so we should never need erasing here. */
-    MC_ASSERT(erase == FALSE);
+    if(erase)
+        generic_erasebkgnd(tl->win, tl->theme, dc);
 
     old_font = GetCurrentObject(dc, OBJ_FONT);
     if(tl->font)
@@ -3885,7 +3885,8 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return generic_ncpaint(win, tl->theme, (HRGN) wp);
 
         case WM_ERASEBKGND:
-            return generic_erasebkgnd(win, tl->theme, (HDC) wp);
+            /* Keep it on WM_PAINT */
+            return FALSE;
 
         case MC_TLM_INSERTCOLUMNW:
         case MC_TLM_INSERTCOLUMNA:
