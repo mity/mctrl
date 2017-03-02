@@ -410,7 +410,9 @@ menubar_key_down(menubar_t* mb, int vk, DWORD key_data)
             menubar_reset_hot_item(mb);
             active_menubar = NULL;
             menubar_update_ui_state(mb, FALSE);
-            return TRUE;
+            /* Allow further handling of VK_MENU to match what mcIsMenubarMessage did,
+               otherwise pressing <ALT> twice and then typing wouldn't work. */ 
+            return (vk != VK_MENU);
 
         case VK_LEFT:
             MENUBAR_TRACE("menubar_key_down(VK_LEFT)");
@@ -921,11 +923,15 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
                 (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
                !(GetKeyState(VK_SHIFT) & 0x8000))
             {
-                if(lpMsg->wParam == VK_MENU)
-                    menubar_update_ui_state(mb, TRUE);
                 if(activate_with_f10 == NULL)
                     activate_with_f10 = mb;
-                return TRUE;
+                if(lpMsg->wParam == VK_MENU) {
+                    menubar_update_ui_state(mb, TRUE);
+                    /* Process further so that typing with Alt+numpad works */
+                    return FALSE;
+                }
+                else
+                    return TRUE;
             }
             break;
 
@@ -934,17 +940,21 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             /* Handle <F10> or <ALT> */
             if(active_menubar != NULL)
                 break;
-            if(((lpMsg->wParam == VK_MENU && lpMsg->message == WM_SYSKEYUP) ||
+            if(((lpMsg->wParam == VK_MENU) ||
                 (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
                !(GetKeyState(VK_SHIFT) & 0x8000))
             {
-                if(mb == activate_with_f10) {
+                if(mb == activate_with_f10 && lpMsg->message == WM_SYSKEYUP) {
                     SetFocus(hwndMenubar);
                     MENUBAR_SENDMSG(hwndMenubar, TB_SETHOTITEM, 0, 0);
                     menubar_update_ui_state(mb, TRUE);
+                    activate_with_f10 = NULL;
+                    return TRUE;
                 }
-                activate_with_f10 = NULL;
-                return TRUE;
+                else {
+                    /* Only hide accelerators if other keys were pressed with <ALT> */
+                    menubar_update_ui_state(mb, FALSE);
+                }
             }
             break;
 
@@ -957,6 +967,10 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
                     menubar_update_ui_state(mb, TRUE);
                     menubar_dropdown(mb, item, TRUE);
                     return TRUE;
+                }
+                else {
+                    /* Not a hot key - don't open menu after <ALT> is released */
+                    activate_with_f10 = NULL;
                 }
             }
             break;
