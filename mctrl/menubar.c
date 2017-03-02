@@ -87,7 +87,6 @@ struct menubar_tag {
 
 
 static menubar_t* active_menubar = NULL;
-static menubar_t* activate_with_f10 = FALSE;
 
 
 #define MENUBAR_ITEM_LABEL_MAXSIZE     32
@@ -909,44 +908,61 @@ menubar_fini_module(void)
 BOOL MCTRL_API
 mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
 {
+    static BOOL delayed_activation = FALSE;
+
     menubar_t* mb = (menubar_t*) GetWindowLongPtr(hwndMenubar, extra_offset);
 
     switch(lpMsg->message) {
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
-            /* Handle <F10> or <ALT> */
-            if(active_menubar != NULL)
+            /* We are only interested in <F10> and <ALT>, which may result into
+             * activation of a menubar. */
+            if(lpMsg->wParam != VK_F10  &&  lpMsg->wParam != VK_MENU)
                 break;
-            if(((lpMsg->wParam == VK_MENU && lpMsg->message == WM_SYSKEYDOWN) ||
-                (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
-               !(GetKeyState(VK_SHIFT) & 0x8000))
-            {
-                if(lpMsg->wParam == VK_MENU)
-                    menubar_update_ui_state(mb, TRUE);
-                if(activate_with_f10 == NULL)
-                    activate_with_f10 = mb;
-                return TRUE;
-            }
-            break;
+            /* So ignore if a menubar is already active (or being activated). */
+            if(active_menubar != NULL  ||  delayed_activation)
+                break;
+            /* Ignore <SHIFT>+<F10>. (That should lead to activating any
+             * context menu instead.) */
+            if(lpMsg->wParam == VK_F10  &&  GetKeyState(VK_SHIFT) & 0x8000)
+                break;
+            /* Some keyboards differentiate <ALT> and <ALTGR>. (The former
+             * always comes via WM_SYSKEYDOWN, the latter via WM_KEYDOWN.) */
+            if(lpMsg->wParam == VK_MENU  &&  lpMsg->message != WM_SYSKEYDOWN)
+                break;
+            /* Ignore auto-repeat messages (if the key is already down). */
+            if(lpMsg->lParam & 0x40000000)
+                break;
+            /* For standard menubar, Windows does update UI state now for <ALT>,
+             * but for <F10> this is delayed into WM_(SYS)KEYUP. */
+            if(lpMsg->wParam == VK_MENU)
+                menubar_update_ui_state(mb, TRUE);
+            /* The actual activation is delayed into WM_(SYS)KEYUP. */
+            delayed_activation = TRUE;
+            return TRUE;
 
         case WM_SYSKEYUP:
         case WM_KEYUP:
-            /* Handle <F10> or <ALT> */
-            if(active_menubar != NULL)
+            /* We are only interested in <F10> and <ALT>. */
+            if(lpMsg->wParam != VK_F10  &&  lpMsg->wParam != VK_MENU)
                 break;
-            if(((lpMsg->wParam == VK_MENU && lpMsg->message == WM_SYSKEYUP) ||
-                (lpMsg->wParam == VK_F10 && !(lpMsg->lParam & 0x20000000)))  &&
-               !(GetKeyState(VK_SHIFT) & 0x8000))
-            {
-                if(mb == activate_with_f10) {
-                    SetFocus(hwndMenubar);
-                    MENUBAR_SENDMSG(hwndMenubar, TB_SETHOTITEM, 0, 0);
-                    menubar_update_ui_state(mb, TRUE);
-                }
-                activate_with_f10 = NULL;
-                return TRUE;
+            /* Only messages related to nice WM_(SYS)KEYDOWN are relevant. */
+            if(!delayed_activation) {
+                menubar_update_ui_state(mb, FALSE);
+                break;
             }
-            break;
+            /* Some keyboards differentiate <ALT> and <ALTGR>. (The former
+             * always comes via WM_SYSKEYUP, the latter via WM_KEYUP.) */
+            if(lpMsg->wParam == VK_MENU  &&  lpMsg->message != WM_SYSKEYUP) {
+                menubar_update_ui_state(mb, FALSE);
+                break;
+            }
+            /* Activate the menubar. */
+            SetFocus(hwndMenubar);
+            MENUBAR_SENDMSG(hwndMenubar, TB_SETHOTITEM, 0, 0);
+            menubar_update_ui_state(mb, TRUE);
+            delayed_activation = FALSE;
+            return TRUE;
 
         case WM_SYSCHAR:
         case WM_CHAR:
@@ -954,9 +970,16 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             if(lpMsg->wParam != VK_MENU  &&  (lpMsg->lParam & 0x20000000)) {
                 UINT item;
                 if(MENUBAR_SENDMSG(hwndMenubar, TB_MAPACCELERATOR, lpMsg->wParam, &item) != 0) {
+                    /* Activate the menubar. */
+                    SetFocus(hwndMenubar);
                     menubar_update_ui_state(mb, TRUE);
                     menubar_dropdown(mb, item, TRUE);
                     return TRUE;
+                } else {
+                    /* Disable the delayed activation if it is an hotkey not
+                     * present in the menubar. */
+                    delayed_activation = FALSE;
+                    MessageBeep(0xffffffff);
                 }
             }
             break;
