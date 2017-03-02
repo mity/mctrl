@@ -556,7 +556,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                           (int)HIWORD(wp), (int)LOWORD(wp), (HWND)lp);
             if(lp == 0  &&  HIWORD(wp) == 0)  /* msg came from the menu */
                 return MC_SEND(mb->notify_win, msg, wp, lp);
-            break;
+            return 0;
 
         case WM_NOTIFY:
         {
