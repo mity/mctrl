@@ -763,7 +763,7 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                     case VK_MENU:
                     case VK_F10:
                         menubar_ht_change_dropdown(mb, -1, TRUE);
-                        return 0;
+                        return 1;   /* Consume the message. */
 
                     case VK_LEFT:
                         if(menubar_ht_sel_menu == NULL  ||
@@ -775,6 +775,7 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                             MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_LEFT");
                             if(item != mb->pressed_item)
                                 menubar_ht_change_dropdown(mb, item, TRUE);
+                            return 1;   /* Consume the message. */
                         }
                         break;
 
@@ -789,6 +790,7 @@ menubar_ht_proc(int code, WPARAM wp, LPARAM lp)
                             MENUBAR_TRACE("menubar_ht_proc: Change dropdown by VK_RIGHT");
                             if(item != mb->pressed_item)
                                 menubar_ht_change_dropdown(mb, item, TRUE);
+                            return 1;   /* Consume the message. */
                         }
                         break;
                 }
