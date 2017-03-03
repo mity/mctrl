@@ -967,7 +967,6 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
             return TRUE;
 
         case WM_SYSCHAR:
-        case WM_CHAR:
             /* Handle hot keys (<ALT> + something) */
             if(lpMsg->wParam != VK_MENU  &&  (lpMsg->lParam & 0x20000000)) {
                 UINT item;
