@@ -980,7 +980,6 @@ mcIsMenubarMessage(HWND hwndMenubar, LPMSG lpMsg)
                     /* Disable the delayed activation if it is an hotkey not
                      * present in the menubar. */
                     delayed_activation = FALSE;
-                    MessageBeep(0xffffffff);
                 }
             }
             break;
