@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Martin Mitas
+ * Copyright (c) 2012-2017 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -317,7 +317,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
             NMTOOLBAR* info = (NMTOOLBAR*) hdr;
             MENUBAR_TRACE("menubar_notify(%p, TBN_DROPDOWN, %d)", mb, info->iItem);
             menubar_dropdown(mb, info->iItem, FALSE);
-            break;
+            return TBDDRET_DEFAULT;
         }
 
         case TBN_HOTITEMCHANGE:
@@ -327,7 +327,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
                           (info->dwFlags & HICF_ENTERING) ? -1 : info->idOld,
                           (info->dwFlags & HICF_LEAVING) ? -1 : info->idNew);
             mb->hot_item = (info->dwFlags & HICF_LEAVING) ? -1 : info->idNew;
-            break;
+            return 0;
         }
 
         case NM_CUSTOMDRAW:
@@ -386,7 +386,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
         }
     }
 
-    return MC_SEND(mb->notify_win, WM_NOTIFY, hdr->idFrom, hdr);
+    return 0;
 }
 
 static BOOL
