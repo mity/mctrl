@@ -237,7 +237,8 @@ menubar_perform_dropdown(menubar_t* mb)
     menubar_ht_enable(mb);
     SetFocus(mb->win);
 
-    while(mb->pressed_item >= 0) {
+    mb->continue_hot_track = TRUE;
+    while(mb->continue_hot_track) {
         item = mb->pressed_item;
 
         if(mb->select_from_keyboard) {
@@ -275,14 +276,19 @@ menubar_perform_dropdown(menubar_t* mb)
         MENUBAR_TRACE("menubar_perform_dropdown: LEAVE TrackPopupMenuEx()");
 
         MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(btn_state, 0));
-
-        if(!mb->continue_hot_track)
-            mb->pressed_item = -1;
     }
+
+    /* We misuse TB_SETSTATE to reset the active state of the menubar.
+     *
+     * It's used to delay it to the end of message queue so menubar_dropdown()
+     * may ignore any leftover messages present in the queue.
+     *
+     * This addresses https://github.com/mity/mctrl/issues/53
+     */
+    MC_POST(mb->win, TB_SETSTATE, 0, 0);
 
     menubar_reset_hot_item(mb);
     menubar_ht_disable(mb);
-    mb->is_dropdown_active = FALSE;
     SetFocus(mb->old_focus);
 }
 
@@ -291,7 +297,7 @@ menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
     MENUBAR_TRACE("menubar_dropdown(%p, %d)", mb, item);
 
-    if(item == mb->pressed_item)
+    if(mb->is_dropdown_active)
         return;
 
     mb->pressed_item = item;
@@ -669,15 +675,21 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case TB_SETIMAGELIST:
         case TB_SETINSERTMARK:
         case TB_SETPRESSEDIMAGELIST:
-        case TB_SETSTATE:
             MC_TRACE("menubar_proc: Suppressing message TB_xxxx (%d)", msg);
             SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
             return 0;  /* FALSE == NULL == 0 */
 
+        /* Actually we suppress these as all the messages above (i.e. we do not
+         * pass them into the original proc). But we misuse them for our
+         * internal purposes. */
+        case TB_SETSTATE:
+            /* Reset the dropdown state. Posted from menubar_perform_dropdown(). */
+            mb->pressed_item = -1;
+            mb->is_dropdown_active = FALSE;
+            return 0;
+
         case TB_CUSTOMIZE:
-            /* Actually we suppress TB_CUSTOMIZE as the message above (i.e.
-             * not passing it into the original proc), but we also misuse
-             * is for our internal purpose of showing the popup menu. */
+            /* Show the popup menu. Posted from from menubar_dropdown(). */
             menubar_perform_dropdown(mb);
             return 0;
     }
