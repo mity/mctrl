@@ -79,10 +79,10 @@ struct menubar_tag {
     HMENU menu;
     short hot_item;
     short pressed_item;
+    LONG dropdown_close_time;
     WORD rtl                    : 1;
     WORD continue_hot_track     : 1;
     WORD select_from_keyboard   : 1;
-    WORD is_dropdown_active     : 1;
 };
 
 
@@ -233,7 +233,6 @@ menubar_perform_dropdown(menubar_t* mb)
 
     pmparams.cbSize = sizeof(TPMPARAMS);
 
-    mb->is_dropdown_active = TRUE;
     menubar_ht_enable(mb);
     SetFocus(mb->win);
 
@@ -278,14 +277,7 @@ menubar_perform_dropdown(menubar_t* mb)
         MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(btn_state, 0));
     }
 
-    /* We misuse TB_SETSTATE to reset the active state of the menubar.
-     *
-     * It's used to delay it to the end of message queue so menubar_dropdown()
-     * may ignore any leftover messages present in the queue.
-     *
-     * This addresses https://github.com/mity/mctrl/issues/53
-     */
-    MC_POST(mb->win, TB_SETSTATE, 0, 0);
+    mb->dropdown_close_time = (LONG) GetTickCount();
 
     menubar_reset_hot_item(mb);
     menubar_ht_disable(mb);
@@ -295,10 +287,27 @@ menubar_perform_dropdown(menubar_t* mb)
 static inline void
 menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
+    LONG period_since_last_dropdownclose;
+
     MENUBAR_TRACE("menubar_dropdown(%p, %d)", mb, item);
 
-    if(mb->is_dropdown_active)
+    /* A dropdown menu may be closed by clicking outside the (sub)menu;
+     * i.e. it may be by clicking in the menubar itself.
+     *
+     * If that happens, we don't want to use such click for instantaneous
+     * (re)opening of the submenu. Therefore we compare the time of this
+     * message to the time after the (most recent) dropdown close event.
+     *
+     * Note the comparison is a bit tricky to deal with possible overflows.
+     *
+     * See https://github.com/mity/mctrl/issues/53
+     */
+    period_since_last_dropdownclose = GetMessageTime() - mb->dropdown_close_time;
+    if(-200 <= period_since_last_dropdownclose  &&  period_since_last_dropdownclose <= 0) {
+        MENUBAR_TRACE("menubar_dropdown: Ignoring a click which was responsible "
+                      "for the end of the most recent dropdown menu.");
         return;
+    }
 
     mb->pressed_item = item;
     mb->select_from_keyboard = from_keyboard;
@@ -675,21 +684,14 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case TB_SETIMAGELIST:
         case TB_SETINSERTMARK:
         case TB_SETPRESSEDIMAGELIST:
+        case TB_SETSTATE:
             MC_TRACE("menubar_proc: Suppressing message TB_xxxx (%d)", msg);
             SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
             return 0;  /* FALSE == NULL == 0 */
 
-        /* Actually we suppress these as all the messages above (i.e. we do not
-         * pass them into the original proc). But we misuse them for our
-         * internal purposes. */
-        case TB_SETSTATE:
-            /* Reset the dropdown state. Posted from menubar_perform_dropdown(). */
-            mb->pressed_item = -1;
-            mb->is_dropdown_active = FALSE;
-            return 0;
-
         case TB_CUSTOMIZE:
             /* Show the popup menu. Posted from from menubar_dropdown(). */
+            MENUBAR_TRACE("menubar_proc(TB_CUSTOMIZE) [begin dropdown]");
             menubar_perform_dropdown(mb);
             return 0;
     }
