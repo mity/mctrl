@@ -13,8 +13,8 @@ our [Github repository][2] but it is not strong condition.
 
 ## Reporting Bugs
 
-Even if you are unable to fix a bug on our own, reporting it is very 
-benefitial to us. Unheard bugs cannot get fixed. You may submit the bug 
+Even if you are unable to fix a bug on your own, reporting it is very 
+beneficial to us. Unheard bugs cannot get fixed. You may submit the bug
 as a [Github issue][3].
 
 Please provide the following information with the bug report:
@@ -62,7 +62,7 @@ Windows versions.
 ## API Changes
 
 Changes to public API require special attention. Designing bad API may lead
-to big burdern in the future.
+to big burden in the future.
 
 Any changes to public API (whatever is in the `include` directory) have to
 be backward compatible, unless there is extremely strong reason to do
