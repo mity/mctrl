@@ -117,12 +117,12 @@ of all you need to use [CMake](http://www.cmake.org) 3.1 (or newer) to generate
 project files, Makefile or whatever the development tool-chain of your choice
 expects.
 
+### Build with Mingw-w64
+
 It's recommended to use out-of-source-tree builds, so create e.g. a directory
 `build` in the main mCtrl directory. (If you choose to build in other
 directory, replace the `..` in the following instructions with path pointing
 to the root mCtrl directory.)
-
-mCtrl is known to successfully build within following environments.
 
 To build with MSYS + [mingw-w64](http://mingw-w64.org) + Make:
 ```sh
@@ -150,7 +150,30 @@ Then start MSYS2 shell with `mingw32_shell.bat` or `mingw64_shell.bat`
 respectively and follow the same instructions as above for MSYS + 
 mingw-w64 + Make.
 
-To build with Microsoft Visual Studio 2013 or 2015:
+Note you may need to specify path to `gcc` if you want to use different gcc
+version then the one in your `$PATH`, e.g. if you have multiple  mingw-w64
+variants installed, one targeting 32-bit and one 64-bit build.
+
+You may do so by setting the variable `CC` prior using CMake. CMake is smart
+enough to derive paths to other tools like linker or resource compiler
+automatically.
+```sh
+export CC=/path/to/the/desired/gcc
+```
+
+### Build with Microsoft Visual Studio 2017
+
+Visual Studio 2017 supports CMake build system, so you may just follow these
+instructions.
+1. Start Visual Studio 2017.
+2. In menu File, choose submenu Open and Folder.
+3. In the open dialog, navigate to mCtrl main folder and open it.
+4. In menu CMake, choose Build all.
+
+### Build with Older Version of Microsoft Visual Studio
+
+To build with older Microsoft Visual Studio 2013 or 2015, you have to
+generate project files manually:
 ```sh
 $ mkdir build
 $ cd build
@@ -162,25 +185,15 @@ $ cmake -G "Visual Studio 14 2015 Win64" ..     # MSVC 2015, 64-bit build
 Then open the generated solution file `build/mCtrl.sln` in Visual Studio and
 build the target `ALL_BUILD`.
 
+Unfortunately, CMake does not support generating projects targeting multiple
+architectures. To build both 32 and 64-bit binaries, you have to generate
+project files or Makefiles twice and build them separately (in different
+directories).
+
+### Other Toolchains
+
 Other CMake generators may or may not work. If they do not, then one or more
-`CMakeLists.txt` files within mCtrl directory tree may need some tuning.
-
-Notes:
-
-* Unfortunately, CMake does not support generating projects targeting multiple
-  architectures. To build both 32 and 64-bit binaries, you have to generate
-  project files or Makefiles twice and build them separately (in different
-  directories).
-
-* For gcc tool-chains, you may need to specify path to `gcc` if you want to use
-  different gcc version then the one in your `$PATH`, e.g. if you have multiple
-  mingw-w64 variants installed, one targeting 32-bit and one 64-bit build.
-  You may do so by setting the variable `CC` prior using CMake. CMake is smart
-  enough to derive paths to other tools like linker or resource compiler
-  automatically.
-```sh
-export CC=/path/to/the/desired/gcc
-```
+`CMakeLists.txt` files within mCtrl directory hierarchy may need some tuning.
 
 Use
 ```sh
@@ -189,9 +202,11 @@ $ cmake --help
 and refer to CMake documentation to learn more about CMake, its options and
 capabilities.
 
-Finally, consider running a mCtrl test-suite to verify correctness of your
-build. The test suite, as well as some examples demonstrating mCtrl, are built
-as part of the mCtrl build process.
+### After Build
+
+After the building, consider running a mCtrl test-suite to verify correctness
+of your build. The test suite, as well as some examples demonstrating mCtrl,
+are built as part of the mCtrl build process.
 
 
 ## License
