@@ -31,12 +31,12 @@ wdCreateSolidBrush(WD_HCANVAS hCanvas, WD_COLOR color)
 {
     if(d2d_enabled()) {
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
-        ID2D1SolidColorBrush* b;
-        D2D_COLOR_F clr;
+        dummy_ID2D1SolidColorBrush* b;
+        dummy_D2D1_COLOR_F clr;
         HRESULT hr;
 
         d2d_init_color(&clr, color);
-        hr = ID2D1RenderTarget_CreateSolidColorBrush(
+        hr = dummy_ID2D1RenderTarget_CreateSolidColorBrush(
                         c->target, &clr, NULL, &b);
         if(FAILED(hr)) {
             WD_TRACE_HR("wdCreateSolidBrush: "
@@ -62,7 +62,7 @@ void
 wdDestroyBrush(WD_HBRUSH hBrush)
 {
     if(d2d_enabled()) {
-        ID2D1Brush_Release((ID2D1Brush*) hBrush);
+        dummy_ID2D1Brush_Release((dummy_ID2D1Brush*) hBrush);
     } else {
         gdix_vtable->fn_DeleteBrush((void*) hBrush);
     }
@@ -72,10 +72,10 @@ void
 wdSetSolidBrushColor(WD_HBRUSH hBrush, WD_COLOR color)
 {
     if(d2d_enabled()) {
-        D2D_COLOR_F clr;
+        dummy_D2D1_COLOR_F clr;
 
         d2d_init_color(&clr, color);
-        ID2D1SolidColorBrush_SetColor((ID2D1SolidColorBrush*) hBrush, &clr);
+        dummy_ID2D1SolidColorBrush_SetColor((dummy_ID2D1SolidColorBrush*) hBrush, &clr);
     } else {
         dummy_GpSolidFill* b = (dummy_GpSolidFill*) hBrush;
 

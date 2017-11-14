@@ -1,6 +1,6 @@
 /*
  * WinDrawLib
- * Copyright (c) 2015-2016 Martin Mitas
+ * Copyright (c) 2015-2017 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,12 +27,12 @@
 
 static HMODULE d2d_dll = NULL;
 
-ID2D1Factory* d2d_factory = NULL;
+dummy_ID2D1Factory* d2d_factory = NULL;
 
 
 static inline void
-d2d_matrix_mult(D2D1_MATRIX_3X2_F* res,
-                const D2D1_MATRIX_3X2_F* a, const D2D1_MATRIX_3X2_F* b)
+d2d_matrix_mult(dummy_D2D1_MATRIX_3X2_F* res,
+                const dummy_D2D1_MATRIX_3X2_F* a, const dummy_D2D1_MATRIX_3X2_F* b)
 {
     res->_11 = a->_11 * b->_11 + a->_12 * b->_21;
     res->_12 = a->_11 * b->_12 + a->_12 * b->_22;
@@ -45,8 +45,8 @@ d2d_matrix_mult(D2D1_MATRIX_3X2_F* res,
 int
 d2d_init(void)
 {
-    static const D2D1_FACTORY_OPTIONS factory_options = { D2D1_DEBUG_LEVEL_NONE };
-    HRESULT (WINAPI* fn_D2D1CreateFactory)(D2D1_FACTORY_TYPE, REFIID, const D2D1_FACTORY_OPTIONS*, void**);
+    static const dummy_D2D1_FACTORY_OPTIONS factory_options = { dummy_D2D1_DEBUG_LEVEL_NONE };
+    HRESULT (WINAPI* fn_D2D1CreateFactory)(dummy_D2D1_FACTORY_TYPE, REFIID, const dummy_D2D1_FACTORY_OPTIONS*, void**);
     HRESULT hr;
 
     /* Load D2D1.DLL. */
@@ -56,7 +56,7 @@ d2d_init(void)
         goto err_LoadLibrary;
     }
 
-    fn_D2D1CreateFactory = (HRESULT (WINAPI*)(D2D1_FACTORY_TYPE, REFIID, const D2D1_FACTORY_OPTIONS*, void**))
+    fn_D2D1CreateFactory = (HRESULT (WINAPI*)(dummy_D2D1_FACTORY_TYPE, REFIID, const dummy_D2D1_FACTORY_OPTIONS*, void**))
                 GetProcAddress(d2d_dll, "D2D1CreateFactory");
     if(fn_D2D1CreateFactory == NULL) {
         WD_TRACE_ERR("d2d_init: GetProcAddress(D2D1CreateFactory) failed.");
@@ -68,8 +68,8 @@ d2d_init(void)
      * This still allows usage in multi-threading environment but all the
      * created resources can only be used from the respective threads where
      * they were created. */
-    hr = fn_D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
-                &IID_ID2D1Factory, &factory_options, (void**) &d2d_factory);
+    hr = fn_D2D1CreateFactory(dummy_D2D1_FACTORY_TYPE_SINGLE_THREADED,
+                &dummy_IID_ID2D1Factory, &factory_options, (void**) &d2d_factory);
     if(FAILED(hr)) {
         WD_TRACE_HR("d2d_init: D2D1CreateFactory() failed.");
         goto err_CreateFactory;
@@ -90,13 +90,13 @@ err_LoadLibrary:
 void
 d2d_fini(void)
 {
-    ID2D1Factory_Release(d2d_factory);
+    dummy_ID2D1Factory_Release(d2d_factory);
     FreeLibrary(d2d_dll);
     d2d_dll = NULL;
 }
 
 d2d_canvas_t*
-d2d_canvas_alloc(ID2D1RenderTarget* target, WORD type, UINT width, BOOL rtl)
+d2d_canvas_alloc(dummy_ID2D1RenderTarget* target, WORD type, UINT width, BOOL rtl)
 {
     d2d_canvas_t* c;
 
@@ -116,7 +116,7 @@ d2d_canvas_alloc(ID2D1RenderTarget* target, WORD type, UINT width, BOOL rtl)
     /* We use raw pixels as units. D2D by default works with DIPs ("device
      * independent pixels"), which map 1:1 to physical pixels when DPI is 96.
      * So we enforce the render target to think we have this DPI. */
-    ID2D1RenderTarget_SetDpi(c->target, 96.0f, 96.0f);
+    dummy_ID2D1RenderTarget_SetDpi(c->target, 96.0f, 96.0f);
 
     d2d_reset_transform(c);
 
@@ -127,12 +127,12 @@ void
 d2d_reset_clip(d2d_canvas_t* c)
 {
     if(c->clip_layer != NULL) {
-        ID2D1RenderTarget_PopLayer(c->target);
-        ID2D1Layer_Release(c->clip_layer);
+        dummy_ID2D1RenderTarget_PopLayer(c->target);
+        dummy_ID2D1Layer_Release(c->clip_layer);
         c->clip_layer = NULL;
     }
     if(c->flags & D2D_CANVASFLAG_RECTCLIP) {
-        ID2D1RenderTarget_PopAxisAlignedClip(c->target);
+        dummy_ID2D1RenderTarget_PopAxisAlignedClip(c->target);
         c->flags &= ~D2D_CANVASFLAG_RECTCLIP;
     }
 }
@@ -140,7 +140,7 @@ d2d_reset_clip(d2d_canvas_t* c)
 void
 d2d_reset_transform(d2d_canvas_t* c)
 {
-    D2D1_MATRIX_3X2_F m;
+    dummy_D2D1_MATRIX_3X2_F m;
 
     if(c->flags & D2D_CANVASFLAG_RTL) {
         m._11 = -1.0f;  m._12 = 0.0f;
@@ -154,45 +154,45 @@ d2d_reset_transform(d2d_canvas_t* c)
         m._32 = D2D_BASEDELTA_Y;
     }
 
-    ID2D1RenderTarget_SetTransform(c->target, &m);
+    dummy_ID2D1RenderTarget_SetTransform(c->target, &m);
 }
 
 void
-d2d_apply_transform(d2d_canvas_t* c, const D2D1_MATRIX_3X2_F* matrix)
+d2d_apply_transform(d2d_canvas_t* c, const dummy_D2D1_MATRIX_3X2_F* matrix)
 {
-    D2D1_MATRIX_3X2_F res;
-    D2D1_MATRIX_3X2_F old_matrix;
+    dummy_D2D1_MATRIX_3X2_F res;
+    dummy_D2D1_MATRIX_3X2_F old_matrix;
 
-    ID2D1RenderTarget_GetTransform(c->target, &old_matrix);
+    dummy_ID2D1RenderTarget_GetTransform(c->target, &old_matrix);
     d2d_matrix_mult(&res, matrix, &old_matrix);
-    ID2D1RenderTarget_SetTransform(c->target, &res);
+    dummy_ID2D1RenderTarget_SetTransform(c->target, &res);
 }
 
 void
-d2d_disable_rtl_transform(d2d_canvas_t* c, D2D1_MATRIX_3X2_F* old_matrix)
+d2d_disable_rtl_transform(d2d_canvas_t* c, dummy_D2D1_MATRIX_3X2_F* old_matrix)
 {
-    D2D1_MATRIX_3X2_F r;    /* Reflection + transition for WD_CANVAS_LAYOUTRTL. */
-    D2D1_MATRIX_3X2_F ur;   /* R * user's transformation. */
-    D2D1_MATRIX_3X2_F u;    /* Only user's transformation. */
+    dummy_D2D1_MATRIX_3X2_F r;    /* Reflection + transition for WD_CANVAS_LAYOUTRTL. */
+    dummy_D2D1_MATRIX_3X2_F ur;   /* R * user's transformation. */
+    dummy_D2D1_MATRIX_3X2_F u;    /* Only user's transformation. */
 
-    r._11 = -1.0f;     r._12 = 0.0f;
-    r._21 = 0.0f;      r._22 = 1.0f;
-    r._31 = c->width;  r._32 = 0.0f;
+    r._11 = -1.0f;				r._12 = 0.0f;
+    r._21 = 0.0f;				r._22 = 1.0f;
+    r._31 = (float) c->width;	r._32 = 0.0f;
 
-    ID2D1RenderTarget_GetTransform(c->target, &ur);
+    dummy_ID2D1RenderTarget_GetTransform(c->target, &ur);
     if(old_matrix != NULL)
-        memcpy(old_matrix, &ur, sizeof(D2D1_MATRIX_3X2_F));
+        memcpy(old_matrix, &ur, sizeof(dummy_D2D1_MATRIX_3X2_F));
     ur._31 += D2D_BASEDELTA_X;
     ur._32 -= D2D_BASEDELTA_Y;
 
     /* Note R is inverse to itself. */
     d2d_matrix_mult(&u, &ur, &r);
 
-    ID2D1RenderTarget_SetTransform(c->target, &u);
+    dummy_ID2D1RenderTarget_SetTransform(c->target, &u);
 }
 
 void
-d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg, float cx, float cy, float r,
+d2d_setup_arc_segment(dummy_D2D1_ARC_SEGMENT* arc_seg, float cx, float cy, float r,
                       float base_angle, float sweep_angle)
 {
     float sweep_rads = (base_angle + sweep_angle) * (WD_PI / 180.0f);
@@ -204,60 +204,60 @@ d2d_setup_arc_segment(D2D1_ARC_SEGMENT* arc_seg, float cx, float cy, float r,
     arc_seg->rotationAngle = 0.0f;
 
     if(sweep_angle >= 0.0f)
-        arc_seg->sweepDirection = D2D1_SWEEP_DIRECTION_CLOCKWISE;
+        arc_seg->sweepDirection = dummy_D2D1_SWEEP_DIRECTION_CLOCKWISE;
     else
-        arc_seg->sweepDirection = D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE;
+        arc_seg->sweepDirection = dummy_D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE;
 
     if(sweep_angle >= 180.0f)
-        arc_seg->arcSize = D2D1_ARC_SIZE_LARGE;
+        arc_seg->arcSize = dummy_D2D1_ARC_SIZE_LARGE;
     else
-        arc_seg->arcSize = D2D1_ARC_SIZE_SMALL;
+        arc_seg->arcSize = dummy_D2D1_ARC_SIZE_SMALL;
 }
 
-ID2D1Geometry*
+dummy_ID2D1Geometry*
 d2d_create_arc_geometry(float cx, float cy, float r,
                         float base_angle, float sweep_angle, BOOL pie)
 {
-    ID2D1PathGeometry* g = NULL;
-    ID2D1GeometrySink* s;
+    dummy_ID2D1PathGeometry* g = NULL;
+    dummy_ID2D1GeometrySink* s;
     HRESULT hr;
     float base_rads = base_angle * (WD_PI / 180.0f);
-    D2D1_POINT_2F pt;
-    D2D1_ARC_SEGMENT arc_seg;
+    dummy_D2D1_POINT_2F pt;
+    dummy_D2D1_ARC_SEGMENT arc_seg;
 
     wd_lock();
-    hr = ID2D1Factory_CreatePathGeometry(d2d_factory, &g);
+    hr = dummy_ID2D1Factory_CreatePathGeometry(d2d_factory, &g);
     wd_unlock();
     if(FAILED(hr)) {
         WD_TRACE_HR("d2d_create_arc_geometry: "
                     "ID2D1Factory::CreatePathGeometry() failed.");
         return NULL;
     }
-    hr = ID2D1PathGeometry_Open(g, &s);
+    hr = dummy_ID2D1PathGeometry_Open(g, &s);
     if(FAILED(hr)) {
         WD_TRACE_HR("d2d_create_arc_geometry: ID2D1PathGeometry::Open() failed.");
-        ID2D1PathGeometry_Release(g);
+        dummy_ID2D1PathGeometry_Release(g);
         return NULL;
     }
 
     pt.x = cx + r * cosf(base_rads);
     pt.y = cy + r * sinf(base_rads);
-    ID2D1GeometrySink_BeginFigure(s, pt, D2D1_FIGURE_BEGIN_FILLED);
+    dummy_ID2D1GeometrySink_BeginFigure(s, pt, dummy_D2D1_FIGURE_BEGIN_FILLED);
 
     d2d_setup_arc_segment(&arc_seg, cx, cy, r, base_angle, sweep_angle);
-    ID2D1GeometrySink_AddArc(s, &arc_seg);
+    dummy_ID2D1GeometrySink_AddArc(s, &arc_seg);
 
     if(pie) {
         pt.x = cx;
         pt.y = cy;
-        ID2D1GeometrySink_AddLine(s, pt);
-        ID2D1GeometrySink_EndFigure(s, D2D1_FIGURE_END_CLOSED);
+        dummy_ID2D1GeometrySink_AddLine(s, pt);
+        dummy_ID2D1GeometrySink_EndFigure(s, dummy_D2D1_FIGURE_END_CLOSED);
     } else {
-        ID2D1GeometrySink_EndFigure(s, D2D1_FIGURE_END_OPEN);
+        dummy_ID2D1GeometrySink_EndFigure(s, dummy_D2D1_FIGURE_END_OPEN);
     }
 
-    ID2D1GeometrySink_Close(s);
-    ID2D1GeometrySink_Release(s);
+    dummy_ID2D1GeometrySink_Close(s);
+    dummy_ID2D1GeometrySink_Release(s);
 
-    return (ID2D1Geometry*) g;
+    return (dummy_ID2D1Geometry*) g;
 }

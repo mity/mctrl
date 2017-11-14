@@ -32,10 +32,10 @@ wdCreateCachedImage(WD_HCANVAS hCanvas, WD_HIMAGE hImage)
 {
     if(d2d_enabled()) {
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
-        ID2D1Bitmap* b;
+        dummy_ID2D1Bitmap* b;
         HRESULT hr;
 
-        hr = ID2D1RenderTarget_CreateBitmapFromWicBitmap(c->target,
+        hr = dummy_ID2D1RenderTarget_CreateBitmapFromWicBitmap(c->target,
                 (IWICBitmapSource*) hImage, NULL, &b);
         if(FAILED(hr)) {
             WD_TRACE_HR("wdCreateCachedImage: "
@@ -65,7 +65,7 @@ void
 wdDestroyCachedImage(WD_HCACHEDIMAGE hCachedImage)
 {
     if(d2d_enabled()) {
-        ID2D1Bitmap_Release((ID2D1Bitmap*) hCachedImage);
+        dummy_ID2D1Bitmap_Release((dummy_ID2D1Bitmap*) hCachedImage);
     } else {
         gdix_vtable->fn_DeleteCachedBitmap((dummy_GpCachedBitmap*) hCachedImage);
     }

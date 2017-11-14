@@ -35,11 +35,11 @@ wdDrawString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
 {
     if(d2d_enabled()) {
         dwrite_font_t* font = (dwrite_font_t*) hFont;
-        D2D1_POINT_2F origin = { pRect->x0, pRect->y0 };
+        dummy_D2D1_POINT_2F origin = { pRect->x0, pRect->y0 };
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
-        ID2D1Brush* b = (ID2D1Brush*) hBrush;
+        dummy_ID2D1Brush* b = (dummy_ID2D1Brush*) hBrush;
         dummy_IDWriteTextLayout* layout;
-        D2D1_MATRIX_3X2_F old_matrix;
+        dummy_D2D1_MATRIX_3X2_F old_matrix;
 
         layout = dwrite_create_text_layout(font->tf, pRect, pszText, iTextLength, dwFlags);
         if(layout == NULL) {
@@ -55,14 +55,13 @@ wdDrawString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
                     dummy_DWRITE_READING_DIRECTION_RIGHT_TO_LEFT);
         }
 
-        ID2D1RenderTarget_DrawTextLayout(c->target, origin,
-                (IDWriteTextLayout*) layout, b,
-                (dwFlags & WD_STR_NOCLIP) ? 0 : D2D1_DRAW_TEXT_OPTIONS_CLIP);
+        dummy_ID2D1RenderTarget_DrawTextLayout(c->target, origin, layout, b,
+                (dwFlags & WD_STR_NOCLIP) ? 0 : dummy_D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
         dummy_IDWriteTextLayout_Release(layout);
 
         if(c->flags & D2D_CANVASFLAG_RTL) {
-            ID2D1RenderTarget_SetTransform(c->target, &old_matrix);
+            dummy_ID2D1RenderTarget_SetTransform(c->target, &old_matrix);
         }
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;

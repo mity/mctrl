@@ -31,11 +31,11 @@ WD_HPATH
 wdCreatePath(WD_HCANVAS hCanvas)
 {
     if(d2d_enabled()) {
-        ID2D1PathGeometry* g;
+        dummy_ID2D1PathGeometry* g;
         HRESULT hr;
 
         wd_lock();
-        hr = ID2D1Factory_CreatePathGeometry(d2d_factory, &g);
+        hr = dummy_ID2D1Factory_CreatePathGeometry(d2d_factory, &g);
         wd_unlock();
         if(FAILED(hr)) {
             WD_TRACE_HR("wdCreatePath: "
@@ -139,7 +139,7 @@ void
 wdDestroyPath(WD_HPATH hPath)
 {
     if(d2d_enabled()) {
-        ID2D1PathGeometry_Release((ID2D1PathGeometry*) hPath);
+        dummy_ID2D1PathGeometry_Release((dummy_ID2D1PathGeometry*) hPath);
     } else {
         gdix_vtable->fn_DeletePath((dummy_GpPath*) hPath);
     }
@@ -149,11 +149,11 @@ BOOL
 wdOpenPathSink(WD_PATHSINK* pSink, WD_HPATH hPath)
 {
     if(d2d_enabled()) {
-        ID2D1PathGeometry* g = (ID2D1PathGeometry*) hPath;
-        ID2D1GeometrySink* s;
+        dummy_ID2D1PathGeometry* g = (dummy_ID2D1PathGeometry*) hPath;
+        dummy_ID2D1GeometrySink* s;
         HRESULT hr;
 
-        hr = ID2D1PathGeometry_Open(g, &s);
+        hr = dummy_ID2D1PathGeometry_Open(g, &s);
         if(FAILED(hr)) {
             WD_TRACE_HR("wdOpenPathSink: ID2D1PathGeometry::Open() failed.");
             return FALSE;
@@ -173,9 +173,9 @@ void
 wdClosePathSink(WD_PATHSINK* pSink)
 {
     if(d2d_enabled()) {
-        ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
-        ID2D1GeometrySink_Close(s);
-        ID2D1GeometrySink_Release(s);
+        dummy_ID2D1GeometrySink* s = (dummy_ID2D1GeometrySink*) pSink->pData;
+        dummy_ID2D1GeometrySink_Close(s);
+        dummy_ID2D1GeometrySink_Release(s);
     } else {
         /* noop */
     }
@@ -185,10 +185,10 @@ void
 wdBeginFigure(WD_PATHSINK* pSink, float x, float y)
 {
     if(d2d_enabled()) {
-        ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
-        D2D1_POINT_2F pt = { x, y };
+        dummy_ID2D1GeometrySink* s = (dummy_ID2D1GeometrySink*) pSink->pData;
+        dummy_D2D1_POINT_2F pt = { x, y };
 
-        ID2D1GeometrySink_BeginFigure(s, pt, D2D1_FIGURE_BEGIN_FILLED);
+        dummy_ID2D1GeometrySink_BeginFigure(s, pt, dummy_D2D1_FIGURE_BEGIN_FILLED);
     } else {
         gdix_vtable->fn_StartPathFigure(pSink->pData);
     }
@@ -201,8 +201,8 @@ void
 wdEndFigure(WD_PATHSINK* pSink, BOOL bCloseFigure)
 {
     if(d2d_enabled()) {
-        ID2D1GeometrySink_EndFigure((ID2D1GeometrySink*) pSink->pData,
-                (bCloseFigure ? D2D1_FIGURE_END_CLOSED : D2D1_FIGURE_END_OPEN));
+        dummy_ID2D1GeometrySink_EndFigure((dummy_ID2D1GeometrySink*) pSink->pData,
+                (bCloseFigure ? dummy_D2D1_FIGURE_END_CLOSED : dummy_D2D1_FIGURE_END_OPEN));
     } else {
         if(bCloseFigure)
             gdix_vtable->fn_ClosePathFigure(pSink->pData);
@@ -213,10 +213,10 @@ void
 wdAddLine(WD_PATHSINK* pSink, float x, float y)
 {
     if(d2d_enabled()) {
-        ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
-        D2D1_POINT_2F pt = { x, y };
+        dummy_ID2D1GeometrySink* s = (dummy_ID2D1GeometrySink*) pSink->pData;
+        dummy_D2D1_POINT_2F pt = { x, y };
 
-        ID2D1GeometrySink_AddLine(s, pt);
+        dummy_ID2D1GeometrySink_AddLine(s, pt);
     } else {
         gdix_vtable->fn_AddPathLine(pSink->pData,
                         pSink->ptEnd.x, pSink->ptEnd.y, x, y);
@@ -245,11 +245,11 @@ wdAddArc(WD_PATHSINK* pSink, float cx, float cy, float fSweepAngle)
     base_angle = atan2f(ydiff, xdiff) * (180.0f / WD_PI);
 
     if(d2d_enabled()) {
-        ID2D1GeometrySink* s = (ID2D1GeometrySink*) pSink->pData;
-        D2D1_ARC_SEGMENT arc_seg;
+        dummy_ID2D1GeometrySink* s = (dummy_ID2D1GeometrySink*) pSink->pData;
+        dummy_D2D1_ARC_SEGMENT arc_seg;
 
         d2d_setup_arc_segment(&arc_seg, cx, cy, r, base_angle, fSweepAngle);
-        ID2D1GeometrySink_AddArc(s, &arc_seg);
+        dummy_ID2D1GeometrySink_AddArc(s, &arc_seg);
         pSink->ptEnd.x = arc_seg.point.x;
         pSink->ptEnd.y = arc_seg.point.y;
     } else {
