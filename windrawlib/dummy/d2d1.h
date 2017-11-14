@@ -239,7 +239,7 @@ struct dummy_ID2D1BitmapVtbl_tag {
 
     /* ID2D1Bitmap methods */
     STDMETHOD(dummy_GetSize)(void);
-    STDMETHOD_(D2D1_SIZE_U, GetPixelSize)(dummy_ID2D1Bitmap*);
+    STDMETHOD_(dummy_D2D1_SIZE_U, GetPixelSize)(dummy_ID2D1Bitmap*);
     STDMETHOD(dummy_GetPixelFormat)(void);
     STDMETHOD(dummy_GetDpi)(void);
     STDMETHOD(dummy_CopyFromBitmap)(void);

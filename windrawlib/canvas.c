@@ -394,7 +394,7 @@ wdSetClip(WD_HCANVAS hCanvas, const WD_RECT* pRect, const WD_HPATH hPath)
             dummy_ID2D1RenderTarget_PushLayer(c->target, &layer_params, c->clip_layer);
         } else if(pRect != NULL) {
             dummy_ID2D1RenderTarget_PushAxisAlignedClip(c->target,
-                    (const D2D1_RECT_F*) pRect, dummy_D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                    (const dummy_D2D1_RECT_F*) pRect, dummy_D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
             c->flags |= D2D_CANVASFLAG_RECTCLIP;
         }
     } else {
