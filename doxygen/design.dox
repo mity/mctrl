@@ -118,8 +118,8 @@
  * single-threaded apartment.
  *
  * As the apartment model is a global property of any thread, any DLL using
- * COM has to be careful to not cause apartment model change which could cause
- * to the application.
+ * COM has to be careful to not cause apartment model change which could
+ * conflict with the application.
  *
  * To address the limitations, usage of COM in @c MCTRL.DLL follows these rules:
  *
