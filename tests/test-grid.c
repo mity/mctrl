@@ -3,7 +3,7 @@
  * Copyright (c) 2016 Martin Mitas
  */
 
-#include "cutest.h"
+#include "acutest.h"
 #include <windows.h>
 #include <mCtrl/grid.h>
 

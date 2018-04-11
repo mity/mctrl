@@ -3,7 +3,7 @@
  * Copyright (c) 2014 Martin Mitas
  */
 
-#include "cutest.h"
+#include "acutest.h"
 #include <windows.h>
 #include <tchar.h>
 
