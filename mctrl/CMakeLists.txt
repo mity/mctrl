@@ -23,7 +23,7 @@ add_definitions(-DCOBJMACROS)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 
-if(CMAKE_COMPILER_IS_GNUCC)
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     # Detect gcc version:
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 
@@ -36,14 +36,11 @@ if(CMAKE_COMPILER_IS_GNUCC)
     # Use faster but less precise float math; it suffices for our purposes:
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffast-math")
 
-    # By default, CMake uses -O3 for Release builds. Lets stick with safer -O2:
-    string(REGEX REPLACE "(^| )-O[0-9a-z]+" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2")
-
     # With gcc >= 4.9, use LTO for Release builds:
     if(GCC_VERSION VERSION_GREATER 4.9 OR GCC_VERSION VERSION_EQUAL 4.9)
-        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -flto -fno-fat-lto-objects")
-        set(CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELEASE} -flto -O2")
+        string(REGEX REPLACE "(^| )-O[0-9a-z]+" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -flto -O3 -fno-fat-lto-objects")
+        set(CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELEASE} -flto -O3")
     endif()
 
     # Ensure we do not depend on libgcc.dll and that our exported symbols
@@ -88,7 +85,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
             )
         endif()
     endif()
-elseif(MSVC)
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     # Disable warnings about the so-called unsecured functions:
     add_definitions(/D_CRT_SECURE_NO_WARNINGS)
 
