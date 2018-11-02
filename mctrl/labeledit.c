@@ -131,8 +131,15 @@ labeledit_start(HWND parent_win, const TCHAR* text,
 
     /* Success. */
     mc_mutex_lock(&labeledit_mutex);
-    if(labeledit_current != NULL)
+    /* Make sure there is never more then one active edit window at any given
+     * time. So if there is any other now, we have to cancel it. But that other
+     * window may need the mutex to close cleanly, so must be super careful
+     * here to avoid any deadlock. */
+    while(labeledit_current != NULL) {
+        mc_mutex_unlock(&labeledit_mutex);
         MC_SEND(labeledit_current->edit_win, WM_CLOSE, 0, 0);
+        mc_mutex_lock(&labeledit_mutex);
+    }
 
     labeledit_orig_proc = (WNDPROC) SetWindowLongPtr(data->edit_win,
                 GWLP_WNDPROC, (DWORD_PTR) labeledit_subclass_proc);
