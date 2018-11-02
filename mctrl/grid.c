@@ -2180,7 +2180,7 @@ grid_labeledit_start(grid_t* grid, WORD col, WORD row)
 
     GRID_TRACE("grid_labeledit_start(%p, %d, %d)", grid, col, row);
 
-    if(!(0 <= col && col < grid->col_count) || !(0 <= row && row < grid->row_count)) {
+    if(col >= grid->col_count || row >= grid->row_count) {
         MC_TRACE("grid_labeledit_start: Cell [%d, %d] not valid.", col, row);
         SetLastError(ERROR_INVALID_PARAMETER);
         return NULL;
