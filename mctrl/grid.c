@@ -106,6 +106,7 @@ struct grid_tag {
     DWORD seldrag_considering    :  1;
     DWORD seldrag_started        :  1;  /* Dragging selection rectangle. */
     DWORD labeledit_considering  :  1;
+    DWORD labeledit_timer        :  1;
     DWORD labeledit_started      :  1;  /* Editing of a label. */
 
     /* If MC_GS_OWNERDATA, we need it here locally. If not, it is a cached
@@ -148,7 +149,7 @@ struct grid_tag {
 
 /* Forward declarations */
 static void grid_mouse_move(grid_t* grid, int x, int y);
-static void grid_end_label_edit(grid_t* grid, BOOL cancel);
+static void grid_labeledit_end(grid_t* grid, BOOL cancel);
 
 
 static inline WORD
@@ -371,7 +372,7 @@ grid_scroll_xy(grid_t* grid, int scroll_x, int scroll_y)
 
     /* Scrolling ends label edit. */
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     /* Refresh */
     if(!grid->no_redraw) {
@@ -1231,7 +1232,7 @@ grid_refresh(void* view, void* detail)
 
     /* Any change in the table end label editing. */
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     switch(rd->event) {
         case TABLE_CELL_CHANGED:
@@ -1521,7 +1522,7 @@ grid_set_focused_cell(grid_t* grid, WORD col, WORD row)
 
     /* Changing of the focus ends any cell editing. */
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     /* Set new focus. */
     grid->focused_col = col;
@@ -1792,7 +1793,7 @@ grid_set_geometry(grid_t* grid, MC_GGEOMETRY* geom, BOOL invalidate)
 
     /* Any change in the table end label editing. */
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     if(geom != NULL) {
         if(geom->fMask & MC_GGF_COLUMNHEADERHEIGHT)
@@ -1974,7 +1975,7 @@ grid_set_col_width(grid_t* grid, WORD col, WORD width)
     }
 
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     grid->col_widths[col] = width;
 
@@ -2059,7 +2060,7 @@ grid_set_row_height(grid_t* grid, WORD row, WORD height)
     }
 
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     grid->row_heights[row] = height;
 
@@ -2172,7 +2173,7 @@ grid_labeledit_callback(void* data, const TCHAR* text, BOOL save)
 }
 
 static HWND
-grid_start_label_edit(grid_t* grid, WORD col, WORD row)
+grid_labeledit_start(grid_t* grid, WORD col, WORD row)
 {
     RECT rect;
     MC_NMGDISPINFO dispinfo;
@@ -2180,7 +2181,12 @@ grid_start_label_edit(grid_t* grid, WORD col, WORD row)
     grid_dispinfo_t di;
     HWND edit_win;
 
-    GRID_TRACE("grid_start_label_edit(%p, %d, %d)", grid, col, row);
+    GRID_TRACE("grid_labeledit_start(%p, %d, %d)", grid, col, row);
+
+    if(grid->labeledit_timer) {
+        KillTimer(grid->win, (UINT_PTR) grid_labeledit_start);
+        grid->labeledit_timer = FALSE;
+    }
 
     if(col == COL_INVALID || row == ROW_INVALID)
         return NULL;
@@ -2196,7 +2202,7 @@ grid_start_label_edit(grid_t* grid, WORD col, WORD row)
     grid_get_dispinfo(grid, col, row, cell, &di, MC_TCMF_TEXT | MC_TCMF_PARAM | MC_TCMF_FLAGS);
     edit_win = labeledit_start(grid->win, di.text, grid_labeledit_callback, grid);
     if(MC_ERR(edit_win == NULL)) {
-        MC_TRACE("grid_start_label_edit: labeledit_start() failed.");
+        MC_TRACE("grid_labeledit_start: labeledit_start() failed.");
         goto out;
     }
 
@@ -2228,7 +2234,7 @@ grid_start_label_edit(grid_t* grid, WORD col, WORD row)
     dispinfo.cell.lParam = di.lp;
     dispinfo.cell.dwFlags = di.flags;
     if(MC_SEND(grid->notify_win, WM_NOTIFY, dispinfo.hdr.idFrom, &dispinfo) != 0) {
-        GRID_TRACE("grid_start_label_edit: MC_GN_BEGINLABELEDIT suppresses "
+        GRID_TRACE("grid_labeledit_start: MC_GN_BEGINLABELEDIT suppresses "
                    "the label editing.");
         labeledit_end(grid->win, FALSE);
         goto out;
@@ -2253,9 +2259,9 @@ out:
 }
 
 static void
-grid_end_label_edit(grid_t* grid, BOOL cancel)
+grid_labeledit_end(grid_t* grid, BOOL cancel)
 {
-    GRID_TRACE("grid_end_label_edit(%p, %s)", grid, (cancel ? "cancel" : "save"));
+    GRID_TRACE("grid_labeledit_end(%p, %s)", grid, (cancel ? "cancel" : "save"));
 
     MC_ASSERT(!grid->labeledit_considering);
     MC_ASSERT(grid->labeledit_started);
@@ -2718,7 +2724,7 @@ grid_left_button_down(grid_t* grid, int x, int y)
     }
 
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     info.pt.x = x;
     info.pt.y = y;
@@ -2859,8 +2865,9 @@ grid_left_button_up(grid_t* grid, int x, int y)
              * WM_LBUTTONDBLCLK a chance. If the WM_LBUTTONDBLCLK comes in the
              * mean time we cancel the timer. */
             GRID_TRACE("grid_left_button_up: Starting timer for label edit.");
-            SetTimer(grid->win, (UINT_PTR) grid_start_label_edit,
+            SetTimer(grid->win, (UINT_PTR) grid_labeledit_start,
                      GetDoubleClickTime(), NULL);
+            grid->labeledit_timer = TRUE;
         }
 
         grid->labeledit_considering = FALSE;
@@ -2870,13 +2877,6 @@ grid_left_button_up(grid_t* grid, int x, int y)
 static void
 grid_left_button_dblclick(grid_t* grid, int x, int y)
 {
-    /* If considering about label editing, stop it. */
-    if(grid->labeledit_considering) {
-        GRID_TRACE("grid_left_button_dblclick: Kill timer for label edit.");
-        KillTimer(grid->win, (UINT_PTR) grid_start_label_edit);
-        grid->labeledit_considering = FALSE;
-    }
-
     if(mc_send_notify(grid->notify_win, grid->win, NM_DBLCLK)) {
         /* Application suppresses the default processing of the message. */
         return;
@@ -2890,7 +2890,7 @@ grid_left_button_dblclick(grid_t* grid, int x, int y)
         info.pt.y = y;
         grid_hit_test(grid, &info);
 
-        grid_start_label_edit(grid, info.wColumn, info.wRow);
+        grid_labeledit_start(grid, info.wColumn, info.wRow);
     }
 }
 
@@ -3065,7 +3065,7 @@ grid_key_down(grid_t* grid, int key)
 
         case VK_RETURN:
             if(grid->style & MC_GS_EDITLABELS) {
-                grid_start_label_edit(grid, grid->focused_col, grid->focused_row);
+                grid_labeledit_start(grid, grid->focused_col, grid->focused_row);
                 return;
             }
             break;
@@ -3145,7 +3145,7 @@ grid_set_table(grid_t* grid, table_t* table)
 
     grid_end_any_drag(grid, TRUE);
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, TRUE);
+        grid_labeledit_end(grid, TRUE);
 
     if(grid->table != NULL) {
         table_uninstall_view(grid->table, grid);
@@ -3197,7 +3197,7 @@ grid_resize_table(grid_t* grid, WORD col_count, WORD row_count)
     GRID_TRACE("grid_resize_table(%d, %d)", (int) col_count, (int) row_count);
 
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     if(grid->table != NULL) {
         if(MC_ERR(table_resize(grid->table, col_count, row_count) != 0)) {
@@ -3226,7 +3226,7 @@ static int
 grid_clear(grid_t* grid, DWORD what)
 {
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     if(MC_ERR(grid->table == NULL)) {
         SetLastError(ERROR_NOT_SUPPORTED);
@@ -3248,7 +3248,7 @@ grid_set_cell(grid_t* grid, WORD col, WORD row, MC_TABLECELL* cell, BOOL unicode
     }
 
     if(grid->labeledit_started)
-        grid_end_label_edit(grid, FALSE);
+        grid_labeledit_end(grid, FALSE);
 
     if(MC_ERR(table_set_cell_data(grid->table, col, row, cell, unicode) != 0)) {
         MC_TRACE("grid_set_cell: table_set_cell_data() failed.");
@@ -3357,7 +3357,7 @@ grid_style_changed(grid_t* grid, STYLESTRUCT* ss)
     if((ss->styleNew & MC_GS_EDITLABELS) != (ss->styleOld & MC_GS_EDITLABELS)) {
         grid->labeledit_considering = FALSE;
         if(grid->labeledit_started)
-            grid_end_label_edit(grid, TRUE);
+            grid_labeledit_end(grid, TRUE);
     }
 
     if(!grid->no_redraw)
@@ -3574,12 +3574,12 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 return (LRESULT) NULL;
             }
 
-            return (LRESULT) grid_start_label_edit(grid, col, row);
+            return (LRESULT) grid_labeledit_start(grid, col, row);
         }
 
         case MC_GM_CANCELEDITLABEL:
             if(grid->labeledit_started)
-                grid_end_label_edit(grid, TRUE);
+                grid_labeledit_end(grid, TRUE);
             return 0;
 
         case WM_SETREDRAW:
@@ -3641,7 +3641,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SIZE:
             /* Resizing of the control ends label edit. */
             if(grid->labeledit_started)
-                grid_end_label_edit(grid, FALSE);
+                grid_labeledit_end(grid, FALSE);
 
             if(!grid->no_redraw) {
                 int old_scroll_x = grid->scroll_x;
@@ -3677,10 +3677,15 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(wp == (UINT_PTR) grid_autoscroll) {
                 grid_autoscroll(grid);
                 return 0;
-            } else if(wp == (UINT_PTR) grid_start_label_edit) {
-                GRID_TRACE("grid_proc(WM_TIMER): Start label edit.");
-                KillTimer(win, (UINT_PTR) grid_start_label_edit);
-                grid_start_label_edit(grid, grid->focused_col, grid->focused_row);
+            } else if(wp == (UINT_PTR) grid_labeledit_start) {
+                KillTimer(win, (UINT_PTR) grid_labeledit_start);
+                grid->labeledit_timer = FALSE;
+
+                /* Make sure the style has not disappeared in the mean time. */
+                if(grid->style & MC_GS_EDITLABELS) {
+                    GRID_TRACE("grid_proc(WM_TIMER): Start label edit.");
+                    grid_labeledit_start(grid, grid->focused_col, grid->focused_row);
+                }
                 return 0;
             }
             break;
@@ -3710,7 +3715,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_COMMAND:
             if(grid->labeledit_started  &&  HIWORD(wp) == EN_KILLFOCUS)
-                grid_end_label_edit(grid, FALSE);
+                grid_labeledit_end(grid, FALSE);
             break;
 
         case WM_NOTIFYFORMAT:
