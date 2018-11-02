@@ -1043,6 +1043,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.top = 0;
         rect.bottom = header_h;
 
+        mc_clip_set(dc, header_w, 0, client.right, header_h);
+
         for(col = col0; col < col_count; col++) {
             rect.right = rect.left + grid_col_width(grid, col);
             grid_paint_header_cell(grid, col, MC_TABLE_HEADER, (table ? &table->cols[col] : NULL),
@@ -1059,6 +1061,8 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         rect.left = 0;
         rect.top = y0;
         rect.right = header_w;
+
+        mc_clip_set(dc, 0, header_h, header_w, client.bottom);
 
         for(row = row0; row < row_count; row++) {
             rect.bottom = rect.top + grid_row_height(grid, row);
