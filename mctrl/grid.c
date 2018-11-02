@@ -2180,13 +2180,16 @@ grid_labeledit_start(grid_t* grid, WORD col, WORD row)
 
     GRID_TRACE("grid_labeledit_start(%p, %d, %d)", grid, col, row);
 
+    if(!(0 <= col && col < grid->col_count) || !(0 <= row && row < grid->row_count)) {
+        MC_TRACE("grid_labeledit_start: Cell [%d, %d] not valid.", col, row);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return NULL;
+    }
+
     if(grid->labeledit_timer) {
         KillTimer(grid->win, (UINT_PTR) grid_labeledit_start);
         grid->labeledit_timer = FALSE;
     }
-
-    if(col == COL_INVALID || row == ROW_INVALID)
-        return NULL;
 
     grid->labeledit_considering = FALSE;
     grid_set_focused_cell(grid, col, row);
