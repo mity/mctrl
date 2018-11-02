@@ -1033,7 +1033,6 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
        dirty->left < header_w  &&  dirty->top < header_h)
     {
         mc_rect_set(&rect, 0, 0, grid->header_width, grid->header_height);
-        mc_clip_set(dc, 0, 0, header_w, header_h);
         grid_paint_header_cell(grid, MC_TABLE_HEADER, MC_TABLE_HEADER, NULL, dc,
                                &rect, -1, 0, cd_mode, &cd);
     }
@@ -1046,7 +1045,6 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
         for(col = col0; col < col_count; col++) {
             rect.right = rect.left + grid_col_width(grid, col);
-            mc_clip_set(dc, MC_MAX(header_w, rect.left), rect.top, rect.right, rect.bottom);
             grid_paint_header_cell(grid, col, MC_TABLE_HEADER, (table ? &table->cols[col] : NULL),
                                    dc, &rect, col, (grid->style & MC_GS_COLUMNHEADERMASK),
                                    cd_mode, &cd);
@@ -1064,7 +1062,6 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
 
         for(row = row0; row < row_count; row++) {
             rect.bottom = rect.top + grid_row_height(grid, row);
-            mc_clip_set(dc, rect.left, MC_MAX(header_h, rect.top), rect.right, rect.bottom);
             grid_paint_header_cell(grid, MC_TABLE_HEADER, row, (table ? &table->rows[row] : NULL),
                                    dc, &rect, row, (grid->style & MC_GS_ROWHEADERMASK),
                                    cd_mode, &cd);
@@ -3784,7 +3781,7 @@ grid_init_module(void)
         }
     }
 
-    wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_DBLCLKS;
+    wc.style = CS_GLOBALCLASS | CS_DBLCLKS;
     wc.lpfnWndProc = grid_proc;
     wc.cbWndExtra = sizeof(grid_t*);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
