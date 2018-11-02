@@ -218,7 +218,7 @@ more information about licensing terms.
 Some source files and libraries incorporated into mCtrl may have different
 (but compatible) licensing terms and some may be put into the public domain:
 
-* CUTest (`tests/cutest.h`): MIT license
+* Acutest (`tests/acutest.h`): MIT license
 * Examples (`examples/*`): Public domain
 * HSLuv-C (`src/hsluv.c`): MIT license
 * Unit tests (`tests/*.c`): Public domain
