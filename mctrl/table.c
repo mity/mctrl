@@ -49,6 +49,7 @@ static int
 table_resize_helper(table_t* table, int col_pos, int col_delta,
                                     int row_pos, int row_delta)
 {
+    size_t size;
     table_cell_t* cols;
     table_cell_t* rows;
     table_cell_t* cells;
@@ -64,42 +65,35 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
     TABLE_TRACE("table_resize_helper(%p, %d, %d, %d, %d)",
                 table, col_pos, col_delta, row_pos, row_delta);
 
-    if(col_delta == 0  ||  row_delta == 0) {
-        if(col_delta == 0  &&  row_delta == 0) {
-            /* noop */
-            return 0;
-        }
-
-        if(col_delta == 0)
-            col_pos = 0;
-        if(row_delta == 0)
-            row_pos = 0;
+    if(col_delta == 0  &&  row_delta == 0) {
+        /* noop */
+        return 0;
     }
 
     col_count = table->col_count + col_delta;
     row_count = table->row_count + row_delta;
 
-    /* Allocate buffer for resized table */
-    if(col_count > 0  ||  row_count > 0) {
-        size_t size;
+    if(col_delta == 0)
+        col_pos = col_count;
+    if(row_delta == 0)
+        row_pos = row_count;
 
-        size = col_count * sizeof(table_cell_t) +
-               row_count * sizeof(table_cell_t) +
-               (col_count*row_count) * sizeof(table_cell_t);
+    /* Allocate buffer for resized table */
+    size = col_count * sizeof(table_cell_t) +
+           row_count * sizeof(table_cell_t) +
+           (col_count*row_count) * sizeof(table_cell_t);
+    if(size > 0) {
         cells = (table_cell_t*) malloc(size);
         if(MC_ERR(cells == NULL)) {
             MC_TRACE("table_resize: malloc() failed");
             return -1;
         }
+
         cols = cells + (col_count * row_count);
         rows = cols + col_count;
-    }
-    if(col_count == 0) {
+    } else {
         cells = NULL;
         cols = NULL;
-    }
-    if(row_count == 0) {
-        cells = NULL;
         rows = NULL;
     }
 
@@ -152,7 +146,7 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
         REGSET(copy_src[3], col_pos, row_pos - row_delta, table->col_count, table->row_count);
         REGSET(copy_dst[3], col_pos + col_delta, row_pos, col_count, row_count);
         copy_count = 4;
-        REGSET(init_dst[0], col_pos, 0, col_delta, row_count);
+        REGSET(init_dst[0], col_pos, 0, col_pos + col_delta, row_count);
         init_count = 1;
         REGSET(free_src[0], 0, row_pos, table->col_count, row_pos - row_delta);
         free_count = 1;
@@ -170,7 +164,7 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
         REGSET(copy_dst[0], 0, 0, col_pos, row_pos);
         REGSET(copy_src[1], col_pos - col_delta, 0, table->col_count, row_pos);
         REGSET(copy_dst[1], col_pos, 0, col_count, row_pos);
-        REGSET(copy_src[2], 0, row_pos, col_pos, row_count);
+        REGSET(copy_src[2], 0, row_pos, col_pos, table->row_count);
         REGSET(copy_dst[2], 0, row_pos + row_delta, col_pos, row_count);
         REGSET(copy_src[3], col_pos - col_delta, row_pos, table->col_count, table->row_count);
         REGSET(copy_dst[3], col_pos, row_pos + row_delta, col_count, row_count);
@@ -258,49 +252,43 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
     }
 
     /* Handle column headers */
-    if(table->cols != NULL  &&  cols != NULL)
+    if(cols != NULL  &&  table->cols != NULL) {
         memcpy(&cols[0], &table->cols[0], col_pos * sizeof(table_cell_t));
-    if(col_delta >= 0) {
-        if(cols != NULL)
-            memset(&cols[col_pos], 0, col_delta * sizeof(table_cell_t));
-        if(table->cols != NULL) {
+        if(col_delta > 0)
             memcpy(&cols[col_pos + col_delta], &table->cols[col_pos],
                    (table->col_count - col_pos) * sizeof(table_cell_t));
-        }
-    } else {
-        WORD col;
-        MC_ASSERT(table->cols != NULL);  /* implies from col_delta < 0 */
-        for(col = col_pos; col < col_pos - col_delta; col++)
-            table_cell_clear(&table->cols[col]);
-        if(cols != NULL) {
+        else if(col_delta < 0)
             memcpy(&cols[col_pos], &table->cols[col_pos - col_delta],
                    (col_count - col_pos) * sizeof(table_cell_t));
-        }
+    }
+    if(cols != NULL  &&  col_delta > 0)
+        memset(&cols[col_pos], 0, col_delta * sizeof(table_cell_t));
+    if(table->cols != NULL  &&  col_delta < 0) {
+        WORD col;
+        for(col = col_pos; col < col_pos - col_delta; col++)
+            table_cell_clear(&table->cols[col]);
     }
 
     /* Handle row headers */
-    if(table->rows != NULL  &&  rows != NULL)
+    if(rows != NULL  &&  table->rows != NULL) {
         memcpy(&rows[0], &table->rows[0], row_pos * sizeof(table_cell_t));
-    if(row_delta >= 0) {
-        if(rows != NULL)
-            memset(&rows[row_pos], 0, row_delta * sizeof(table_cell_t));
-        if(table->rows != NULL) {
+        if(row_delta > 0)
             memcpy(&rows[row_pos + row_delta], &table->rows[row_pos],
                    (table->row_count - row_pos) * sizeof(table_cell_t));
-        }
-    } else {
-        WORD row;
-        MC_ASSERT(table->rows != NULL);  /* implies from row_delta < 0 */
-        for(row = row_pos; row < row_pos - row_delta; row++)
-            table_cell_clear(&table->rows[row]);
-        if(rows != NULL) {
+        else if(row_delta < 0)
             memcpy(&rows[row_pos], &table->rows[row_pos - row_delta],
                    (row_count - row_pos) * sizeof(table_cell_t));
-        }
+    }
+    if(rows != NULL  &&  row_delta > 0)
+        memset(&rows[row_pos], 0, row_delta * sizeof(table_cell_t));
+    if(table->rows != NULL  &&  row_delta < 0) {
+        WORD row;
+        for(row = row_pos; row < row_pos - row_delta; row++)
+            table_cell_clear(&table->rows[row]);
     }
 
     /* Install the new buffer */
-    if(table->cells)
+    if(table->cells != NULL)
         free(table->cells);
     table->cols = cols;
     table->rows = rows;
