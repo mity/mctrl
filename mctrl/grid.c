@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2016 Martin Mitas
+ * Copyright (c) 2010-2018 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -267,7 +267,7 @@ grid_realloc_row_heights(grid_t* grid, WORD old_row_count, WORD new_row_count,
 }
 
 static int
-grid_col_x2(grid_t* grid, WORD col0, int x0, WORD col)
+grid_col2x_adv(grid_t* grid, WORD col0, int x0, WORD col)
 {
     WORD i;
     int x = x0;
@@ -281,13 +281,13 @@ grid_col_x2(grid_t* grid, WORD col0, int x0, WORD col)
 }
 
 static inline int
-grid_col_x(grid_t* grid, WORD col)
+grid_col2x(grid_t* grid, WORD col)
 {
-    return grid_col_x2(grid, 0, grid_header_width(grid) - grid->scroll_x, col);
+    return grid_col2x_adv(grid, 0, grid_header_width(grid) - grid->scroll_x, col);
 }
 
 static int
-grid_row_y2(grid_t* grid, WORD row0, int y0, WORD row)
+grid_row2y_adv(grid_t* grid, WORD row0, int y0, WORD row)
 {
     WORD i;
     int y = y0;
@@ -301,9 +301,59 @@ grid_row_y2(grid_t* grid, WORD row0, int y0, WORD row)
 }
 
 static inline int
-grid_row_y(grid_t* grid, WORD row)
+grid_row2y(grid_t* grid, WORD row)
 {
-    return grid_row_y2(grid, 0, grid_header_height(grid) - grid->scroll_y, row);
+    return grid_row2y_adv(grid, 0, grid_header_height(grid) - grid->scroll_y, row);
+}
+
+static WORD
+grid_x2col_adv(grid_t* grid, WORD col0, int x0, int x)
+{
+    WORD col;
+    int w;
+
+    if(grid->col_widths == NULL)
+        return col0 + (x - x0) / grid->def_col_width;
+
+    x -= x0;
+    for(col = col0; col < grid->col_count; col++) {
+        w = grid_col_width(grid, col);
+        if(x < w)
+            break;
+        x -= w;
+    }
+    return col;
+}
+
+static inline WORD
+grid_x2col(grid_t* grid, int x)
+{
+    return grid_x2col_adv(grid, 0, grid_header_width(grid) - grid->scroll_x, x);
+}
+
+static WORD
+grid_y2row_adv(grid_t* grid, WORD row0, int y0, int y)
+{
+    WORD row;
+    int h;
+
+    if(grid->row_heights == NULL)
+        return row0 + (y - y0) / grid->def_row_height;
+
+    y -= y0;
+    for(row = row0; row < grid->row_count; row++) {
+        h = grid_row_height(grid, row);
+        if(y < h)
+            break;
+        y -= h;
+    }
+    return row;
+}
+
+static inline WORD
+grid_y2row(grid_t* grid, int y)
+{
+    return grid_y2row_adv(grid, 0, grid_header_height(grid) - grid->scroll_y, y);
 }
 
 static void
@@ -325,16 +375,16 @@ grid_region_rect(grid_t* grid, WORD col0, WORD row0,
         rect->left = 0;
         rect->right = header_w;
     } else {
-        rect->left = grid_col_x(grid, col0);
-        rect->right = grid_col_x2(grid, col0, rect->left, col1);
+        rect->left = grid_col2x(grid, col0);
+        rect->right = grid_col2x_adv(grid, col0, rect->left, col1);
     }
 
     if(row0 == MC_TABLE_HEADER) {
         rect->top = 0;
         rect->bottom = header_h;
     } else {
-        rect->top = grid_row_y(grid, row0);
-        rect->bottom = grid_row_y2(grid, row0, rect->top, row1);
+        rect->top = grid_row2y(grid, row0);
+        rect->bottom = grid_row2y_adv(grid, row0, rect->top, row1);
     }
 }
 
@@ -546,8 +596,8 @@ grid_setup_scrollbars(grid_t* grid, BOOL recalc_max)
 
     /* Recalculate max scroll values */
     if(recalc_max) {
-        grid->scroll_x_max = grid_col_x2(grid, 0, 0, grid->col_count);
-        grid->scroll_y_max = grid_row_y2(grid, 0, 0, grid->row_count);
+        grid->scroll_x_max = grid_col2x_adv(grid, 0, 0, grid->col_count);
+        grid->scroll_y_max = grid_row2y_adv(grid, 0, 0, grid->row_count);
     }
 
     si.cbSize = sizeof(SCROLLINFO);
@@ -690,7 +740,7 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
     is_selected = rgn16_contains_xy(&grid->selection, col, row);
 
     /* If we are currently dragging a selection marquee, we want to display
-     * selection state which would result from it if the users ends it right
+     * selection state which would result from it if the user ends it right
      * now by WM_LBUTTONUP. */
     if(grid->seldrag_considering  ||  grid->seldrag_started) {
         if(mousedrag_lock(grid->win)) {
@@ -698,7 +748,9 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
             int drag_hotspot_x, drag_hotspot_y;
             int drag_mode;
             RECT marquee_rect;
+            RECT outer_rect;
             BOOL is_in_marquee;
+            int gridline_w = (grid->style & MC_GS_NOGRIDLINES) ? 0 : 1;
 
             drag_start_x = mousedrag_start_x;
             drag_start_y = mousedrag_start_y;
@@ -711,7 +763,13 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
             marquee_rect.top = MC_MIN(drag_start_y, drag_hotspot_y) - grid->scroll_y;
             marquee_rect.right = MC_MAX(drag_start_x, drag_hotspot_x) - grid->scroll_x + 1;
             marquee_rect.bottom = MC_MAX(drag_start_y, drag_hotspot_y) - grid->scroll_y + 1;
-            is_in_marquee = mc_rect_overlaps_rect(rect, &marquee_rect);
+
+            outer_rect.left = rect->left;
+            outer_rect.top = rect->top;
+            outer_rect.right = rect->right + gridline_w;
+            outer_rect.bottom = rect->bottom + gridline_w;
+
+            is_in_marquee = mc_rect_overlaps_rect(&outer_rect, &marquee_rect);
 
             switch(drag_mode) {
                 case DRAGSEL_SET:   is_selected = is_in_marquee; break;
@@ -1885,12 +1943,12 @@ grid_redraw_cells(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
         rect.left = 0;
         rect.right = header_w;
         if(row0 != MC_TABLE_HEADER) {
-            rect.top = grid_row_y(grid, row0);
-            rect.bottom = grid_row_y2(grid, row0, rect.top, row1+1);
+            rect.top = grid_row2y(grid, row0);
+            rect.bottom = grid_row2y_adv(grid, row0, rect.top, row1+1);
         } else {
             rect.top = header_h;
             if(row1 != MC_TABLE_HEADER)
-                rect.bottom = grid_row_y(grid, row0);
+                rect.bottom = grid_row2y(grid, row0);
             else
                 rect.bottom = rect.top;
         }
@@ -1903,12 +1961,12 @@ grid_redraw_cells(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
         rect.top = 0;
         rect.bottom = header_h;
         if(col0 != MC_TABLE_HEADER) {
-            rect.left = grid_col_x(grid, col0);
-            rect.right = grid_col_x2(grid, col0, rect.left, col1+1);
+            rect.left = grid_col2x(grid, col0);
+            rect.right = grid_col2x_adv(grid, col0, rect.left, col1+1);
         } else {
             rect.left = header_w;
             if(col1 != MC_TABLE_HEADER)
-                rect.right = grid_col_x(grid, col0);
+                rect.right = grid_col2x(grid, col0);
             else
                 rect.right = rect.left;
         }
@@ -1925,10 +1983,10 @@ grid_redraw_cells(grid_t* grid, WORD col0, WORD row0, WORD col1, WORD row1)
         col0 = 0;
     if(row0 == MC_TABLE_HEADER)
         row0 = 0;
-    rect.left = grid_col_x(grid, col0);
-    rect.top = grid_row_y(grid, row0);
-    rect.right = grid_col_x2(grid, col0, rect.left, col1+1);
-    rect.bottom = grid_row_y2(grid, row0, rect.top, row1+1);
+    rect.left = grid_col2x(grid, col0);
+    rect.top = grid_row2y(grid, row0);
+    rect.right = grid_col2x_adv(grid, col0, rect.left, col1+1);
+    rect.bottom = grid_row2y_adv(grid, row0, rect.top, row1+1);
     InvalidateRect(grid->win, &rect, TRUE);
 
     return 0;
@@ -1986,7 +2044,7 @@ grid_set_col_width(grid_t* grid, WORD col, WORD width)
 
         GetClientRect(grid->win, &rect);
 
-        x0 = grid_col_x(grid, col);
+        x0 = grid_col2x(grid, col);
         x1 = x0 + MC_MIN(old_width, width);
 
         rect.left = x1;
@@ -2071,7 +2129,7 @@ grid_set_row_height(grid_t* grid, WORD row, WORD height)
 
         GetClientRect(grid->win, &rect);
 
-        y0 = grid_row_y(grid, row);
+        y0 = grid_row2y(grid, row);
         y1 = y0 + MC_MIN(old_height, height);
 
         rect.top = y1;
@@ -2376,8 +2434,6 @@ grid_end_sel_drag(grid_t* grid, BOOL cancel)
             int drag_hotspot_x, drag_hotspot_y;
             int drag_mode;
             int marquee_x0, marquee_y0, marquee_x1, marquee_y1;
-            int x, y;
-            int gridline_w = (grid->style & MC_GS_NOGRIDLINES) ? 0 : 1;
             WORD col0, row0, col1, row1;
             int err = -1;
 
@@ -2394,30 +2450,20 @@ grid_end_sel_drag(grid_t* grid, BOOL cancel)
             marquee_y0 = MC_MIN(drag_start_y, drag_hotspot_y);
             marquee_x1 = MC_MAX(drag_start_x, drag_hotspot_x);
             marquee_y1 = MC_MAX(drag_start_y, drag_hotspot_y);
-            x = grid_header_width(grid);
-            for(col0 = 0; col0 < col_count; col0++) {
-                x += grid_col_width(grid, col0);
-                if(marquee_x0 < x + gridline_w)
-                    break;
-            }
-            for(col1 = col0; col1 < col_count; col1++) {
-                if(marquee_x1 < x + gridline_w)
-                    break;
-                if(col1+1 < col_count)
-                    x += grid_col_width(grid, col1+1);
-            }
-            y = grid_header_height(grid);
-            for(row0 = 0; row0 < row_count; row0++) {
-                y += grid_row_height(grid, row0);
-                if(marquee_y0 < y + gridline_w)
-                    break;
-            }
-            for(row1 = row0; row1 < row_count; row1++) {
-                if(marquee_y1 < y + gridline_w)
-                    break;
-                if(row1+1 < row_count)
-                    y += grid_row_height(grid, row1+1);
-            }
+
+            col0 = grid_x2col_adv(grid, 0, grid_header_width(grid), marquee_x0);
+            if(col0 >= grid->col_count)
+                col0 = grid->col_count - 1;
+            col1 = grid_x2col_adv(grid, 0, grid_header_width(grid), marquee_x1);
+            if(col1 >= grid->col_count)
+                col1 = grid->col_count - 1;
+
+            row0 = grid_y2row_adv(grid, 0, grid_header_height(grid), marquee_y0);
+            if(row0 >= grid->row_count)
+                row0 = grid->row_count - 1;
+            row1 = grid_y2row_adv(grid, 0, grid_header_height(grid), marquee_y1);
+            if(row1 >= grid->row_count)
+                row1 = grid->row_count - 1;
 
             GRID_TRACE("grid_end_sel_drag: %d %d %d %d",
                        (int) col0, (int) row0, (int) col1, (int) row1);
