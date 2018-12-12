@@ -370,7 +370,7 @@ typedef struct MC_HMCALLSCRIPTFUNCEX_tag {
      *  (or if the caller ignores it).
      *  If not @c NULL, the caller should initialize it to @c VT_EMPTY
      *  before making the call and, after it returns, the caller is responsible
-     *  to eventuall free its contents with @c VariantClear(). */
+     *  to eventually free its contents with @c VariantClear(). */
     VARIANT* lpRet;
 } MC_HMCALLSCRIPTFUNCEX;
 
@@ -718,7 +718,7 @@ typedef struct MC_NMHTTPERRORA_tag {
 #define MC_HM_GOTOURL          MCTRL_NAME_AW(MC_HM_GOTOURL)
 /** Unicode-resolution alias. @sa MC_HM_SETTAGCONTENTSW MC_HM_SETTAGCONTENTSA */
 #define MC_HM_SETTAGCONTENTS   MCTRL_NAME_AW(MC_HM_SETTAGCONTENTS)
-/** Unicode-resolution alias. @sa MC_HM_CALLSCRIPTFNW MC_HM_CALLSCRIPTFNA */
+/** Unicode-resolution alias. @sa MC_HM_CALLSCRIPTFUNCW MC_HM_CALLSCRIPTFUNCA */
 #define MC_HM_CALLSCRIPTFUNC   MCTRL_NAME_AW(MC_HM_CALLSCRIPTFUNC)
 /** Unicode-resolution alias. @sa MC_NMHTMLURLW MC_NMHTMLURLA */
 #define MC_NMHTMLURL           MCTRL_NAME_AW(MC_NMHTMLURL)
