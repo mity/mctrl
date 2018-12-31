@@ -18,17 +18,22 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
-
 # set up include-directories
 include_directories("${PROJECT_SOURCE_DIR}/include")
 include_directories("${PROJECT_SOURCE_DIR}/windrawlib/include")
 
-# Tell examples/CMakeListst.txt that examples are built as part of complete
-# mCtrl build:
-set(BUILD_COMPLETE_MCTRL "TRUE")
+set(MCTRL_BUILD_COMPLETETREE ON CACHE BOOL "Tell examples/CMakeListst.txt it is built as part of complete mCtrl build.")
+set(WINDRAWLIB_BUILD_EXAMPLES OFF CACHE BOOL "Disable building WinDrawLib examples.")
+
+OPTION(MCTRL_BUILD_EXAMPLES "Enable/disable building of mCtrl examples" ON)
+OPTION(MCTRL_BUILD_TESTS "Enable/disable building of mCtrl tests" ON)
 
 # Add sub-directories
 add_subdirectory(windrawlib)
 add_subdirectory(mctrl)
-add_subdirectory(examples)
-add_subdirectory(tests)
+if(MCTRL_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+if(MCTRL_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()

@@ -6,7 +6,7 @@
 # a release binary package.
 
 # === The stand-alone mode ==================================
-if(NOT "${BUILD_COMPLETE_MCTRL}" STREQUAL "TRUE")
+if(NOT "${MCTRL_BUILD_COMPLETETREE}")
     cmake_minimum_required(VERSION 3.1)
     project(mCtrl-examples C)
     set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}")
