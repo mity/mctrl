@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/mity/windrawlib.git
 	branch = master
-	commit = 908fac28585116bbf7d6789dbf5b3af5f863f90e
-	parent = 66b7f46b5ee27b908fa5d3e22ec4bd7afcadea1e
+	commit = 04c387ebfc0ac57d050f82a9e4eba659914e6263
+	parent = 96fc114d68370db0f40b792eaaa279d6f4d669cc
 	method = merge
 	cmdver = 0.4.0

@@ -8,12 +8,16 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
     set(CMAKE_BUILD_TYPE $ENV{CMAKE_BUILD_TYPE})
 endif()
 
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
 # set up include-directories
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+OPTION(WINDRAWLIB_BUILD_EXAMPLES "Enable/disable building of WinDrawLib examples" ON)
+
 # Add sub-directories
 add_subdirectory(src)
-add_subdirectory(examples)
+if(WINDRAWLIB_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
