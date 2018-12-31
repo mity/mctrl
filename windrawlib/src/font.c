@@ -27,15 +27,15 @@
 #include "backend-gdix.h"
 #include "lock.h"
 
-
 static void
 wd_get_default_gui_fontface(WCHAR buffer[LF_FACESIZE])
 {
     NONCLIENTMETRICSW metrics;
 
+#if WINVER < 0x0600
     metrics.cbSize = sizeof(NONCLIENTMETRICSW);
-#if WINVER >= 0x0600
-    metrics.cbSize -= sizeof(metrics.iPaddedBorderWidth);
+#else
+    metrics.cbSize = WD_OFFSETOF(NONCLIENTMETRICSW, iPaddedBorderWidth);
 #endif
     SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, 0, (void*) &metrics, 0);
     wcsncpy(buffer, metrics.lfMessageFont.lfFaceName, LF_FACESIZE);

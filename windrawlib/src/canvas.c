@@ -71,6 +71,9 @@ wdCreateCanvasWithPaintStruct(HWND hWnd, PAINTSTRUCT* pPS, DWORD dwFlags)
             return NULL;
         }
 
+        /* make sure text anti-aliasing is clear type */
+        dummy_ID2D1RenderTarget_SetTextAntialiasMode(c->target, dummy_D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+
         return (WD_HCANVAS) c;
     } else {
         BOOL use_doublebuffer = (dwFlags & WD_CANVAS_DOUBLEBUFFER);
@@ -124,6 +127,9 @@ wdCreateCanvasWithHDC(HDC hDC, const RECT* pRect, DWORD dwFlags)
             WD_TRACE("wdCreateCanvasWithHDC: d2d_canvas_alloc() failed.");
             goto err_d2d_canvas_alloc;
         }
+
+        /* make sure text anti-aliasing is clear type */
+        dummy_ID2D1RenderTarget_SetTextAntialiasMode(c->target, dummy_D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
 
         return (WD_HCANVAS) c;
 

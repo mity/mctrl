@@ -94,34 +94,28 @@ wdBitBltImage(WD_HCANVAS hCanvas, const WD_HIMAGE hImage,
 
 void
 wdBitBltCachedImage(WD_HCANVAS hCanvas, const WD_HCACHEDIMAGE hCachedImage,
-                    int x, int y)
+                    float x, float y)
 {
     if(d2d_enabled()) {
         d2d_canvas_t* c = (d2d_canvas_t*) hCanvas;
         dummy_ID2D1Bitmap* b = (dummy_ID2D1Bitmap*) hCachedImage;
         dummy_D2D1_SIZE_U sz;
-        dummy_D2D1_RECT_F src;
         dummy_D2D1_RECT_F dest;
 
-        sz = dummy_ID2D1Bitmap_GetPixelSize(b);
+        dummy_ID2D1Bitmap_GetPixelSize(b, &sz);
 
-        src.left = 0.0f;
-        src.top = 0.0f;
-        src.right = (float) sz.width;
-        src.bottom = (float) sz.height;
-
-        dest.left = (float) x;
-        dest.top = (float) y;
-        dest.right = (float) (x + sz.width);
-        dest.bottom = (float) (y + sz.height);
+        dest.left = x - D2D_BASEDELTA_X;
+        dest.top = y - D2D_BASEDELTA_X;
+        dest.right = (x + sz.width) - D2D_BASEDELTA_X;
+        dest.bottom = (y + sz.height) - D2D_BASEDELTA_X;
 
         dummy_ID2D1RenderTarget_DrawBitmap(c->target, b, &dest, 1.0f,
-                dummy_D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &src);
+                dummy_D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, NULL);
     } else {
         gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
         dummy_GpCachedBitmap* cb = (dummy_GpCachedBitmap*) hCachedImage;
 
-        gdix_vtable->fn_DrawCachedBitmap(c->graphics, cb, x, y);
+        gdix_vtable->fn_DrawCachedBitmap(c->graphics, cb, (INT)x, (INT)y);
     }
 }
 

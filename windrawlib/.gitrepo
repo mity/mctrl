@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/mity/windrawlib.git
+	branch = master
+	commit = 908fac28585116bbf7d6789dbf5b3af5f863f90e
+	parent = 66b7f46b5ee27b908fa5d3e22ec4bd7afcadea1e
+	method = merge
+	cmdver = 0.4.0

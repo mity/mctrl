@@ -1,6 +1,6 @@
 /*
  * WinDrawLib
- * Copyright (c) 2015-2016 Martin Mitas
+ * Copyright (c) 2015-2018 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,18 @@
 extern "C" {
 #endif
 
+
+#ifdef __cplusplus
+    #define WD_INLINE   inline
+#elif defined(__STDC_VERSION__)  &&  (__STDC_VERSION__ >= 199901L)
+    #define WD_INLINE   static inline
+#elif defined(__GNUC__)
+    #define WD_INLINE   static __inline__
+#elif defined(_MSC_VER)
+    #define WD_INLINE   static __inline
+#else
+    #define WD_INLINE   static
+#endif
 
 
 /***************
@@ -137,12 +149,21 @@ void wdPreInitialize(void (*fnLock)(void), void (*fnUnlock)(void), DWORD dwFlags
 BOOL wdInitialize(DWORD dwFlags);
 void wdTerminate(DWORD dwFlags);
 
+/* Returns the current backend. 
+ * Returns -1 if there is none.
+ */
+#define WD_BACKEND_D2D          1
+#define WD_BACKEND_GDIPLUS      2
+
+int wdBackend(void);
+
 
 /*******************************
  ***  Opaque Object Handles  ***
  *******************************/
 
 typedef struct WD_BRUSH_tag *WD_HBRUSH;
+typedef struct WD_HSTROKESTYLE_tag *WD_HSTROKESTYLE;
 typedef struct WD_CANVAS_tag *WD_HCANVAS;
 typedef struct WD_FONT_tag *WD_HFONT;
 typedef struct WD_IMAGE_tag *WD_HIMAGE;
@@ -239,11 +260,19 @@ void wdResetWorld(WD_HCANVAS hCanvas);
  * is not canvas-specific and can be used for painting on any canvas.
  */
 
+/* For wdCreateImageFromBuffer */
+#define WD_PIXELFORMAT_PALETTE     1  /* 1 byte per pixel. cPalette is used */
+#define WD_PIXELFORMAT_R8G8B8      2  /* 3 bytes per pixel. RGB without alpha */
+#define WD_PIXELFORMAT_R8G8B8A8    3  /* 4 bytes per pixel. RGB with alpha - RGBA */
+#define WD_PIXELFORMAT_B8G8R8A8    4  /* 4 bytes per pixel. RGB with alpha pre-multiplied in GDI order - BGRA (and bottom-up) */
+
 WD_HIMAGE wdCreateImageFromHBITMAP(HBITMAP hBmp);
 WD_HIMAGE wdLoadImageFromFile(const WCHAR* pszPath);
 WD_HIMAGE wdLoadImageFromIStream(IStream* pStream);
 WD_HIMAGE wdLoadImageFromResource(HINSTANCE hInstance,
                 const WCHAR* pszResType, const WCHAR* pszResName);
+WD_HIMAGE wdCreateImageFromBuffer(UINT uWidth, UINT uHeight, UINT uStride, const BYTE* pBuffer,
+                int pixelFormat, const COLORREF* cPalette, UINT uPaletteSize);
 void wdDestroyImage(WD_HIMAGE hImage);
 
 void wdGetImageSize(WD_HIMAGE hImage, UINT* puWidth, UINT* puHeight);
@@ -288,6 +317,34 @@ void wdDestroyBrush(WD_HBRUSH hBrush);
 
 /* Can be only called for brushes created with wdCreateSolidBrush(). */
 void wdSetSolidBrushColor(WD_HBRUSH hBrush, WD_COLOR color);
+
+
+/*********************************
+ ***  Stroke Style Management  ***
+ ********************************/
+
+/* Stroke Style is an object used for drawing operations. 
+   All drawing functions accept NULL as the stroke style parameter.
+*/
+
+#define WD_DASHSTYLE_SOLID 0   /* default */
+#define WD_DASHSTYLE_DASH 1
+#define WD_DASHSTYLE_DOT 2
+#define WD_DASHSTYLE_DASHDOT 3
+#define WD_DASHSTYLE_DASHDOTDOT 4
+
+#define WD_LINECAP_FLAT 0    /* default */
+#define WD_LINECAP_SQUARE 1
+#define WD_LINECAP_ROUND 2
+#define WD_LINECAP_TRIANGLE 3
+
+#define WD_LINEJOIN_MITER 0   /* default */
+#define WD_LINEJOIN_BEVEL 1
+#define WD_LINEJOIN_ROUND 2
+
+WD_HSTROKESTYLE wdCreateStrokeStyle(UINT dashStyle, UINT lineCap, UINT lineJoin);
+WD_HSTROKESTYLE wdCreateStrokeStyleCustom(const float* dashes, UINT dashesCount, UINT lineCap, UINT lineJoin);
+void wdDestroyStrokeStyle(WD_HSTROKESTYLE hStrokeStyle);
 
 
 /*************************
@@ -353,34 +410,141 @@ void wdFontMetrics(WD_HFONT hFont, WD_FONTMETRICS* pMetrics);
  ***  Draw Operations  ***
  *************************/
 
-void wdDrawArc(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+void wdDrawEllipseArcStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry,
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle);
+void wdDrawEllipsePieStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry,
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle);
+void wdDrawEllipseStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle);
+void wdDrawLineStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float x0, float y0, float x1, float y1, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle);
+void wdDrawPathStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                const WD_HPATH hPath, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle);
+void wdDrawRectStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float x0, float y0, float x1, float y1, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle);
+
+WD_INLINE void wdDrawArcStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
                 float cx, float cy, float r,
-                float fBaseAngle, float fSweepAngle, float fStrokeWidth);
-void wdDrawCircle(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
-                float cx, float cy, float r, float fStrokeWidth);
-void wdDrawLine(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
-                float x0, float y0, float x1, float y1, float fStrokeWidth);
-void wdDrawPath(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
-                const WD_HPATH hPath, float fStrokeWidth);
-void wdDrawPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle)
+{
+    wdDrawEllipseArcStyled(hCanvas, hBrush, cx, cy, r, r,
+                fBaseAngle, fSweepAngle, fStrokeWidth, hStrokeStyle);
+}
+
+WD_INLINE void wdDrawCircleStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float r, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle)
+{
+    wdDrawEllipseStyled(hCanvas, hBrush, cx, cy, r, r, fStrokeWidth, hStrokeStyle);
+}
+
+WD_INLINE void wdDrawPieStyled(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
                 float cx, float cy, float r,
-                float fBaseAngle, float fSweepAngle, float fStrokeWidth);
-void wdDrawRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
-                float x0, float y0, float x1, float y1, float fStrokeWidth);
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth,
+                WD_HSTROKESTYLE hStrokeStyle)
+{
+    wdDrawEllipsePieStyled(hCanvas, hBrush, cx, cy, r, r,
+                fBaseAngle, fSweepAngle, fStrokeWidth, hStrokeStyle);
+}
+
+
+WD_INLINE void wdDrawArc(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float r,
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth)
+{
+    wdDrawArcStyled(hCanvas, hBrush, cx, cy, r, fBaseAngle, fSweepAngle,
+                fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawCircle(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float r, float fStrokeWidth)
+{
+    wdDrawCircleStyled(hCanvas, hBrush, cx, cy, r, fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawEllipse(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry, float fStrokeWidth)
+{
+    wdDrawEllipseStyled(hCanvas, hBrush, cx, cy, rx, ry, fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawEllipseArc(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry,
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth)
+{
+    wdDrawEllipseArcStyled(hCanvas, hBrush, cx, cy, rx, ry,
+                fBaseAngle, fSweepAngle, fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawEllipsePie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry,
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth)
+{
+    wdDrawEllipsePieStyled(hCanvas, hBrush, cx, cy, rx, ry,
+                fBaseAngle, fSweepAngle, fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawLine(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float x0, float y0, float x1, float y1, float fStrokeWidth)
+{
+    wdDrawLineStyled(hCanvas, hBrush, x0, y0, x1, y1, fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawPath(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                const WD_HPATH hPath, float fStrokeWidth)
+{
+    wdDrawPathStyled(hCanvas, hBrush, hPath, fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float r,
+                float fBaseAngle, float fSweepAngle, float fStrokeWidth)
+{
+    wdDrawPieStyled(hCanvas, hBrush, cx, cy, r, fBaseAngle, fSweepAngle,
+                fStrokeWidth, NULL);
+}
+
+WD_INLINE void wdDrawRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float x0, float y0, float x1, float y1, float fStrokeWidth)
+{
+    wdDrawRectStyled(hCanvas, hBrush, x0, y0, x1, y1, fStrokeWidth, NULL);
+}
 
 
 /*************************
  ***  Fill Operations  ***
  *************************/
 
-void wdFillCircle(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
-                float cx, float cy, float r);
-void wdFillPath(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_HPATH hPath);
-void wdFillPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
-                float cx, float cy, float r,
+void wdFillEllipse(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry);
+void wdFillEllipsePie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float rx, float ry,
                 float fBaseAngle, float fSweepAngle);
+void wdFillPath(WD_HCANVAS hCanvas, WD_HBRUSH hBrush, const WD_HPATH hPath);
 void wdFillRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
                 float x0, float y0, float x1, float y1);
+
+WD_INLINE void wdFillCircle(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float r)
+{
+    wdFillEllipse(hCanvas, hBrush, cx, cy, r, r);
+}
+
+WD_INLINE void wdFillPie(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
+                float cx, float cy, float r,
+                float fBaseAngle, float fSweepAngle)
+{
+    wdFillEllipsePie(hCanvas, hBrush, cx, cy, r, r, fBaseAngle, fSweepAngle);
+}
 
 
 /*****************************
@@ -401,7 +565,7 @@ void wdFillRect(WD_HCANVAS hCanvas, WD_HBRUSH hBrush,
 void wdBitBltImage(WD_HCANVAS hCanvas, const WD_HIMAGE hImage,
                 const WD_RECT* pDestRect, const WD_RECT* pSourceRect);
 void wdBitBltCachedImage(WD_HCANVAS hCanvas, const WD_HCACHEDIMAGE hCachedImage,
-                int x, int y);
+                float x, float y);
 void wdBitBltHICON(WD_HCANVAS hCanvas, HICON hIcon,
                 const WD_RECT* pDestRect, const WD_RECT* pSourceRect);
 

@@ -51,6 +51,7 @@ typedef struct dummy_IDWriteTextLayout_tag              dummy_IDWriteTextLayout;
 typedef struct dummy_ID2D1Bitmap_tag                    dummy_ID2D1Bitmap;
 typedef struct dummy_ID2D1BitmapRenderTarget_tag        dummy_ID2D1BitmapRenderTarget;
 typedef struct dummy_ID2D1Brush_tag                     dummy_ID2D1Brush;
+typedef struct dummy_ID2D1StrokeStyle_tag               dummy_ID2D1StrokeStyle;
 typedef struct dummy_ID2D1DCRenderTarget_tag            dummy_ID2D1DCRenderTarget;
 typedef struct dummy_ID2D1Factory_tag                   dummy_ID2D1Factory;
 typedef struct dummy_ID2D1GdiInteropRenderTarget_tag    dummy_ID2D1GdiInteropRenderTarget;
@@ -72,6 +73,10 @@ typedef struct dummy_ID2D1SolidColorBrush_tag           dummy_ID2D1SolidColorBru
 #define dummy_D2D1_LAYER_OPTIONS_NONE                   0x00000000
 #define dummy_D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE   0x00000002
 
+typedef enum dummy_D2D1_TEXT_ANTIALIAS_MODE_tag dummy_D2D1_TEXT_ANTIALIAS_MODE;
+enum  dummy_D2D1_TEXT_ANTIALIAS_MODE_tag {
+  dummy_D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE = 1
+} ;
 
 typedef enum dummy_DXGI_FORMAT_tag dummy_DXGI_FORMAT;
 enum dummy_DXGI_FORMAT_tag {
@@ -146,6 +151,31 @@ enum dummy_D2D1_SWEEP_DIRECTION_tag {
     dummy_D2D1_SWEEP_DIRECTION_CLOCKWISE = 1
 };
 
+typedef enum dummy_D2D1_CAP_STYLE_tag dummy_D2D1_CAP_STYLE;
+enum dummy_D2D1_CAP_STYLE_tag {
+  dummy_D2D1_CAP_STYLE_FLAT = 0,
+  dummy_D2D1_CAP_STYLE_SQUARE = 1,
+  dummy_D2D1_CAP_STYLE_ROUND = 2,
+  dummy_D2D1_CAP_STYLE_TRIANGLE = 3,
+};
+
+typedef enum dummy_D2D1_DASH_STYLE_tag dummy_D2D1_DASH_STYLE;
+enum dummy_D2D1_DASH_STYLE_tag {
+  dummy_D2D1_DASH_STYLE_SOLID = 0,
+  dummy_D2D1_DASH_STYLE_DASH = 1,
+  dummy_D2D1_DASH_STYLE_DOT = 2,
+  dummy_D2D1_DASH_STYLE_DASH_DOT = 3,
+  dummy_D2D1_DASH_STYLE_DASH_DOT_DOT = 4,
+  dummy_D2D1_DASH_STYLE_CUSTOM = 5
+};
+
+typedef enum dummy_D2D1_LINE_JOIN_tag dummy_D2D1_LINE_JOIN;
+enum dummy_D2D1_LINE_JOIN_tag {
+  dummy_D2D1_LINE_JOIN_MITER = 0,
+  dummy_D2D1_LINE_JOIN_BEVEL = 1,
+  dummy_D2D1_LINE_JOIN_ROUND = 2
+};
+
 
 /*************************
  ***  Helper Typedefs  ***
@@ -208,6 +238,17 @@ struct dummy_D2D1_RENDER_TARGET_PROPERTIES_tag {
     dummy_D2D1_FEATURE_LEVEL minLevel;
 };
 
+typedef struct dummy_D2D1_STROKE_STYLE_PROPERTIES_tag dummy_D2D1_STROKE_STYLE_PROPERTIES;
+struct dummy_D2D1_STROKE_STYLE_PROPERTIES_tag {
+  dummy_D2D1_CAP_STYLE startCap;
+  dummy_D2D1_CAP_STYLE endCap;
+  dummy_D2D1_CAP_STYLE dashCap;
+  dummy_D2D1_LINE_JOIN lineJoin;
+  FLOAT miterLimit;
+  dummy_D2D1_DASH_STYLE dashStyle;
+  FLOAT dashOffset;
+};
+
 typedef struct dummy_D2D1_LAYER_PARAMETERS_tag dummy_D2D1_LAYER_PARAMETERS;
 struct dummy_D2D1_LAYER_PARAMETERS_tag {
     dummy_D2D1_RECT_F contentBounds;
@@ -239,7 +280,31 @@ struct dummy_ID2D1BitmapVtbl_tag {
 
     /* ID2D1Bitmap methods */
     STDMETHOD(dummy_GetSize)(void);
+#if 0
+    /* Original vanilla method prototype. But this seems to be problematic
+     * as compiler use different ABI when returning aggregate types.
+     *
+     * When built with incompatible compiler, it usually results in crash.
+     *
+     * For gcc, it seems to be completely incompatible:
+     *  -- https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64384
+     *  -- https://sourceforge.net/p/mingw-w64/mailman/message/36238073/
+     *  -- https://source.winehq.org/git/wine.git/commitdiff/b42a15513eaa973b40ab967014b311af64acbb98
+     *  -- https://www.winehq.org/pipermail/wine-devel/2017-July/118470.html
+     *  -- https://bugzilla.mozilla.org/show_bug.cgi?id=1411401
+     *
+     * For MSVC, it is compatible only when building as C++. In C, it crashes
+     * as well.
+     */
     STDMETHOD_(dummy_D2D1_SIZE_U, GetPixelSize)(dummy_ID2D1Bitmap*);
+#else
+    /* This prototype corresponds more literally to what the COM calling
+     * convention is expecting from us.
+     *
+     * Tested with MSVC 2017 (64-bit build), gcc (32-bit build).
+     */
+    STDMETHOD_(void, GetPixelSize)(dummy_ID2D1Bitmap*, dummy_D2D1_SIZE_U*);
+#endif
     STDMETHOD(dummy_GetPixelFormat)(void);
     STDMETHOD(dummy_GetDpi)(void);
     STDMETHOD(dummy_CopyFromBitmap)(void);
@@ -254,7 +319,7 @@ struct dummy_ID2D1Bitmap_tag {
 #define dummy_ID2D1Bitmap_QueryInterface(self,a,b)  (self)->vtbl->QueryInterface(self,a,b)
 #define dummy_ID2D1Bitmap_AddRef(self)              (self)->vtbl->AddRef(self)
 #define dummy_ID2D1Bitmap_Release(self)             (self)->vtbl->Release(self)
-#define dummy_ID2D1Bitmap_GetPixelSize(self)        (self)->vtbl->GetPixelSize(self)
+#define dummy_ID2D1Bitmap_GetPixelSize(self,a)      (self)->vtbl->GetPixelSize(self,a)
 
 
 /*******************************************
@@ -369,6 +434,41 @@ struct dummy_ID2D1Brush_tag {
 #define dummy_ID2D1Brush_Release(self)                          (self)->vtbl->Release(self)
 
 
+/***********************************
+***  Interface ID2D1StrokeStyle  ***
+***********************************/
+
+typedef struct dummy_ID2D1StrokeStyleVtbl_tag dummy_ID2D1StrokeStyleVtbl;
+struct dummy_ID2D1StrokeStyleVtbl_tag {
+  /* IUnknown methods */
+  STDMETHOD(QueryInterface)(dummy_ID2D1StrokeStyle*, REFIID, void**);
+  STDMETHOD_(ULONG, AddRef)(dummy_ID2D1StrokeStyle*);
+  STDMETHOD_(ULONG, Release)(dummy_ID2D1StrokeStyle*);
+
+  /* ID2D1Resource methods */
+  STDMETHOD(dummy_GetFactory)(void);
+
+  /* ID2D1StrokeStyle methods */
+  STDMETHOD(dummy_GetStartCap)(void);
+  STDMETHOD(dummy_GetEndCap)(void);
+  STDMETHOD(dummy_GetDashCap)(void);
+  STDMETHOD(dummy_GetMiterLimit)(void);
+  STDMETHOD(dummy_GetLineJoin)(void);
+  STDMETHOD(dummy_GetDashOffset)(void);
+  STDMETHOD(dummy_GetDashStyle)(void);
+  STDMETHOD(dummy_GetDashesCount)(void);
+  STDMETHOD(dummy_GetDashes)(void);
+};
+
+struct dummy_ID2D1StrokeStyle_tag {
+  dummy_ID2D1StrokeStyleVtbl* vtbl;
+};
+
+#define dummy_ID2D1StrokeStyle_QueryInterface(self,a,b)               (self)->vtbl->QueryInterface(self,a,b)
+#define dummy_ID2D1StrokeStyle_AddRef(self)                           (self)->vtbl->AddRef(self)
+#define dummy_ID2D1StrokeStyle_Release(self)                          (self)->vtbl->Release(self)
+
+
 /*****************************************
  ***  Interface ID2D1DCRenderTarget  ***
  *****************************************/
@@ -472,7 +572,7 @@ struct dummy_ID2D1FactoryVtbl_tag {
     STDMETHOD(dummy_CreateGeometryGroup)(void);
     STDMETHOD(dummy_CreateTransformedGeometry)(void);
     STDMETHOD(CreatePathGeometry)(dummy_ID2D1Factory*, dummy_ID2D1PathGeometry**);
-    STDMETHOD(dummy_CreateStrokeStyle)(void);
+    STDMETHOD(CreateStrokeStyle)(dummy_ID2D1Factory*, const dummy_D2D1_STROKE_STYLE_PROPERTIES*, const FLOAT*, UINT32, dummy_ID2D1StrokeStyle**);
     STDMETHOD(dummy_CreateDrawingStateBlock)(void);
     STDMETHOD(dummy_CreateWicBitmapRenderTarget)(void);
     STDMETHOD(CreateHwndRenderTarget)(dummy_ID2D1Factory*, const dummy_D2D1_RENDER_TARGET_PROPERTIES*,
@@ -491,6 +591,7 @@ struct dummy_ID2D1Factory_tag {
 #define dummy_ID2D1Factory_CreatePathGeometry(self,a)           (self)->vtbl->CreatePathGeometry(self,a)
 #define dummy_ID2D1Factory_CreateHwndRenderTarget(self,a,b,c)   (self)->vtbl->CreateHwndRenderTarget(self,a,b,c)
 #define dummy_ID2D1Factory_CreateDCRenderTarget(self,a,b)       (self)->vtbl->CreateDCRenderTarget(self,a,b)
+#define dummy_ID2D1Factory_CreateStrokeStyle(self,a,b,c,d)      (self)->vtbl->CreateStrokeStyle(self,a,b,c,d)
 
 
 /*****************************************************
@@ -843,14 +944,14 @@ struct dummy_ID2D1RenderTargetVtbl_tag {
     STDMETHOD(dummy_CreateCompatibleRenderTarget)(void);
     STDMETHOD(CreateLayer)(dummy_ID2D1RenderTarget*, const dummy_D2D1_SIZE_F*, dummy_ID2D1Layer**);
     STDMETHOD(dummy_CreateMesh)(void);
-    STDMETHOD_(void, DrawLine)(dummy_ID2D1RenderTarget*, dummy_D2D1_POINT_2F, dummy_D2D1_POINT_2F, dummy_ID2D1Brush*, FLOAT, void*);
-    STDMETHOD_(void, DrawRectangle)(dummy_ID2D1RenderTarget*, const dummy_D2D1_RECT_F*, dummy_ID2D1Brush*, FLOAT, void*);
+    STDMETHOD_(void, DrawLine)(dummy_ID2D1RenderTarget*, dummy_D2D1_POINT_2F, dummy_D2D1_POINT_2F, dummy_ID2D1Brush*, FLOAT, dummy_ID2D1StrokeStyle*);
+    STDMETHOD_(void, DrawRectangle)(dummy_ID2D1RenderTarget*, const dummy_D2D1_RECT_F*, dummy_ID2D1Brush*, FLOAT, dummy_ID2D1StrokeStyle*);
     STDMETHOD_(void, FillRectangle)(dummy_ID2D1RenderTarget*, const dummy_D2D1_RECT_F*, dummy_ID2D1Brush*);
     STDMETHOD(dummy_DrawRoundedRectangle)(void);
     STDMETHOD(dummy_FillRoundedRectangle)(void);
-    STDMETHOD_(void, DrawEllipse)(dummy_ID2D1RenderTarget*, const dummy_D2D1_ELLIPSE*, dummy_ID2D1Brush*, FLOAT, void*);
+    STDMETHOD_(void, DrawEllipse)(dummy_ID2D1RenderTarget*, const dummy_D2D1_ELLIPSE*, dummy_ID2D1Brush*, FLOAT, dummy_ID2D1StrokeStyle*);
     STDMETHOD_(void, FillEllipse)(dummy_ID2D1RenderTarget*, const dummy_D2D1_ELLIPSE*, dummy_ID2D1Brush*);
-    STDMETHOD_(void, DrawGeometry)(dummy_ID2D1RenderTarget*, dummy_ID2D1Geometry*, dummy_ID2D1Brush*, FLOAT, void*);
+    STDMETHOD_(void, DrawGeometry)(dummy_ID2D1RenderTarget*, dummy_ID2D1Geometry*, dummy_ID2D1Brush*, FLOAT, dummy_ID2D1StrokeStyle*);
     STDMETHOD_(void, FillGeometry)(dummy_ID2D1RenderTarget*, dummy_ID2D1Geometry*, dummy_ID2D1Brush*, dummy_ID2D1Brush*);
     STDMETHOD(dummy_FillMesh)(void);
     STDMETHOD(dummy_FillOpacityMask)(void);
@@ -863,7 +964,7 @@ struct dummy_ID2D1RenderTargetVtbl_tag {
     STDMETHOD_(void, GetTransform)(dummy_ID2D1RenderTarget*, dummy_D2D1_MATRIX_3X2_F*);
     STDMETHOD(dummy_SetAntialiasMode)(void);
     STDMETHOD(dummy_GetAntialiasMode)(void);
-    STDMETHOD(dummy_SetTextAntialiasMode)(void);
+    STDMETHOD(SetTextAntialiasMode)(dummy_ID2D1RenderTarget*, dummy_D2D1_TEXT_ANTIALIAS_MODE);
     STDMETHOD(dummy_GetTextAntialiasMode)(void);
     STDMETHOD(dummy_SetTextRenderingParams)(void);
     STDMETHOD(dummy_GetTextRenderingParams)(void);
@@ -917,6 +1018,7 @@ struct dummy_ID2D1RenderTarget_tag {
 #define dummy_ID2D1RenderTarget_BeginDraw(self)                         (self)->vtbl->BeginDraw(self)
 #define dummy_ID2D1RenderTarget_EndDraw(self,a,b)                       (self)->vtbl->EndDraw(self,a,b)
 #define dummy_ID2D1RenderTarget_SetDpi(self,a,b)                        (self)->vtbl->SetDpi(self,a,b)
+#define dummy_ID2D1RenderTarget_SetTextAntialiasMode(self,a)            (self)->vtbl->SetTextAntialiasMode(self,a)
 
 
 /*********************************************

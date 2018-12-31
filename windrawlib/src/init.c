@@ -208,3 +208,17 @@ wdTerminate(DWORD dwFlags)
 
     wd_unlock();
 }
+
+int
+wdBackend(void)
+{
+    if(d2d_enabled()) {
+        return WD_BACKEND_D2D;
+    } 
+    
+    if(gdix_enabled()) {
+        return WD_BACKEND_GDIPLUS;
+    }
+    
+  return -1;
+}

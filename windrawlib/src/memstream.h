@@ -1,6 +1,8 @@
 /*
- * WinDrawLib
- * Copyright (c) 2015-2016 Martin Mitas
+ * C Reusables
+ * <http://github.com/mity/c-reusables>
+ *
+ * Copyright (c) 2015-2018 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,24 +23,41 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef WD_MEMSTREAM_H
-#define WD_MEMSTREAM_H
+#ifndef CRE_MEMSTREAM_H
+#define CRE_MEMSTREAM_H
 
-#include "misc.h"
+#include <windows.h>
+#include <objidl.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
-/* The caller is responsible to ensure the data (or the resource) are valid
- * and immutable for the lifetime of the stream. The stream does not copy the
- * data and reads them directly from the given source.
+/* Trivial read-only IStream implementation.
  *
- * The caller should release the stream as a standard COM object, i.e. via
- * method IStream::Release().
+ * This is more lightweight alternative to SHCreateMemStream() from SHLWAPI.DLL.
+ *
+ * This implementation provides these main benefits:
+ *   (1) We do not copy the data.
+ *   (2) Application does not need SHLWAPI.DLL.
+ *
+ * (Note that caller is responsible the data in the provided buffer remain
+ * valid and immutable for the life time of the IStream.)
+ *
+ * When not needed anymore, the caller should release the stream as a standard
+ * COM object, i.e. via method IStream::Release().
  */
 
-IStream* memstream_create(const BYTE* buffer, ULONG size);
+HRESULT memstream_create(const BYTE* buffer, ULONG size, IStream** p_stream);
 
-IStream* memstream_create_from_resource(HINSTANCE instance,
-                        const WCHAR* res_type, const WCHAR* res_name);
+HRESULT memstream_create_from_resource(HINSTANCE instance,
+                        const WCHAR* res_type, const WCHAR* res_name,
+                        IStream** p_stream);
 
 
-#endif  /* WD_MEMSTREAM_H */
+#ifdef __cplusplus
+}  /* extern "C" { */
+#endif
+
+#endif  /* CRE_MEMSTREAM_H */

@@ -28,6 +28,15 @@
 #include "dummy/gdiplus.h"
 
 
+typedef struct gdix_strokestyle_tag gdix_strokestyle_t;
+struct gdix_strokestyle_tag {
+  dummy_GpLineCap lineCap;
+  dummy_GpLineJoin lineJoin;
+  dummy_GpDashStyle dashStyle;
+  UINT dashesCount;
+  float dashes[1];
+};
+
 typedef struct gdix_canvas_tag gdix_canvas_t;
 struct gdix_canvas_tag {
     HDC dc;
@@ -76,6 +85,12 @@ struct gdix_vtable_tag {
     int (WINAPI* fn_DeletePen)(dummy_GpPen*);
     int (WINAPI* fn_SetPenBrushFill)(dummy_GpPen*, dummy_GpBrush*);
     int (WINAPI* fn_SetPenWidth)(dummy_GpPen*, float);
+    int (WINAPI* fn_SetPenStartCap)(dummy_GpPen*, dummy_GpLineCap);
+    int (WINAPI* fn_SetPenEndCap)(dummy_GpPen*, dummy_GpLineCap);
+    int (WINAPI* fn_SetPenLineJoin)(dummy_GpPen*, dummy_GpLineJoin);
+    int (WINAPI* fn_SetPenMiterLimit)(dummy_GpPen*, float);
+    int (WINAPI* fn_SetPenDashStyle)(dummy_GpPen*, dummy_GpDashStyle);
+    int (WINAPI* fn_SetPenDashArray)(dummy_GpPen*, const float*, INT);
 
     /* Path functions */
     int (WINAPI* fn_CreatePath)(dummy_GpFillMode, dummy_GpPath**);
@@ -106,6 +121,10 @@ struct gdix_vtable_tag {
     int (WINAPI* fn_DisposeImage)(dummy_GpImage*);
     int (WINAPI* fn_GetImageWidth)(dummy_GpImage*, UINT*);
     int (WINAPI* fn_GetImageHeight)(dummy_GpImage*, UINT*);
+    int (WINAPI* fn_CreateBitmapFromScan0)(UINT, UINT, INT, dummy_GpPixelFormat, BYTE*, dummy_GpBitmap**);
+    int (WINAPI* fn_BitmapLockBits)(dummy_GpBitmap*, const dummy_GpRectI*, UINT, dummy_GpPixelFormat, dummy_GpBitmapData*);
+    int (WINAPI* fn_BitmapUnlockBits)(dummy_GpBitmap*, dummy_GpBitmapData*);
+    int (WINAPI* fn_CreateBitmapFromGdiDib)(const BITMAPINFO*, void*, dummy_GpBitmap**);
 
     /* Cached bitmap functions */
     int (WINAPI* fn_CreateCachedBitmap)(dummy_GpBitmap*, dummy_GpGraphics*, dummy_GpCachedBitmap**);
@@ -139,6 +158,12 @@ struct gdix_vtable_tag {
 
 extern gdix_vtable_t* gdix_vtable;
 
+static inline BOOL
+gdix_enabled(void)
+{
+    return (gdix_vtable != NULL);
+}
+
 
 int gdix_init(void);
 void gdix_fini(void);
@@ -149,6 +174,8 @@ gdix_canvas_t* gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect, UINT wid
 void gdix_rtl_transform(gdix_canvas_t* c);
 void gdix_reset_transform(gdix_canvas_t* c);
 void gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags);
+void gdix_setpen(dummy_GpPen* pen, dummy_GpBrush* brush, float width, gdix_strokestyle_t* style);
+int gdix_create_bitmap(HBITMAP hBmp, dummy_GpBitmap* *bitmap);
 
 
 #endif  /* WD_BACKEND_GDIX_H */

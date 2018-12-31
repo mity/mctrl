@@ -56,6 +56,9 @@ wd_log(const char* fmt, ...)
 
 #endif  /* DEBUG */
 
+#ifndef LOAD_LIBRARY_SEARCH_SYSTEM32
+#define LOAD_LIBRARY_SEARCH_SYSTEM32        0x00000800
+#endif
 
 HMODULE
 wd_load_system_dll(const TCHAR* dll_name)

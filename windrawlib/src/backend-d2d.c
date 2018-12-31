@@ -192,15 +192,15 @@ d2d_disable_rtl_transform(d2d_canvas_t* c, dummy_D2D1_MATRIX_3X2_F* old_matrix)
 }
 
 void
-d2d_setup_arc_segment(dummy_D2D1_ARC_SEGMENT* arc_seg, float cx, float cy, float r,
+d2d_setup_arc_segment(dummy_D2D1_ARC_SEGMENT* arc_seg, float cx, float cy, float rx, float ry,
                       float base_angle, float sweep_angle)
 {
     float sweep_rads = (base_angle + sweep_angle) * (WD_PI / 180.0f);
 
-    arc_seg->point.x = cx + r * cosf(sweep_rads);
-    arc_seg->point.y = cy + r * sinf(sweep_rads);
-    arc_seg->size.width = r;
-    arc_seg->size.height = r;
+    arc_seg->point.x = cx + rx * cosf(sweep_rads);
+    arc_seg->point.y = cy + ry * sinf(sweep_rads);
+    arc_seg->size.width = rx;
+    arc_seg->size.height = ry;
     arc_seg->rotationAngle = 0.0f;
 
     if(sweep_angle >= 0.0f)
@@ -215,7 +215,7 @@ d2d_setup_arc_segment(dummy_D2D1_ARC_SEGMENT* arc_seg, float cx, float cy, float
 }
 
 dummy_ID2D1Geometry*
-d2d_create_arc_geometry(float cx, float cy, float r,
+d2d_create_arc_geometry(float cx, float cy, float rx, float ry,
                         float base_angle, float sweep_angle, BOOL pie)
 {
     dummy_ID2D1PathGeometry* g = NULL;
@@ -240,11 +240,11 @@ d2d_create_arc_geometry(float cx, float cy, float r,
         return NULL;
     }
 
-    pt.x = cx + r * cosf(base_rads);
-    pt.y = cy + r * sinf(base_rads);
+    pt.x = cx + rx * cosf(base_rads);
+    pt.y = cy + ry * sinf(base_rads);
     dummy_ID2D1GeometrySink_BeginFigure(s, pt, dummy_D2D1_FIGURE_BEGIN_FILLED);
 
-    d2d_setup_arc_segment(&arc_seg, cx, cy, r, base_angle, sweep_angle);
+    d2d_setup_arc_segment(&arc_seg, cx, cy, rx, ry, base_angle, sweep_angle);
     dummy_ID2D1GeometrySink_AddArc(s, &arc_seg);
 
     if(pie) {

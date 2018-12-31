@@ -124,6 +124,12 @@ gdix_init(void)
     GPA(DeletePen, (dummy_GpPen*));
     GPA(SetPenBrushFill, (dummy_GpPen*, dummy_GpBrush*));
     GPA(SetPenWidth, (dummy_GpPen*, float));
+    GPA(SetPenStartCap, (dummy_GpPen*, dummy_GpLineCap));
+    GPA(SetPenEndCap, (dummy_GpPen*, dummy_GpLineCap));
+    GPA(SetPenLineJoin, (dummy_GpPen*, dummy_GpLineJoin));
+    GPA(SetPenMiterLimit, (dummy_GpPen*, float));
+    GPA(SetPenDashStyle, (dummy_GpPen*, dummy_GpDashStyle));
+    GPA(SetPenDashArray, (dummy_GpPen*, const float*, INT));
 
     /* Path functions */
     GPA(CreatePath, (dummy_GpFillMode, dummy_GpPath**));
@@ -154,6 +160,10 @@ gdix_init(void)
     GPA(DisposeImage, (dummy_GpImage*));
     GPA(GetImageWidth, (dummy_GpImage*, UINT*));
     GPA(GetImageHeight, (dummy_GpImage*, UINT*));
+    GPA(CreateBitmapFromScan0, (UINT, UINT, INT, dummy_GpPixelFormat format, BYTE*, dummy_GpBitmap**));
+    GPA(BitmapLockBits, (dummy_GpBitmap*, const dummy_GpRectI*, UINT, dummy_GpPixelFormat, dummy_GpBitmapData*));
+    GPA(BitmapUnlockBits, (dummy_GpBitmap*, dummy_GpBitmapData*));
+    GPA(CreateBitmapFromGdiDib, (const BITMAPINFO*, void*, dummy_GpBitmap**));
 
     /* Cached bitmap functions */
     GPA(CreateCachedBitmap, (dummy_GpBitmap*, dummy_GpGraphics*, dummy_GpCachedBitmap**));
@@ -400,3 +410,61 @@ gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags)
     gdix_vtable->fn_SetStringFormatTrimming(c->string_format, trim);
 }
 
+void 
+gdix_setpen(dummy_GpPen* pen, dummy_GpBrush* brush, float width, gdix_strokestyle_t* style)
+{
+    if (style)
+    {
+        if (style->dashesCount > 0) {
+            gdix_vtable->fn_SetPenDashArray(pen, style->dashes, style->dashesCount);
+        }
+
+        gdix_vtable->fn_SetPenDashStyle(pen, style->dashStyle);
+        gdix_vtable->fn_SetPenStartCap(pen, style->lineCap);
+        gdix_vtable->fn_SetPenEndCap(pen, style->lineCap);
+        gdix_vtable->fn_SetPenLineJoin(pen, style->lineJoin);
+    }
+
+    gdix_vtable->fn_SetPenBrushFill(pen, brush);
+    gdix_vtable->fn_SetPenWidth(pen, width);
+}
+
+int gdix_create_bitmap(HBITMAP hBmp, dummy_GpBitmap* *bitmap)
+{
+  BYTE* bits;
+  BITMAPINFO* bi;
+  HDC hdcScreen;
+  BITMAP bmpScreen;
+  int status = 1, header_size;
+  DWORD dwStride;
+
+  GetObject(hBmp, sizeof(BITMAP), &bmpScreen);
+
+  if (bmpScreen.bmBitsPixel < 32)
+    return gdix_vtable->fn_CreateBitmapFromHBITMAP(hBmp, NULL, bitmap);
+
+  dwStride = ((bmpScreen.bmWidth * bmpScreen.bmBitsPixel + 31) / 32) * 4;
+
+  header_size = sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 3;  /* maximum of 3 colors if BI_BITFIELDS */
+  bi = (BITMAPINFO*)malloc(header_size);
+  memset(bi, 0, header_size);
+  bi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+
+  hdcScreen = GetDC(NULL);
+  GetDIBits(hdcScreen, hBmp, 0, (UINT)bmpScreen.bmHeight, NULL, bi, DIB_RGB_COLORS);
+  bits = (BYTE*)malloc(bi->bmiHeader.biSizeImage);
+  GetDIBits(hdcScreen, hBmp, 0, (UINT)bmpScreen.bmHeight, bits, bi, DIB_RGB_COLORS);
+  ReleaseDC(NULL, hdcScreen);
+
+/* None of these approaches worked:
+  status = gdix_vtable->fn_CreateBitmapFromGdiDib(bi, bits, bitmap);
+  status = gdix_vtable->fn_CreateBitmapFromScan0(bmpScreen.bmWidth, bmpScreen.bmHeight, dwStride, dummy_PixelFormat32bppPARGB, bits, bitmap);
+*/
+  *bitmap = (dummy_GpBitmap*)wdCreateImageFromBuffer(bmpScreen.bmWidth, bmpScreen.bmHeight, dwStride, bits, WD_PIXELFORMAT_B8G8R8A8, NULL, 0);
+  if (*bitmap)
+    status = 0;
+
+  free(bi);
+  free(bits);
+  return status;
+}

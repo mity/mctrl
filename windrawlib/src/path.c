@@ -248,7 +248,7 @@ wdAddArc(WD_PATHSINK* pSink, float cx, float cy, float fSweepAngle)
         dummy_ID2D1GeometrySink* s = (dummy_ID2D1GeometrySink*) pSink->pData;
         dummy_D2D1_ARC_SEGMENT arc_seg;
 
-        d2d_setup_arc_segment(&arc_seg, cx, cy, r, base_angle, fSweepAngle);
+        d2d_setup_arc_segment(&arc_seg, cx, cy, r, r, base_angle, fSweepAngle);
         dummy_ID2D1GeometrySink_AddArc(s, &arc_seg);
         pSink->ptEnd.x = arc_seg.point.x;
         pSink->ptEnd.y = arc_seg.point.y;
