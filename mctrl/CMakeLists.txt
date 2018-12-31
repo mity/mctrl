@@ -110,11 +110,15 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     if("${GENDEF}" MATCHES ".*gendef.*"  AND  "${DLLTOOL}" MATCHES ".*dlltool.*")
         if(EXISTS "${GENDEF}"  AND  EXISTS "${DLLTOOL}")
             message(STATUS "Using gendef+dlltool for creation of import library libmCtrl.a")
+
+            get_property(MCTRL_DLL_DIR TARGET mCtrl PROPERTY RUNTIME_OUTPUT_DIRECTORY)
+            get_property(MCTRL_IMPORT_DIR TARGET mCtrl PROPERTY ARCHIVE_OUTPUT_DIRECTORY)
+
             add_custom_command(
                     TARGET "mCtrl" POST_BUILD
                     COMMAND ${GENDEF} ${GENDEF_FLAGS} -a mCtrl.dll
-                    COMMAND ${DLLTOOL} ${DLLTOOL_FLAGS} --kill-at --input-def mCtrl.def --output-lib libmCtrl.dll.a --dllname mCtrl.dll
-                    WORKING_DIRECTORY "${LIBRARY_OUTPUT_PATH}"
+                    COMMAND ${DLLTOOL} ${DLLTOOL_FLAGS} --kill-at --input-def mCtrl.def --output-lib ${MCTRL_IMPORT_DIR}/libmCtrl.dll.a --dllname mCtrl.dll
+                    WORKING_DIRECTORY ${MCTRL_DLL_DIR}
                     COMMENT "Creating import library."
                     VERBATIM
             )
