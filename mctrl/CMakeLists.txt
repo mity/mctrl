@@ -2,9 +2,44 @@
 configure_file(version.h.in "version.h" @ONLY)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
-file(GLOB MCTRL_SOURCES "*.c" "*.h" "*.rc" "mCtrl.def")
-
-add_library(mCtrl SHARED ${MCTRL_SOURCES})
+add_library(mCtrl SHARED
+    mCtrl.def
+                                    ../include/mctrl.h
+                                    ../include/mCtrl/_common.h
+                                    ../include/mCtrl/_defs.h
+    anim.c          anim.h
+    button.c        button.h        ../include/mCtrl/button.h
+    chart.c         chart.h         ../include/mCtrl/chart.h
+    color.c         color.h
+    compat.c        compat.h
+    debug.c         debug.h
+    dialog.c        dialog.h        ../include/mCtrl/dialog.h
+    doublebuffer.c  doublebuffer.h
+    dsa.c           dsa.h
+    dwm.c           dwm.h
+    expand.c        expand.h        ../include/mCtrl/expand.h
+    generic.c       generic.h
+    grid.c          grid.h          ../include/mCtrl/grid.h
+    hsluv.c         hsluv.h
+    html.c          html.h          ../include/mCtrl/html.h
+    imgview.c       imgview.h       ../include/mCtrl/imgview.h
+    labeledit.c     labeledit.h
+    mditab.c        mditab.h        ../include/mCtrl/mditab.h
+    menubar.c       menubar.h       ../include/mCtrl/menubar.h
+    misc.c          misc.h
+    module.c        module.h
+    mousedrag.c     mousedrag.h
+    mousewheel.c    mousewheel.h
+    resource.h      resource.rc
+    rgn16.c         rgn16.h
+    table.c         table.h         ../include/mCtrl/table.h
+    theme.c         theme.h
+    tooltip.c       tooltip.h
+    treelist.c      treelist.h      ../include/mCtrl/treelist.h
+    version.c       version.h.in
+    viewlist.c      viewlist.h
+    xcom.c          xcom.h
+)
 
 add_dependencies(mCtrl windrawlib)
 target_link_libraries(mCtrl gdi32 comctl32 ole32 oleaut32 uuid windowscodecs windrawlib)
