@@ -1,0 +1,8 @@
+
+#include <windows.h>
+#include "image-from-hbitmap.h"
+
+
+ID_LENNA_JPG RCDATA                 "lenna.jpg"
+ID_ALPHA_BMP BITMAP                 "bgra32.bmp"
+ID_ALPHA_PREMULTIPLIED_BMP BITMAP   "bgra32_premultiplied.bmp"

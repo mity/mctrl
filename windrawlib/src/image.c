@@ -32,9 +32,16 @@
 WD_HIMAGE
 wdCreateImageFromHBITMAP(HBITMAP hBmp)
 {
+    return wdCreateImageFromHBITMAPWithAlpha(hBmp, 0);
+}
+
+WD_HIMAGE
+wdCreateImageFromHBITMAPWithAlpha(HBITMAP hBmp, int alphaMode)
+{
     if(d2d_enabled()) {
         IWICBitmap* bitmap;
         IWICBitmapSource* converted_bitmap;
+        WICBitmapAlphaChannelOption alpha_option;
         HRESULT hr;
 
         if(wic_factory == NULL) {
@@ -42,8 +49,15 @@ wdCreateImageFromHBITMAP(HBITMAP hBmp)
             return NULL;
         }
 
+        switch(alphaMode) {
+            case WD_ALPHA_USE:                  alpha_option = WICBitmapUseAlpha; break;
+            case WD_ALPHA_USE_PREMULTIPLIED:    alpha_option = WICBitmapUsePremultipliedAlpha; break;
+            case WD_ALPHA_IGNORE:               /* Pass through. */
+            default:                            alpha_option = WICBitmapIgnoreAlpha; break;
+        }
+
         hr = IWICImagingFactory_CreateBitmapFromHBITMAP(wic_factory, hBmp,
-                                                        NULL, WICBitmapUsePremultipliedAlpha, &bitmap);
+                                                        NULL, alpha_option, &bitmap);
         if(FAILED(hr)) {
             WD_TRACE_HR("wdCreateImageFromHBITMAP: "
                         "IWICImagingFactory::CreateBitmapFromHBITMAP() failed.");
@@ -59,14 +73,21 @@ wdCreateImageFromHBITMAP(HBITMAP hBmp)
         return (WD_HIMAGE) converted_bitmap;
     } else {
         dummy_GpBitmap* b;
-        int status;
 
-        /* OLD status = gdix_vtable->fn_CreateBitmapFromHBITMAP(hBmp, NULL, &b); - does not support alpha */
-        status = gdix_create_bitmap(hBmp, &b);
-        if (status != 0) {
-            WD_TRACE("wdCreateImageFromHBITMAP: "
-                     "GdipCreateBitmapFromHBITMAP() failed. [%d]", status);
-            return NULL;
+        if(alphaMode == WD_ALPHA_IGNORE) {
+            int status;
+
+            status = gdix_vtable->fn_CreateBitmapFromHBITMAP(hBmp, NULL, &b);
+            if (status != 0) {
+                WD_TRACE("wdCreateImageFromHBITMAP: "
+                         "GdipCreateBitmapFromHBITMAP() failed. [%d]", status);
+                return NULL;
+            }
+        } else {
+            /* GdipCreateBitmapFromHBITMAP() ignores alpha channel. We have to
+             * do it manually. */
+            b = gdix_bitmap_from_HBITMAP_with_alpha(hBmp,
+                            (alphaMode == WD_ALPHA_USE_PREMULTIPLIED));
         }
 
         return (WD_HIMAGE) b;
@@ -267,12 +288,12 @@ raw_buffer_to_bitmap_data(UINT width, UINT height,
             dst[2] = src[red_offset];
 
             if(dst_bytes_per_pixel >= 4) {
-                dst[3] = (flags & RAW_BUFFER_FLAG_HASALPHA) ? src[alpha_offset] : 0xff;
+                dst[3] = (flags & RAW_BUFFER_FLAG_HASALPHA) ? src[alpha_offset] : 255;
 
                 if(flags & RAW_BUFFER_FLAG_PREMULTIPLYALPHA) {
-                    dst[0] = (dst[0] + dst[3]) / 255;
-                    dst[1] = (dst[1] + dst[3]) / 255;
-                    dst[2] = (dst[2] + dst[3]) / 255;
+                    dst[0] = (dst[0] * dst[3]) / 255;
+                    dst[1] = (dst[1] * dst[3]) / 255;
+                    dst[2] = (dst[2] * dst[3]) / 255;
                 }
             }
 
@@ -325,14 +346,17 @@ WD_HIMAGE
 wdCreateImageFromBuffer(UINT uWidth, UINT uHeight, UINT srcStride, const BYTE* pBuffer,
                         int pixelFormat, const COLORREF* cPalette, UINT uPaletteSize)
 {
+    WD_HIMAGE b = NULL;
+    BYTE *scan0 = NULL;
+    UINT dstStride = 0;
+    IWICBitmapLock *bitmap_lock = NULL;
+    dummy_GpBitmapData bitmapData;
+
     if (d2d_enabled()) {
         IWICBitmap* bitmap = NULL;
         HRESULT hr;
-        WICRect rect = { 0, 0, uWidth, uHeight};
-        IWICBitmapLock *bitmap_lock = NULL;
+        WICRect rect = { 0, 0, uWidth, uHeight };
         UINT cbBufferSize = 0;
-        UINT dstStride = 0;
-        BYTE *Scan0 = NULL;
 
         if(wic_factory == NULL) {
             WD_TRACE("wdCreateImageFromBuffer: Image API disabled.");
@@ -358,38 +382,12 @@ wdCreateImageFromBuffer(UINT uWidth, UINT uHeight, UINT srcStride, const BYTE* p
         }
 
         IWICBitmapLock_GetStride(bitmap_lock, &dstStride);
-        IWICBitmapLock_GetDataPointer(bitmap_lock, &cbBufferSize, &Scan0);
-
-        switch(pixelFormat) {
-            case WD_PIXELFORMAT_PALETTE:
-                colormap_buffer_to_bitmap_data(uWidth, uHeight, Scan0, dstStride, 4,
-                                pBuffer, srcStride, cPalette, uPaletteSize);
-                break;
-
-            case WD_PIXELFORMAT_R8G8B8:
-                raw_buffer_to_bitmap_data(uWidth, uHeight, Scan0, dstStride, 4,
-                                pBuffer, srcStride, 3, 0, 1, 2, 0, 0);
-                break;
-
-            case WD_PIXELFORMAT_R8G8B8A8:
-                raw_buffer_to_bitmap_data(uWidth, uHeight, Scan0, dstStride, 4,
-                                pBuffer, srcStride, 4, 0, 1, 2, 3, RAW_BUFFER_FLAG_HASALPHA | RAW_BUFFER_FLAG_PREMULTIPLYALPHA);
-                break;
-
-            case WD_PIXELFORMAT_B8G8R8A8:
-                raw_buffer_to_bitmap_data(uWidth, uHeight, Scan0, dstStride, 4,
-                                pBuffer, srcStride, 4, 2, 1, 0, 3, RAW_BUFFER_FLAG_HASALPHA | RAW_BUFFER_FLAG_BOTTOMUP);
-                break;
-        }
-
-        IWICBitmapLock_Release(bitmap_lock);
-        return (WD_HIMAGE)bitmap;
-    }
-    else {
+        IWICBitmapLock_GetDataPointer(bitmap_lock, &cbBufferSize, &scan0);
+        b = (WD_HIMAGE) bitmap;
+    } else {
         dummy_GpPixelFormat format;
         int status;
         dummy_GpBitmap *bitmap = NULL;
-        dummy_GpBitmapData bitmapData;
         dummy_GpRectI rect = { 0, 0, uWidth, uHeight };
 
         if (pixelFormat == WD_PIXELFORMAT_R8G8B8 || pixelFormat == WD_PIXELFORMAT_PALETTE)
@@ -408,29 +406,46 @@ wdCreateImageFromBuffer(UINT uWidth, UINT uHeight, UINT srcStride, const BYTE* p
 
         gdix_vtable->fn_BitmapLockBits(bitmap, &rect, dummy_ImageLockModeWrite, format, &bitmapData);
 
-        switch(pixelFormat) {
-            case WD_PIXELFORMAT_PALETTE:
-                colormap_buffer_to_bitmap_data(uWidth, uHeight, (BYTE*)bitmapData.Scan0, bitmapData.Stride, 3,
-                    pBuffer, srcStride, cPalette, uPaletteSize);
-                break;
-
-            case WD_PIXELFORMAT_R8G8B8:
-                raw_buffer_to_bitmap_data(uWidth, uHeight, (BYTE*)bitmapData.Scan0, bitmapData.Stride, 3,
-                                pBuffer, srcStride, 3, 0, 1, 2, 0, 0);
-                break;
-
-            case WD_PIXELFORMAT_R8G8B8A8:
-                raw_buffer_to_bitmap_data(uWidth, uHeight, (BYTE*)bitmapData.Scan0, bitmapData.Stride, 4,
-                                pBuffer, srcStride, 4, 0, 1, 2, 3, RAW_BUFFER_FLAG_HASALPHA);
-                break;
-
-            case WD_PIXELFORMAT_B8G8R8A8:
-                raw_buffer_to_bitmap_data(uWidth, uHeight, (BYTE*)bitmapData.Scan0, bitmapData.Stride, 4,
-                                pBuffer, srcStride, 4, 2, 1, 0, 3, RAW_BUFFER_FLAG_HASALPHA | RAW_BUFFER_FLAG_BOTTOMUP);
-                break;
-        }
-
-        gdix_vtable->fn_BitmapUnlockBits(bitmap, &bitmapData);
-        return (WD_HIMAGE)bitmap;
+        scan0 = (BYTE*)bitmapData.Scan0;
+        dstStride = bitmapData.Stride;
+        b = (WD_HIMAGE) bitmap;
     }
+
+    switch(pixelFormat) {
+        case WD_PIXELFORMAT_PALETTE:
+            colormap_buffer_to_bitmap_data(uWidth, uHeight, scan0, dstStride, 4,
+                            pBuffer, srcStride, cPalette, uPaletteSize);
+            break;
+
+        case WD_PIXELFORMAT_R8G8B8:
+            raw_buffer_to_bitmap_data(uWidth, uHeight, scan0, dstStride, 4,
+                            pBuffer, srcStride, 3, 0, 1, 2, 0, 0);
+            break;
+
+        case WD_PIXELFORMAT_R8G8B8A8:
+            raw_buffer_to_bitmap_data(uWidth, uHeight, scan0, dstStride, 4,
+                            pBuffer, srcStride, 4, 0, 1, 2, 3,
+                            RAW_BUFFER_FLAG_HASALPHA | RAW_BUFFER_FLAG_PREMULTIPLYALPHA);
+            break;
+
+        case WD_PIXELFORMAT_B8G8R8A8:
+            raw_buffer_to_bitmap_data(uWidth, uHeight, scan0, dstStride, 4,
+                            pBuffer, srcStride, 4, 2, 1, 0, 3,
+                            RAW_BUFFER_FLAG_HASALPHA | RAW_BUFFER_FLAG_PREMULTIPLYALPHA | RAW_BUFFER_FLAG_BOTTOMUP);
+            break;
+
+        case WD_PIXELFORMAT_B8G8R8A8_PREMULTIPLIED:
+            raw_buffer_to_bitmap_data(uWidth, uHeight, scan0, dstStride, 4,
+                            pBuffer, srcStride, 4, 2, 1, 0, 3,
+                            RAW_BUFFER_FLAG_HASALPHA | RAW_BUFFER_FLAG_BOTTOMUP);
+            break;
+    }
+
+    if(d2d_enabled()) {
+        IWICBitmapLock_Release(bitmap_lock);
+    } else {
+        gdix_vtable->fn_BitmapUnlockBits((dummy_GpBitmap*) b, &bitmapData);
+    }
+
+    return b;
 }

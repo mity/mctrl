@@ -175,7 +175,7 @@ void gdix_rtl_transform(gdix_canvas_t* c);
 void gdix_reset_transform(gdix_canvas_t* c);
 void gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags);
 void gdix_setpen(dummy_GpPen* pen, dummy_GpBrush* brush, float width, gdix_strokestyle_t* style);
-int gdix_create_bitmap(HBITMAP hBmp, dummy_GpBitmap* *bitmap);
+dummy_GpBitmap* gdix_bitmap_from_HBITMAP_with_alpha(HBITMAP hBmp, BOOL has_premultiplied_alpha);
 
 
 #endif  /* WD_BACKEND_GDIX_H */

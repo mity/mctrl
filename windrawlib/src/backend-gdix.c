@@ -429,42 +429,48 @@ gdix_setpen(dummy_GpPen* pen, dummy_GpBrush* brush, float width, gdix_strokestyl
     gdix_vtable->fn_SetPenWidth(pen, width);
 }
 
-int gdix_create_bitmap(HBITMAP hBmp, dummy_GpBitmap* *bitmap)
+dummy_GpBitmap*
+gdix_bitmap_from_HBITMAP_with_alpha(HBITMAP bmp, BOOL has_premultiplied_alpha)
 {
-  BYTE* bits;
-  BITMAPINFO* bi;
-  HDC hdcScreen;
-  BITMAP bmpScreen;
-  int status = 1, header_size;
-  DWORD dwStride;
+    dummy_GpBitmap* b;
+    BITMAP bmp_desc;
+    UINT stride;
+    BYTE bmp_info_buffer[sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 3];
+    BITMAPINFO* bmp_info = (BITMAPINFO*) &bmp_info_buffer;
+    HDC dc;
+    BYTE* bits;
+    int pixel_format;
 
-  GetObject(hBmp, sizeof(BITMAP), &bmpScreen);
+    GetObject(bmp, sizeof(BITMAP), &bmp_desc);
 
-  if (bmpScreen.bmBitsPixel < 32)
-    return gdix_vtable->fn_CreateBitmapFromHBITMAP(hBmp, NULL, bitmap);
+    if(bmp_desc.bmBitsPixel != 32) {
+        WD_TRACE("gdix_bitmap_from_HBITMAP_with_alpha: Unsupported pixel format.");
+        return NULL;
+    }
 
-  dwStride = ((bmpScreen.bmWidth * bmpScreen.bmBitsPixel + 31) / 32) * 4;
+    stride = ((bmp_desc.bmWidth * bmp_desc.bmBitsPixel + 31) / 32) * 4;
 
-  header_size = sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 3;  /* maximum of 3 colors if BI_BITFIELDS */
-  bi = (BITMAPINFO*)malloc(header_size);
-  memset(bi, 0, header_size);
-  bi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    memset(bmp_info, 0, sizeof(BITMAPINFOHEADER));
+    bmp_info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 
-  hdcScreen = GetDC(NULL);
-  GetDIBits(hdcScreen, hBmp, 0, (UINT)bmpScreen.bmHeight, NULL, bi, DIB_RGB_COLORS);
-  bits = (BYTE*)malloc(bi->bmiHeader.biSizeImage);
-  GetDIBits(hdcScreen, hBmp, 0, (UINT)bmpScreen.bmHeight, bits, bi, DIB_RGB_COLORS);
-  ReleaseDC(NULL, hdcScreen);
+    dc = GetDC(NULL);
+    GetDIBits(dc, bmp, 0, (UINT) bmp_desc.bmHeight, NULL, bmp_info, DIB_RGB_COLORS);
+    bits = (BYTE*) malloc(bmp_info->bmiHeader.biSizeImage);
+    if(bits == NULL) {
+        ReleaseDC(NULL, dc);
+        return NULL;
+    }
+    GetDIBits(dc, bmp, 0, (UINT) bmp_desc.bmHeight, bits, bmp_info, DIB_RGB_COLORS);
+    ReleaseDC(NULL, dc);
 
-/* None of these approaches worked:
-  status = gdix_vtable->fn_CreateBitmapFromGdiDib(bi, bits, bitmap);
-  status = gdix_vtable->fn_CreateBitmapFromScan0(bmpScreen.bmWidth, bmpScreen.bmHeight, dwStride, dummy_PixelFormat32bppPARGB, bits, bitmap);
-*/
-  *bitmap = (dummy_GpBitmap*)wdCreateImageFromBuffer(bmpScreen.bmWidth, bmpScreen.bmHeight, dwStride, bits, WD_PIXELFORMAT_B8G8R8A8, NULL, 0);
-  if (*bitmap)
-    status = 0;
+    if(has_premultiplied_alpha)
+        pixel_format = WD_PIXELFORMAT_B8G8R8A8_PREMULTIPLIED;
+    else
+        pixel_format = WD_PIXELFORMAT_B8G8R8A8;
 
-  free(bi);
-  free(bits);
-  return status;
+    b = (dummy_GpBitmap*) wdCreateImageFromBuffer(bmp_desc.bmWidth, bmp_desc.bmHeight,
+                                                  stride, bits, pixel_format, NULL, 0);
+
+    free(bits);
+    return b;
 }

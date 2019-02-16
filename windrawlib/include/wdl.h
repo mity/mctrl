@@ -261,12 +261,19 @@ void wdResetWorld(WD_HCANVAS hCanvas);
  */
 
 /* For wdCreateImageFromBuffer */
-#define WD_PIXELFORMAT_PALETTE     1  /* 1 byte per pixel. cPalette is used */
-#define WD_PIXELFORMAT_R8G8B8      2  /* 3 bytes per pixel. RGB without alpha */
-#define WD_PIXELFORMAT_R8G8B8A8    3  /* 4 bytes per pixel. RGB with alpha - RGBA */
-#define WD_PIXELFORMAT_B8G8R8A8    4  /* 4 bytes per pixel. RGB with alpha pre-multiplied in GDI order - BGRA (and bottom-up) */
+#define WD_PIXELFORMAT_PALETTE      1  /* 1 byte per pixel. cPalette is used */
+#define WD_PIXELFORMAT_R8G8B8       2  /* 3 bytes per pixel. RGB24 */
+#define WD_PIXELFORMAT_R8G8B8A8     3  /* 4 bytes per pixel. RGBA32 */
+#define WD_PIXELFORMAT_B8G8R8A8     4  /* 4 bytes per pixel. BGRA32 (and bottom-up; as GDI usually expects) */
+#define WD_PIXELFORMAT_B8G8R8A8_PREMULTIPLIED  5  /* Same but with pre-multiplied alpha */
+
+#define WD_ALPHA_IGNORE             0
+#define WD_ALPHA_USE                1  /* Note: Only bitmaps with RGBA32 pixel format are supported. */
+#define WD_ALPHA_USE_PREMULTIPLIED  2  /* Note: Only bitmaps with RGBA32 pixel format are supported. */
+
 
 WD_HIMAGE wdCreateImageFromHBITMAP(HBITMAP hBmp);
+WD_HIMAGE wdCreateImageFromHBITMAPWithAlpha(HBITMAP hBmp, int alphaMode);
 WD_HIMAGE wdLoadImageFromFile(const WCHAR* pszPath);
 WD_HIMAGE wdLoadImageFromIStream(IStream* pStream);
 WD_HIMAGE wdLoadImageFromResource(HINSTANCE hInstance,

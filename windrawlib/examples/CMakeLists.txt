@@ -38,5 +38,8 @@ target_link_libraries("draw-styled" "windrawlib")
 add_executable("image-from-buffer" WIN32 "image-from-buffer.c" "image-from-buffer.h" "image-from-buffer.rc")
 target_link_libraries("image-from-buffer" "windrawlib")
 
+add_executable("image-from-hbitmap" WIN32 "image-from-hbitmap.c" "image-from-hbitmap.h" "image-from-hbitmap.rc")
+target_link_libraries("image-from-hbitmap" "windrawlib")
+
 add_executable("image-from-res" WIN32 "image-from-res.c" "image-from-res.rc")
 target_link_libraries("image-from-res" "windrawlib")

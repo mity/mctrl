@@ -605,64 +605,6 @@ struct dummy_ID2D1GdiInteropRenderTargetVtbl_tag {
     STDMETHOD_(ULONG, AddRef)(dummy_ID2D1GdiInteropRenderTarget*);
     STDMETHOD_(ULONG, Release)(dummy_ID2D1GdiInteropRenderTarget*);
 
-    /* ID2D1Resource methods */
-    STDMETHOD(dummy_GetFactory)(void);
-
-    /* ID2D1RenderTarget methods */
-    STDMETHOD(dummy_CreateBitmap)(void);
-    STDMETHOD(dummy_CreateBitmapFromWicBitmap)(void);
-    STDMETHOD(dummy_CreateSharedBitmap)(void);
-    STDMETHOD(dummy_CreateBitmapBrush)(void);
-    STDMETHOD(dummy_CreateSolidColorBrush)(void);
-    STDMETHOD(dummy_CreateGradientStopCollection)(void);
-    STDMETHOD(dummy_CreateLinearGradientBrush)(void);
-    STDMETHOD(dummy_CreateRadialGradientBrush)(void);
-    STDMETHOD(dummy_CreateCompatibleRenderTarget)(void);
-    STDMETHOD(dummy_CreateLayer)(void);
-    STDMETHOD(dummy_CreateMesh)(void);
-    STDMETHOD(dummy_DrawLine)(void);
-    STDMETHOD(dummy_DrawRectangle)(void);
-    STDMETHOD(dummy_FillRectangle)(void);
-    STDMETHOD(dummy_DrawRoundedRectangle)(void);
-    STDMETHOD(dummy_FillRoundedRectangle)(void);
-    STDMETHOD(dummy_DrawEllipse)(void);
-    STDMETHOD(dummy_FillEllipse)(void);
-    STDMETHOD(dummy_DrawGeometry)(void);
-    STDMETHOD(dummy_FillGeometry)(void);
-    STDMETHOD(dummy_FillMesh)(void);
-    STDMETHOD(dummy_FillOpacityMask)(void);
-    STDMETHOD(dummy_DrawBitmap)(void);
-    STDMETHOD(dummy_DrawText)(void);
-    STDMETHOD(dummy_DrawTextLayout)(void);
-    STDMETHOD(dummy_DrawGlyphRun)(void);
-    STDMETHOD(dummy_SetTransform)(void);
-    STDMETHOD(dummy_GetTransform)(void);
-    STDMETHOD(dummy_SetAntialiasMode)(void);
-    STDMETHOD(dummy_GetAntialiasMode)(void);
-    STDMETHOD(dummy_SetTextAntialiasMode)(void);
-    STDMETHOD(dummy_GetTextAntialiasMode)(void);
-    STDMETHOD(dummy_SetTextRenderingParams)(void);
-    STDMETHOD(dummy_GetTextRenderingParams)(void);
-    STDMETHOD(dummy_SetTags)(void);
-    STDMETHOD(dummy_GetTags)(void);
-    STDMETHOD(dummy_PushLayer)(void);
-    STDMETHOD(dummy_PopLayer)(void);
-    STDMETHOD(dummy_Flush)(void);
-    STDMETHOD(dummy_SaveDrawingState)(void);
-    STDMETHOD(dummy_RestoreDrawingState)(void);
-    STDMETHOD(dummy_PushAxisAlignedClip)(void);
-    STDMETHOD(dummy_PopAxisAlignedClip)(void);
-    STDMETHOD(dummy_Clear)(void);
-    STDMETHOD(dummy_BeginDraw)(void);
-    STDMETHOD(dummy_EndDraw)(void);
-    STDMETHOD(dummy_GetPixelFormat)(void);
-    STDMETHOD(dummy_SetDpi)(void);
-    STDMETHOD(dummy_GetDpi)(void);
-    STDMETHOD(dummy_GetSize)(void);
-    STDMETHOD(dummy_GetPixelSize)(void);
-    STDMETHOD(dummy_GetMaximumBitmapSize)(void);
-    STDMETHOD(dummy_IsSupported)(void);
-
     /* ID2D1GdiInteropRenderTarget methods */
     STDMETHOD(GetDC)(dummy_ID2D1GdiInteropRenderTarget*, dummy_D2D1_DC_INITIALIZE_MODE, HDC*);
     STDMETHOD(ReleaseDC)(dummy_ID2D1GdiInteropRenderTarget*, const RECT*);
