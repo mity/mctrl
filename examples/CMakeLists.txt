@@ -56,33 +56,43 @@ elseif(MSVC)
 endif()
 
 
-# Each example mini-app is implemented in a single C source file.
-file(GLOB EXAMPLE_SOURCES "*.c")
-foreach(SOURCE ${EXAMPLE_SOURCES})
-    get_filename_component(TARGET ${SOURCE} NAME_WE)
+add_executable(example-button WIN32 example-button.c example-button.h example-button.rc)
+target_link_libraries(example-button mCtrl comctl32)
 
-    string(REGEX REPLACE "\\.c$" "" BASENAME ${SOURCE})
+add_executable(example-dllgetversion WIN32 example-dllgetversion.c example-default.rc)
 
-    # Check if this example has an appropriate header and/or resource script
-    # and add those to the mini-project.
-    if(EXISTS ${BASENAME}.h)
-        set(HEADER ${BASENAME}.h)
-    else()
-        unset(HEADER)
-    endif()
-    if(EXISTS ${BASENAME}.rc)
-        set(RESOURCE ${BASENAME}.rc)
-    else()
-        set(RESOURCE example-default.rc)
-    endif()
-    add_executable(${TARGET} WIN32 ${SOURCE} ${HEADER} ${RESOURCE})
+add_executable(example-expand WIN32 example-expand.c example-expand.h example-expand.rc)
+target_link_libraries(example-expand mCtrl comctl32)
 
-    # All examples link with comctl32.dll.
-    target_link_libraries(${TARGET} comctl32)
+add_executable(example-grid WIN32 example-grid.c example-grid.h example-grid.rc)
+target_link_libraries(example-grid mCtrl comctl32)
 
-    # All examples but ex_dllgetversion.exe link with mCtrl.dll.
-    # (ex_dllgetversion.exe loads it via LoadLibrary().)
-    if(NOT ${TARGET} MATCHES ex_dllgetversion)
-        target_link_libraries(${TARGET} mCtrl)
-    endif()
-endforeach()
+add_executable(example-grid-customdraw WIN32 example-grid-customdraw.c example-default.rc)
+target_link_libraries(example-grid-customdraw mCtrl comctl32)
+
+add_executable(example-grid-ownerdata WIN32 example-grid-ownerdata.c example-default.rc)
+target_link_libraries(example-grid-ownerdata mCtrl comctl32)
+
+add_executable(example-html WIN32 example-html.c example-html.rc)
+target_link_libraries(example-html mCtrl comctl32)
+
+add_executable(example-chart WIN32 example-chart.c example-chart.h example-chart.rc)
+target_link_libraries(example-chart mCtrl comctl32)
+
+add_executable(example-imgview WIN32 example-imgview.c example-imgview.h example-imgview.rc)
+target_link_libraries(example-imgview mCtrl comctl32)
+
+add_executable(example-mditab WIN32 example-mditab.c example-mditab.h example-mditab.rc)
+target_link_libraries(example-mditab mCtrl comctl32)
+
+add_executable(example-mditab-dwm WIN32 example-mditab-dwm.c example-mditab-dwm.h example-mditab-dwm.rc)
+target_link_libraries(example-mditab-dwm mCtrl comctl32)
+
+add_executable(example-menubar WIN32 example-menubar.c example-menubar.h example-menubar.rc)
+target_link_libraries(example-menubar mCtrl comctl32)
+
+add_executable(example-treelist WIN32 example-treelist.c example-default.rc)
+target_link_libraries(example-treelist mCtrl comctl32)
+
+add_executable(example-treelist-ownerdata WIN32 example-treelist-ownerdata.c example-treelist-ownerdata.h example-treelist-ownerdata.rc)
+target_link_libraries(example-treelist-ownerdata mCtrl comctl32)
