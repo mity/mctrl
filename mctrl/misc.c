@@ -857,7 +857,8 @@ dllmain_init(HINSTANCE instance)
         mc_mutex_unlock_fn_ = (void (WINAPI*)(void*)) LeaveCriticalSection;
     }
 
-    /* Enable WinDrawLib's multi-threading support. */
+    /* We have no control over how many threads of the application create
+     * some controls. Hence, enable WinDrawLib's multi-threading support. */
     mc_mutex_init(&dllmain_wdl_mutex);
     wdPreInitialize(dllmain_lock_wdl, dllmain_unlock_wdl, 0);
 
