@@ -39,6 +39,7 @@ add_library(mCtrl SHARED
     version.c       version.h.in
     viewlist.c      viewlist.h
     xcom.c          xcom.h
+    xdraw.c         xdraw.h
 )
 
 add_dependencies(mCtrl windrawlib)
