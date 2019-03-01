@@ -35,6 +35,8 @@
 static const TCHAR imgview_wc[] = MC_WC_IMGVIEW;    /* Window class name */
 static DWORD imgview_wdl_flags = WD_INIT_IMAGEAPI;
 
+#define IMGVIEW_XDRAW_CACHE_TIMER_ID    1
+
 
 typedef struct imgview_tag imgview_t;
 struct imgview_tag {
@@ -266,22 +268,34 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            return xdraw_paint(win, iv->no_redraw,
+            xdraw_paint(win, iv->no_redraw,
                         (iv->rtl ? WD_CANVAS_LAYOUTRTL : 0),
                         &imgview_xdraw_vtable, (void*) iv, &iv->xdraw_cache);
+            if(iv->xdraw_cache != NULL)
+                SetTimer(win, IMGVIEW_XDRAW_CACHE_TIMER_ID, 30 * 1000, NULL);
+            return 0;
 
         case WM_PRINTCLIENT:
-            return xdraw_printclient(win, (HDC) wp,
+            xdraw_printclient(win, (HDC) wp,
                         (iv->rtl ? WD_CANVAS_LAYOUTRTL : 0),
                         &imgview_xdraw_vtable, (void*) iv);
+            return 0;
 
         case WM_SIZE:
-            xdraw_invalidate(iv->win, NULL, TRUE, &iv->xdraw_cache);
+            xdraw_invalidate(win, NULL, TRUE, &iv->xdraw_cache);
             break;
 
         case WM_DISPLAYCHANGE:
             xdraw_free_cache(&iv->xdraw_cache);
-            xdraw_invalidate(iv->win, NULL, TRUE, &iv->xdraw_cache);
+            xdraw_invalidate(win, NULL, TRUE, &iv->xdraw_cache);
+            return 0;
+
+        case WM_TIMER:
+            if(wp == IMGVIEW_XDRAW_CACHE_TIMER_ID) {
+                xdraw_free_cache(&iv->xdraw_cache);
+                KillTimer(win, IMGVIEW_XDRAW_CACHE_TIMER_ID);
+                return 0;
+            }
             break;
 
         case WM_ERASEBKGND:
