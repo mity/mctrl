@@ -1,6 +1,6 @@
 /*
  * WinDrawLib
- * Copyright (c) 2015-2016 Martin Mitas
+ * Copyright (c) 2015-2019 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -352,6 +352,24 @@ err_creategraphics:
     free(c);
 err_malloc:
     return NULL;
+}
+
+void
+gdix_canvas_free(gdix_canvas_t* c)
+{
+    gdix_vtable->fn_DeleteStringFormat(c->string_format);
+    gdix_vtable->fn_DeletePen(c->pen);
+    gdix_vtable->fn_DeleteGraphics(c->graphics);
+
+    if(c->real_dc != NULL) {
+        HBITMAP mem_bmp;
+
+        mem_bmp = SelectObject(c->dc, c->orig_bmp);
+        DeleteObject(mem_bmp);
+        DeleteObject(c->dc);
+    }
+
+    free(c);
 }
 
 void

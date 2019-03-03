@@ -6,6 +6,17 @@
 
 
 static HWND hwndMain = NULL;
+
+/* The cached canvas (if not NULL).
+ *
+ * Note that if the caching is enabled, it remembers all its painted contents
+ * across all the WM_PAINT messages so as long as we do not need to paint it
+ * with different contents, we may just call wdBeginPaint() + wdEndPaint() to
+ * make it blit into the window.
+ *
+ * If only some sub-region needs to be painted differently, then only that
+ * part of it needs to be repainted.
+ */
 static WD_HCANVAS hCachedCanvas = NULL;
 
 
@@ -21,32 +32,44 @@ MainWinPaintToCanvas(WD_HCANVAS hCanvas, BOOL* pCanCache)
     int i;
 
     wdBeginPaint(hCanvas);
-    wdClear(hCanvas, WD_RGB(255,255,255));
-    hBrush = wdCreateSolidBrush(hCanvas, 0);
 
-    for(i = 0; i < 3; i++) {
-        float x = 10.0f + i * 20.0f;
-        float y = 10.0f + i * 20.0f;
+    /* This very simple example never changes what it paints; i.e. if we
+     * already cached the completely painted canvas, we may skip the paint
+     * code altogether.
+     *
+     * In real applications, we would have to paint only parts of the canvas
+     * which needs to be painted differently since the last time; e.g. to
+     * reflect a change in the application's state.
+     */
+    if(hCanvas != hCachedCanvas) {
+        wdClear(hCanvas, WD_RGB(255,255,255));
+        hBrush = wdCreateSolidBrush(hCanvas, 0);
 
-        wdSetSolidBrushColor(hBrush, fillColors[i]);
-        wdFillRect(hCanvas, hBrush, x, y, x + 100.0f, y + 100.0f);
+        for(i = 0; i < 3; i++) {
+            float x = 10.0f + i * 20.0f;
+            float y = 10.0f + i * 20.0f;
 
-        wdSetSolidBrushColor(hBrush, drawColors[i]);
-        wdDrawRect(hCanvas, hBrush, x, y, x + 100.0f, y + 100.0f, 3.0f);
+            wdSetSolidBrushColor(hBrush, fillColors[i]);
+            wdFillRect(hCanvas, hBrush, x, y, x + 100.0f, y + 100.0f);
+
+            wdSetSolidBrushColor(hBrush, drawColors[i]);
+            wdDrawRect(hCanvas, hBrush, x, y, x + 100.0f, y + 100.0f, 3.0f);
+        }
+
+        for(i = 0; i < 3; i++) {
+            float x = 250.0f + i * 20.0f;
+            float y = 60.0f + i * 20.0f;
+
+            wdSetSolidBrushColor(hBrush, fillColors[i]);
+            wdFillCircle(hCanvas, hBrush, x, y, 55.0f);
+
+            wdSetSolidBrushColor(hBrush, drawColors[i]);
+            wdDrawCircle(hCanvas, hBrush, x, y, 55.0f, 3.0f);
+        }
+
+        wdDestroyBrush(hBrush);
     }
 
-    for(i = 0; i < 3; i++) {
-        float x = 250.0f + i * 20.0f;
-        float y = 60.0f + i * 20.0f;
-
-        wdSetSolidBrushColor(hBrush, fillColors[i]);
-        wdFillCircle(hCanvas, hBrush, x, y, 55.0f);
-
-        wdSetSolidBrushColor(hBrush, drawColors[i]);
-        wdDrawCircle(hCanvas, hBrush, x, y, 55.0f, 3.0f);
-    }
-
-    wdDestroyBrush(hBrush);
     *pCanCache = wdEndPaint(hCanvas);
 }
 
@@ -68,6 +91,7 @@ MainWinPaint(void)
 
         MainWinPaintToCanvas(hCanvas, &bCanCache);
 
+        /* Cache the completely painted canvas if we are allowed to. */
         if(bCanCache) {
             hCachedCanvas = hCanvas;
         } else {
@@ -75,6 +99,7 @@ MainWinPaint(void)
             hCachedCanvas = NULL;
         }
     }
+    EndPaint(hwndMain, &ps);
 }
 
 /* Main window procedure */
@@ -87,14 +112,28 @@ MainWinProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
 
         case WM_SIZE:
-            /* If we are caching the canvas for WM_PAINT, we need to resize it. */
             if(wParam == SIZE_RESTORED  ||  wParam == SIZE_MAXIMIZED) {
-                if(hCachedCanvas != NULL)
-                    wdResizeCanvas(hCachedCanvas, LOWORD(lParam), HIWORD(lParam));
+                if(hCachedCanvas != NULL) {
+                    /* We could call wdResizeCanvas() here. But that would
+                     * loose the painted stuff on the canvas anyway, and save
+                     * us "only" the reallocation of the canvas.
+                     *
+                     * For the sake of simplicity, we just destroy it all. */
+                    wdDestroyCanvas(hCachedCanvas);
+                    hCachedCanvas = NULL;
+                }
+                InvalidateRect(hwndMain, NULL, FALSE);
             }
             return 0;
 
+        case WM_LBUTTONDOWN:
+            InvalidateRect(hwnd, NULL, FALSE);
+            return 0;
+
         case WM_DISPLAYCHANGE:
+            /* Some relevant graphics settings has been changed and we cannot
+             * use the cached canvas as it can use incompatible pixel format,
+             * so discard it. */
             if(hCachedCanvas != NULL) {
                 wdDestroyCanvas(hCachedCanvas);
                 hCachedCanvas = NULL;
@@ -130,7 +169,7 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nC
     /* Create main window */
     hwndMain = CreateWindow(
         _T("main_window"), _T("LibWinDraw Example"),
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 550, 350,
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 150, 350,
         NULL, NULL, hInstance, NULL
     );
     SendMessage(hwndMain, WM_SETFONT, (WPARAM) GetStockObject(DEFAULT_GUI_FONT),

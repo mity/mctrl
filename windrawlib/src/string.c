@@ -1,6 +1,6 @@
 /*
  * WinDrawLib
- * Copyright (c) 2015-2016 Martin Mitas
+ * Copyright (c) 2015-2019 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -113,10 +113,26 @@ wdMeasureString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
 
         dummy_IDWriteTextLayout_Release(layout);
     } else {
-        gdix_canvas_t* c = (gdix_canvas_t*) hCanvas;
+        HDC screen_dc;
+        gdix_canvas_t* c;
         dummy_GpRectF r;
         dummy_GpFont* f = (dummy_GpFont*) hFont;
         dummy_GpRectF br;
+
+        if(hCanvas != NULL) {
+            c = (gdix_canvas_t*) hCanvas;
+        } else {
+            screen_dc = GetDCEx(NULL, NULL, DCX_CACHE);
+            c = gdix_canvas_alloc(screen_dc, NULL, pRect->x1 - pRect->x0, FALSE);
+            if(c == NULL) {
+                WD_TRACE("wdMeasureString: gdix_canvas_alloc() failed.");
+                pResult->x0 = 0.0f;
+                pResult->y0 = 0.0f;
+                pResult->x1 = 0.0f;
+                pResult->y1 = 0.0f;
+                return;
+            }
+        }
 
         if(c->rtl) {
             gdix_rtl_transform(c);
@@ -134,6 +150,11 @@ wdMeasureString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
 
         if(c->rtl)
             gdix_rtl_transform(c);
+
+        if(hCanvas == NULL) {
+            gdix_canvas_free(c);
+            ReleaseDC(NULL, screen_dc);
+        }
 
         pResult->x0 = br.x;
         pResult->y0 = br.y;

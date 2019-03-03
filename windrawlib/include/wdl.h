@@ -209,12 +209,18 @@ void wdDestroyCanvas(WD_HCANVAS hCanvas);
  * - The canvas has been created with wdCreateCanvasWithPaintStruct() and
  *   is used strictly for handling WM_PAINT.
  * - wdEndPaint() returns TRUE.
+ *
+ * The cached canvas retains all the contents; so on the next WM_PAINT,
+ * the application can repaint only those arts of the canvas which need
+ * to present something new/different.
  */
 void wdBeginPaint(WD_HCANVAS hCanvas);
 BOOL wdEndPaint(WD_HCANVAS hCanvas);
 
 /* This is supposed to be called to resize cached canvas (see above), if it
  * needs to be resized, typically as a response to WM_SIZE message.
+ *
+ * (Note however, that the painted contents of the canvas is lost.)
  */
 BOOL wdResizeCanvas(WD_HCANVAS hCanvas, UINT uWidth, UINT uHeight);
 
@@ -613,6 +619,9 @@ void wdDrawString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
                 const WCHAR* pszText, int iTextLength, WD_HBRUSH hBrush,
                 DWORD dwFlags);
 
+/* Note hCanvas here is optional. If hCanvas == NULL, GDI+ uses screen
+ * for the computation; D2D back-end ignores that parameter altogether.
+ */
 void wdMeasureString(WD_HCANVAS hCanvas, WD_HFONT hFont, const WD_RECT* pRect,
                 const WCHAR* pszText, int iTextLength, WD_RECT* pResult,
                 DWORD dwFlags);

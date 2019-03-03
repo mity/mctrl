@@ -1,6 +1,6 @@
 /*
  * WinDrawLib
- * Copyright (c) 2015-2016 Martin Mitas
+ * Copyright (c) 2015-2019 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -171,6 +171,7 @@ void gdix_fini(void);
 
 /* Helpers */
 gdix_canvas_t* gdix_canvas_alloc(HDC dc, const RECT* doublebuffer_rect, UINT width, BOOL rtl);
+void gdix_canvas_free(gdix_canvas_t* c);
 void gdix_rtl_transform(gdix_canvas_t* c);
 void gdix_reset_transform(gdix_canvas_t* c);
 void gdix_canvas_apply_string_flags(gdix_canvas_t* c, DWORD flags);
