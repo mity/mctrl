@@ -292,6 +292,11 @@ BOOL MCTRL_API mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
  */
 #define MC_MTS_DRAGDROP              0x1000
 
+/**
+ * @brief Paint items with rounded corners.
+ */
+#define MC_MTS_ROUNDEDITEMS          0x2000
+
 /*@}*/
 
 

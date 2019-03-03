@@ -1016,11 +1016,11 @@ again_with_scroll:
         btn_mask |= BTNMASK_SCROLL;
 
     /* Determine what item area we need. */
-    area_margin0 = mc_height(&client) / 2;
+    area_margin0 = (mditab->style & MC_MTS_ROUNDEDITEMS) ? mc_height(&client) / 2 : 4;
     if(btn_mask & BTNMASK_LSCROLL)
         area_margin0 += btn_size;
 
-    area_margin1 = mc_height(&client) / 2;
+    area_margin1 = (mditab->style & MC_MTS_ROUNDEDITEMS) ? mc_height(&client) / 2 : 4;
     if(btn_mask & BTNMASK_RSCROLL)
         area_margin1 += btn_size;
     if(btn_mask & BTNMASK_LIST)
@@ -1391,27 +1391,37 @@ mditab_paint_item(mditab_t* mditab, mditab_xdraw_ctx_t* ctx, const RECT* client,
         wdDestroyPath(path);
         return;
     }
-    r = (y1 - y0 - 1.0f) / 2.0f;
-    if(2.0f * r > x1 - x0) {
-        /* The item is too small, so we degenerate only to the curved shape
-         * with decreased radius. As this should happen only during animation
-         * and for very short time, hit testing and other code ignores this
-         * problem altogether. But here, it would make the animation visually
-         * disruptive if ignoring it.
-         */
-        r = (x1 - x0) / 2.0f;
-        degenerate_shape = TRUE;
+
+    if(mditab->style & MC_MTS_ROUNDEDITEMS) {
+        r = (y1 - y0 - 1.0f) / 2.0f;
+        if(2.0f * r > x1 - x0) {
+            /* The item is too small, so we degenerate only to the curved shape
+             * with decreased radius. As this should happen only during animation
+             * and for very short time, hit testing and other code ignores this
+             * problem altogether. But here, it would make the animation visually
+             * disruptive if ignoring it.
+             */
+            r = (x1 - x0) / 2.0f;
+            degenerate_shape = TRUE;
+        }
+        wdBeginFigure(&sink, x0-r-5.0f, y1);
+        wdAddLine(&sink, x0-r, y1-1.0f);
+        wdAddArc(&sink, x0-r, y1-r, -90.0f);
+        wdAddArc(&sink, x0+r, y1-r, 90.0f);
+        if(!degenerate_shape)
+            wdAddLine(&sink, x1-r, y0);
+        wdAddArc(&sink, x1-r, y1-r, 90.0f);
+        wdAddArc(&sink, x1+r, y1-r, -90.0f);
+        wdAddLine(&sink, x1+r+5.0f, y1);
+        wdEndFigure(&sink, TRUE);
+    } else {
+        wdBeginFigure(&sink, x0, y1);
+        wdAddLine(&sink, x0, y0);
+        wdAddLine(&sink, x1, y0);
+        wdAddLine(&sink, x1, y1);
+        wdEndFigure(&sink, TRUE);
     }
-    wdBeginFigure(&sink, x0-r-5.0f, y1);
-    wdAddLine(&sink, x0-r, y1-1.0f);
-    wdAddArc(&sink, x0-r, y1-r, -90.0f);
-    wdAddArc(&sink, x0+r, y1-r, 90.0f);
-    if(!degenerate_shape)
-        wdAddLine(&sink, x1-r, y0);
-    wdAddArc(&sink, x1-r, y1-r, 90.0f);
-    wdAddArc(&sink, x1+r, y1-r, -90.0f);
-    wdAddLine(&sink, x1+r+5.0f, y1);
-    wdEndFigure(&sink, TRUE);
+
     wdClosePathSink(&sink);
 
     /* Determine if we need to paint scroll blocks. */
@@ -1490,16 +1500,19 @@ mditab_paint_item(mditab_t* mditab, mditab_xdraw_ctx_t* ctx, const RECT* client,
     wdDrawPath(canvas, ctx->solid_brush, path, 1.0f);
     wdSetClip(canvas, NULL, NULL);
 
-    /* For the active tab, paint the bottom line. */
-    wdDrawLine(canvas, ctx->solid_brush,
-            0.0f, y1-1.0f, blit_rect.x0 - 1.0f, y1-1.0f, 1.0f);
-    wdDrawLine(canvas, ctx->solid_brush,
-            blit_rect.x1, y1-1.0f, client->right, y1-1.0f, 1.0f);
-
     /* Destroy the item shape path. */
     wdDestroyPath(path);
 
-    /* Paint scrolling blocks. */
+    /* For the active tab, paint the bottom line everywhere except the area of
+     * this control. */
+    if(is_selected) {
+        wdDrawLine(canvas, ctx->solid_brush,
+                0.0f, y1-1.0f, MC_MAX(blit_rect.x0 - 1.0f, clip_rect.x0), y1-1.0f, 1.0f);
+        wdDrawLine(canvas, ctx->solid_brush,
+                MC_MIN(clip_rect.x1, blit_rect.x1), y1-1.0f, client->right, y1-1.0f, 1.0f);
+    }
+
+    /* If needed, paint the scrolling blocks. */
     if(left_block)
         mditab_paint_scroll_block(mditab, ctx, floorf(area_x0 - r), y0, y1, +1);
     if(right_block)
