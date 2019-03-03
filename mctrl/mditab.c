@@ -139,6 +139,7 @@ struct mditab_tag {
     dsa_t items;
     DWORD style                 : 16;
     DWORD btn_mask              :  4;
+    DWORD focus                 :  1;
     DWORD no_redraw             :  1;
     DWORD rtl                   :  1;
     DWORD unicode_notifications :  1;
@@ -1452,39 +1453,35 @@ mditab_paint_item(mditab_t* mditab, mditab_xdraw_ctx_t* ctx, const RECT* client,
     /* Paint item text. */
     if(di.text != NULL) {
         wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-        wdDrawString(canvas, mditab->font, &layout.text_rect, di.text,
-                _tcslen(di.text), ctx->solid_brush,
-                WD_STR_NOWRAP | WD_STR_ENDELLIPSIS);
+        wdDrawString(canvas, mditab->font, &layout.text_rect, di.text, _tcslen(di.text),
+                ctx->solid_brush, WD_STR_NOWRAP | WD_STR_ENDELLIPSIS | WD_STR_MIDDLEALIGN);
     }
 
     /* Paint focus rect (if needed). */
-    if(is_selected  &&  !mditab->hide_focus  &&
-       ((mditab->style & MC_MTS_FOCUSMASK) != MC_MTS_FOCUSNEVER)  &&
-       (di.text != NULL || mditab->img_list != NULL))
+    if(is_selected  &&  mditab->focus  &&  !mditab->hide_focus  &&  di.text != NULL  &&
+       ((mditab->style & MC_MTS_FOCUSMASK) != MC_MTS_FOCUSNEVER))
     {
-        HDC dc;
         HRGN old_clip;
+        HDC dc;
+        WD_RECT label_rect;
         RECT focus_rect;
 
-        focus_rect.left = (LONG)(mditab->img_list != NULL ? layout.icon_rect.x0 : layout.text_rect.x0) - 1;
-        focus_rect.right = (LONG)(di.text != NULL ? layout.text_rect.x1 : layout.icon_rect.x1) + 1;
-        if(di.text != NULL  &&  mditab->img_list != NULL) {
-            focus_rect.top = (LONG) MC_MIN(layout.text_rect.y0, layout.icon_rect.y0) - 1;
-            focus_rect.bottom = (LONG) MC_MAX(layout.text_rect.y1, layout.icon_rect.y1) + 1;
-        } else if(di.text != NULL) {
-            focus_rect.top = (LONG) layout.text_rect.y0 - 1;
-            focus_rect.bottom = (LONG) layout.text_rect.y1 + 1;
-        } else {
-            focus_rect.top = (LONG) layout.icon_rect.y0 - 1;
-            focus_rect.bottom = (LONG) layout.icon_rect.y1 + 1;
-        }
+        wdMeasureString(canvas, mditab->font, &layout.text_rect, di.text, _tcslen(di.text),
+                &label_rect, WD_STR_NOWRAP | WD_STR_ENDELLIPSIS | WD_STR_MIDDLEALIGN);
+        focus_rect.left = label_rect.x0 - 2;
+        focus_rect.right = label_rect.x1 + 2;
+        focus_rect.top = label_rect.y0 - 1;
+        focus_rect.bottom = label_rect.y1 + 1;
 
         dc = wdStartGdi(canvas, TRUE);
         old_clip = mc_clip_get(dc);
         mc_clip_set(dc, area_x0 - (int)r, client->top, area_x1 + (int)r, client->bottom);
+
         DrawFocusRect(dc, &focus_rect);
+
         mc_clip_reset(dc, old_clip);
         wdEndGdi(canvas, dc);
+
     }
 
     /* Paint border of the item. */
@@ -2924,6 +2921,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SETFOCUS:
         case WM_KILLFOCUS:
+            mditab->focus = (msg == WM_SETFOCUS);
             mditab_change_focus(mditab);
             break;
 
