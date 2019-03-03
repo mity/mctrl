@@ -24,9 +24,9 @@
 #include "mousedrag.h"
 #include "theme.h"
 #include "tooltip.h"
+#include "xdraw.h"
 
 #include <math.h>
-#include <wdl.h>
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -79,6 +79,10 @@
 
 static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
 
+static DWORD mditab_wdl_flags = WD_INIT_IMAGEAPI | WD_INIT_STRINGAPI;
+
+#define MDITAB_XDRAW_CACHE_TIMER_ID     1
+
 
 /* Geometry constants */
 #define DEFAULT_ITEM_MIN_WIDTH       60
@@ -110,13 +114,6 @@ static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
 #define MDITAB_COLOR_HOTITEM       WD_COLOR_FROM_GDI_EX(63,GetSysColor(COLOR_APPWORKSPACE))
 
 
-typedef struct mditab_paint_tag mditab_paint_t;
-struct mditab_paint_tag {
-    WD_HCANVAS canvas;
-    WD_HBRUSH solid_brush;
-    WD_HFONT font;
-};
-
 /* Per-tab structure */
 typedef struct mditab_item_tag mditab_item_t;
 struct mditab_item_tag {
@@ -135,8 +132,9 @@ struct mditab_tag {
     HWND notify_win;
     HWND tooltip_win;
     HIMAGELIST img_list;
-    HFONT font;
-    mditab_paint_t* paint_ctx;
+    HFONT gdi_font;
+    WD_HFONT font;
+    xdraw_cache_t draw_cache;
     anim_t* animation;
     dsa_t items;
     DWORD style                 : 16;
@@ -166,6 +164,15 @@ struct mditab_tag {
     USHORT item_def_width;
 };
 
+
+/* Forward declarations. */
+static void mditab_paint(void* ctrl, xdraw_ctx_t* raw_ctx);
+static void mditab_set_tooltip_pos(mditab_t* mditab);
+static void mditab_mouse_move(mditab_t* mditab, int x, int y);
+static void mditab_update_layout(mditab_t* mditab, BOOL refresh);
+static BOOL mditab_get_item_rect(mditab_t* mditab, WORD index, RECT* rect, BOOL whole);
+
+
 typedef struct mditab_item_layout_tag mditab_item_layout_t;
 struct mditab_item_layout_tag {
     WD_RECT icon_rect;
@@ -173,11 +180,41 @@ struct mditab_item_layout_tag {
 };
 
 
-/* Forward declarations. */
-static void mditab_set_tooltip_pos(mditab_t* mditab);
-static void mditab_mouse_move(mditab_t* mditab, int x, int y);
-static void mditab_update_layout(mditab_t* mditab, BOOL refresh);
-static BOOL mditab_get_item_rect(mditab_t* mditab, WORD index, RECT* rect, BOOL whole);
+typedef struct mditab_xdraw_ctx_tag mditab_xdraw_ctx_t;
+struct mditab_xdraw_ctx_tag {
+    xdraw_ctx_t ctx;
+    WD_HBRUSH solid_brush;
+};
+
+static int
+mditab_xdraw_init(xdraw_ctx_t* raw_ctx)
+{
+    WD_HCANVAS canvas = raw_ctx->canvas;
+    mditab_xdraw_ctx_t* ctx = (mditab_xdraw_ctx_t*) raw_ctx;
+
+    ctx->solid_brush = wdCreateSolidBrush(canvas, 0);
+    if(MC_ERR(ctx->solid_brush == NULL)) {
+        MC_TRACE("mditab_xdraw_init: wdCreateSolidBrush() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static void
+mditab_xdraw_fini(xdraw_ctx_t* raw_ctx)
+{
+    mditab_xdraw_ctx_t* ctx = (mditab_xdraw_ctx_t*) raw_ctx;
+    wdDestroyBrush(ctx->solid_brush);
+}
+
+
+static xdraw_vtable_t mditab_draw_vtable = {
+    sizeof(mditab_xdraw_ctx_t),
+    mditab_xdraw_init,
+    mditab_xdraw_fini,
+    mditab_paint
+};
 
 
 static inline int
@@ -308,42 +345,8 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
         }
 
         if(di.text != NULL) {
-            WD_HCANVAS canvas;
-            WD_HFONT font;
-            HDC dc;
-
-            if(mditab->paint_ctx != NULL) {
-                canvas = mditab->paint_ctx->canvas;
-                font = mditab->paint_ctx->font;
-            } else {
-                RECT client;
-
-                GetClientRect(mditab->win, &client);
-                dc = GetDCEx(NULL, NULL, DCX_CACHE);
-                canvas = wdCreateCanvasWithHDC(dc, &client, WD_CANVAS_LAYOUTRTL);
-                if(MC_ERR(canvas == NULL)) {
-                    MC_TRACE("mditab_item_ideal_width: "
-                             "wdCreateCanvasWithHDC() failed.");
-                    goto err_wdCreateCanvasWithHDC;
-                }
-                font = wdCreateFontWithGdiHandle(mditab->font);
-                if(MC_ERR(font == NULL)) {
-                    MC_TRACE("mditab_item_ideal_width: "
-                             "wdCreateFontWithGdiHandle() failed.");
-                    goto err_wdCreateFontWithGdiHandle;
-                }
-            }
-
-            w += ceilf(wdStringWidth(canvas, font, di.text));
+            w += ceilf(wdStringWidth(NULL, mditab->font, di.text));
             w += MDITAB_ITEM_PADDING;
-
-            if(mditab->paint_ctx == NULL) {
-                wdDestroyFont(font);
-err_wdCreateFontWithGdiHandle:
-                wdDestroyCanvas(canvas);
-err_wdCreateCanvasWithHDC:
-                ReleaseDC(NULL, dc);
-            }
         }
 
         item->ideal_width = w;
@@ -432,7 +435,7 @@ mditab_setup_item_layout(mditab_t* mditab, mditab_dispinfo_t* di, int x0, int y0
     if(di->text != NULL) {
         SIZE size;
 
-        mc_font_size(mditab->font, &size, TRUE);
+        mc_font_size(mditab->gdi_font, &size, TRUE);
         layout->text_rect.x0 = contents_x;
         layout->text_rect.y0 = (y0 + y1 - size.cy) / 2.0f;
         layout->text_rect.x1 = x1 - MDITAB_ITEM_PADDING;
@@ -630,7 +633,7 @@ mditab_invalidate_item(mditab_t* mditab, WORD index)
     rect.left = mditab->area_margin0 + item->x0 - mditab->scroll_x - r;
     rect.right = mditab->area_margin0 + item->x1 - mditab->scroll_x + r;
 
-    InvalidateRect(mditab->win, &rect, TRUE);
+    xdraw_invalidate(mditab->win, &rect, TRUE, &mditab->draw_cache);
 }
 
 static void
@@ -642,7 +645,7 @@ mditab_invalidate_button(mditab_t* mditab, int btn_id)
         return;
 
     mditab_button_rect(mditab, btn_id, &rect);
-    InvalidateRect(mditab->win, &rect, TRUE);
+    xdraw_invalidate(mditab->win, &rect, TRUE, &mditab->draw_cache);
 }
 
 static void
@@ -1206,7 +1209,7 @@ again_without_animation:
 
     /* Refresh */
     if(refresh)
-        InvalidateRect(mditab->win, NULL, TRUE);
+        xdraw_invalidate(mditab->win, NULL, TRUE, &mditab->draw_cache);
 
     /* Commit the new values. */
     mditab->btn_mask = btn_mask;
@@ -1239,34 +1242,6 @@ again_without_animation:
         _freea(curr_geom);
 }
 
-static void
-mditab_paint_ctx_init(mditab_paint_t* ctx, WD_HCANVAS canvas, HFONT font)
-{
-    ctx->canvas = canvas;
-    ctx->solid_brush = wdCreateSolidBrush(canvas, 0);
-    ctx->font = wdCreateFontWithGdiHandle(font);
-}
-
-static void
-mditab_paint_ctx_fini(mditab_paint_t* ctx)
-{
-    if(ctx->font != NULL)
-        wdDestroyFont(ctx->font);
-    if(ctx->solid_brush != NULL)
-        wdDestroyBrush(ctx->solid_brush);
-    if(ctx->canvas != NULL)
-        wdDestroyCanvas(ctx->canvas);
-}
-
-static void
-mditab_free_cached_paint_ctx(mditab_t* mditab)
-{
-    if(mditab->paint_ctx != NULL) {
-        mditab_paint_ctx_fini(mditab->paint_ctx);
-        free(mditab->paint_ctx);
-        mditab->paint_ctx = NULL;
-    }
-}
 
 #define BTNSTATE_NORMAL     0
 #define BTNSTATE_HOT        1
@@ -1274,9 +1249,10 @@ mditab_free_cached_paint_ctx(mditab_t* mditab)
 #define BTNSTATE_DISABLED   3
 
 static void
-mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
+mditab_do_paint_button(mditab_t* mditab, mditab_xdraw_ctx_t* ctx, int btn_id,
                        WD_RECT* rect, int state)
 {
+    WD_HCANVAS canvas = ctx->ctx.canvas;
     static const struct {
         float ax0;
         float ay0;
@@ -1306,7 +1282,7 @@ mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
                 : WD_COLOR_FROM_GDI_EX(127, GetSysColor(COLOR_BTNFACE)));
         wdSetSolidBrushColor(ctx->solid_brush, c);
 
-        wdFillCircle(ctx->canvas, ctx->solid_brush,
+        wdFillCircle(canvas, ctx->solid_brush,
                 x + w/2.0f, y + h/2.0f, w / 2.0f - 1.0f);
     }
 
@@ -1317,18 +1293,18 @@ mditab_do_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id,
             : WD_COLOR_FROM_GDI(GetSysColor(COLOR_BTNTEXT)));
     wdSetSolidBrushColor(ctx->solid_brush, c);
 
-    wdDrawLine(ctx->canvas, ctx->solid_brush,
+    wdDrawLine(canvas, ctx->solid_brush,
             x + w * dies[btn_id].ax0, y + h * dies[btn_id].ay0,
             x + w * dies[btn_id].ax1, y + h * dies[btn_id].ay1,
             stroke_width);
-    wdDrawLine(ctx->canvas, ctx->solid_brush,
+    wdDrawLine(canvas, ctx->solid_brush,
             x + w * dies[btn_id].bx0, y + h * dies[btn_id].by0,
             x + w * dies[btn_id].bx1, y + h * dies[btn_id].by1,
             stroke_width);
 }
 
 static void
-mditab_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id, BOOL enabled)
+mditab_paint_button(mditab_t* mditab, mditab_xdraw_ctx_t* ctx, int btn_id, BOOL enabled)
 {
     RECT rect;
     WD_RECT r;
@@ -1353,7 +1329,7 @@ mditab_paint_button(mditab_t* mditab, mditab_paint_t* ctx, int btn_id, BOOL enab
 }
 
 static void
-mditab_paint_scroll_block(mditab_t* mditab, mditab_paint_t* ctx,
+mditab_paint_scroll_block(mditab_t* mditab, mditab_xdraw_ctx_t* ctx,
                           float x, float y0, float y1, int direction)
 {
     WD_COLOR color = MDITAB_COLOR_BORDER;
@@ -1368,7 +1344,7 @@ mditab_paint_scroll_block(mditab_t* mditab, mditab_paint_t* ctx,
     y0 -= MDITAB_ITEM_TOP_MARGIN / 2;
     for(i = 0; i < 8; i++) {
         wdSetSolidBrushColor(ctx->solid_brush, WD_COLOR_FROM_GDI_EX(a, rgb));
-        wdDrawLine(ctx->canvas, ctx->solid_brush, x, y0, x, y1, 1.0f);
+        wdDrawLine(ctx->ctx.canvas, ctx->solid_brush, x, y0, x, y1, 1.0f);
 
         x += direction;
         y0 += ydiff;
@@ -1378,11 +1354,12 @@ mditab_paint_scroll_block(mditab_t* mditab, mditab_paint_t* ctx,
 }
 
 static void
-mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
+mditab_paint_item(mditab_t* mditab, mditab_xdraw_ctx_t* ctx, const RECT* client,
                   mditab_item_t* item, const WD_RECT* item_rect,
                   int area_x0, int area_x1, const WD_HIMAGE background_image,
                   BOOL is_selected, BOOL is_hot)
 {
+    WD_HCANVAS canvas = ctx->ctx.canvas;
     mditab_dispinfo_t di;
     float x0 = item_rect->x0;
     float y0 = item_rect->y0;
@@ -1403,7 +1380,7 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     mditab_setup_item_layout(mditab, &di, x0, y0, x1, y1, &layout);
 
     /* Construct a path defining shape of the item. */
-    path = wdCreatePath(ctx->canvas);
+    path = wdCreatePath(canvas);
     if(MC_ERR(path == NULL)) {
         MC_TRACE("mditab_paint_item: wdCreatePath() failed.");
         return;
@@ -1445,20 +1422,20 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     clip_rect.y0 = 0;
     clip_rect.x1 = (right_block ? area_x1 + r : area_x1 + 100);
     clip_rect.y1 = y1;
-    wdSetClip(ctx->canvas, &clip_rect, path);
+    wdSetClip(canvas, &clip_rect, path);
 
     /* Paint background of the item. */
     blit_rect.x0 = x0 - r;
     blit_rect.y0 = y0;
     blit_rect.x1 = x1 + r;
     blit_rect.y1 = y1;
-    wdBitBltImage(ctx->canvas, background_image, &blit_rect, &blit_rect);
+    wdBitBltImage(canvas, background_image, &blit_rect, &blit_rect);
 
     /* Colorize non-selected items. */
     if(!is_selected) {
         wdSetSolidBrushColor(ctx->solid_brush,
                 (is_hot ? MDITAB_COLOR_HOTITEM : MDITAB_COLOR_INACTIVEITEM));
-        wdFillPath(ctx->canvas, ctx->solid_brush, path);
+        wdFillPath(canvas, ctx->solid_brush, path);
     }
 
     /* Paint item icon. */
@@ -1467,7 +1444,7 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
 
         icon = ImageList_GetIcon(mditab->img_list, di.img, ILD_NORMAL);
         if(icon != NULL) {
-            wdBitBltHICON(ctx->canvas, icon, &layout.icon_rect, NULL);
+            wdBitBltHICON(canvas, icon, &layout.icon_rect, NULL);
             DestroyIcon(icon);
         }
     }
@@ -1475,7 +1452,7 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     /* Paint item text. */
     if(di.text != NULL) {
         wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-        wdDrawString(ctx->canvas, ctx->font, &layout.text_rect, di.text,
+        wdDrawString(canvas, mditab->font, &layout.text_rect, di.text,
                 _tcslen(di.text), ctx->solid_brush,
                 WD_STR_NOWRAP | WD_STR_ENDELLIPSIS);
     }
@@ -1502,24 +1479,24 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
             focus_rect.bottom = (LONG) layout.icon_rect.y1 + 1;
         }
 
-        dc = wdStartGdi(ctx->canvas, TRUE);
+        dc = wdStartGdi(canvas, TRUE);
         old_clip = mc_clip_get(dc);
         mc_clip_set(dc, area_x0 - (int)r, client->top, area_x1 + (int)r, client->bottom);
         DrawFocusRect(dc, &focus_rect);
         mc_clip_reset(dc, old_clip);
-        wdEndGdi(ctx->canvas, dc);
+        wdEndGdi(canvas, dc);
     }
 
     /* Paint border of the item. */
-    wdSetClip(ctx->canvas, &clip_rect, NULL);
+    wdSetClip(canvas, &clip_rect, NULL);
     wdSetSolidBrushColor(ctx->solid_brush, MDITAB_COLOR_BORDER);
-    wdDrawPath(ctx->canvas, ctx->solid_brush, path, 1.0f);
-    wdSetClip(ctx->canvas, NULL, NULL);
+    wdDrawPath(canvas, ctx->solid_brush, path, 1.0f);
+    wdSetClip(canvas, NULL, NULL);
 
     /* For the active tab, paint the bottom line. */
-    wdDrawLine(ctx->canvas, ctx->solid_brush,
+    wdDrawLine(canvas, ctx->solid_brush,
             0.0f, y1-1.0f, blit_rect.x0 - 1.0f, y1-1.0f, 1.0f);
-    wdDrawLine(ctx->canvas, ctx->solid_brush,
+    wdDrawLine(canvas, ctx->solid_brush,
             blit_rect.x1, y1-1.0f, client->right, y1-1.0f, 1.0f);
 
     /* Destroy the item shape path. */
@@ -1534,10 +1511,12 @@ mditab_paint_item(mditab_t* mditab, mditab_paint_t* ctx, const RECT* client,
     mditab_free_dispinfo(mditab, item, &di);
 }
 
-static BOOL
-mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
-                      RECT* dirty, BOOL erase)
+static void
+mditab_paint(void* ctrl, xdraw_ctx_t* raw_ctx)
 {
+    mditab_t* mditab = (mditab_t*) ctrl;
+    mditab_xdraw_ctx_t* ctx = (mditab_xdraw_ctx_t*) raw_ctx;
+    WD_HCANVAS canvas = raw_ctx->canvas;
     RECT client;
     int area_x0, area_x1;
     WORD i, n;
@@ -1557,9 +1536,7 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
     n = mditab_count(mditab);
     enabled = IsWindowEnabled(mditab->win);
 
-    wdBeginPaint(ctx->canvas);
-
-    if(erase) {
+    if(ctx->ctx.erase) {
         WD_COLOR color;
 
         if(mditab->dwm_extend_frame)
@@ -1567,7 +1544,7 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
         else
             color = MDITAB_COLOR_BACKGROUND;
 
-        wdClear(ctx->canvas, color);
+        wdClear(canvas, color);
     }
 
     /* Paint auxiliary buttons */
@@ -1588,14 +1565,14 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
     parent_win = GetAncestor(mditab->win, GA_ROOT);
     mc_rect_copy(&parent_rect, &client);
     MapWindowPoints(mditab->win, parent_win, (POINT*) &parent_rect, 2);
-    background_dc = CreateCompatibleDC(dc);
+    background_dc = CreateCompatibleDC(raw_ctx->dc);
     if(MC_ERR(background_dc == NULL)) {
-        MC_TRACE_ERR("mditab_paint_with_ctx: CreateCompatibleDC() failed.");
+        MC_TRACE_ERR("mditab_paint: CreateCompatibleDC() failed.");
         goto err_CreateCompatibleDC;
     }
-    background_bmp = CreateCompatibleBitmap(dc, mc_width(&parent_rect), mc_height(&parent_rect));
+    background_bmp = CreateCompatibleBitmap(raw_ctx->dc, mc_width(&parent_rect), mc_height(&parent_rect));
     if(MC_ERR(background_bmp == NULL)) {
-        MC_TRACE_ERR("mditab_paint_with_ctx: CreateCompatibleBitmap() failed.");
+        MC_TRACE_ERR("mditab_paint: CreateCompatibleBitmap() failed.");
         goto err_CreateCompatibleBitmap;
     }
     old_bmp = SelectObject(background_dc, background_bmp);
@@ -1605,7 +1582,7 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
     SelectObject(background_dc, old_bmp);
     background_image = wdCreateImageFromHBITMAP(background_bmp);
     if(MC_ERR(background_image == NULL)) {
-        MC_TRACE("mditab_paint_with_ctx: wdCreateImageFromHBITMAP() failed.");
+        MC_TRACE("mditab_paint: wdCreateImageFromHBITMAP() failed.");
         goto err_wdCreateImageFromHBITMAP;
     }
 
@@ -1678,7 +1655,7 @@ mditab_paint_with_ctx(mditab_t* mditab, HDC dc, mditab_paint_t* ctx,
      * to paint it here. */
     if(!paint_selected_item) {
         wdSetSolidBrushColor(ctx->solid_brush, MDITAB_COLOR_BORDER);
-        wdDrawLine(ctx->canvas, ctx->solid_brush,
+        wdDrawLine(canvas, ctx->solid_brush,
                 -1.0f, client.bottom - 1.0f,  client.right, client.bottom - 1.0f, 1.0f);
     }
 
@@ -1690,84 +1667,7 @@ err_CreateCompatibleBitmap:
     DeleteDC(background_dc);
 err_CreateCompatibleDC:
 skip_item_painting:
-    return wdEndPaint(ctx->canvas);
-}
-
-static void
-mditab_paint(mditab_t* mditab)
-{
-    PAINTSTRUCT ps;
-    mditab_paint_t* ctx;
-    mditab_paint_t tmp_ctx;
-
-    BeginPaint(mditab->win, &ps);
-    if(mditab->no_redraw)
-        goto no_paint;
-
-    if(mditab->paint_ctx != NULL) {
-        /* Use the cached paint context. */
-        ctx = mditab->paint_ctx;
-    } else {
-        /* Initialize new context. */
-        WD_HCANVAS c;
-        DWORD flags = 0;
-
-        if(mditab->style & MC_MTS_DOUBLEBUFFER)
-            flags |= WD_CANVAS_DOUBLEBUFFER;
-        if(mditab->rtl)
-            flags |= WD_CANVAS_LAYOUTRTL;
-
-        c = wdCreateCanvasWithPaintStruct(mditab->win, &ps, flags);
-        if(MC_ERR(c == NULL))
-            goto no_paint;
-
-        mditab_paint_ctx_init(&tmp_ctx, c, mditab->font);
-        ctx = &tmp_ctx;
-    }
-
-    /* Do the painting itself. */
-    if(mditab_paint_with_ctx(mditab, ps.hdc, ctx, &ps.rcPaint, ps.fErase)) {
-        /* We are allowed to cache the context for reuse. */
-        if(ctx == &tmp_ctx) {
-            ctx = (mditab_paint_t*) malloc(sizeof(mditab_paint_t));
-            if(ctx != NULL) {
-                memcpy(ctx, &tmp_ctx, sizeof(mditab_paint_t));
-                mditab->paint_ctx = ctx;
-            } else {
-                mditab_paint_ctx_fini(&tmp_ctx);
-            }
-        }
-    } else {
-        /* We are instructed to destroy the context. */
-        mditab_paint_ctx_fini(ctx);
-        if(mditab->paint_ctx != NULL) {
-            free(mditab->paint_ctx);
-            mditab->paint_ctx = NULL;
-        }
-    }
-
-no_paint:
-    EndPaint(mditab->win, &ps);
-}
-
-static void
-mditab_printclient(mditab_t* mditab, HDC dc)
-{
-    mditab_paint_t ctx;
-    WD_HCANVAS c;
-    RECT rect;
-
-    GetClientRect(mditab->win, &rect);
-
-    c = wdCreateCanvasWithHDC(dc, &rect, (mditab->rtl ? WD_CANVAS_LAYOUTRTL : 0));
-    if(MC_ERR(c == NULL)) {
-        MC_TRACE("wdCreateCanvasWithHDC: wdCreateCanvasWithHDC() failed.");
-        return;
-    }
-
-    mditab_paint_ctx_init(&ctx, c, mditab->font);
-    mditab_paint_with_ctx(mditab, dc, &ctx, &rect, TRUE);
-    mditab_paint_ctx_fini(&ctx);
+    ;
 }
 
 static void
@@ -2096,7 +1996,7 @@ mditab_delete_all_items(mditab_t* mditab)
 
     mditab_update_layout(mditab, FALSE);
     if(!mditab->no_redraw)
-        InvalidateRect(mditab->win, NULL, TRUE);
+        xdraw_invalidate(mditab->win, NULL, TRUE, &mditab->draw_cache);
     return TRUE;
 }
 
@@ -2135,7 +2035,7 @@ mditab_set_img_list(mditab_t* mditab, HIMAGELIST img_list)
     }
 
     if(!mditab->no_redraw)
-        InvalidateRect(mditab->win, NULL, TRUE);
+        xdraw_invalidate(mditab->win, NULL, TRUE, &mditab->draw_cache);
     return old_img_list;
 }
 
@@ -2680,7 +2580,7 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
         mditab_update_layout(mditab, FALSE);
 
     if(!mditab->no_redraw)
-        InvalidateRect(mditab->win, NULL, TRUE);
+        xdraw_invalidate(mditab->win, NULL, TRUE, &mditab->draw_cache);
 }
 
 static void
@@ -2692,10 +2592,8 @@ mditab_exstyle_changed(mditab_t* mditab, STYLESTRUCT* ss)
     if(mditab->rtl != rtl) {
         mditab->rtl = rtl;
 
-        mditab_free_cached_paint_ctx(mditab);
-
-        if(!mditab->no_redraw)
-            InvalidateRect(mditab->win, NULL, TRUE);
+        xdraw_free_cache(&mditab->draw_cache);
+        xdraw_invalidate(mditab->win, NULL, TRUE, &mditab->draw_cache);
     }
 }
 
@@ -2797,6 +2695,8 @@ mditab_create(mditab_t* mditab, CREATESTRUCT* cs)
 {
     WORD ui_state;
 
+    mditab->font = wdCreateFontWithGdiHandle(mditab->gdi_font);
+
     ui_state = MC_SEND(mditab->win, WM_QUERYUISTATE, 0, 0);
     mditab->hide_focus = (ui_state & UISF_HIDEFOCUS) ? TRUE : FALSE;
 
@@ -2818,6 +2718,9 @@ mditab_destroy(mditab_t* mditab)
         else
             tooltip_uninstall(mditab->tooltip_win, mditab->win);
     }
+
+    wdDestroyFont(mditab->font);
+    mditab->font = NULL;
 }
 
 static void
@@ -2829,7 +2732,7 @@ mditab_ncdestroy(mditab_t* mditab)
     if(mditab->animation != NULL)
         anim_stop(mditab->animation);
 
-    mditab_free_cached_paint_ctx(mditab);
+    xdraw_free_cache(&mditab->draw_cache);
     free(mditab);
 }
 
@@ -2846,17 +2749,23 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            mditab_paint(mditab);
+            xdraw_paint(win, mditab->no_redraw,
+                    (mditab->rtl ? WD_CANVAS_LAYOUTRTL : 0) |
+                    ((mditab->style & MC_MTS_DOUBLEBUFFER) ? WD_CANVAS_DOUBLEBUFFER : 0),
+                    &mditab_draw_vtable, (void*) mditab, &mditab->draw_cache);
+            if(mditab->draw_cache != NULL)
+                SetTimer(win, MDITAB_XDRAW_CACHE_TIMER_ID, 30 * 1000, NULL);
             return 0;
 
         case WM_PRINTCLIENT:
-            mditab_printclient(mditab, (HDC) wp);
+            xdraw_printclient(win, (HDC) wp,
+                    (mditab->rtl ? WD_CANVAS_LAYOUTRTL : 0),
+                    &mditab_draw_vtable, (void*) mditab);
             return 0;
 
         case WM_DISPLAYCHANGE:
-            mditab_free_cached_paint_ctx(mditab);
-            if(!mditab->no_redraw)
-                InvalidateRect(win, NULL, FALSE);
+            xdraw_free_cache(&mditab->draw_cache);
+            xdraw_invalidate(win, NULL, TRUE, &mditab->draw_cache);
             break;
 
         case WM_ERASEBKGND:
@@ -2867,6 +2776,10 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(mditab->animation != NULL  &&  wp == anim_timer_id(mditab->animation)) {
                 anim_step(mditab->animation);
                 mditab_update_layout(mditab, TRUE);
+                return 0;
+            } else if(wp == MDITAB_XDRAW_CACHE_TIMER_ID) {
+                xdraw_free_cache(&mditab->draw_cache);
+                KillTimer(win, MDITAB_XDRAW_CACHE_TIMER_ID);
                 return 0;
             }
             break;
@@ -2963,10 +2876,9 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_SIZE:
-            if(mditab->paint_ctx != NULL)
-                wdResizeCanvas(mditab->paint_ctx->canvas, LOWORD(lp), HIWORD(lp));
             if(mditab->dwm_extend_frame)
                 mditab_dwm_extend_frame(mditab);
+            xdraw_free_cache(&mditab->draw_cache);
             mditab_update_layout(mditab, TRUE);
             return 0;
 
@@ -3007,7 +2919,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(mditab->dwm_extend_frame)
                 mditab_dwm_extend_frame(mditab);
             if(!mditab->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
+                xdraw_invalidate(mditab->win, NULL, TRUE, &mditab->draw_cache);
             return 0;
 
         case WM_SETFOCUS:
@@ -3016,16 +2928,19 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_GETFONT:
-            return (LRESULT) mditab->font;
+            return (LRESULT) mditab->gdi_font;
 
         case WM_SETFONT:
-            mditab->font = (HFONT) wp;
+            mditab->gdi_font = (HFONT) wp;
+            if(mditab->font != NULL)
+                wdDestroyFont(mditab->font);
+            mditab->font = wdCreateFontWithGdiHandle(mditab->gdi_font);
             if(mditab->item_def_width == 0) {
                 mditab_reset_ideal_widths(mditab);
                 mditab_update_layout(mditab, FALSE);
             }
             if((BOOL) lp  &&  !mditab->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
+                xdraw_invalidate(mditab->win, NULL, TRUE, &mditab->draw_cache);
             return 0;
 
         case WM_MEASUREITEM:
@@ -3170,19 +3085,19 @@ mditab_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    if(MC_ERR(!wdInitialize(WD_INIT_IMAGEAPI | WD_INIT_STRINGAPI))) {
+    if(MC_ERR(!wdInitialize(mditab_wdl_flags))) {
         MC_TRACE("mditab_init_module: wdInitialize() failed.");
         return -1;
     }
 
-    wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_GLOBALCLASS | CS_PARENTDC;
     wc.lpfnWndProc = mditab_proc;
     wc.cbWndExtra = sizeof(mditab_t*);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = mditab_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
         MC_TRACE_ERR("mditab_init_module: RegisterClass() failed");
-        wdTerminate(WD_INIT_IMAGEAPI | WD_INIT_STRINGAPI);
+        wdTerminate(mditab_wdl_flags);
         return -1;
     }
 
@@ -3194,6 +3109,6 @@ mditab_fini_module(void)
 {
     UnregisterClass(mditab_wc, NULL);
 
-    wdTerminate(WD_INIT_IMAGEAPI | WD_INIT_STRINGAPI);
+    wdTerminate(mditab_wdl_flags);
 }
 

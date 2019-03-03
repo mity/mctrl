@@ -28,6 +28,7 @@ typedef struct xdraw_vtable_tag xdraw_vtable_t;
 
 struct xdraw_ctx_tag {
     xdraw_vtable_t* vtable;
+    HDC dc;
     WD_HCANVAS canvas;
     RECT dirty_rect;
     BOOL erase;

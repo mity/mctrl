@@ -37,6 +37,7 @@ xdraw_paint(HWND win, BOOL no_redraw, DWORD flags,
     if(cache != NULL  &&  *cache != NULL) {
         /* We already have a cached context. */
         ctx = *cache;
+        ctx->dc = ps.hdc;
     } else {
         /* We need to initialize new (cachable) context. */
         ctx = (xdraw_ctx_t*) malloc(vtable->ctx_size);
@@ -52,6 +53,12 @@ xdraw_paint(HWND win, BOOL no_redraw, DWORD flags,
             goto no_paint;
         }
 
+        ctx->canvas = canvas;
+        GetClientRect(win, &ctx->dirty_rect);
+        ctx->erase = TRUE;
+        ctx->vtable = vtable;
+        ctx->dc = ps.hdc;
+
         if(vtable->fn_init_ctx != NULL) {
             if(MC_ERR(vtable->fn_init_ctx(ctx) != 0)) {
                 MC_TRACE_ERR("xdraw_paint: fn_init_ctx() failed.");
@@ -60,11 +67,6 @@ xdraw_paint(HWND win, BOOL no_redraw, DWORD flags,
                 goto no_paint;
             }
         }
-
-        ctx->canvas = canvas;
-        GetClientRect(win, &ctx->dirty_rect);
-        ctx->erase = TRUE;
-        ctx->vtable = vtable;
 
         if(cache != NULL)
             *cache = ctx;
@@ -152,6 +154,7 @@ xdraw_printclient(HWND win, HDC dc, DWORD flags,
     GetClientRect(win, &ctx->dirty_rect);
     ctx->canvas = wdCreateCanvasWithHDC(dc, &ctx->dirty_rect, flags);
     ctx->erase = TRUE;
+    ctx->dc = dc;
     if(vtable->fn_init_ctx != NULL) {
         if(MC_ERR(vtable->fn_init_ctx(ctx) != 0)) {
             MC_TRACE_ERR("xdraw_printclient: fn_init_ctx() failed.");
