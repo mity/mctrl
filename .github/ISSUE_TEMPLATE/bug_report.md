@@ -4,7 +4,7 @@ about: Create a report to help us improve
 ---
 
 **What mCtrl version are you using?**
-Specify the version here.
+Specify the version here. 32-bit or 64-bit build? Release or Debug build?
 
 **On what OS version can you reproduce the bug?**
  * [ ] Windows 10
