@@ -5,25 +5,17 @@ title: '[Bug] ...'
 
 ---
 
-**What mCtrl version are you using?**
- ... (fill in version)
+**mCtrl version:**
+Specify mCtrl version here. Include whether it is 32-bit or 64-bit build and
+whether it is Release or Debug configuration.
 
- * [ ] 32-bit build
- * [ ] 64-bit build
+**Windows version:**
+Specify Windows version here. Is it 32-bit or 64-bit Windows? If relevant,
+specify version of other system components. For example if the bug is about
+the HTML control, it can be important what version of Microsoft Explorer is
+installed on the system.
 
- * [ ] Release build
- * [ ] Debug build
-
-**What's OS version where you can you reproduce the bug?**
- * [ ] Windows 10
- * [ ] Windows 8
- * [ ] Windows 7
- * [ ] Windows Vista
- * [ ] Windows XP
- * [ ] Windows 2000
- * [ ] Wine (not really supported but still good to know ;-)
-
-**Describe the bug**
+**Describe the bug:**
 Please describe the bug. The description should cover the following questions:
  1. What behavior do you expect?
  2. What behavior do you get?
