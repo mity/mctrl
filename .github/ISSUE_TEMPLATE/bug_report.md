@@ -1,23 +1,27 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
+title: '[Bug] ...'
 
 ---
 
 **What mCtrl version are you using?**
-Specify the version here. 32-bit or 64-bit build? Release or Debug build?
+ ... (fill in version)
 
-**On what OS version can you reproduce the bug?**
+ * [ ] 32-bit build
+ * [ ] 64-bit build
+
+ * [ ] Release build
+ * [ ] Debug build
+
+**What's OS version where you can you reproduce the bug?**
  * [ ] Windows 10
  * [ ] Windows 8
  * [ ] Windows 7
  * [ ] Windows Vista
  * [ ] Windows XP
  * [ ] Windows 2000
- * [ ] Wine (not really supported but good to know ;-)
+ * [ ] Wine (not really supported but still good to know ;-)
 
 **Describe the bug**
 Please describe the bug. The description should cover the following questions:
@@ -27,4 +31,4 @@ Please describe the bug. The description should cover the following questions:
 
 **Attachments**
 If it is possible (and relevant), please provide any code which can help to 
-reproduce the issue and/or a screenshot illustrating it.
+reproduce the issue and/or a screenshot illustrating what's wrong.
