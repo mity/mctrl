@@ -1,6 +1,10 @@
 ---
 name: Bug report
 about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 **What mCtrl version are you using?**
