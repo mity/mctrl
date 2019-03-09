@@ -107,6 +107,8 @@ dummy_IDWriteTextFormat*
 dwrite_create_text_format(const WCHAR* locale_name, const LOGFONTW* logfont,
                           dummy_DWRITE_FONT_METRICS* metrics)
 {
+    /* See https://github.com/Microsoft/Windows-classic-samples/blob/master/Samples/Win7Samples/multimedia/DirectWrite/RenderTest/TextHelpers.cpp */
+
     dummy_IDWriteTextFormat* tf = NULL;
     dummy_IDWriteGdiInterop* gdi_interop;
     dummy_IDWriteFont* font;
@@ -171,8 +173,8 @@ dwrite_create_text_format(const WCHAR* locale_name, const LOGFONTW* logfont,
     if(logfont->lfHeight < 0) {
         font_size = (float) -logfont->lfHeight;
     } else if(logfont->lfHeight > 0) {
-        font_size = ((float)metrics->ascent + (float)metrics->descent)
-                / (float)metrics->designUnitsPerEm;
+        font_size = (float)logfont->lfHeight * (float)metrics->designUnitsPerEm
+                    / (float)(metrics->ascent + metrics->descent);
     } else {
         font_size = 12.0f;
     }
