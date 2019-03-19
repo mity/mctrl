@@ -99,9 +99,9 @@ intersect_line_line(const Bounds* line1, const Bounds* line2)
 }
 
 static double
-dist_from_pole(double x, double y)
+dist_from_pole_squared(double x, double y)
 {
-    return sqrt(x * x + y * y);
+    return x * x + y * y;
 }
 
 static double
@@ -113,7 +113,7 @@ ray_length_until_intersect(double theta, const Bounds* line)
 static double
 max_safe_chroma_for_l(double l)
 {
-    double min_len = DBL_MAX;
+    double min_len_squared = DBL_MAX;
     Bounds bounds[6];
     int i;
 
@@ -124,29 +124,29 @@ max_safe_chroma_for_l(double l)
         /* x where line intersects with perpendicular running though (0, 0) */
         Bounds line2 = { -1.0 / m1, 0.0 };
         double x = intersect_line_line(&bounds[i], &line2);
-        double distance = dist_from_pole(x, b1 + x * m1);
+        double distance = dist_from_pole_squared(x, b1 + x * m1);
 
-        if(distance >= 0.0  &&  distance < min_len)
-            min_len = distance;
+        if(distance < min_len_squared)
+            min_len_squared = distance;
     }
 
-    return min_len;
+    return sqrt(min_len_squared);
 }
 
 static double
 max_chroma_for_lh(double l, double h)
 {
     double min_len = DBL_MAX;
-    double hrad = h * 0.01745329251994329577; /* (2 * pi / 260) */
+    double hrad = h * 0.01745329251994329577; /* (2 * pi / 360) */
     Bounds bounds[6];
     int i;
 
     get_bounds(l, bounds);
     for(i = 0; i < 6; i++) {
-        double l = ray_length_until_intersect(hrad, &bounds[i]);
+        double len = ray_length_until_intersect(hrad, &bounds[i]);
 
-        if(l >= 0  &&  l < min_len)
-            min_len = l;
+        if(len >= 0  &&  len < min_len)
+            min_len = len;
     }
     return min_len;
 }

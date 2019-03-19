@@ -20,7 +20,6 @@ add_library(mCtrl SHARED
     expand.c        expand.h        ../include/mCtrl/expand.h
     generic.c       generic.h
     grid.c          grid.h          ../include/mCtrl/grid.h
-    hsluv.c         hsluv.h
     html.c          html.h          ../include/mCtrl/html.h
     imgview.c       imgview.h       ../include/mCtrl/imgview.h
     labeledit.c     labeledit.h
@@ -43,7 +42,9 @@ add_library(mCtrl SHARED
 )
 
 add_dependencies(mCtrl windrawlib)
-target_link_libraries(mCtrl gdi32 comctl32 ole32 oleaut32 uuid windowscodecs windrawlib)
+target_link_libraries(mCtrl
+    gdi32 comctl32 ole32 oleaut32 uuid windowscodecs    # Windows SDK libs
+    hsluv-c windrawlib)                                 # Libs distributed with us
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)

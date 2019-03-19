@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/hsluv/hsluv-c
+	branch = master
+	commit = 702c6209fb328faf399b2b02832021e8502cf523
+	parent = 3fa0aa63727610eebf52854ed8dba6acb3bb8f4d
+	method = merge
+	cmdver = 0.4.0

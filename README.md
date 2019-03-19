@@ -3,8 +3,8 @@
 
 # mCtrl Readme
 
-* Home website: http://mctrl.org
-* Main code repo: http://github.com/mity/mctrl
+ * Home website: http://mctrl.org
+ * Main code repo: http://github.com/mity/mctrl
 
 
 ## What is mCtrl
@@ -24,12 +24,12 @@ function, the control can be normally created with the Win32API's functions
 You can always get the latest version and most actual information on project
 home site:
 
-* http://mctrl.org
+ * http://mctrl.org
 
 There are usually two packages for each release version available:
 
-* `mCtrl-x.y.z-bin.zip`: pre-built binary package
-* `mCtrl-x.y.z-src.zip`: source package
+ * `mCtrl-x.y.z-bin.zip`: pre-built binary package
+ * `mCtrl-x.y.z-src.zip`: source package
 
 The pre-built package contains 32-bit as well as 64-bit binaries of `MCTRL.DLL`
 and examples, and also documentation for application developers. The source
@@ -38,7 +38,7 @@ package is direct export of source tree from version control system repository.
 The current code (possibly untested and unstable) can also be cloned from git
 repository hosted on github:
 
-* http://github.com/mity/mctrl
+ * http://github.com/mity/mctrl
 
 
 ## Using mCtrl
@@ -142,9 +142,9 @@ $ ninja
 
 To build within [MSYS2](http://msys2.github.io), make sure you have these
 MSYS2 packages installed:
-* `make`
-* `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake` (for 32-bit build)
-* `mingw-w64-x86_64-gcc`, `mingw-w64-x86_64-cmake` (for 64-bit build)
+ * `make`
+ * `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake` (for 32-bit build)
+ * `mingw-w64-x86_64-gcc`, `mingw-w64-x86_64-cmake` (for 64-bit build)
 
 Then start MSYS2 shell with `mingw32_shell.bat` or `mingw64_shell.bat`
 respectively and follow the same instructions as above for MSYS + 
@@ -165,10 +165,10 @@ export CC=/path/to/the/desired/gcc
 
 Visual Studio 2017 supports CMake build system, so you may just follow these
 instructions.
-1. Start Visual Studio 2017.
-2. In menu File, choose submenu Open and Folder.
-3. In the open dialog, navigate to mCtrl main folder and open it.
-4. In menu CMake, choose Build all.
+ 1. Start Visual Studio 2017.
+ 2. In menu File, choose submenu Open and Folder.
+ 3. In the open dialog, navigate to mCtrl main folder and open it.
+ 4. In menu CMake, choose Build all.
 
 ### Build with Older Version of Microsoft Visual Studio
 
@@ -218,11 +218,12 @@ more information about licensing terms.
 Some source files and libraries incorporated into mCtrl may have different
 (but compatible) licensing terms and some may be put into the public domain:
 
-* Acutest (`tests/acutest.h`): MIT license
-* Examples (`examples/*`): Public domain
-* HSLuv-C (`src/hsluv.c`): MIT license
-* Unit tests (`tests/*.c`): Public domain
-* WinDrawLib (`windrawlib/`): MIT license
+ * Examples (`examples/*`): Public domain
+ * Unit tests (`tests/*.c`): Public domain
+ * 3rd party code:
+   * Acutest (`lib/acutest/`): MIT license
+   * HSLuv-C (`lib/hsluv-c/`): MIT license
+   * WinDrawLib (`lib/windrawlib/`): MIT license
 
 
 ## Reporting Bugs
@@ -230,15 +231,15 @@ Some source files and libraries incorporated into mCtrl may have different
 If you encounter any bug, please be so kind and report it. Unheard bugs cannot
 get fixed. You can submit bug reports here:
 
-* http://github.com/mity/mctrl/issues
+ * http://github.com/mity/mctrl/issues
 
 Please provide the following information with the bug report:
 
-* mCtrl version you are using.
-* Whether you use 32-bit or 64-bit build of mCtrl.
-* OS version where you reproduce the issue.
-* As explicit description of the issue as possible, i.e. what behavior
-  you expect and what behavior you see.
-  (Reports of the kind "it does not work." do not help).
-* If relevant, consider attaching a screenshot or some code reproducing
-  the issue.
+ * mCtrl version you are using.
+ * Whether you use 32-bit or 64-bit build of mCtrl.
+ * OS version where you reproduce the issue.
+ * As explicit description of the issue as possible, i.e. what behavior
+   you expect and what behavior you see.
+   (Reports of the kind "it does not work." do not help).
+ * If relevant, consider attaching a screenshot or some code reproducing
+   the issue.
