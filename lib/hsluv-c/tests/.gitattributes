@@ -1,0 +1,4 @@
+# See https://github.com/github/linguist#overrides
+acutest.h linguist-language=C
+snapshot.h linguist-language=C
+snapshot.h linguist-generated=true
