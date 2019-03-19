@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/hsluv/hsluv-c
 	branch = master
-	commit = 702c6209fb328faf399b2b02832021e8502cf523
-	parent = 3fa0aa63727610eebf52854ed8dba6acb3bb8f4d
+	commit = 4e0bad5b319f293b73f3fb04a7731d27491dbedd
+	parent = 08cce9c2f15c7809f26f7109c30b6c9654f22ec0
 	method = merge
 	cmdver = 0.4.0
