@@ -20,6 +20,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 # set up include-directories
 include_directories("${PROJECT_SOURCE_DIR}/include")
+include_directories("${PROJECT_SOURCE_DIR}/lib/acutest/include")
 include_directories("${PROJECT_SOURCE_DIR}/lib/hsluv-c/src")
 include_directories("${PROJECT_SOURCE_DIR}/lib/windrawlib/include")
 
