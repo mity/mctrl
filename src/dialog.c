@@ -49,16 +49,8 @@ struct dlg_font_tag {
 static const dlg_font_t*
 dlg_default_font(void)
 {
-    static const dlg_font_t font_shell_dlg =   { L"MS Shell Dlg", 8 };
-    static const dlg_font_t font_shell_dlg_2 = { L"MS Shell Dlg 2", 8 };
     static const dlg_font_t font_segoe_ui =    { L"Segoe UI", 9 };
-
-    if(mc_win_version >= MC_WIN_VISTA)
-        return &font_segoe_ui;
-    else if(mc_win_version >= MC_WIN_2000)
-        return &font_shell_dlg_2;
-    else
-        return &font_shell_dlg;
+    return &font_segoe_ui;
 }
 
 
