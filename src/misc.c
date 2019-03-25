@@ -349,14 +349,10 @@ static BOOL mc_use_LOAD_LIBRARY_SEARCH_SYSTEM32 = FALSE;
 static void
 setup_load_sys_dll(void)
 {
-    /* Win 2000 and XP does not support LOAD_LIBRARY_SEARCH_SYSTEM32. */
-    if(mc_win_version <= MC_WIN_XP)
-        return;
-
     /* Win Vista/7 prior the security update KB2533623 does not support
-     * the flag LOAD_LIBRARY_SEARCH_SYSTEM32 either. The update KB2533623
-     * also added AddDllDirectory() so we use that as the indicator whether
-     * we can use the flag. */
+     * the flag LOAD_LIBRARY_SEARCH_SYSTEM32. The update KB2533623 also added
+     * AddDllDirectory() so we use that as the indicator whether we can use
+     * the flag. */
     if(mc_win_version < MC_WIN_8) {
         if(GetProcAddress(mc_instance_kernel32, "AddDllDirectory") == NULL)
             return;
