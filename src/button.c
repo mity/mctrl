@@ -92,81 +92,6 @@ button_send_ctlcolorbtn(HWND win, HDC dc)
 }
 
 static void
-button_paint_icon(HWND win, button_t* button, HDC dc)
-{
-    HICON icon;
-    RECT rect;
-    RECT content;
-    int state;
-    SIZE size;
-    UINT flags;
-    HFONT font, old_font;
-    int old_bk_mode;
-    COLORREF old_text_color;
-    HRGN old_clip;
-
-    /* When theming is not used, we keep all the work on COMCTL32 button
-     * implementation. */
-    MC_ASSERT(button->theme != NULL);
-
-    GetClientRect(win, &rect);
-
-    icon = (HICON) MC_SEND(win, BM_GETIMAGE, IMAGE_ICON, 0);
-    font = (HFONT) MC_SEND(win, WM_GETFONT, 0, 0);
-    if(font == NULL)
-        font = GetStockObject(SYSTEM_FONT);
-
-    old_font = SelectObject(dc, font);
-    old_bk_mode = GetBkMode(dc);
-    old_text_color = GetTextColor(dc);
-    old_clip = get_clip(dc);
-
-    /* Draw background */
-    if(button->style & WS_DISABLED) {
-        state = PBS_DISABLED;
-    } else {
-        LRESULT s = MC_SEND(win, BM_GETSTATE, 0, 0);
-        if(s & BST_PUSHED)
-            state = PBS_PRESSED;
-        else if(s & BST_HOT)
-            state = PBS_HOT;
-        else if(button->style & BS_DEFPUSHBUTTON)
-            state = PBS_DEFAULTED;
-        else
-            state = PBS_NORMAL;
-    }
-    if(mcIsThemeBackgroundPartiallyTransparent(button->theme, BP_PUSHBUTTON, state))
-        mcDrawThemeParentBackground(win, dc, &rect);
-    mcDrawThemeBackground(button->theme, dc, BP_PUSHBUTTON, state, &rect, &rect);
-
-    /* Get content rectangle of the button and clip DC to it */
-    mcGetThemeBackgroundContentRect(button->theme, dc, BP_PUSHBUTTON, state, &rect, &content);
-    IntersectClipRect(dc, content.left, content.top, content.right, content.bottom);
-
-    /* Draw focus rectangle */
-    if(MC_SEND(win, BM_GETSTATE, 0, 0) & BST_FOCUS) {
-        if(!button->hide_focus)
-            DrawFocusRect(dc, &content);
-    }
-
-    /* Draw the contents (i.e. the icon) */
-    if(icon != NULL) {
-        mc_icon_size(icon, &size);
-        flags = DST_ICON;
-        if(button->style & WS_DISABLED)
-            flags |= DSS_DISABLED;
-        DrawState(dc, NULL, NULL, (LPARAM) icon, 0, (rect.right + rect.left - size.cx) / 2,
-                  (rect.bottom + rect.top - size.cy) / 2, size.cx, size.cy, flags);
-    }
-
-    /* Revert DC into original state */
-    SelectObject(dc, old_font);
-    SetBkMode(dc, old_bk_mode);
-    SetTextColor(dc, old_text_color);
-    SelectObject(dc, old_clip);
-}
-
-static void
 button_paint_split(HWND win, button_t* button, HDC dc)
 {
     RECT rect;
@@ -461,16 +386,6 @@ button_is_fake_split(button_t* button)
     return FALSE;
 }
 
-static BOOL
-button_is_fake_icon(button_t* button)
-{
-    if(!(button->style & BS_ICON))
-        return FALSE;
-
-    /* Win XP do not paint BS_ICON with themes even when themes enabled. */
-    return (mc_win_version < MC_WIN_VISTA  &&  button->theme != NULL);
-}
-
 static LRESULT CALLBACK
 button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -487,36 +402,23 @@ button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-        case WM_PRINTCLIENT:
-        {
-            BOOL fake_split;
-            BOOL fake_icon;
-            PAINTSTRUCT ps;
-            HDC dc;
+            if(button_is_fake_split(button)) {
+                PAINTSTRUCT ps;
+                HDC dc;
 
-            fake_split = button_is_fake_split(button);
-            fake_icon = button_is_fake_icon(button);
-            if(!fake_split  &&  !fake_icon) {
-                /* Keep it on original proc */
-                break;
-            }
-
-            if(msg == WM_PAINT)
                 dc = BeginPaint(win, &ps);
-            else
-                dc = (HDC) wp;
-
-            if(!button->no_redraw) {
-                if(fake_split)
-                    button_paint_split(win, button, dc);
-                else
-                    button_paint_icon(win, button, dc);
-            }
-
-            if(msg == WM_PAINT)
+                button_paint_split(win, button, dc);
                 EndPaint(win, &ps);
-            return 0;
-        }
+                return 0;
+            }
+            break;
+
+        case WM_PRINTCLIENT:
+            if(button_is_fake_split(button)) {
+                button_paint_split(win, button, (HDC) wp);
+                return 0;
+            }
+            break;
 
         case WM_LBUTTONDOWN:
             if(button_is_fake_split(button)) {
@@ -716,7 +618,7 @@ button_init_module(void)
     orig_button_proc = wc.lpfnWndProc;
     extra_offset = wc.cbWndExtra;
 
-    /* On Win7 we do not need to emulate anzthing, so we are just alias class
+    /* On Win7 we do not need to emulate anything, so we are just alias class
      * of the standard button. */
     if(mc_win_version < MC_WIN_7  ||  mc_comctl32_version < MC_DLL_VER(6, 0)) {
         wc.lpfnWndProc = button_proc;
