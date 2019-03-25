@@ -27,7 +27,7 @@
 #define XCOM_MODE_MCTRL         2
 
 static volatile int xcom_mode = XCOM_MODE_UNKNOWN;
-static mc_mutex_t xcom_mutex;
+static mc_mutex_t xcom_mutex = MC_MUTEX_INIT;
 
 
 void*
@@ -98,16 +98,4 @@ xcom_uninit(void)
 {
     if(xcom_mode == XCOM_MODE_MCTRL)
         CoUninitialize();
-}
-
-void
-xcom_dllmain_init(void)
-{
-    mc_mutex_init(&xcom_mutex);
-}
-
-void
-xcom_dllmain_fini(void)
-{
-    mc_mutex_fini(&xcom_mutex);
 }

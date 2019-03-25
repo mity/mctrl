@@ -138,7 +138,7 @@ struct mem_info_tag {
 #define MEM_HASHTABLE_INDEX(mem) ((ULONG_PTR)(mem) % MEM_HASHTABLE_SIZE)
 static mem_info_t* mem_hashtable[MEM_HASHTABLE_SIZE] = { 0 };
 static HANDLE mem_heap;
-static mc_mutex_t mem_mutex;
+static mc_mutex_t mem_mutex = MC_MUTEX_INIT;
 
 
 /* Head and tail bytes are prepended/appended to the allocated memory
@@ -295,8 +295,6 @@ debug_free(const char* fname, int line, void* mem)
 void
 debug_dllmain_init(void)
 {
-    mc_mutex_init(&mem_mutex);
-
     /* We guard the heap with our own locking as we need the critical section
      * around it anyway. Hence HEAP_NO_SERIALIZE. */
     mem_heap = HeapCreate(HEAP_NO_SERIALIZE, 1024 * 16 * sizeof(mem_info_t), 0);
@@ -348,7 +346,6 @@ debug_dllmain_fini(void)
 
     /* Uninitialize */
     HeapDestroy(mem_heap);
-    mc_mutex_fini(&mem_mutex);
 }
 
 #else  /* #if defined DEBUG && DEBUG >= 2 */

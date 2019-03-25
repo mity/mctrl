@@ -19,7 +19,7 @@
 #include "mousedrag.h"
 
 
-static mc_mutex_t mousedrag_mutex;
+static mc_mutex_t mousedrag_mutex = MC_MUTEX_INIT;
 
 static BOOL mousedrag_running = FALSE;
 static HWND mousedrag_win = NULL;
@@ -141,16 +141,4 @@ void
 mousedrag_unlock(void)
 {
     mc_mutex_unlock(&mousedrag_mutex);
-}
-
-void
-mousedrag_dllmain_init(void)
-{
-    mc_mutex_init(&mousedrag_mutex);
-}
-
-void
-mousedrag_dllmain_fini(void)
-{
-    mc_mutex_fini(&mousedrag_mutex);
 }

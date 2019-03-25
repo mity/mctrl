@@ -23,19 +23,7 @@
  *** Module abstraction ***
  **************************/
 
-static mc_mutex_t mod_mutex;
-
-void
-module_dllmain_init(void)
-{
-    mc_mutex_init(&mod_mutex);
-}
-
-void
-module_dllmain_fini(void)
-{
-    mc_mutex_fini(&mod_mutex);
-}
+static mc_mutex_t mod_mutex = MC_MUTEX_INIT;
 
 
 /* Module structure */

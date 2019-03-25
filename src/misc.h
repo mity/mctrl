@@ -215,27 +215,28 @@ extern HIMAGELIST mc_bmp_glyphs;
  *** Light-Weight Mutex ***
  **************************/
 
-/* Beware: Our mutex is not recursive. */
+/* Our mutex is implemented as a SRWLock (strictly with the exclusive locking).
+ * This is more light-weight then CRITICAL_SECTION, and also fail-free.
+ *
+ * Beware: Our mutex is not recursive.
+ */
 
-typedef char mc_mutex_t[sizeof(CRITICAL_SECTION)];
-
-extern void (WINAPI* mc_mutex_lock_fn_)(void*);  /* Do not call these directly. */
-extern void (WINAPI* mc_mutex_unlock_fn_)(void*);
+typedef SRWLOCK mc_mutex_t;
 
 
-void mc_mutex_init(mc_mutex_t* mutex);
-void mc_mutex_fini(mc_mutex_t* mutex);
+#define MC_MUTEX_INIT       SRWLOCK_INIT
+
 
 static inline void
 mc_mutex_lock(mc_mutex_t* mutex)
 {
-    mc_mutex_lock_fn_((void*) mutex);
+    AcquireSRWLockExclusive(mutex);
 }
 
 static inline void
 mc_mutex_unlock(mc_mutex_t* mutex)
 {
-    mc_mutex_unlock_fn_((void*) mutex);
+    ReleaseSRWLockExclusive(mutex);
 }
 
 

@@ -19,7 +19,7 @@
 #include "mousewheel.h"
 
 
-static mc_mutex_t mousewheel_mutex;
+static mc_mutex_t mousewheel_mutex = MC_MUTEX_INIT;
 
 
 int
@@ -80,16 +80,4 @@ mousewheel_scroll(HWND win, int delta, int page, BOOL is_vertical)
 
     mc_mutex_unlock(&mousewheel_mutex);
     return (is_vertical ? -lines : lines);
-}
-
-void
-mousewheel_dllmain_init(void)
-{
-    mc_mutex_init(&mousewheel_mutex);
-}
-
-void
-mousewheel_dllmain_fini(void)
-{
-    mc_mutex_fini(&mousewheel_mutex);
 }

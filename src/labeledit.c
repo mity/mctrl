@@ -31,7 +31,7 @@ struct labeledit_data_tag {
     BOOL want_save;
 };
 
-static mc_mutex_t labeledit_mutex;
+static mc_mutex_t labeledit_mutex = MC_MUTEX_INIT;
 static labeledit_data_t* labeledit_current = NULL;
 static HWND labeledit_current_parent_win = NULL;
 static WNDPROC labeledit_orig_proc = NULL;
@@ -189,16 +189,4 @@ labeledit_win(HWND parent_win)
     }
 
     return edit_win;
-}
-
-void
-labeledit_dllmain_init(void)
-{
-    mc_mutex_init(&labeledit_mutex);
-}
-
-void
-labeledit_dllmain_fini(void)
-{
-    mc_mutex_fini(&labeledit_mutex);
 }

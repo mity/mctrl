@@ -704,7 +704,7 @@ menubar_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
  *** Hot Tracking ***
  ********************/
 
-static mc_mutex_t menubar_ht_mutex;
+static mc_mutex_t menubar_ht_mutex = MC_MUTEX_INIT;
 static HHOOK menubar_ht_hook = NULL;
 static menubar_t* menubar_ht_mb = NULL;
 static HMENU menubar_ht_sel_menu = NULL;
@@ -904,15 +904,12 @@ menubar_init_module(void)
         return -1;
     }
 
-    mc_mutex_init(&menubar_ht_mutex);
-
     return 0;
 }
 
 void
 menubar_fini_module(void)
 {
-    mc_mutex_fini(&menubar_ht_mutex);
     UnregisterClass(menubar_wc, NULL);
 }
 
