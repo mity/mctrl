@@ -17,7 +17,6 @@
  */
 
 #include "imgview.h"
-#include "theme.h"
 
 #include "xdraw.h"
 
@@ -61,7 +60,7 @@ imgview_paint(void* ctrl, xdraw_ctx_t* ctx)
 
             dc = wdStartGdi(canvas, FALSE);
             if(dc != NULL) {
-                mcDrawThemeParentBackground(iv->win, dc, NULL);
+                DrawThemeParentBackground(iv->win, dc, NULL);
                 wdEndGdi(canvas, dc);
             } else {
                 MC_TRACE("imgview_paint_to_canvas: wdStartGdi() failed.");

@@ -32,7 +32,6 @@ add_library(mCtrl SHARED
     resource.h      resource.rc
     rgn16.c         rgn16.h
     table.c         table.h         ../include/mCtrl/table.h
-    theme.c         theme.h
     tooltip.c       tooltip.h
     treelist.c      treelist.h      ../include/mCtrl/treelist.h
     version.c       version.h.in
@@ -43,8 +42,8 @@ add_library(mCtrl SHARED
 
 add_dependencies(mCtrl windrawlib)
 target_link_libraries(mCtrl
-    gdi32 comctl32 ole32 oleaut32 uuid windowscodecs    # Windows SDK libs
-    hsluv-c windrawlib)                                 # Libs distributed with us
+    gdi32 comctl32 ole32 oleaut32 uuid uxtheme windowscodecs    # Windows SDK libs
+    hsluv-c windrawlib)                                         # Libs distributed with us
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)

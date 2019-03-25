@@ -27,6 +27,9 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <shlwapi.h>
+#include <vssym32.h>
+#include <vsstyle.h>
+#include <uxtheme.h>
 #include <wingdi.h>
 
 /*#include <windowsx.h>*/

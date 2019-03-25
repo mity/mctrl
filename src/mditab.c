@@ -22,7 +22,6 @@
 #include "dwm.h"
 #include "generic.h"
 #include "mousedrag.h"
-#include "theme.h"
 #include "tooltip.h"
 #include "xdraw.h"
 

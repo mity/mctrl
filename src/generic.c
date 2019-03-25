@@ -51,9 +51,9 @@ generic_ncpaint(HWND win, HTHEME theme, HRGN orig_clip)
     mc_rect_offset(&rect, -rect.left, -rect.top);
     dc = GetWindowDC(win);
     ExcludeClipRect(dc, edge_h, edge_v, rect.right - 2*edge_h, rect.bottom - 2*edge_v);
-    if(mcIsThemeBackgroundPartiallyTransparent(theme, 0, 0))
-        mcDrawThemeParentBackground(win, dc, &rect);
-    mcDrawThemeBackground(theme, dc, 0, 0, &rect, NULL);
+    if(IsThemeBackgroundPartiallyTransparent(theme, 0, 0))
+        DrawThemeParentBackground(win, dc, &rect);
+    DrawThemeBackground(theme, dc, 0, 0, &rect, NULL);
     ReleaseDC(win, dc);
 
     /* Use DefWindowProc() to paint scrollbars */
@@ -70,7 +70,7 @@ generic_erasebkgnd(HWND win, HTHEME theme, HDC dc)
     HBRUSH brush;
 
     GetClientRect(win, &rect);
-    brush = mcGetThemeSysColorBrush(theme, COLOR_WINDOW);
+    brush = GetThemeSysColorBrush(theme, COLOR_WINDOW);
     FillRect(dc, &rect, brush);
     DeleteObject(brush);
     return TRUE;

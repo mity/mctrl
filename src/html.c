@@ -28,7 +28,6 @@
  */
 
 #include "html.h"
-#include "theme.h"
 #include "xcom.h"
 
 #include <exdisp.h>    /* IWebBrowser2 */
@@ -891,7 +890,7 @@ ui_handler_GetHostInfo(IDocHostUIHandler* self, DOCHOSTUIINFO* info)
     info->dwFlags |= DOCHOSTUIFLAG_NO3DOUTERBORDER;
 
     /* Check whether the controls on HTML page should use XP theming. */
-    if(mcIsAppThemed()) {
+    if(IsAppThemed()) {
         info->dwFlags &= ~DOCHOSTUIFLAG_NOTHEME;
         info->dwFlags |= DOCHOSTUIFLAG_THEME;
     } else {

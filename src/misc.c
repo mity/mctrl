@@ -19,7 +19,6 @@
 #include "misc.h"
 #include "compat.h"
 #include "module.h"
-#include "theme.h"
 #include "xcom.h"
 
 #include <wdl.h>

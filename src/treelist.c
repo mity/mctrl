@@ -19,7 +19,6 @@
 #include "treelist.h"
 #include "generic.h"
 #include "mousewheel.h"
-#include "theme.h"
 #include "tooltip.h"
 
 
@@ -811,14 +810,14 @@ treelist_label_rect(treelist_t* tl, HDC dc, const TCHAR* str, UINT dtjustify,
     if(tl->theme != NULL  &&  tl->theme_treeitem_defined) {
 #if 0
         /* What the hack???
-         * For some reason mcGetThemeBackgroundContentRect() gets very
+         * For some reason GetThemeBackgroundContentRect() gets very
          * small borders with standard win7 style and so it seems std. controls
          * probably do not rely on it.
          */
 
         RECT tmp;
         mc_rect_copy(&tmp, rect);
-        mcGetThemeBackgroundContentRect(tl->theme, dc, TVP_TREEITEM,
+        GetThemeBackgroundContentRect(tl->theme, dc, TVP_TREEITEM,
                         0, &tmp, rect);
         *padding_h = rect->left - tmp.left;
         *padding_v = rect->top - tmp.top;
@@ -865,7 +864,7 @@ treelist_paint_lines(treelist_t* tl, treelist_item_t* item, int level, HDC dc,
     int x, y;
 
     lb.lbStyle = BS_SOLID;
-    lb.lbColor = mcGetThemeSysColor(tl->theme, COLOR_GRAYTEXT);
+    lb.lbColor = GetThemeSysColor(tl->theme, COLOR_GRAYTEXT);
     pen = ExtCreatePen(PS_COSMETIC | PS_ALTERNATE, 1, &lb, 0, NULL);
     old_pen = SelectObject(dc, pen);
 
@@ -910,8 +909,7 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
         DWORD pos;
         POINT pt;
 
-        mcGetThemePartSize(tl->theme, dc, part, state,
-                               NULL, TS_DRAW, &glyph_size);
+        GetThemePartSize(tl->theme, dc, part, state, NULL, TS_DRAW, &glyph_size);
         r.left = (rect->left + rect->right - glyph_size.cx) / 2;
         r.top = (rect->top + rect->bottom - glyph_size.cy + 1) / 2;
         r.right = r.left + glyph_size.cx;
@@ -925,7 +923,7 @@ treelist_paint_button(treelist_t* tl, treelist_item_t* item, HDC dc, RECT* rect)
         if(item == tl->hotbutton_item  &&  tl->theme_hotglyph_defined)
             part = TVP_HOTGLYPH;
 
-        mcDrawThemeBackground(tl->theme, dc, part, state, &r, NULL);
+        DrawThemeBackground(tl->theme, dc, part, state, &r, NULL);
     } else {
         int w = mc_width(rect);
         int h = mc_height(rect);
@@ -1037,7 +1035,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         HPEN pen;
         HPEN old_pen;
 
-        pen = CreatePen(PS_SOLID, 1, mcGetThemeSysColor(tl->theme, COLOR_3DFACE));
+        pen = CreatePen(PS_SOLID, 1, GetThemeSysColor(tl->theme, COLOR_3DFACE));
         old_pen = SelectObject(dc, pen);
 
         for(y = header_height + tl->item_height - 1; y < rect.bottom; y += tl->item_height) {
@@ -1222,7 +1220,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                    (paint_selected  ||  (theme_treeitem_defined && state != TREIS_NORMAL)))
                     subitem_rect.right = tl->scroll_x_max - tl->scroll_x;
                 if(theme_treeitem_defined  &&  state != TREIS_NORMAL) {
-                    mcDrawThemeBackground(tl->theme, dc,
+                    DrawThemeBackground(tl->theme, dc,
                             TVP_TREEITEM, state, &subitem_rect, NULL);
                 } else {
                     RECT* r;
@@ -1239,7 +1237,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 /* Paint label of the main item */
                 mc_rect_inflate(&label_rect, -padding_h, -padding_v);
                 if(theme_treeitem_defined) {
-                    mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
+                    DrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
                                     dispinfo.text, -1, ITEM_DTFLAGS, 0, &label_rect);
                     if(!(tl->style & MC_TLS_FULLROWSELECT))
                         state = TREIS_NORMAL;
@@ -1266,7 +1264,7 @@ treelist_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
                 mc_rect_inflate(&subitem_rect, -padding_h, -padding_v);
 
                 if(theme_treeitem_defined) {
-                    mcDrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
+                    DrawThemeText(tl->theme, dc, TVP_TREEITEM, state,
                             subdispinfo.text, -1, ITEM_DTFLAGS | justify,
                             0, &subitem_rect);
                 } else {
@@ -3693,19 +3691,19 @@ treelist_notify_format(treelist_t* tl)
 static void
 treelist_open_theme(treelist_t* tl)
 {
-    tl->theme = mcOpenThemeData(tl->win, treelist_tc);
+    tl->theme = OpenThemeData(tl->win, treelist_tc);
 
     tl->theme_treeitem_defined = (tl->theme != NULL  &&
-                mcIsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
+                IsThemePartDefined(tl->theme, TVP_TREEITEM, 0));
     tl->theme_hotglyph_defined = (tl->theme != NULL  &&
-                mcIsThemePartDefined(tl->theme, TVP_HOTGLYPH, 0));
+                IsThemePartDefined(tl->theme, TVP_HOTGLYPH, 0));
 }
 
 static void
 treelist_theme_changed(treelist_t* tl)
 {
     if(tl->theme)
-        mcCloseThemeData(tl->theme);
+        CloseThemeData(tl->theme);
 
     treelist_open_theme(tl);
 
@@ -3851,7 +3849,7 @@ treelist_destroy(treelist_t* tl)
     }
 
     if(tl->theme) {
-        mcCloseThemeData(tl->theme);
+        CloseThemeData(tl->theme);
         tl->theme = NULL;
     }
 }
@@ -4162,7 +4160,7 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case CCM_SETWINDOWTHEME:
-            mcSetWindowTheme(win, (const WCHAR*) lp, NULL);
+            SetWindowTheme(win, (const WCHAR*) lp, NULL);
             return 0;
 
         case WM_NCCREATE:

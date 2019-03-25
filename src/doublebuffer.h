@@ -20,7 +20,6 @@
 #define MC_DOUBLEBUFFER_H
 
 #include "misc.h"
-#include "theme.h"
 
 
 typedef struct doublebuffer_tag doublebuffer_t;

@@ -21,7 +21,6 @@
 
 #include "misc.h"
 #include "doublebuffer.h"
-#include "theme.h"
 
 
 /* "Generic" implementations of some standard control messages. */

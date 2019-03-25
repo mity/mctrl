@@ -22,13 +22,13 @@
 void
 doublebuffer_init(void)
 {
-    mcBufferedPaintInit();
+    BufferedPaintInit();
 }
 
 void
 doublebuffer_fini(void)
 {
-    mcBufferedPaintUnInit();
+    BufferedPaintUnInit();
 }
 
 HDC
@@ -37,7 +37,7 @@ doublebuffer_open(doublebuffer_t* dblbuf, HDC dc, const RECT* rect)
     BP_PAINTPARAMS params = { sizeof(BP_PAINTPARAMS), BPPF_NOCLIP, NULL, NULL };
     HDC dc_buffered;
 
-    dblbuf->uxtheme_buf = mcBeginBufferedPaint(dc, rect, BPBF_TOPDOWNDIB, &params, &dc_buffered);
+    dblbuf->uxtheme_buf = BeginBufferedPaint(dc, rect, BPBF_TOPDOWNDIB, &params, &dc_buffered);
     if(MC_ERR(dblbuf->uxtheme_buf == NULL)) {
         MC_TRACE("doublebuffer_open: mcBeginBufferedPaint() failed.");
         /* We shall painting directly, without the double-buffering. */
@@ -51,5 +51,5 @@ void
 doublebuffer_close(doublebuffer_t* dblbuf, BOOL blit)
 {
     if(dblbuf->uxtheme_buf != NULL)
-        mcEndBufferedPaint(dblbuf->uxtheme_buf, blit);
+        EndBufferedPaint(dblbuf->uxtheme_buf, blit);
 }

@@ -23,7 +23,6 @@
 #include "mousewheel.h"
 #include "rgn16.h"
 #include "table.h"
-#include "theme.h"
 
 
 /* Uncomment this to have more verbose traces about MC_GRID control. */
@@ -849,14 +848,14 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
                 state = LISS_NORMAL;
             }
 
-            mcDrawThemeBackground(grid->theme_listview, dc, LVP_LISTITEM, state, rect, NULL);
+            DrawThemeBackground(grid->theme_listview, dc, LVP_LISTITEM, state, rect, NULL);
         } else if(back_color != MC_CLR_NONE  &&  back_color != MC_CLR_DEFAULT) {
             SetBkColor(dc, back_color);
             ExtTextOut(dc, 0, 0, ETO_OPAQUE, rect, NULL, 0, NULL);
         }
     } else {
         if(grid->theme_header != NULL) {
-            mcDrawThemeBackground(grid->theme_header, dc,
+            DrawThemeBackground(grid->theme_header, dc,
                                   HP_HEADERITEM, HIS_NORMAL, rect, NULL);
         } else {
             DrawEdge(dc, rect, BDR_RAISEDINNER, BF_MIDDLE | BF_RECT);
@@ -879,8 +878,8 @@ grid_paint_cell(grid_t* grid, WORD col, WORD row, table_cell_t* cell,
         }
 
         if(grid->theme_listitem_defined) {
-            mcDrawThemeText(grid->theme_listview, dc, LVP_LISTITEM, state,
-                            di.text, -1, dt_flags, 0, &content);
+            DrawThemeText(grid->theme_listview, dc, LVP_LISTITEM, state,
+                          di.text, -1, dt_flags, 0, &content);
         } else {
             SetTextColor(dc, text_color);
             DrawText(dc, di.text, -1, &content, dt_flags);
@@ -993,7 +992,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
     if(erase) {
         HBRUSH brush;
 
-        brush = mcGetThemeSysColorBrush(grid->theme_listview, COLOR_WINDOW);
+        brush = GetThemeSysColorBrush(grid->theme_listview, COLOR_WINDOW);
         FillRect(dc, &client, brush);
         DeleteObject(brush);
     }
@@ -1147,7 +1146,7 @@ grid_paint(void* control, HDC dc, RECT* dirty, BOOL erase)
         else
             mc_clip_set(dc, header_w, header_h, client.right, client.bottom);
 
-        pen = CreatePen(PS_SOLID, 0, mcGetThemeSysColor(grid->theme_listview, COLOR_3DFACE));
+        pen = CreatePen(PS_SOLID, 0, GetThemeSysColor(grid->theme_listview, COLOR_3DFACE));
         old_pen = SelectObject(dc, pen);
 
         x = x0 - 1;
@@ -3359,22 +3358,22 @@ grid_open_theme(grid_t* grid)
     /* Let only the list-view theme class associate with the window handle.
      * It is more significant then the header, so let GetWindowTheme()
      * return that one to the app. */
-    grid->theme_header = mcOpenThemeData(NULL, grid_header_tc);
-    grid->theme_listview = mcOpenThemeData(grid->win, grid_listview_tc);
+    grid->theme_header = OpenThemeData(NULL, grid_header_tc);
+    grid->theme_listview = OpenThemeData(grid->win, grid_listview_tc);
 
     grid->theme_listitem_defined = (grid->theme_listview != NULL  &&
-                    mcIsThemePartDefined(grid->theme_listview, LVP_LISTITEM, 0));
+                    IsThemePartDefined(grid->theme_listview, LVP_LISTITEM, 0));
 }
 
 static void
 grid_close_theme(grid_t* grid)
 {
     if(grid->theme_header) {
-        mcCloseThemeData(grid->theme_header);
+        CloseThemeData(grid->theme_header);
         grid->theme_header = NULL;
     }
     if(grid->theme_listview) {
-        mcCloseThemeData(grid->theme_listview);
+        CloseThemeData(grid->theme_listview);
         grid->theme_listview = NULL;
     }
 }
@@ -3791,7 +3790,7 @@ grid_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         case CCM_SETWINDOWTHEME:
-            mcSetWindowTheme(win, (const WCHAR*) lp, NULL);
+            SetWindowTheme(win, (const WCHAR*) lp, NULL);
             return 0;
 
         case WM_NCCREATE:

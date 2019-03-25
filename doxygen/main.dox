@@ -52,7 +52,6 @@
  * @subsection toc_util Utility Headers
  * - @ref mctrl.h - All-in-one header
  * - @ref mCtrl/dialog.h - Dialog functions
- * - @ref mCtrl/theme.h - Theme wrapper functions
  * - @ref mCtrl/version.h - Retrieving mCtrl version
  *
  * @subsection toc_misc Miscellaneous Headers

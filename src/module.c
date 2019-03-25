@@ -141,25 +141,24 @@ DEFINE_MODULE(html);
 DEFINE_MODULE(imgview);
 DEFINE_MODULE(mditab);
 DEFINE_MODULE(menubar);
-DEFINE_MODULE(theme);
 DEFINE_MODULE(treelist);
 
 
 /* Public interfaces of exposed modules */
 
-static module_t* mod_button_deps[] = { &mod_mc, &mod_theme, &mod_button };
+static module_t* mod_button_deps[] = { &mod_mc, &mod_button };
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
 
-static module_t* mod_chart_deps[] = { &mod_mc, &mod_theme, &mod_chart };
+static module_t* mod_chart_deps[] = { &mod_mc, &mod_chart };
 DEFINE_PUBLIC_IFACE(chart, Chart, mod_chart_deps)
 
-static module_t* mod_expand_deps[] = { &mod_mc, &mod_theme, &mod_expand };
+static module_t* mod_expand_deps[] = { &mod_mc, &mod_expand };
 DEFINE_PUBLIC_IFACE(expand, Expand, mod_expand_deps)
 
-static module_t* mod_grid_deps[] = { &mod_mc, &mod_theme, &mod_grid };
+static module_t* mod_grid_deps[] = { &mod_mc, &mod_grid };
 DEFINE_PUBLIC_IFACE(grid, Grid, mod_grid_deps)
 
-static module_t* mod_html_deps[] = { &mod_mc, &mod_theme, &mod_html };
+static module_t* mod_html_deps[] = { &mod_mc, &mod_html };
 DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 
 static module_t* mod_imgview_deps[] = { &mod_mc, &mod_imgview };
@@ -168,11 +167,8 @@ DEFINE_PUBLIC_IFACE(imgview, ImgView, mod_imgview_deps)
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_dwm, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
-static module_t* mod_menubar_deps[] = { &mod_mc, &mod_theme, &mod_menubar };
+static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
 DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)
 
-static module_t* mod_theme_deps[] = { &mod_mc, &mod_theme };
-DEFINE_PUBLIC_IFACE(theme, Theme, mod_theme_deps)
-
-static module_t* mod_treelist_deps[] = { &mod_mc, &mod_theme, &mod_treelist };
+static module_t* mod_treelist_deps[] = { &mod_mc, &mod_treelist };
 DEFINE_PUBLIC_IFACE(treelist, TreeList, mod_treelist_deps)

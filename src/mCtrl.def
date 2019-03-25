@@ -1,19 +1,9 @@
 EXPORTS
     DllGetVersion
-    mcBeginBufferedAnimation
-    mcBeginBufferedPaint
-    mcBeginPanningFeedback
-    mcBufferedPaintClear
-    mcBufferedPaintClear
-    mcBufferedPaintInit
-    mcBufferedPaintRenderAnimation
-    mcBufferedPaintStopAllAnimations
-    mcBufferedPaintUnInit
     mcButton_Initialize
     mcButton_Terminate
     mcChart_Initialize
     mcChart_Terminate
-    mcCloseThemeData
     mcCreateDialogIndirectParamA
     mcCreateDialogIndirectParamW
     mcCreateDialogParamA
@@ -22,82 +12,21 @@ EXPORTS
     mcDialogBoxIndirectParamW
     mcDialogBoxParamA
     mcDialogBoxParamW
-    mcDrawThemeBackground
-    mcDrawThemeBackgroundEx
-    mcDrawThemeEdge
-    mcDrawThemeIcon
-    mcDrawThemeParentBackground
-    mcDrawThemeParentBackgroundEx
-    mcDrawThemeText
-    mcDrawThemeTextEx
-    mcEnableThemeDialogTexture
-    mcEndBufferedAnimation
-    mcEndBufferedPaint
-    mcEndPanningFeedback
     mcExpand_Initialize
     mcExpand_Terminate
-    mcGetBufferedPaintBits
-    mcGetBufferedPaintDC
-    mcGetBufferedPaintTargetDC
-    mcGetBufferedPaintTargetRect
-    mcGetCurrentThemeName
-    mcGetThemeAppProperties
-    mcGetThemeBackgroundContentRect
-    mcGetThemeBackgroundExtent
-    mcGetThemeBackgroundRegion
-    mcGetThemeBitmap
-    mcGetThemeBool
-    mcGetThemeColor
-    mcGetThemeDocumentationProperty
-    mcGetThemeEnumValue
-    mcGetThemeFilename
-    mcGetThemeFont
-    mcGetThemeInt
-    mcGetThemeIntList
-    mcGetThemeMargins
-    mcGetThemeMetric
-    mcGetThemePartSize
-    mcGetThemePosition
-    mcGetThemePropertyOrigin
-    mcGetThemeRect
-    mcGetThemeStream
-    mcGetThemeString
-    mcGetThemeSysBool
-    mcGetThemeSysColor
-    mcGetThemeSysColorBrush
-    mcGetThemeSysFont
-    mcGetThemeSysInt
-    mcGetThemeSysSize
-    mcGetThemeSysString
-    mcGetThemeTextExtent
-    mcGetThemeTextMetrics
-    mcGetThemeTransitionDuration
-    mcGetWindowTheme
     mcGrid_Initialize
     mcGrid_Terminate
-    mcHitTestThemeBackground
     mcHtml_Initialize
     mcHtml_Terminate
     mcImgView_Initialize
     mcImgView_Terminate
-    mcIsAppThemed
-    mcIsCompositionActive
     mcIsMenubarMessage
-    mcIsThemeActive
-    mcIsThemeBackgroundPartiallyTransparent
-    mcIsThemeDialogTextureEnabled
-    mcIsThemePartDefined
     mcMditab_DefWindowProc
     mcMditab_Initialize
     mcMditab_Terminate
     mcMenubar_HandleRebarChevronPushed
     mcMenubar_Initialize
     mcMenubar_Terminate
-    mcOpenThemeData
-    mcOpenThemeDataEx
-    mcSetThemeAppProperties
-    mcSetWindowTheme
-    mcSetWindowThemeAttribute
     mcTable_AddRef
     mcTable_Clear
     mcTable_ColumnCount
@@ -109,9 +38,6 @@ EXPORTS
     mcTable_RowCount
     mcTable_SetCellA
     mcTable_SetCellW
-    mcTheme_Initialize
-    mcTheme_Terminate
     mcTreeList_Initialize
     mcTreeList_Terminate
-    mcUpdatePanningFeedback
     mcVersion

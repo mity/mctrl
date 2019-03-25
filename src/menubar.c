@@ -17,7 +17,6 @@
  */
 
 #include "menubar.h"
-#include "theme.h"
 
 
 /* The MenuBar implementation is partially based on the MSDN article "How to
@@ -255,7 +254,7 @@ menubar_perform_dropdown(menubar_t* mb)
 
         MENUBAR_SENDMSG(mb->win, TB_GETITEMRECT, item, &pmparams.rcExclude);
 
-        if(mc_win_version >= MC_WIN_VISTA  &&  mcIsAppThemed()) {
+        if(mc_win_version >= MC_WIN_VISTA  &&  IsAppThemed()) {
             /* Fix for consistency with a native menu on newer Windows
              * when styles are enabled. */
             pmparams.rcExclude.bottom--;
@@ -350,7 +349,7 @@ menubar_notify(menubar_t* mb, NMHDR* hdr)
             NMTBCUSTOMDRAW* info = (NMTBCUSTOMDRAW*) hdr;
             switch(info->nmcd.dwDrawStage) {
                 case CDDS_PREPAINT:
-                    if(mc_win_version >= MC_WIN_VISTA  &&  mcIsAppThemed())
+                    if(mc_win_version >= MC_WIN_VISTA  &&  IsAppThemed())
                         return CDRF_DODEFAULT;
                     else if(mc_win_version < MC_WIN_XP)
                         return CDRF_DODEFAULT;
