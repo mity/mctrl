@@ -222,6 +222,7 @@ Some source files and libraries incorporated into mCtrl may have different
  * Unit tests (`tests/*.c`): Public domain
  * 3rd party code:
    * Acutest (`lib/acutest/`): MIT license
+   * c-reusables (`lib/c-reusables/`): MIT license
    * HSLuv-C (`lib/hsluv-c/`): MIT license
    * WinDrawLib (`lib/windrawlib/`): MIT license
 
