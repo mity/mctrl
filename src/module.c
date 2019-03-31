@@ -143,6 +143,7 @@ DEFINE_MODULE(mditab);
 DEFINE_MODULE(menubar);
 DEFINE_MODULE(treelist);
 DEFINE_MODULE(xd2d);
+DEFINE_MODULE(xwic);
 
 
 /* Public interfaces of exposed modules */

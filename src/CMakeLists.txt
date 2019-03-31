@@ -12,6 +12,9 @@ add_library(mCtrl SHARED
     # pure C SDK header replacement:
     c-include/c-d2d1.h
 
+    # from c-reusables
+    ${CRE_PATH}/win32/memstream.c   ${CRE_PATH}/win32/memstream.h
+
     # Source:                       # Header:       # Public header:
                                                     ../include/mctrl.h
                                                     ../include/mCtrl/_common.h
@@ -48,6 +51,7 @@ add_library(mCtrl SHARED
     xcom.c                          xcom.h
     xd2d.c                          xd2d.h
     xdraw.c                         xdraw.h
+    xwic.c                          xwic.h
 )
 
 add_dependencies(mCtrl windrawlib)
