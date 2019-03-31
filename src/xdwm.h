@@ -16,18 +16,18 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MC_DWM_H
-#define MC_DWM_H
+#ifndef MC_XDWM_H
+#define MC_XDWM_H
 
 #include "misc.h"
 
 
-BOOL dwm_is_composition_enabled(void);
+BOOL xdwm_is_composition_enabled(void);
 
-void dwm_extend_frame(HWND win, int margin_left, int margin_top,
+void xdwm_extend_frame(HWND win, int margin_left, int margin_top,
                                 int margin_right, int margin_bottom);
 
-BOOL dwm_def_window_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp, LRESULT* res);
+BOOL xdwm_def_window_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp, LRESULT* res);
 
 
-#endif  /* MC_DWM_H */
+#endif  /* MC_XDWM_H */

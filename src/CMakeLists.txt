@@ -28,7 +28,6 @@ add_library(mCtrl SHARED
     dialog.c                        dialog.h        ../include/mCtrl/dialog.h
     doublebuffer.c                  doublebuffer.h
     dsa.c                           dsa.h
-    dwm.c                           dwm.h
     expand.c                        expand.h        ../include/mCtrl/expand.h
     generic.c                       generic.h
     grid.c                          grid.h          ../include/mCtrl/grid.h
@@ -49,6 +48,7 @@ add_library(mCtrl SHARED
     version.c                       version.h.in
     viewlist.c                      viewlist.h
     xcom.c                          xcom.h
+    xdwm.c                          xdwm.h
     xd2d.c                          xd2d.h
     xdraw.c                         xdraw.h
     xwic.c                          xwic.h

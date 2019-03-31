@@ -19,11 +19,11 @@
 #include "mditab.h"
 #include "anim.h"
 #include "dsa.h"
-#include "dwm.h"
 #include "generic.h"
 #include "mousedrag.h"
 #include "tooltip.h"
 #include "xdraw.h"
+#include "xdwm.h"
 
 #include <math.h>
 
@@ -1688,7 +1688,7 @@ mditab_dwm_extend_frame(mditab_t* mditab)
     root_win = GetAncestor(mditab->win, GA_ROOT);
     GetWindowRect(mditab->win, &rect);
     MapWindowPoints(HWND_DESKTOP, root_win, (POINT*) &rect, 2);
-    dwm_extend_frame(root_win, 0, rect.bottom, 0, 0);
+    xdwm_extend_frame(root_win, 0, rect.bottom, 0, 0);
 }
 
 static void
@@ -2566,7 +2566,7 @@ mditab_style_changed(mditab_t* mditab, STYLESTRUCT* ss)
 
     if((ss->styleOld & MC_MTS_EXTENDWINDOWFRAME) != (ss->styleNew & MC_MTS_EXTENDWINDOWFRAME)) {
         mditab->dwm_extend_frame = ((mditab->style & MC_MTS_EXTENDWINDOWFRAME)
-                                    &&  dwm_is_composition_enabled());
+                                    &&  xdwm_is_composition_enabled());
         if(mditab->dwm_extend_frame)
             mditab_dwm_extend_frame(mditab);
     }
@@ -2710,7 +2710,7 @@ mditab_create(mditab_t* mditab, CREATESTRUCT* cs)
     mditab->hide_focus = (ui_state & UISF_HIDEFOCUS) ? TRUE : FALSE;
 
     mditab->dwm_extend_frame = ((cs->style & MC_MTS_EXTENDWINDOWFRAME)
-                                &&  dwm_is_composition_enabled());
+                                &&  xdwm_is_composition_enabled());
 
     if(!(mditab->style & MC_MTS_NOTOOLTIPS))
         mditab->tooltip_win = tooltip_create(mditab->win, mditab->notify_win, FALSE);
@@ -2924,7 +2924,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_DWMCOMPOSITIONCHANGED:
             mditab->dwm_extend_frame = ((mditab->style & MC_MTS_EXTENDWINDOWFRAME)
-                                        &&  dwm_is_composition_enabled());
+                                        &&  xdwm_is_composition_enabled());
             if(mditab->dwm_extend_frame)
                 mditab_dwm_extend_frame(mditab);
             if(!mditab->no_redraw)
@@ -3056,7 +3056,7 @@ mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
     }
 
     /* Handle the standard non-client stuff. */
-    if(dwm_def_window_proc(hwndMain, uMsg, wParam, lParam, plResult))
+    if(xdwm_def_window_proc(hwndMain, uMsg, wParam, lParam, plResult))
         return TRUE;
 
     /* Handle the area of the expanded frame into the client area. */
