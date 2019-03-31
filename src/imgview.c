@@ -18,7 +18,8 @@
 
 #include "imgview.h"
 
-#include "xdraw.h"
+#include "xd2d.h"
+#include "xwic.h"
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -32,98 +33,149 @@
 
 
 static const TCHAR imgview_wc[] = MC_WC_IMGVIEW;    /* Window class name */
-static DWORD imgview_wdl_flags = WD_INIT_IMAGEAPI;
 
-#define IMGVIEW_XDRAW_CACHE_TIMER_ID    1
+#define IMGVIEW_XD2D_CACHE_TIMER_ID    1
 
 
 typedef struct imgview_tag imgview_t;
 struct imgview_tag {
     HWND win;
     HWND notify_win;
-    xdraw_cache_t xdraw_cache;
-    WD_HIMAGE image;
+    xd2d_cache_t xd2d_cache;
+    IWICBitmapSource* image;
     DWORD style       : 16;
     DWORD no_redraw   :  1;
     DWORD rtl         :  1;
 };
 
 static void
-imgview_paint(void* ctrl, xdraw_ctx_t* ctx)
+imgview_paint(void* ctrl, xd2d_ctx_t* ctx)
 {
     imgview_t* iv = (imgview_t*) ctrl;
-    WD_HCANVAS canvas = ctx->canvas;
+    c_ID2D1RenderTarget* rt = ctx->rt;
+    RECT client;
+    HRESULT hr;
 
+    GetClientRect(iv->win, &client);
+
+    /* Erase background. */
     if(ctx->erase) {
         if(iv->style & MC_IVS_TRANSPARENT) {
+            c_ID2D1GdiInteropRenderTarget* gdi_interop;
             HDC dc;
 
-            dc = wdStartGdi(canvas, FALSE);
-            if(dc != NULL) {
-                DrawThemeParentBackground(iv->win, dc, NULL);
-                wdEndGdi(canvas, dc);
-            } else {
-                MC_TRACE("imgview_paint_to_canvas: wdStartGdi() failed.");
+            hr = c_ID2D1RenderTarget_QueryInterface(rt, &c_IID_ID2D1GdiInteropRenderTarget, (void**) &gdi_interop);
+            if(MC_ERR(FAILED(hr))) {
+                MC_TRACE_HR("imgview_paint: ID2D1RenderTarget::QueryInterface(IID_ID2D1GdiInteropRenderTarget) failed.");
+                goto err_QueryInterface;
             }
+
+            hr = c_ID2D1GdiInteropRenderTarget_GetDC(gdi_interop, c_D2D1_DC_INITIALIZE_MODE_CLEAR, &dc);
+            if(MC_ERR(FAILED(hr))) {
+                MC_TRACE_HR("imgview_paint: ID2D1GdiInteropRenderTarget::GetDC() failed.");
+                goto err_GetDC;
+            }
+
+            DrawThemeParentBackground(iv->win, dc, NULL);
+
+            c_ID2D1GdiInteropRenderTarget_ReleaseDC(gdi_interop, NULL);
+err_GetDC:
+            c_ID2D1GdiInteropRenderTarget_Release(gdi_interop);
+err_QueryInterface:
+            ;
         } else {
-            COLORREF c = GetSysColor(COLOR_WINDOW);
-            wdClear(canvas, WD_RGB(GetRValue(c), GetGValue(c), GetBValue(c)));
+            COLORREF cref = GetSysColor(COLOR_WINDOW);
+            c_D2D1_COLOR_F c = XD2D_COLOR_CREF(cref);
+            c_ID2D1RenderTarget_Clear(rt, &c);
         }
     }
 
+    /* Paint the image. */
     if(iv->image != NULL) {
-        RECT client;
         UINT w, h;
-        WD_RECT src;
-        WD_RECT dst;
+        c_D2D1_RECT_F src;
+        c_D2D1_RECT_F dst;
+        c_ID2D1Bitmap* b;
 
-        GetClientRect(iv->win, &client);
-        wdGetImageSize(iv->image, &w, &h);
+        IWICBitmapSource_GetSize(iv->image, &w, &h);
 
-        src.x0 = 0.0f;
-        src.y0 = 0.0f;
-        src.x1 = (float) w;
-        src.y1 = (float) h;
+        src.left = 0.0f;
+        src.top = 0.0f;
+        src.right = (float) w;
+        src.bottom = (float) h;
 
+        /* Compute destination rectangle. */
         if(iv->style & MC_IVS_REALSIZECONTROL) {
-            dst.x0 = 0.0f;
-            dst.y0 = 0.0f;
-            dst.x1 = client.right;
-            dst.y1 = client.bottom;
+            /* Stretch the image to accommodate full client area. */
+            dst.left = 0.0f;
+            dst.top = 0.0f;
+            dst.right = client.right;
+            dst.bottom = client.bottom;
         } else if(iv->style & MC_IVS_REALSIZEIMAGE) {
-            dst.x0 = (client.right - src.x1) / 2.0f;
-            dst.y0 = (client.bottom - src.y1) / 2.0f;
-            dst.x1 = dst.x0 + src.x1;
-            dst.y1 = dst.y0 + src.y1;
+            /* Center the image in the control. */
+            dst.left = (client.right - src.right) / 2.0f;
+            dst.top = (client.bottom - src.bottom) / 2.0f;
+            dst.right = dst.left + src.right;
+            dst.bottom = dst.top + src.bottom;
         } else {
-            float ratio_w = client.right / (src.x1 - src.x0);
-            float ratio_h = client.bottom / (src.y1 - src.y0);
+            /* Stretch the image but keep its width/height ratio. */
+            float ratio_w = client.right / (src.right - src.left);
+            float ratio_h = client.bottom / (src.bottom - src.top);
             if(ratio_w >= ratio_h) {
-                float w = (src.x1 - src.x0) * ratio_h;
-                dst.x0 = (client.right - w) / 2.0f;
-                dst.y0 = 0.0f;
-                dst.x1 = dst.x0 + w;
-                dst.y1 = client.bottom;
+                float w = (src.right - src.left) * ratio_h;
+                dst.left = (client.right - w) / 2.0f;
+                dst.top = 0.0f;
+                dst.right = dst.left + w;
+                dst.bottom = client.bottom;
             } else {
-                float h = (src.y1 - src.y0) * ratio_w;
-                dst.x0 = 0.0f;
-                dst.y0 = (client.bottom - h) / 2.0f;
-                dst.x1 = client.right;
-                dst.y1 = dst.y0 + h;
+                float h = (src.bottom - src.top) * ratio_w;
+                dst.left = 0.0f;
+                dst.top = (client.bottom - h) / 2.0f;
+                dst.right = client.right;
+                dst.bottom = dst.top + h;
             }
         }
 
-        wdBitBltImage(canvas, iv->image, &dst, &src);
+        /* With RTL style, apply right-to-left transformation. */
+        if(iv->rtl) {
+            c_D2D1_MATRIX_3X2_F m;
+            m._11 = -1.0f;  m._12 = 0.0f;
+            m._21 = 0.0f;   m._22 = 1.0f;
+            m._31 = (float) mc_width(&client);
+            m._32 = 0.0f;
+            c_ID2D1RenderTarget_SetTransform(rt, &m);
+        }
+
+        /* Output he image. */
+        hr = c_ID2D1RenderTarget_CreateBitmapFromWicBitmap(rt, iv->image, NULL, &b);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE_HR("imgview_paint: ID2D1RenderTarget::CreateBitmapFromWicBitmap() failed.");
+            goto err_CreateBitmapFromWicBitmap;
+        }
+        c_ID2D1RenderTarget_DrawBitmap(rt, b, &dst, 1.0f,
+                c_D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &src);
+        c_ID2D1Bitmap_Release(b);
+err_CreateBitmapFromWicBitmap:
+        ;
+
+        /* With RTL style, reset the transformation. */
+        if(iv->rtl) {
+            c_D2D1_MATRIX_3X2_F m;
+            m._11 = 1.0f;   m._12 = 0.0f;
+            m._21 = 0.0f;   m._22 = 1.0f;
+            m._31 = 0.0f;   m._32 = 0.0f;
+            c_ID2D1RenderTarget_SetTransform(rt, &m);
+        }
     }
 }
 
-static xdraw_vtable_t imgview_xdraw_vtable = XDRAW_CTX_SIMPLE(imgview_paint);
+static xd2d_vtable_t imgview_xd2d_vtable = XD2D_CTX_SIMPLE(imgview_paint);
 
 static void
 imgview_style_changed(imgview_t* iv, STYLESTRUCT* ss)
 {
     iv->style = ss->styleNew;
-    xdraw_invalidate(iv->win, NULL, TRUE, &iv->xdraw_cache);
+    xd2d_invalidate(iv->win, NULL, TRUE, &iv->xd2d_cache);
 }
 
 static void
@@ -134,7 +186,7 @@ imgview_exstyle_changed(imgview_t* iv, STYLESTRUCT* ss)
     rtl = mc_is_rtl_exstyle(ss->styleNew);
     if(iv->rtl == rtl) {
         iv->rtl = rtl;
-        xdraw_invalidate(iv->win, NULL, TRUE, &iv->xdraw_cache);
+        xd2d_invalidate(iv->win, NULL, TRUE, &iv->xd2d_cache);
     }
 }
 
@@ -144,7 +196,7 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
     static TCHAR* allowed_res_types[] = {
         RT_RCDATA, _T("PNG"), RT_BITMAP, RT_HTML
     };
-    WD_HIMAGE image = NULL;
+    IWICBitmapSource* image = NULL;
 
     if(res_name != NULL) {
         int i;
@@ -161,7 +213,7 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
         }
 
         for(i = 0; i < MC_SIZEOF_ARRAY(allowed_res_types); i++) {
-            image = wdLoadImageFromResource(instance, allowed_res_types[i], tmp);
+            image = xwic_from_resource(instance, allowed_res_types[i], tmp);
             if(image != NULL)
                 break;
         }
@@ -170,15 +222,15 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
             free(tmp);
 
         if(MC_ERR(image == NULL)) {
-            MC_TRACE("imgview_load_resource: wdLoadIMageFromResource() failed.");
+            MC_TRACE("imgview_load_resource: xwic_from_resource() failed.");
             return -1;
         }
     }
 
     if(iv->image != NULL)
-        wdDestroyImage(iv->image);
+        IWICBitmapSource_Release(iv->image);
     iv->image = image;
-    xdraw_invalidate(iv->win, NULL, TRUE, &iv->xdraw_cache);
+    xd2d_invalidate(iv->win, NULL, TRUE, &iv->xd2d_cache);
 
     return 0;
 }
@@ -186,7 +238,7 @@ imgview_load_resource(imgview_t* iv, HINSTANCE instance, const void* res_name, B
 static int
 imgview_load_file(imgview_t* iv, void* path, BOOL unicode)
 {
-    WD_HIMAGE image;
+    IWICBitmapSource* image;
 
     if(path != NULL) {
         WCHAR* tmp;
@@ -201,11 +253,11 @@ imgview_load_file(imgview_t* iv, void* path, BOOL unicode)
             }
         }
 
-        image = wdLoadImageFromFile(tmp);
+        image = xwic_from_file(tmp);
         if(tmp != path)
             free(tmp);
         if(MC_ERR(image == NULL)) {
-            MC_TRACE("imgview_load_file: wdLoadImageFromFile() failed.");
+            MC_TRACE("imgview_load_file: xwic_from_file() failed.");
             return -1;
         }
     } else {
@@ -213,9 +265,9 @@ imgview_load_file(imgview_t* iv, void* path, BOOL unicode)
     }
 
     if(iv->image != NULL)
-        wdDestroyImage(iv->image);
+        IWICBitmapSource_Release(iv->image);
     iv->image = image;
-    xdraw_invalidate(iv->win, NULL, TRUE, &iv->xdraw_cache);
+    xd2d_invalidate(iv->win, NULL, TRUE, &iv->xd2d_cache);
 
     return 0;
 }
@@ -255,8 +307,8 @@ static void
 imgview_ncdestroy(imgview_t* iv)
 {
     if(iv->image != NULL)
-        wdDestroyImage(iv->image);
-    xdraw_free_cache(&iv->xdraw_cache);
+        IWICBitmapSource_Release(iv->image);
+    xd2d_free_cache(&iv->xd2d_cache);
     free(iv);
 }
 
@@ -267,32 +319,25 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            xdraw_paint(win, iv->no_redraw,
-                        (iv->rtl ? WD_CANVAS_LAYOUTRTL : 0),
-                        &imgview_xdraw_vtable, (void*) iv, &iv->xdraw_cache);
-            if(iv->xdraw_cache != NULL)
-                SetTimer(win, IMGVIEW_XDRAW_CACHE_TIMER_ID, 30 * 1000, NULL);
+            xd2d_paint(win, iv->no_redraw, 0, &imgview_xd2d_vtable, (void*) iv, &iv->xd2d_cache);
+            if(iv->xd2d_cache != NULL)
+                SetTimer(win, IMGVIEW_XD2D_CACHE_TIMER_ID, 30 * 1000, NULL);
             return 0;
 
         case WM_PRINTCLIENT:
-            xdraw_printclient(win, (HDC) wp,
-                        (iv->rtl ? WD_CANVAS_LAYOUTRTL : 0),
-                        &imgview_xdraw_vtable, (void*) iv);
+            xd2d_printclient(win, (HDC) wp, 0, &imgview_xd2d_vtable, (void*) iv);
             return 0;
 
         case WM_SIZE:
-            xdraw_invalidate(win, NULL, TRUE, &iv->xdraw_cache);
-            break;
-
         case WM_DISPLAYCHANGE:
-            xdraw_free_cache(&iv->xdraw_cache);
-            xdraw_invalidate(win, NULL, TRUE, &iv->xdraw_cache);
+            xd2d_free_cache(&iv->xd2d_cache);
+            xd2d_invalidate(win, NULL, TRUE, &iv->xd2d_cache);
             return 0;
 
         case WM_TIMER:
-            if(wp == IMGVIEW_XDRAW_CACHE_TIMER_ID) {
-                xdraw_free_cache(&iv->xdraw_cache);
-                KillTimer(win, IMGVIEW_XDRAW_CACHE_TIMER_ID);
+            if(wp == IMGVIEW_XD2D_CACHE_TIMER_ID) {
+                xd2d_free_cache(&iv->xd2d_cache);
+                KillTimer(win, IMGVIEW_XD2D_CACHE_TIMER_ID);
                 return 0;
             }
             break;
@@ -312,7 +357,7 @@ imgview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case WM_SETREDRAW:
             iv->no_redraw = !wp;
             if(!iv->no_redraw)
-                xdraw_invalidate(iv->win, NULL, TRUE, &iv->xdraw_cache);
+                xd2d_invalidate(iv->win, NULL, TRUE, &iv->xd2d_cache);
             return 0;
 
         case WM_GETDLGCODE:
@@ -358,11 +403,6 @@ imgview_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    if(MC_ERR(!wdInitialize(imgview_wdl_flags))) {
-        MC_TRACE("imgview_init_module: wdInitialize() failed");
-        return -1;
-    }
-
     wc.style = CS_GLOBALCLASS | CS_PARENTDC;
     wc.lpfnWndProc = imgview_proc;
     wc.cbWndExtra = sizeof(imgview_t*);
@@ -370,7 +410,6 @@ imgview_init_module(void)
     wc.lpszClassName = imgview_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
         MC_TRACE_ERR("imgview_init_module: RegisterClass() failed");
-        wdTerminate(imgview_wdl_flags);
         return -1;
     }
 
@@ -381,5 +420,4 @@ void
 imgview_fini_module(void)
 {
     UnregisterClass(imgview_wc, NULL);
-    wdTerminate(imgview_wdl_flags);
 }

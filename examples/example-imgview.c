@@ -44,12 +44,7 @@ _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nC
     hInst = hInstance;
 
     /* Initialize mCtrl control */
-    if(!mcImgView_Initialize()) {
-        MessageBox(NULL, _T("The function mcImgView_Initialize() has failed. ")
-                   _T("Perhaps GDIPLUS.DLL is not available on your machine?"),
-                   _T("Error"), MB_OK | MB_ICONERROR);
-        return 1;
-    }
+    mcImgView_Initialize();
 
     /* Load and show a dialog. */
     mcDialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG), NULL, DlgProc, MC_DF_DEFAULTFONT);
