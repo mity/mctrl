@@ -128,6 +128,28 @@ err_CreateDCRenderTarget:
     return NULL;
 }
 
+c_ID2D1PathGeometry*
+xd2d_CreatePathGeometry(void)
+{
+    c_ID2D1PathGeometry* path_geom;
+    HRESULT hr;
+
+    xd2d_lock();
+    hr = c_ID2D1Factory_CreatePathGeometry(xd2d_factory, &path_geom);
+    xd2d_unlock();
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE_HR("xd2d_CreatePathGeometry: ID2D1Factory::CreatePathGeometry() failed.");
+        goto err_CreatePathGeometry;
+    }
+
+    /* Success. */
+    return path_geom;
+
+    /* Error unrolling. */
+err_CreatePathGeometry:
+    return NULL;
+}
+
 
 int
 xd2d_init_module(void)

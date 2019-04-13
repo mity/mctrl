@@ -29,7 +29,45 @@
 
 #define XD2D_COLOR_RGBA(r,g,b,a)    { (float)(r) / 255.0f, (float)(g) / 255.0f, (float)(b) / 255.0f, (a) / 255.0f };
 #define XD2D_COLOR_RGB(r,g,b)       { (float)(r) / 255.0f, (float)(g) / 255.0f, (float)(b) / 255.0f, 1.0f };
+#define XD2D_COLOR_CREFA(cref,a)    XD2D_COLOR_RGBA(GetRValue(cref), GetGValue(cref), GetBValue(cref), (a))
 #define XD2D_COLOR_CREF(cref)       XD2D_COLOR_RGB(GetRValue(cref), GetGValue(cref), GetBValue(cref))
+
+
+static inline void
+xd2d_color_set_rgba(c_D2D1_COLOR_F* c, int r, int g, int b, int a)
+{
+    c->r = (float)r / 255.0f;
+    c->g = (float)g / 255.0f;
+    c->b = (float)b / 255.0f;
+    c->a = (float)a / 255.0f;
+}
+
+static inline void
+xd2d_color_set_rgb(c_D2D1_COLOR_F* c, int r, int g, int b)
+{
+    c->r = (float)r / 255.0f;
+    c->g = (float)g / 255.0f;
+    c->b = (float)b / 255.0f;
+    c->a = 1.0f;
+}
+
+static inline void
+xd2d_color_set_crefa(c_D2D1_COLOR_F* c, COLORREF cref, int a)
+{
+    c->r = (float)GetRValue(cref) / 255.0f;
+    c->g = (float)GetGValue(cref) / 255.0f;
+    c->b = (float)GetBValue(cref) / 255.0f;
+    c->a = (float)a / 255.0f;
+}
+
+static inline void
+xd2d_color_set_cref(c_D2D1_COLOR_F* c, COLORREF cref)
+{
+    c->r = (float)GetRValue(cref) / 255.0f;
+    c->g = (float)GetGValue(cref) / 255.0f;
+    c->b = (float)GetBValue(cref) / 255.0f;
+    c->a = 1.0f;
+}
 
 
 /******************************
@@ -40,6 +78,7 @@
 
 c_ID2D1HwndRenderTarget* xd2d_CreateHwndRenderTarget(HWND win, PAINTSTRUCT* ps, DWORD flags);
 c_ID2D1DCRenderTarget* xd2d_CreateDCRenderTarget(HDC dc, const RECT* rect, DWORD flags);
+c_ID2D1PathGeometry* xd2d_CreatePathGeometry(void);
 
 
 /************************************
