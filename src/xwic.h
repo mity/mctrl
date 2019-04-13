@@ -27,6 +27,7 @@
 #include <wincodec.h>
 
 
+IWICBitmapSource* xwic_from_HICON(HICON icon);
 IWICBitmapSource* xwic_from_HBITMAP(HBITMAP bmp, WICBitmapAlphaChannelOption alpha_mode);
 IWICBitmapSource* xwic_from_file(const TCHAR* path);
 IWICBitmapSource* xwic_from_resource(HINSTANCE instance, const TCHAR* res_type, const TCHAR* res_name);

@@ -28,13 +28,14 @@
 static IWICImagingFactory* xwic_factory;
 
 
+/* This corresponds to the pixel format we use in xd2d.c.
+ * (see https://docs.microsoft.com/en-us/windows/desktop/direct2d/supported-pixel-formats-and-alpha-modes) */
+static const GUID* xwic_pixel_format = &GUID_WICPixelFormat32bppPBGRA;
+
+
 static IWICBitmapSource*
 xwic_convert(IWICBitmapSource* b)
 {
-    /* This corresponds to the pixel format we use in xd2d.c.
-     * (see https://docs.microsoft.com/en-us/windows/desktop/direct2d/supported-pixel-formats-and-alpha-modes) */
-    static const GUID* wanted_pixel_format = &GUID_WICPixelFormat32bppPBGRA;
-
     GUID pixel_format;
     IWICFormatConverter* converter;
     HRESULT hr;
@@ -45,7 +46,7 @@ xwic_convert(IWICBitmapSource* b)
         goto err_GetPixelFormat;
     }
 
-    if(IsEqualGUID(&pixel_format, wanted_pixel_format))
+    if(IsEqualGUID(&pixel_format, xwic_pixel_format))
         return b;   /* No conversion needed. */
 
     hr = IWICImagingFactory_CreateFormatConverter(xwic_factory, &converter);
@@ -54,7 +55,7 @@ xwic_convert(IWICBitmapSource* b)
         goto err_CreateFormatConverter;
     }
 
-    hr = IWICFormatConverter_Initialize(converter, b, wanted_pixel_format,
+    hr = IWICFormatConverter_Initialize(converter, b, xwic_pixel_format,
                 WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE_HR("xwic_convert: IWICFormatConverter::Initialize() failed.");
@@ -74,6 +75,21 @@ err_GetPixelFormat:
     return NULL;
 }
 
+
+IWICBitmapSource*
+xwic_from_HICON(HICON icon)
+{
+    IWICBitmap* b;
+    HRESULT hr;
+
+    hr = IWICImagingFactory_CreateBitmapFromHICON(xwic_factory, icon, &b);
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE_HR("xwic_from_HICON: IWICImagingFactory::CreateBitmapFromHICON() failed.");
+        return NULL;
+    }
+
+    return xwic_convert((IWICBitmapSource*) b);
+}
 
 IWICBitmapSource*
 xwic_from_HBITMAP(HBITMAP bmp, WICBitmapAlphaChannelOption alpha_mode)
