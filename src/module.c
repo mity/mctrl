@@ -143,6 +143,7 @@ DEFINE_MODULE(mditab);
 DEFINE_MODULE(menubar);
 DEFINE_MODULE(treelist);
 DEFINE_MODULE(xd2d);
+DEFINE_MODULE(xdwrite);
 DEFINE_MODULE(xwic);
 
 

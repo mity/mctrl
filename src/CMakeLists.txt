@@ -11,6 +11,7 @@ add_library(mCtrl SHARED
 
     # pure C SDK header replacement:
     c-include/c-d2d1.h
+    c-include/c-dwrite.h
 
     # from c-reusables
     ${CRE_PATH}/win32/memstream.c   ${CRE_PATH}/win32/memstream.h
@@ -50,6 +51,7 @@ add_library(mCtrl SHARED
     xcom.c                          xcom.h
     xdwm.c                          xdwm.h
     xd2d.c                          xd2d.h
+    xdwrite.c                       xdwrite.h
     xdraw.c                         xdraw.h
     xwic.c                          xwic.h
 )
