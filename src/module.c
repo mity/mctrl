@@ -167,7 +167,7 @@ DEFINE_PUBLIC_IFACE(html, Html, mod_html_deps)
 static module_t* mod_imgview_deps[] = { &mod_mc, &mod_xd2d, &mod_xwic, &mod_imgview };
 DEFINE_PUBLIC_IFACE(imgview, ImgView, mod_imgview_deps)
 
-static module_t* mod_mditab_deps[] = { &mod_mc, &mod_xdwm, &mod_mditab };
+static module_t* mod_mditab_deps[] = { &mod_mc, &mod_xdwm, &mod_xd2d, &mod_xdwrite, &mod_xwic, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
 
 static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
