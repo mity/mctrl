@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 Martin Mitas
+ * Copyright (c) 2013-2019 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,9 +21,11 @@
 #include "dsa.h"
 #include "color.h"
 #include "tooltip.h"
+#include "xd2d.h"
+#include "xdwrite.h"
 
+#include <float.h>
 #include <math.h>
-#include <wdl.h>
 
 
 /* Uncomment this to have more verbose traces from this module. */
@@ -37,6 +39,9 @@
 
 
 static const TCHAR chart_wc[] = MC_WC_CHART;    /* Window class name */
+
+
+#define CHART_XD2D_CACHE_TIMER_ID    1
 
 
 /* If we ever allow larger range for factor exponents, we may need to make
@@ -59,19 +64,16 @@ struct chart_data_tag {
     int* values;
 };
 
-typedef struct chart_paint_tag chart_paint_t;
-struct chart_paint_tag {
-    WD_HCANVAS canvas;
-    WD_HBRUSH solid_brush;
-    WD_HFONT font;
-};
-
 typedef struct chart_tag chart_t;
 struct chart_tag {
     HWND win;
     HWND notify_win;
     HWND tooltip_win;
-    HFONT font;
+    HFONT gdi_font;
+    c_IDWriteTextFormat* text_fmt;
+    UINT16 font_units_per_height;
+    UINT16 font_cap_height;
+    xd2d_cache_t xd2d_cache;
     DWORD style          : 16;
     DWORD no_redraw      :  1;
     DWORD tracking_leave :  1;
@@ -82,7 +84,6 @@ struct chart_tag {
     int max_visible_value;
     int hot_set_ix;
     int hot_i;
-    chart_paint_t* paint_ctx;
     dsa_t data;
 };
 
@@ -93,6 +94,50 @@ struct chart_layout_tag {
     RECT title_rect;
     RECT body_rect;
     RECT legend_rect;
+};
+
+typedef struct chart_xd2d_ctx_tag chart_xd2d_ctx_t;
+struct chart_xd2d_ctx_tag {
+    xd2d_ctx_t ctx;
+    c_ID2D1SolidColorBrush* solid_brush;
+};
+
+
+/*******************
+ *** xd2d vtable ***
+ *******************/
+
+static int
+chart_xd2d_init(xd2d_ctx_t* raw_ctx)
+{
+    chart_xd2d_ctx_t* ctx = (chart_xd2d_ctx_t*) raw_ctx;
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
+    c_D2D1_COLOR_F c = { 0 };
+    HRESULT hr;
+
+    hr = c_ID2D1RenderTarget_CreateSolidColorBrush(rt, &c, NULL, &ctx->solid_brush);
+    if(MC_ERR(FAILED(hr))) {
+        MC_TRACE_HR("chart_xd2d_init: ID2D1RenderTarget::CreateSolidColorBrush() failed.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static void
+chart_xd2d_fini(xd2d_ctx_t* raw_ctx)
+{
+    chart_xd2d_ctx_t* ctx = (chart_xd2d_ctx_t*) raw_ctx;
+    c_ID2D1RenderTarget_Release(ctx->solid_brush);
+}
+
+static void chart_paint(void* ctrl, xd2d_ctx_t* ctx);
+
+static xd2d_vtable_t chart_xd2d_vtable = {
+    sizeof(chart_xd2d_ctx_t),
+    chart_xd2d_init,
+    chart_xd2d_fini,
+    chart_paint
 };
 
 
@@ -196,7 +241,7 @@ chart_value(chart_t* chart, int set_ix, int i)
         return chart_value_from_parent(chart, set_ix, i);
 }
 
-static inline void
+static void
 chart_str_value(chart_axis_t* axis, int value, WCHAR buffer[CHART_STR_VALUE_MAX_LEN])
 {
     value += axis->offset;
@@ -230,55 +275,6 @@ chart_str_value(chart_axis_t* axis, int value, WCHAR buffer[CHART_STR_VALUE_MAX_
     }
 }
 
-static inline float
-chart_map_x(int x, int min_x, int max_x, const WD_RECT* rect)
-{
-    return rect->x0 + ((x - min_x) * (rect->x1 - rect->x0)) / (float)(max_x - min_x);
-}
-
-
-static inline float
-chart_unmap_x(int rx, int min_x, int max_x, const WD_RECT* rect)
-{
-    return min_x + (rx - rect->x0) * (max_x - min_x) / (rect->x1 - rect->x0);
-}
-
-static inline float
-chart_map_y(int y, int min_y, int max_y, const WD_RECT* rect)
-{
-    return rect->y0 + ((max_y - y) * (rect->y1 - rect->y0)) / (float)(max_y - min_y);
-}
-
-static void
-chart_fixup_rect_h(WD_RECT* rect, int min_x, int max_x, int step_x)
-{
-    float pps_old, pps_new;  /* pixels per step */
-    float width;
-
-    pps_old = chart_map_x(2*step_x, min_x, max_x, rect) - chart_map_x(step_x, min_x, max_x, rect);
-    pps_new = floorf(pps_old);
-
-    width = ((rect->x1 - rect->x0) / pps_old) * pps_new;
-    rect->x0 += (rect->x1 - rect->x0 - width) * 0.5f;
-    rect->x0 = roundf(rect->x0);
-    rect->x1 = rect->x0 + width;
-}
-
-static void
-chart_fixup_rect_v(WD_RECT* rect, int min_y, int max_y, int step_y)
-{
-    float pps_old, pps_new;  /* pixels per step */
-    float height;
-
-    pps_old = chart_map_y(2*step_y, min_y, max_y, rect) - chart_map_y(step_y, min_y, max_y, rect);
-    pps_new = floorf(pps_old);
-
-    height = ((rect->y1 - rect->y0) / pps_old) * pps_new;
-    rect->y0 += ((rect->y1 - rect->y0) - height) * 0.5f;
-    rect->y0 = roundf(rect->y0);
-    rect->y1 = rect->y0 + height;
-}
-
 static void
 chart_tooltip_text_common(chart_t* chart, chart_axis_t* axis,
                           TCHAR* buffer, UINT bufsize)
@@ -291,23 +287,6 @@ chart_tooltip_text_common(chart_t* chart, chart_axis_t* axis,
         chart_str_value(axis, val, val_str);
         mc_str_inbuf(val_str, MC_STRW, buffer, MC_STRT, bufsize);
     }
-}
-
-static inline void
-chart_draw_vert_string(WD_HCANVAS canvas, const WD_HFONT font,
-                       const WD_RECT* rect, const TCHAR* str, int len,
-                       const WD_HBRUSH brush)
-{
-    float cx = (rect->x0 + rect->x1) * 0.5f;
-    float cy = (rect->y0 + rect->y1) * 0.5f;
-    float w_half = (rect->x1 - rect->x0 + 1.0f) * 0.5f;
-    float h_half = (rect->y1 - rect->y0 + 1.0f) * 0.5f;
-    WD_RECT r = { cx - h_half, cy - w_half, cx + h_half, cy + w_half };
-
-    wdRotateWorld(canvas, cx, cy, -90.0f);
-    wdDrawString(canvas, font, &r, str, len, brush,
-            WD_STR_NOCLIP | WD_STR_NOWRAP | WD_STR_CENTERALIGN);
-    wdRotateWorld(canvas, cx, cy, +90.0f);
 }
 
 
@@ -397,8 +376,10 @@ cache_value_(cache_t* cache, int set_ix, int i)
 }
 
 #define CACHE_VALUE(cache, set_ix, i)                                         \
-    ((cache)->values != NULL  ?  (cache)->values[(set_ix)][(i)]               \
-                              :  cache_value_((cache), (set_ix), (i)))
+    ((i < DSA_ITEM(&((cache)->chart)->data, set_ix, chart_data_t)->count)     \
+            ? ((cache)->values != NULL  ?  (cache)->values[(set_ix)][(i)]     \
+                                    :  cache_value_((cache), (set_ix), (i)))  \
+            : 0)
 
 static inline int
 cache_stack(cache_t* cache, int set_ix, int i)
@@ -440,15 +421,6 @@ pie_pt_in_sweep(float angle, float sweep, float x0, float y0, float x1, float y1
     return (pie_normalize_angle(pie_vector_angle(x0, y0, x1, y1) - angle) < sweep);
 }
 
-static inline BOOL
-pie_rect_in_sweep(float angle, float sweep, float x0, float y0, const WD_RECT* rect)
-{
-    return (pie_pt_in_sweep(angle, sweep, x0, y0, rect->x0, rect->y0)  &&
-            pie_pt_in_sweep(angle, sweep, x0, y0, rect->x1, rect->y0)  &&
-            pie_pt_in_sweep(angle, sweep, x0, y0, rect->x0, rect->y1)  &&
-            pie_pt_in_sweep(angle, sweep, x0, y0, rect->x1, rect->y1));
-}
-
 static inline int
 pie_value(chart_t* chart, int set_ix)
 {
@@ -464,14 +436,13 @@ struct pie_geometry_tag {
 };
 
 static void
-pie_calc_geometry(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout,
-                  pie_geometry_t* geom)
+pie_calc_geometry(chart_t* chart, const chart_layout_t* layout, pie_geometry_t* geom)
 {
     int set_ix, n;
 
     geom->cx = (layout->body_rect.left + layout->body_rect.right) / 2.0f;
     geom->cy = (layout->body_rect.top + layout->body_rect.bottom) / 2.0f;
-    geom->r = MC_MIN(mc_width(&layout->body_rect), mc_height(&layout->body_rect)) / 2.0f - 10.0f;
+    geom->r = MC_MIN(mc_width(&layout->body_rect), mc_height(&layout->body_rect)) / 2.0f - 6.0f;
 
     geom->sum = 0.0f;
     n = dsa_size(&chart->data);
@@ -480,58 +451,151 @@ pie_calc_geometry(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layo
 }
 
 static void
-pie_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
+pie_paint(chart_t* chart, chart_xd2d_ctx_t* ctx, const chart_layout_t* layout)
 {
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
     pie_geometry_t geom;
     int set_ix, n, val;
     float angle, sweep;
-    float label_angle_rads;
-    WD_RECT label_rect;
-    WD_RECT label_measure;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
 
-    pie_calc_geometry(chart, ctx, layout, &geom);
+    pie_calc_geometry(chart, layout, &geom);
 
     angle = -90.0f;
     n = dsa_size(&chart->data);
     for(set_ix = 0; set_ix < n; set_ix++) {
+        c_ID2D1PathGeometry* path;
+        c_ID2D1GeometrySink* path_sink;
+        COLORREF cref;
+        c_D2D1_ARC_SEGMENT arc;
+        c_D2D1_COLOR_F c;
+        float angle_cos, angle_sin;
+        float sweep_cos, sweep_sin;
+
+        cref = chart_data_color(chart, set_ix);
         val = pie_value(chart, set_ix);
         sweep = (360.0f * (float) val) / geom.sum;
 
+        angle_cos = cosf(angle * (MC_PIf / 180.0f));
+        angle_sin = sinf(angle * (MC_PIf / 180.0f));
+        sweep_cos = cosf((angle+sweep) * (MC_PIf / 180.0f));
+        sweep_sin = sinf((angle+sweep) * (MC_PIf / 180.0f));
+
+        arc.rotationAngle = 0.0f;
+        arc.sweepDirection = c_D2D1_SWEEP_DIRECTION_CLOCKWISE;
+        arc.arcSize = (sweep < 180.0f ? c_D2D1_ARC_SIZE_SMALL : c_D2D1_ARC_SIZE_LARGE);
+
         /* Paint the pie */
-        wdSetSolidBrushColor(ctx->solid_brush,
-                WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-        wdFillPie(ctx->canvas, ctx->solid_brush,
-                geom.cx, geom.cy, geom.r, angle, sweep);
+        path = xd2d_CreatePathGeometry(&path_sink);
+        if(path != NULL) {
+            c_D2D1_POINT_2F pt;
+
+            pt.x = geom.cx + geom.r * angle_cos;
+            pt.y = geom.cy + geom.r * angle_sin;
+            c_ID2D1GeometrySink_BeginFigure(path_sink, pt, c_D2D1_FIGURE_BEGIN_FILLED);
+            arc.point.x = geom.cx + geom.r * sweep_cos;
+            arc.point.y = geom.cy + geom.r * sweep_sin;
+            arc.size.width = geom.r;
+            arc.size.height = geom.r;
+            c_ID2D1GeometrySink_AddArc(path_sink, &arc);
+            pt.x = geom.cx;
+            pt.y = geom.cy;
+            c_ID2D1GeometrySink_AddLine(path_sink, pt);
+            c_ID2D1GeometrySink_EndFigure(path_sink, c_D2D1_FIGURE_END_CLOSED);
+            c_ID2D1GeometrySink_Close(path_sink);
+            c_ID2D1GeometrySink_Release(path_sink);
+
+            xd2d_color_set_cref(&c, cref);
+            c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+
+            c_ID2D1RenderTarget_FillGeometry(rt, (c_ID2D1Geometry*) path,
+                        (c_ID2D1Brush*) ctx->solid_brush, NULL);
+            c_ID2D1PathGeometry_Release(path);
+        }
 
         /* Paint active aura */
         if(set_ix == chart->hot_set_ix) {
-            wdSetSolidBrushColor(ctx->solid_brush,
-                    WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-            wdDrawArc(ctx->canvas, ctx->solid_brush,
-                    geom.cx, geom.cy, geom.r + 6.0f, angle, sweep, 8.0f);
+            c_D2D1_POINT_2F pt;
+
+            path = xd2d_CreatePathGeometry(&path_sink);
+            if(path != NULL) {
+                pt.x = geom.cx + (geom.r+4.0f) * angle_cos;
+                pt.y = geom.cy + (geom.r+4.0f) * angle_sin;
+                c_ID2D1GeometrySink_BeginFigure(path_sink, pt, c_D2D1_FIGURE_BEGIN_HOLLOW);
+                arc.point.x = geom.cx + (geom.r+4.0f) * sweep_cos;
+                arc.point.y = geom.cy + (geom.r+4.0f) * sweep_sin;
+                arc.size.width = (geom.r+4.0f);
+                arc.size.height = (geom.r+4.0f);
+                c_ID2D1GeometrySink_AddArc(path_sink, &arc);
+                c_ID2D1GeometrySink_EndFigure(path_sink, c_D2D1_FIGURE_END_OPEN);
+                c_ID2D1GeometrySink_Close(path_sink);
+                c_ID2D1GeometrySink_Release(path_sink);
+
+                xd2d_color_set_cref(&c, color_hint(cref));
+                c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+
+                c_ID2D1RenderTarget_DrawGeometry(rt, (c_ID2D1Geometry*) path,
+                                (c_ID2D1Brush*) ctx->solid_brush, 4.0f, NULL);
+                c_ID2D1PathGeometry_Release(path);
+            }
         }
 
         /* Paint white borders */
-        wdSetSolidBrushColor(ctx->solid_brush,
-                WD_COLOR_FROM_GDI(GetSysColor(COLOR_WINDOW)));
-        wdDrawPie(ctx->canvas, ctx->solid_brush,
-                geom.cx, geom.cy, geom.r + 16.0f, angle, sweep, 1.0f);
+        {
+            c_D2D1_POINT_2F pt0, pt1;
 
-        /* Paint label (if it fits in) */
-        label_angle_rads = (angle + 0.5f * sweep) * (MC_PIf / 180.0f);
-        label_rect.x0 = geom.cx + 0.75f * geom.r * cosf(label_angle_rads);
-        label_rect.y0 = geom.cy + 0.75f * geom.r * sinf(label_angle_rads)
-                        - layout->font_size.cy / 2.0f;
-        label_rect.x1 = label_rect.x0;
-        label_rect.y1 = label_rect.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis1, val, buffer);
-        wdMeasureString(ctx->canvas, ctx->font, &label_rect, buffer, -1,
-                    &label_measure, WD_STR_NOWRAP | WD_STR_CENTERALIGN);
-        if(pie_rect_in_sweep(angle, sweep, geom.cx, geom.cy, &label_measure)) {
-            wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(255,255,255));
-            wdDrawString(ctx->canvas, ctx->font, &label_rect, buffer, -1, ctx->solid_brush,
-                    WD_STR_NOCLIP | WD_STR_NOWRAP | WD_STR_CENTERALIGN);
+            xd2d_color_set_cref(&c, GetSysColor(COLOR_WINDOW));
+            c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+
+            pt0.x = geom.cx;
+            pt0.y = geom.cy;
+            pt1.x = geom.cx + (geom.r+7.0f) * angle_cos;
+            pt1.y = geom.cy + (geom.r+7.0f) * angle_sin;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1,
+                        (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+            pt1.x = geom.cx + (geom.r+7.0f) * sweep_cos;
+            pt1.y = geom.cy + (geom.r+7.0f) * sweep_sin;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1,
+                        (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+        }
+
+        /* Paint label */
+        {
+            WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+            c_IDWriteTextLayout* text_layout;
+
+            chart_str_value(&chart->axis1, val, buffer);
+            text_layout = xdwrite_create_text_layout(buffer, wcslen(buffer),
+                        chart->text_fmt, 0.0f, 0.0f,
+                        XDWRITE_ALIGN_CENTER | XDWRITE_VALIGN_CENTER | XDWRITE_NOWRAP);
+            if(text_layout != NULL) {
+                float rads = (angle + 0.5f * sweep) * (MC_PIf / 180.0f);
+                c_D2D1_POINT_2F pt;
+                c_DWRITE_TEXT_METRICS metrics;
+                float dw;
+                float dh;
+
+                pt.x = geom.cx + 0.75f * geom.r * cosf(rads);
+                pt.y = geom.cy + 0.75f * geom.r * sinf(rads);
+
+                c_IDWriteTextLayout_GetMetrics(text_layout, &metrics);
+                dw = 0.5f * metrics.width;
+                dh = 0.5f * metrics.height;
+
+                /* Paint only if it can fit inside the pie. */
+                if(pie_pt_in_sweep(angle, sweep, geom.cx, geom.cy, pt.x - dw, pt.y - dh)  &&
+                   pie_pt_in_sweep(angle, sweep, geom.cx, geom.cy, pt.x - dw, pt.y + dh)  &&
+                   pie_pt_in_sweep(angle, sweep, geom.cx, geom.cy, pt.x + dw, pt.y - dh)  &&
+                   pie_pt_in_sweep(angle, sweep, geom.cx, geom.cy, pt.x + dw, pt.y + dh))
+                {
+                    xd2d_color_set_rgb(&c, 255, 255, 255);
+                    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+
+                    c_ID2D1RenderTarget_DrawTextLayout(rt, pt, text_layout,
+                                (c_ID2D1Brush*) ctx->solid_brush, 0);
+                }
+
+                c_IDWriteTextLayout_Release(text_layout);
+            }
         }
 
         angle += sweep;
@@ -539,7 +603,7 @@ pie_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
 }
 
 static void
-pie_hit_test(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout,
+pie_hit_test(chart_t* chart, const chart_layout_t* layout,
              int x, int y, int* p_set_ix, int* p_i)
 {
     pie_geometry_t geom;
@@ -547,7 +611,7 @@ pie_hit_test(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout,
     float angle, sweep;
     float dx, dy;
 
-    pie_calc_geometry(chart, ctx, layout, &geom);
+    pie_calc_geometry(chart, layout, &geom);
 
     dx = geom.cx - x;
     dy = geom.cy - y;
@@ -576,280 +640,552 @@ pie_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 }
 
 
+/*******************
+ *** Grid Layout ***
+ *******************/
+
+/* This is shared by most chart types (all but pie chart); to compute where to
+ * place axis, their labels etc. */
+
+typedef enum grid_axis_type_tag grid_axis_type_t;
+enum grid_axis_type_tag {
+    GRID_AXIS_CONTINUITY = 0,
+    GRID_AXIS_DISCRETE,
+    GRID_AXIS_CATEGORY
+};
+
+typedef struct grid_axis_tag grid_axis_t;
+struct grid_axis_tag {
+    grid_axis_type_t type;
+    int direction;
+    c_D2D1_POINT_2F name_pos;   /* Center of the axis name label. */
+    int min_value;              /* Min. value marked on the axis. */
+    int max_value;              /* Max. value marked on the axis. */
+    int grid_base;              /* First orthogonal line. */
+    int grid_delta;             /* Difference between two orthogonal lines. */
+    float coord0;               /* Coordinate corresponding to min_value. */
+    float coord1;               /* Coordinate corresponding to max_value. */
+    float coord_labels;
+    float coord_delta;
+};
+
+typedef struct grid_layout_tag grid_layout_t;
+struct grid_layout_tag {
+    float label_font_size;
+    grid_axis_t x_axis;
+    grid_axis_t y_axis;
+};
+
+static inline float
+grid_map(int value, const grid_axis_t* a)
+{
+    float f;
+
+    f = ((float)(value - a->min_value) * (a->coord1 - a->coord0))
+       / (float)(a->max_value - a->min_value);
+
+    if(a->direction > 0)
+        return a->coord0 + f;
+    else
+        return a->coord1 - f;
+}
+
+static inline float
+grid_map_x(int value, const grid_layout_t* gl)
+{
+    return grid_map(value, &gl->x_axis);
+}
+
+static inline float
+grid_map_y(int value, const grid_layout_t* gl)
+{
+    return grid_map(value, &gl->y_axis);
+}
+
+static inline float
+grid_unmap_x(float coord, const grid_layout_t* gl)
+{
+    const grid_axis_t* a = &gl->x_axis;
+    return a->min_value + ((coord - a->coord0) * (float)(a->max_value - a->min_value))
+                        / (a->coord1 - a->coord0);
+}
+
+static void
+grid_fix_axis_scale(grid_axis_t* axis, chart_axis_t* axis_params)
+{
+    /* Make sure the orthogonal axis is visible. */
+    if(axis->type == GRID_AXIS_CONTINUITY) {
+        axis->min_value = MC_MIN(0, axis->min_value);
+        axis->max_value = MC_MAX(0, axis->max_value);
+    }
+
+    /* Avoid singularity. */
+    if(axis->type != GRID_AXIS_CATEGORY) {
+        if(axis->min_value >= axis->max_value)
+            axis->max_value = axis->min_value + 1;
+    }
+
+    /* Round the scale to beautiful rounded values. */
+    if(axis->type == GRID_AXIS_CONTINUITY) {
+        axis->min_value = chart_round_value(axis->min_value + axis_params->offset, FALSE) - axis_params->offset;
+        axis->max_value = chart_round_value(axis->max_value + axis_params->offset, TRUE) - axis_params->offset;
+    }
+}
+
+static void
+grid_calc_base_and_delta(grid_axis_t* axis, int min_pixels)
+{
+    if(axis->type != GRID_AXIS_CONTINUITY) {
+        axis->grid_base = 0;
+        axis->grid_delta = 1;
+        return;
+    }
+
+    /* Difference of two orthogonal lines in neighborhood. */
+    axis->grid_delta = chart_round_value(
+                (min_pixels * (axis->max_value - axis->min_value))
+                / (int)(axis->coord1 - axis->coord0), TRUE);
+    axis->grid_delta = MC_MAX(axis->grid_delta, 1);
+
+    /* Value corresponding to the 1st visible lines. We choose it so that
+     * (1) BASE >= min_value_x; and
+     * (2) BASE + K * DELTA == 0 (for some integer K) */
+    axis->grid_base = (axis->min_value / axis->grid_delta) * axis->grid_delta;
+}
+
+static void
+grid_fix_coords(grid_axis_t* axis)
+{
+    float old_width, new_width;
+
+    old_width = axis->coord1 - axis->coord0;
+    if(axis->type == GRID_AXIS_CATEGORY) {
+        float n = (float)(axis->max_value - axis->min_value + 1);
+        axis->coord_delta = floorf(old_width / n);
+        new_width = axis->coord_delta * n;
+    } else {
+        float old_ppgd, new_ppgd; /* pixels per grid_delta */
+
+        old_ppgd = grid_map(axis->grid_delta, axis) - grid_map(0, axis);
+        old_ppgd = MC_ABS(old_ppgd);
+        new_ppgd = floorf(old_ppgd);
+        new_width = old_width * new_ppgd / old_ppgd;
+        axis->coord_delta = new_ppgd;
+    }
+
+    axis->coord0 = floorf(axis->coord0 + 0.5f * (old_width - new_width));
+    axis->coord1 = axis->coord0 + new_width;
+}
+
+static void
+grid_calc_layout(chart_t* chart, const chart_layout_t* chart_layout,
+                 cache_t* cache, grid_layout_t* gl)
+{
+    DWORD type = (chart->style & MC_CHS_TYPEMASK);
+    chart_axis_t* xa = &chart->axis1;
+    chart_axis_t* ya = &chart->axis2;
+    float font_height;
+    int i, n, set_ix;
+    chart_data_t* data;
+    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+    size_t len;
+    c_IDWriteTextLayout* text_layout;
+    float x_label_width, x_label_height;
+    float y_label_width, y_label_height, y_label_padding;
+
+    /* What axis we need. Note we initially treat the bar chart the same as
+     * column chart, later we simply swap the axis params. */
+    switch(type) {
+        case MC_CHS_SCATTER:
+            gl->x_axis.type = GRID_AXIS_CONTINUITY;
+            gl->y_axis.type = GRID_AXIS_CONTINUITY;
+            break;
+
+        case MC_CHS_LINE:
+        case MC_CHS_STACKEDLINE:
+        case MC_CHS_AREA:
+        case MC_CHS_STACKEDAREA:
+            gl->x_axis.type = GRID_AXIS_DISCRETE;
+            gl->y_axis.type = GRID_AXIS_CONTINUITY;
+            break;
+
+        case MC_CHS_COLUMN:
+        case MC_CHS_STACKEDCOLUMN:
+        case MC_CHS_BAR:
+        case MC_CHS_STACKEDBAR:
+            gl->x_axis.type = GRID_AXIS_CATEGORY;
+            gl->y_axis.type = GRID_AXIS_CONTINUITY;
+            break;
+    }
+
+    /* Find extreme values. */
+    n = dsa_size(&chart->data);
+    if(n > 0) {
+        gl->x_axis.min_value = INT32_MAX;
+        gl->x_axis.max_value = INT32_MIN;
+        gl->y_axis.min_value = INT32_MAX;
+        gl->y_axis.max_value = INT32_MIN;
+        switch(type) {
+            case MC_CHS_SCATTER:
+                for(set_ix = 0; set_ix < n; set_ix++) {
+                    data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+                    for(i = 0; i < data->count-1; i += 2) {  /* '-1' to protect if ->count is odd */
+                        int x = CACHE_VALUE(cache, set_ix, i);
+                        int y = CACHE_VALUE(cache, set_ix, i+1);
+                        gl->x_axis.min_value = MC_MIN(gl->x_axis.min_value, x);
+                        gl->x_axis.max_value = MC_MAX(gl->x_axis.max_value, x);
+                        gl->y_axis.min_value = MC_MIN(gl->y_axis.min_value, y);
+                        gl->y_axis.max_value = MC_MAX(gl->y_axis.max_value, y);
+                    }
+                }
+                break;
+
+            case MC_CHS_LINE:
+            case MC_CHS_AREA:
+            case MC_CHS_COLUMN:
+            case MC_CHS_BAR:
+                gl->x_axis.min_value = 0;
+                gl->x_axis.max_value = 0;
+                for(set_ix = 0; set_ix < n; set_ix++) {
+                    data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+                    for(i = 0; i < data->count; i++) {
+                        int y = CACHE_VALUE(cache, set_ix, i);
+                        gl->y_axis.min_value = MC_MIN(gl->y_axis.min_value, y);
+                        gl->y_axis.max_value = MC_MAX(gl->y_axis.max_value, y);
+                    }
+                    gl->x_axis.max_value = MC_MAX(gl->x_axis.max_value, data->count-1);
+                }
+                break;
+
+            case MC_CHS_STACKEDLINE:
+            case MC_CHS_STACKEDAREA:
+            case MC_CHS_STACKEDCOLUMN:
+            case MC_CHS_STACKEDBAR:
+                gl->x_axis.min_value = 0;
+                gl->x_axis.max_value = 0;
+                for(set_ix = 0; set_ix < n; set_ix++) {
+                    data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+                    for(i = 0; i < data->count; i++) {
+                        int y = cache_stack(cache, set_ix, i);
+                        gl->y_axis.min_value = MC_MIN(gl->y_axis.min_value, y);
+                        gl->y_axis.max_value = MC_MAX(gl->y_axis.max_value, y);
+                    }
+                    gl->x_axis.max_value = MC_MAX(gl->x_axis.max_value, data->count-1);
+                }
+                break;
+        }
+    } else {
+        gl->x_axis.min_value = 0;
+        gl->x_axis.max_value = 0;
+        gl->y_axis.min_value = 0;
+        gl->y_axis.max_value = 0;
+    }
+
+    /* Swap the axis for the bar chart. */
+    if(type == MC_CHS_BAR || type == MC_CHS_STACKEDBAR) {
+        grid_axis_t tmp;
+
+        memcpy(&tmp, &gl->x_axis, sizeof(grid_axis_t));
+        memcpy(&gl->x_axis, &gl->y_axis, sizeof(grid_axis_t));
+        memcpy(&gl->y_axis, &tmp, sizeof(grid_axis_t));
+        xa = &chart->axis2;
+        ya = &chart->axis1;
+    }
+
+    if(chart->text_fmt != NULL)
+        font_height = ceilf(c_IDWriteTextFormat_GetFontSize(chart->text_fmt));
+    else
+        font_height = 0.0f;
+
+    gl->label_font_size = 0.8f * font_height;
+
+    gl->x_axis.direction = +1;
+    gl->y_axis.direction = -1;
+
+    /* Artificially expand the axis so we can paint the chart properly. */
+    grid_fix_axis_scale(&gl->x_axis, xa);
+    grid_fix_axis_scale(&gl->y_axis, ya);
+
+    /* Compute space reserved for all X-axis value labels. */
+    chart_str_value(xa, gl->x_axis.max_value, buffer);
+    len = wcslen(buffer);
+    text_layout = xdwrite_create_text_layout(buffer, len,
+                chart->text_fmt, 0.0f, 0.0f, XDWRITE_NOWRAP);
+    x_label_width = 0.0f;
+    x_label_height = 0.0f;
+    if(text_layout != NULL) {
+        c_DWRITE_TEXT_METRICS text_metrics;
+        c_DWRITE_TEXT_RANGE range = { 0, len };
+        c_IDWriteTextLayout_SetFontSize(text_layout, gl->label_font_size, range);
+        c_IDWriteTextLayout_GetMetrics(text_layout, &text_metrics);
+        x_label_width = MC_MAX(x_label_width, text_metrics.width);
+        x_label_height = MC_MAX(x_label_height, text_metrics.height);
+        c_IDWriteTextLayout_Release(text_layout);
+    }
+    if(gl->x_axis.min_value < 0) {
+        chart_str_value(xa, gl->x_axis.min_value, buffer);
+        len = wcslen(buffer);
+        text_layout = xdwrite_create_text_layout(buffer, len,
+                    chart->text_fmt, 0.0f, 0.0f, XDWRITE_NOWRAP);
+        if(text_layout != NULL) {
+            c_DWRITE_TEXT_METRICS text_metrics;
+            c_DWRITE_TEXT_RANGE range = { 0, len };
+            c_IDWriteTextLayout_SetFontSize(text_layout, gl->label_font_size, range);
+            c_IDWriteTextLayout_GetMetrics(text_layout, &text_metrics);
+            x_label_width = MC_MAX(x_label_width, text_metrics.width);
+            x_label_height = MC_MAX(x_label_height, text_metrics.height);
+            c_IDWriteTextLayout_Release(text_layout);
+        }
+    }
+    x_label_width = MC_MAX(1.4f * x_label_width, 20.0f);
+    x_label_height = 1.5f * x_label_height;
+
+    /* Compute space reserved for all Y-axis value labels. */
+    chart_str_value(ya, gl->y_axis.max_value, buffer);
+    len = wcslen(buffer);
+    text_layout = xdwrite_create_text_layout(buffer, len,
+                chart->text_fmt, 0.0f, 0.0f, XDWRITE_NOWRAP);
+    y_label_width = 0.0f;
+    y_label_height = 0.0f;
+    y_label_padding = 0.0f;
+    if(text_layout != NULL) {
+        c_DWRITE_TEXT_METRICS text_metrics;
+        c_DWRITE_TEXT_RANGE range = { 0, len };
+        c_IDWriteTextLayout_SetFontSize(text_layout, font_height * 0.8f, range);
+        c_IDWriteTextLayout_GetMetrics(text_layout, &text_metrics);
+        y_label_width = MC_MAX(y_label_width, text_metrics.width);
+        y_label_height = MC_MAX(y_label_height, text_metrics.height);
+        y_label_padding = MC_MAX(y_label_padding, text_metrics.width / len);
+        c_IDWriteTextLayout_Release(text_layout);
+    }
+    if(gl->y_axis.min_value < 0) {
+        chart_str_value(ya, gl->y_axis.min_value, buffer);
+        len = wcslen(buffer);
+        text_layout = xdwrite_create_text_layout(buffer, len,
+                    chart->text_fmt, 0.0f, 0.0f, XDWRITE_NOWRAP);
+        if(text_layout != NULL) {
+            c_DWRITE_TEXT_METRICS text_metrics;
+            c_DWRITE_TEXT_RANGE range = { 0, len };
+            c_IDWriteTextLayout_SetFontSize(text_layout, font_height * 0.8f, range);
+            c_IDWriteTextLayout_GetMetrics(text_layout, &text_metrics);
+            y_label_width = MC_MAX(y_label_width, text_metrics.width);
+            y_label_height = MC_MAX(y_label_height, text_metrics.height);
+            y_label_padding = MC_MAX(y_label_padding, text_metrics.height / len);
+            c_IDWriteTextLayout_Release(text_layout);
+        }
+    }
+    y_label_width = y_label_width + 0.5f * y_label_height;
+    y_label_height = MC_MAX(1.5f * y_label_height, 20.0f);
+
+    /* Compute grid area. */
+    gl->x_axis.coord0 = (float) chart_layout->body_rect.left;
+    gl->y_axis.coord0 = (float) chart_layout->body_rect.top;
+    gl->x_axis.coord1 = (float) chart_layout->body_rect.right;
+    gl->y_axis.coord1 = (float) chart_layout->body_rect.bottom;
+    if(xa->name != NULL)
+        gl->y_axis.coord1 -= 1.3f * font_height;
+    if(ya->name != NULL)
+        gl->x_axis.coord0 += 1.5f * font_height;
+    gl->x_axis.coord0 += MC_MAX(y_label_width, 0.5f * x_label_width);
+    gl->y_axis.coord0 += 0.5f * y_label_height;
+    gl->y_axis.coord1 -= x_label_height;
+
+    /* Compute axis base and delta. */
+    grid_calc_base_and_delta(&gl->x_axis, x_label_width);
+    grid_calc_base_and_delta(&gl->y_axis, y_label_height);
+
+    /* Resize the grid_rect to make all grid lines fit into pixel matrix
+     * without unwanted anti-aliasing artifacts. */
+    grid_fix_coords(&gl->x_axis);
+    grid_fix_coords(&gl->y_axis);
+
+    /* Compute axis name positions. */
+    gl->x_axis.name_pos.x = 0.5f * (gl->x_axis.coord0 + gl->x_axis.coord1 - 1.0f);
+    gl->x_axis.name_pos.y = (float) chart_layout->body_rect.bottom - 0.5f * font_height;
+    gl->y_axis.name_pos.x = (float) chart_layout->body_rect.left + 0.5f * font_height;
+    gl->y_axis.name_pos.y = 0.5f * (gl->y_axis.coord0 + gl->y_axis.coord1 - 1.0f);
+
+    /* Compute axis label positions. */
+    gl->x_axis.coord_labels = gl->y_axis.coord1 + x_label_height;
+    gl->y_axis.coord_labels = gl->x_axis.coord0 - y_label_padding;
+}
+
+static void
+grid_paint(chart_t* chart, chart_xd2d_ctx_t* ctx, const grid_layout_t* gl)
+{
+    DWORD type = (chart->style & MC_CHS_TYPEMASK);
+    chart_axis_t* xa;
+    chart_axis_t* ya;
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
+    c_IDWriteTextLayout* text_layout;
+    c_D2D1_COLOR_F c;
+    c_D2D1_POINT_2F pt0, pt1;
+    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
+    size_t len;
+    int v;
+
+    if(type == MC_CHS_BAR || type == MC_CHS_STACKEDBAR) {
+        xa = &chart->axis2;
+        ya = &chart->axis1;
+    } else {
+        xa = &chart->axis1;
+        ya = &chart->axis2;
+    }
+
+    xd2d_color_set_rgb(&c, 95, 95, 95);
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+
+    /* Paint X-axis name. */
+    text_layout = xdwrite_create_text_layout(xa->name, _tcslen(xa->name),
+                chart->text_fmt, 0.0f, 0.0f,
+                XDWRITE_ALIGN_CENTER | XDWRITE_VALIGN_CENTER | XDWRITE_NOWRAP);
+    if(text_layout != NULL) {
+        c_ID2D1RenderTarget_DrawTextLayout(rt, gl->x_axis.name_pos,
+                    text_layout, (c_ID2D1Brush*) ctx->solid_brush, 0);
+        c_IDWriteTextLayout_Release(text_layout);
+    }
+
+    /* Paint Y-axis name. */
+    text_layout = xdwrite_create_text_layout(ya->name, _tcslen(ya->name),
+                chart->text_fmt, 0.0f, 0.0f,
+                XDWRITE_ALIGN_CENTER | XDWRITE_VALIGN_CENTER | XDWRITE_NOWRAP);
+    if(text_layout != NULL) {
+        c_D2D1_MATRIX_3X2_F old_matrix;
+        c_D2D1_MATRIX_3X2_F matrix;
+        float cx = gl->y_axis.name_pos.x + 0.5f;
+        float cy = gl->y_axis.name_pos.y + 0.5f;
+
+        c_ID2D1RenderTarget_GetTransform(rt, &old_matrix);
+        matrix._11 = 0.0f;      matrix._12 = -1.0f;
+        matrix._21 = 1.0f;      matrix._22 = 0.0f;
+        matrix._31 = -cy + cx;  matrix._32 = cx + cy;
+        c_ID2D1RenderTarget_SetTransform(rt, &matrix);
+        c_ID2D1RenderTarget_DrawTextLayout(rt, gl->y_axis.name_pos,
+                    text_layout, (c_ID2D1Brush*) ctx->solid_brush, 0);
+        c_IDWriteTextLayout_Release(text_layout);
+        c_ID2D1RenderTarget_SetTransform(rt, &old_matrix);
+    }
+
+    /* Paint grid lines. */
+    xd2d_color_set_rgb(&c, 191, 191, 191);
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+    if(gl->x_axis.type != GRID_AXIS_CATEGORY) {
+        for(v = gl->x_axis.grid_base; v <= gl->x_axis.max_value; v += gl->x_axis.grid_delta) {
+            pt0.x = grid_map_x(v, gl);
+            pt0.y = gl->y_axis.coord0;
+            pt1.x = pt0.x;
+            pt1.y = gl->y_axis.coord1;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+        }
+    }
+    if(gl->y_axis.type != GRID_AXIS_CATEGORY) {
+        for(v = gl->y_axis.grid_base; v <= gl->y_axis.max_value; v += gl->y_axis.grid_delta) {
+            pt0.x = gl->x_axis.coord0;
+            pt0.y = grid_map_y(v, gl);
+            pt1.x = gl->x_axis.coord1;
+            pt1.y = pt0.y;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+        }
+    }
+
+    /* Paint primary lines (axis) */
+    xd2d_color_set_rgb(&c, 0, 0, 0);
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+    if(gl->x_axis.type != GRID_AXIS_CATEGORY) {
+        if(gl->x_axis.min_value <= -xa->offset  &&  -xa->offset <= gl->x_axis.max_value) {
+            pt0.x = grid_map_x(-xa->offset, gl);
+            pt0.y = gl->y_axis.coord0;
+            pt1.x = pt0.x;
+            pt1.y = gl->y_axis.coord1;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+        }
+    }
+    if(gl->y_axis.type != GRID_AXIS_CATEGORY) {
+        if(gl->y_axis.min_value <= -ya->offset  &&  -ya->offset <= gl->y_axis.max_value) {
+            pt0.x = gl->x_axis.coord0;
+            pt0.y = grid_map_y(-ya->offset, gl);
+            pt1.x = gl->x_axis.coord1;
+            pt1.y = pt0.y;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+        }
+    }
+
+    /* Paint X-axis labels */
+    if(gl->x_axis.type != GRID_AXIS_CATEGORY)
+        pt0.x = gl->x_axis.coord0;
+    else
+        pt0.x = gl->x_axis.coord0 + 0.5f * gl->x_axis.coord_delta;
+    pt0.y = gl->x_axis.coord_labels;
+    for(v = gl->x_axis.grid_base; v <= gl->x_axis.max_value; v += gl->x_axis.grid_delta) {
+        chart_str_value(xa, v, buffer);
+        len = wcslen(buffer);
+        text_layout = xdwrite_create_text_layout(buffer, len, chart->text_fmt, 0.0f, 0.0f,
+                    XDWRITE_NOWRAP | XDWRITE_ALIGN_CENTER | XDWRITE_VALIGN_BOTTOM);
+        if(text_layout != NULL) {
+            c_DWRITE_TEXT_RANGE range = { 0, len };
+            c_IDWriteTextLayout_SetFontSize(text_layout, gl->label_font_size, range);
+            c_ID2D1RenderTarget_DrawTextLayout(rt, pt0, text_layout,
+                        (c_ID2D1Brush*) ctx->solid_brush, 0);
+            c_IDWriteTextLayout_Release(text_layout);
+        }
+
+        pt0.x += gl->x_axis.coord_delta;
+    }
+
+    /* Paint Y-axis labels */
+    pt0.x = gl->y_axis.coord_labels;
+    if(gl->y_axis.type != GRID_AXIS_CATEGORY)
+        pt0.y = gl->y_axis.coord1;
+    else
+        pt0.y = gl->y_axis.coord1 - 0.5f * gl->y_axis.coord_delta;
+    for(v = gl->y_axis.grid_base; v <= gl->y_axis.max_value; v += gl->y_axis.grid_delta) {
+        chart_str_value(ya, v, buffer);
+        len = wcslen(buffer);
+        text_layout = xdwrite_create_text_layout(buffer, len, chart->text_fmt, 0.0f, 0.0f,
+                    XDWRITE_NOWRAP | XDWRITE_ALIGN_RIGHT | XDWRITE_VALIGN_CENTER);
+        if(text_layout != NULL) {
+            c_DWRITE_TEXT_RANGE range = { 0, len };
+            c_IDWriteTextLayout_SetFontSize(text_layout, gl->label_font_size, range);
+            c_ID2D1RenderTarget_DrawTextLayout(rt, pt0, text_layout,
+                        (c_ID2D1Brush*) ctx->solid_brush, 0);
+            c_IDWriteTextLayout_Release(text_layout);
+        }
+
+        pt0.y -= gl->y_axis.coord_delta;
+    }
+}
+
+
 /*********************
  *** Scatter Chart ***
  *********************/
 
-typedef struct scatter_geometry_tag scatter_geometry_t;
-struct scatter_geometry_tag {
-    WD_RECT axis_x_name_rect;
-    WD_RECT axis_y_name_rect;
-    WD_RECT core_rect;
-
-    int min_x;
-    int max_x;
-    int step_x;
-    int min_step_x;
-
-    int min_y;
-    int max_y;
-    int step_y;
-    int min_step_y;
-};
-
-static inline float
-scatter_map_x(int x, const scatter_geometry_t* geom)
-{
-    return chart_map_x(x, geom->min_x, geom->max_x, &geom->core_rect);
-}
-
-static inline float
-scatter_map_y(int y, const scatter_geometry_t* geom)
-{
-    return chart_map_y(y, geom->min_y, geom->max_y, &geom->core_rect);
-}
-
 static void
-scatter_calc_geometry(chart_t* chart, chart_paint_t* ctx,
-                      const chart_layout_t* layout, cache_t* cache,
-                      scatter_geometry_t* geom)
+scatter_paint(chart_t* chart, chart_xd2d_ctx_t* ctx, const chart_layout_t* layout)
 {
-    int set_ix, n, i;
-    chart_data_t* data;
-    int label_x_w, label_x_h;
-    int label_y_w, label_y_h;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-    int tw;
-
-    n = dsa_size(&chart->data);
-
-    if(n > 0) {
-        /* Find extreme values */
-        geom->min_x = INT32_MAX;
-        geom->max_x = INT32_MIN;
-        geom->min_y = INT32_MAX;
-        geom->max_y = INT32_MIN;
-        for(set_ix = 0; set_ix < n; set_ix++) {
-            data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-            for(i = 0; i < data->count-1; i += 2) {  /* '-1' to protect if ->count is odd */
-                int x, y;
-
-                x = CACHE_VALUE(cache, set_ix, i);
-                y = CACHE_VALUE(cache, set_ix, i+1);
-
-                if(x < geom->min_x)
-                    geom->min_x = x;
-                if(x > geom->max_x)
-                    geom->max_x = x;
-                if(y < geom->min_y)
-                    geom->min_y = y;
-                if(y > geom->max_y)
-                    geom->max_y = y;
-            }
-        }
-
-        /* We want the chart to include the axis */
-        if(geom->min_x > 0)
-            geom->min_x = 0;
-        else if(geom->max_x < 0)
-            geom->max_x = 0;
-
-        if(geom->min_y > 0)
-            geom->min_y = 0;
-        else if(geom->max_y < 0)
-            geom->max_y = 0;
-    } else {
-        geom->min_x = 0;
-        geom->max_x = 0;
-        geom->min_y = 0;
-        geom->max_y = 0;
-    }
-
-    /* Avoid singularity */
-    if(geom->min_x >= geom->max_x)
-        geom->max_x = geom->min_x + 1;
-    if(geom->min_y >= geom->max_y)
-        geom->max_y = geom->min_y + 1;
-
-    /* Round to nice values */
-    geom->min_x = chart_round_value(geom->min_x + chart->axis1.offset, FALSE) - chart->axis1.offset;
-    geom->max_x = chart_round_value(geom->max_x + chart->axis1.offset, TRUE) - chart->axis1.offset;
-    geom->min_y = chart_round_value(geom->min_y + chart->axis2.offset, FALSE) - chart->axis2.offset;
-    geom->max_y = chart_round_value(geom->max_y + chart->axis2.offset, TRUE) - chart->axis2.offset;
-
-    /* Compute space for labels of horizontal axis */
-    label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis1, geom->max_x, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis1, geom->max_x, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    label_x_h = (3 * layout->font_size.cy + 1) / 2;
-
-    /* Compute space for labels of vertical axis */
-    label_y_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis2, geom->min_y, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis2, geom->max_y, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
-    label_y_h = layout->font_size.cy;
-
-    /* Compute axis name vertical coords */
-    geom->axis_x_name_rect.y0 = layout->body_rect.bottom;
-    geom->axis_x_name_rect.y1 = layout->body_rect.bottom;
-    if(chart->axis1.name != NULL)
-        geom->axis_x_name_rect.y0 -= layout->font_size.cy;
-
-    geom->axis_y_name_rect.x0 = layout->body_rect.left;
-    geom->axis_y_name_rect.x1 = layout->body_rect.left;
-    if(chart->axis2.name != NULL)
-        geom->axis_y_name_rect.x1 += layout->font_size.cy;
-
-    /* Compute core area */
-    geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
-    geom->core_rect.x1 = layout->body_rect.right;
-    geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
-    if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0) {
-        geom->core_rect.y1 -= geom->axis_x_name_rect.y1 -
-                    geom->axis_x_name_rect.y0 + layout->margin;
-    }
-    if(geom->axis_y_name_rect.x1 > geom->axis_y_name_rect.x0) {
-        geom->core_rect.x0 += geom->axis_y_name_rect.x1 -
-                     geom->axis_y_name_rect.x0 + layout->margin;
-    }
-
-    /* Steps for painting secondary lines */
-    geom->step_x = chart_round_value((geom->max_x - geom->min_x) * label_x_w /
-                        (geom->core_rect.x1 - geom->core_rect.x0), TRUE);
-    if(geom->step_x < 1)
-        geom->step_x = 1;
-    geom->step_y = chart_round_value((geom->max_y - geom->min_y) * 3*label_y_h /
-                        (2.0f * (geom->core_rect.y1 - geom->core_rect.y0)), TRUE);
-    if(geom->step_y < 1)
-        geom->step_y = 1;
-
-    /* Fix-up the core rect so that painting secondary lines does mot lead
-     * to anti-aliasing to neighborhood pixels as it looks too ugly. */
-    chart_fixup_rect_v(&geom->core_rect, geom->min_y, geom->max_y, geom->step_y);
-    chart_fixup_rect_h(&geom->core_rect, geom->min_x, geom->max_x, geom->step_x);
-    geom->min_step_x = ((geom->min_x + geom->step_x - 1) / geom->step_x) * geom->step_x;
-    geom->min_step_y = ((geom->min_y + geom->step_y - 1) / geom->step_y) * geom->step_y;
-
-    /* Compute axis name horizontal coords */
-    geom->axis_x_name_rect.x0 = geom->core_rect.x0;
-    geom->axis_x_name_rect.x1 = geom->core_rect.x1;
-    geom->axis_y_name_rect.y0 = geom->core_rect.y0;
-    geom->axis_y_name_rect.y1 = geom->core_rect.y1;
-}
-
-static void
-scatter_paint_grid(chart_t* chart, chart_paint_t* ctx,
-                   const chart_layout_t* layout, const scatter_geometry_t* geom)
-{
-    int x, y;
-    float x0, y0, x1, y1;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-
-    /* Axis legends */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(95,95,95));
-    if(chart->axis1.name != NULL) {
-        wdDrawString(ctx->canvas, ctx->font, &geom->axis_x_name_rect,
-                     chart->axis1.name, -1, ctx->solid_brush,
-                     WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-    if(chart->axis2.name != NULL) {
-        chart_draw_vert_string(ctx->canvas, ctx->font, &geom->axis_y_name_rect,
-                               chart->axis2.name, -1, ctx->solid_brush);
-    }
-
-    /* Secondary lines */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(191,191,191));
-    for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
-        if(x == 0)
-            continue;
-
-        x0 = scatter_map_x(x, geom);
-        y0 = geom->core_rect.y0;
-        x1 = x0;
-        y1 = geom->core_rect.y1;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    }
-    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
-        if(y == 0)
-            continue;
-
-        x0 = geom->core_rect.x0;
-        y0 = scatter_map_y(y, geom);
-        x1 = geom->core_rect.x1;
-        y1 = y0;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    }
-
-    /* Primary lines (axis) */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    x0 = scatter_map_x(0, geom);
-    y0 = geom->core_rect.y0;
-    x1 = x0;
-    y1 = geom->core_rect.y1;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    x0 = geom->core_rect.x0;
-    y0 = scatter_map_y(0, geom);
-    x1 = geom->core_rect.x1;
-    y1 = y0;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-
-    /* Labels */
-    for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
-        WD_RECT rc;
-
-        rc.x0 = scatter_map_x(x, geom);
-        rc.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
-        rc.x1 = rc.x0;
-        rc.y1 = rc.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis1, x, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rc, buffer, -1, ctx->solid_brush,
-                          WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
-        WD_RECT rc;
-
-        rc.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
-        rc.y0 = scatter_map_y(y, geom) - (layout->font_size.cy+1) / 2.0f;
-        rc.x1 = rc.x0;
-        rc.y1 = rc.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis2, y, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rc, buffer, -1, ctx->solid_brush,
-                          WD_STR_RIGHTALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-}
-
-static void
-scatter_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
-{
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
     cache_t cache;
-    scatter_geometry_t geom;
-    int set_ix, n, i;
+    grid_layout_t gl;
+    int set_ix, n;
+    int i;
     chart_data_t* data;
-
-    n = dsa_size(&chart->data);
+    c_D2D1_COLOR_F c;
+    c_D2D1_ELLIPSE e;
 
     CACHE_INIT(&cache, chart);
 
-    scatter_calc_geometry(chart, ctx, layout, &cache, &geom);
-    scatter_paint_grid(chart, ctx, layout, &geom);
+    grid_calc_layout(chart, layout, &cache, &gl);
+    grid_paint(chart, ctx, &gl);
 
-    /* Paint hot aura */
+    /* Paint aura for hot value(s). */
     if(chart->hot_set_ix >= 0) {
         int i0, i1;
 
         set_ix = chart->hot_set_ix;
         data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-        wdSetSolidBrushColor(ctx->solid_brush, WD_COLOR_FROM_GDI(
-                        color_hint(chart_data_color(chart, set_ix))));
+
+        xd2d_color_set_cref(&c, color_hint(chart_data_color(chart, set_ix)));
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
 
         if(chart->hot_i >= 0) {
             i0 = chart->hot_i;
@@ -859,24 +1195,29 @@ scatter_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
             i1 = data->count-1;
         }
 
+        e.radiusX = 4.0f;
+        e.radiusY = 4.0f;
         for(i = i0; i < i1; i += 2) {
-            wdFillCircle(ctx->canvas, ctx->solid_brush,
-                    scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom),
-                    scatter_map_y(CACHE_VALUE(&cache, set_ix, i+1), &geom),
-                    4.0f);
+            e.point.x = grid_map_x(CACHE_VALUE(&cache, set_ix, i), &gl);
+            e.point.y = grid_map_y(CACHE_VALUE(&cache, set_ix, i+1), &gl);
+            c_ID2D1RenderTarget_FillEllipse(rt, &e, (c_ID2D1Brush*) ctx->solid_brush);
         }
     }
 
-    /* Paint all data sets */
+    /* Paint all data sets. */
+    n = dsa_size(&chart->data);
+    e.radiusX = 2.0f;
+    e.radiusY = 2.0f;
     for(set_ix = 0; set_ix < n; set_ix++) {
         data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-        wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
+
+        xd2d_color_set_cref(&c, chart_data_color(chart, set_ix));
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+
         for(i = 0; i < data->count-1; i += 2) {  /* '-1' to protect if ->count is odd */
-            wdFillCircle(ctx->canvas, ctx->solid_brush,
-                    scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom),
-                    scatter_map_y(CACHE_VALUE(&cache, set_ix, i+1), &geom),
-                    2.0f);
+            e.point.x = grid_map_x(CACHE_VALUE(&cache, set_ix, i), &gl);
+            e.point.y = grid_map_y(CACHE_VALUE(&cache, set_ix, i+1), &gl);
+            c_ID2D1RenderTarget_FillEllipse(rt, &e, (c_ID2D1Brush*) ctx->solid_brush);
         }
     }
 
@@ -884,11 +1225,11 @@ scatter_paint(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout)
 }
 
 static void
-scatter_hit_test(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layout,
+scatter_hit_test(chart_t* chart, const chart_layout_t* layout,
                  int x, int y, int* p_set_ix, int* p_i)
 {
     cache_t cache;
-    scatter_geometry_t geom;
+    grid_layout_t gl;
     int set_ix, n, i;
     chart_data_t* data;
     float rx = (float) x;
@@ -899,15 +1240,15 @@ scatter_hit_test(chart_t* chart, chart_paint_t* ctx, const chart_layout_t* layou
     dist2 = GetSystemMetrics(SM_CXDOUBLECLK) * GetSystemMetrics(SM_CYDOUBLECLK);
 
     CACHE_INIT(&cache, chart);
-    scatter_calc_geometry(chart, ctx, layout, &cache, &geom);
+    grid_calc_layout(chart, layout, &cache, &gl);
 
     for(set_ix = 0; set_ix < n; set_ix++) {
         data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
         for(i = 0; i < data->count-1; i += 2) {
             float dx, dy;
 
-            dx = rx - scatter_map_x(CACHE_VALUE(&cache, set_ix, i), &geom);
-            dy = ry - scatter_map_y(CACHE_VALUE(&cache, set_ix, i+1), &geom);
+            dx = rx - grid_map_x(CACHE_VALUE(&cache, set_ix, i), &gl);
+            dy = ry - grid_map_y(CACHE_VALUE(&cache, set_ix, i+1), &gl);
 
             if(dx * dx + dy * dy < dist2) {
                 *p_set_ix = set_ix;
@@ -944,330 +1285,82 @@ scatter_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
  *** Line & Area Chart ***
  *************************/
 
-typedef struct line_geometry_tag line_geometry_t;
-struct line_geometry_tag {
-    WD_RECT axis_x_name_rect;
-    WD_RECT axis_y_name_rect;
-    WD_RECT core_rect;
-
-    int min_count;
-
-    int min_x;
-    int max_x;
-    int step_x;
-    int min_step_x;
-
-    int min_y;
-    int max_y;
-    int step_y;
-    int min_step_y;
-};
-
-static inline float
-line_map_y(int y, const line_geometry_t* geom)
-{
-    return chart_map_y(y, geom->min_y, geom->max_y, &geom->core_rect);
-}
-
-static inline float
-line_map_x(int x, const line_geometry_t* geom)
-{
-    return chart_map_x(x, geom->min_x, geom->max_x, &geom->core_rect);
-}
-
 static void
-line_calc_geometry(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
-                   const chart_layout_t* layout, cache_t* cache,
-                   line_geometry_t* geom)
+line_paint_area(chart_t* chart, cache_t* cache, int set_ix, BOOL is_stacked,
+                chart_xd2d_ctx_t* ctx, const grid_layout_t* gl)
 {
-    int set_ix, n, i;
-    chart_data_t* data;
-    int label_x_w, label_x_h;
-    int label_y_w, label_y_h;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-    int tw;
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
+    c_ID2D1PathGeometry* path;
+    c_ID2D1GeometrySink* sink;
+    c_D2D1_POINT_2F pt;
+    BYTE alpha;
+    c_D2D1_COLOR_F c;
+    int x0, x1, x, y;
 
-    n = dsa_size(&chart->data);
+    x0 = 0;
+    x1 = DSA_ITEM(&chart->data, set_ix, chart_data_t)->count;
+    if(x1 < 1)
+        return;
 
-    if(n > 0) {
-        /* Find extreme values */
-        geom->min_count = INT32_MAX;
-        geom->min_y = INT32_MAX;
-        geom->max_y = INT32_MIN;
-        for(set_ix = 0; set_ix < n; set_ix++) {
-            data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+    if(set_ix == chart->hot_set_ix)
+        alpha = 63;
+    else
+        alpha = 31;
+    xd2d_color_set_crefa(&c, chart_data_color(chart, set_ix), alpha);
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
 
-            if(data->count < geom->min_count)
-                geom->min_count = data->count;
-
-            for(i = 0; i < data->count; i++) {
-                int y;
-
-                if(is_stacked)
-                    y = cache_stack(cache, set_ix, i);
-                else
-                    y = CACHE_VALUE(cache, set_ix, i);
-
-                if(y < geom->min_y)
-                    geom->min_y = y;
-                if(y > geom->max_y)
-                    geom->max_y = y;
-            }
-        }
-
-        /* We want the chart to include the axis */
-        if(geom->min_y > 0)
-            geom->min_y = 0;
-        else if(geom->max_y < 0)
-            geom->max_y = 0;
-    } else {
-        geom->min_count = 0;
-        geom->min_y = 0;
-        geom->max_y = 0;
+    path = xd2d_CreatePathGeometry(&sink);
+    if(MC_ERR(path == NULL)) {
+        MC_TRACE("line_paint_area: xd2d_CreatePathGeometry() failed.");
+        return;
     }
 
-    geom->min_x = 0;
-    geom->max_x = geom->min_count-1;
+    pt.x = gl->x_axis.coord0;
+    pt.y = gl->y_axis.coord1;
+    c_ID2D1GeometrySink_BeginFigure(sink, pt, c_D2D1_FIGURE_BEGIN_FILLED);
+    for(x = x0; x < x1; x++) {
+        if(is_stacked)
+            y = cache_stack(cache, set_ix, x);
+        else
+            y = CACHE_VALUE(cache, set_ix, x);
 
-    /* Avoid singularity */
-    if(geom->min_x >= geom->max_x)
-        geom->max_x = geom->min_x + 1;
-    if(geom->min_y >= geom->max_y)
-        geom->max_y = geom->min_y + 1;
-
-    /* Round to nice values */
-    geom->min_y = chart_round_value(geom->min_y + chart->axis2.offset, FALSE) - chart->axis2.offset;
-    geom->max_y = chart_round_value(geom->max_y + chart->axis2.offset, TRUE) - chart->axis2.offset;
-
-    /* Compute space for labels of horizontal axis */
-    label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis1, 0, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis1, geom->min_count, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    label_x_h = (3 * layout->font_size.cy + 1) / 2;
-
-    /* Compute space for labels of vertical axis */
-    label_y_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis2, geom->min_y, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis2, geom->max_y, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
-    label_y_h = layout->font_size.cy;
-
-    /* Compute axis name coords */
-    geom->axis_x_name_rect.y0 = layout->body_rect.bottom;
-    geom->axis_x_name_rect.y1 = layout->body_rect.bottom;
-    if(chart->axis1.name != NULL)
-        geom->axis_x_name_rect.y0 -= layout->font_size.cy;
-
-    geom->axis_y_name_rect.x0 = layout->body_rect.left;
-    geom->axis_y_name_rect.x1 = layout->body_rect.left;
-    if(chart->axis2.name != NULL)
-        geom->axis_y_name_rect.x1 += layout->font_size.cy;
-
-    /* Compute core area */
-    geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
-    geom->core_rect.x1 = layout->body_rect.right;
-    geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
-    if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0) {
-        geom->core_rect.y1 -= geom->axis_x_name_rect.y1 -
-                    geom->axis_x_name_rect.y0 + layout->margin;
+        pt.x = grid_map_x(x, gl);
+        pt.y = grid_map_y(y, gl);
+        c_ID2D1GeometrySink_AddLine(sink, pt);
     }
-    if(geom->axis_y_name_rect.x1 > geom->axis_y_name_rect.x0) {
-        geom->core_rect.x0 += geom->axis_y_name_rect.x1 -
-                     geom->axis_y_name_rect.x0 + layout->margin;
-    }
+    pt.y = gl->y_axis.coord1;
+    c_ID2D1GeometrySink_AddLine(sink, pt);
+    if(is_stacked  &&  set_ix > 0) {
+        for(x = x1-1; x >= x0; x--) {
+            y = cache_stack(cache, set_ix-1, x);
 
-    /* Steps for painting secondary lines */
-    geom->step_x = chart_round_value((geom->max_x - geom->min_x) * label_x_w /
-                        (geom->core_rect.x1 - geom->core_rect.x0), TRUE);
-    if(geom->step_x < 1)
-        geom->step_x = 1;
-    geom->step_y = chart_round_value((geom->max_y - geom->min_y) * 3*label_y_h /
-                        (2.0f * (geom->core_rect.y1 - geom->core_rect.y0)), TRUE);
-    if(geom->step_y < 1)
-        geom->step_y = 1;
-
-    /* Fix-up the core rect so that painting secondary lines does mot lead
-     * to anti-aliasing to neighborhood pixels as it looks too ugly. */
-    chart_fixup_rect_v(&geom->core_rect, geom->min_y, geom->max_y, geom->step_y);
-    chart_fixup_rect_h(&geom->core_rect, geom->min_x, geom->max_x, geom->step_x);
-    geom->min_step_x = ((geom->min_x + geom->step_x - 1) / geom->step_x) * geom->step_x;
-    geom->min_step_y = ((geom->min_y + geom->step_y - 1) / geom->step_y) * geom->step_y;
-
-    /* Compute axis name horizontal coords */
-    geom->axis_x_name_rect.x0 = geom->core_rect.x0;
-    geom->axis_x_name_rect.x1 = geom->core_rect.x1;
-    geom->axis_y_name_rect.y0 = geom->core_rect.y0;
-    geom->axis_y_name_rect.y1 = geom->core_rect.y1;
-}
-
-static void
-line_paint_grid(chart_t* chart, chart_paint_t* ctx,
-                const chart_layout_t* layout, const line_geometry_t* geom)
-{
-    int x, y;
-    float x0, y0, x1, y1;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-
-    /* Axis legends */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(95,95,95));
-    if(chart->axis1.name != NULL) {
-        wdDrawString(ctx->canvas, ctx->font, &geom->axis_x_name_rect,
-                          chart->axis1.name, -1, ctx->solid_brush,
-                          WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-    if(chart->axis2.name != NULL) {
-        chart_draw_vert_string(ctx->canvas, ctx->font, &geom->axis_y_name_rect,
-                               chart->axis2.name, -1, ctx->solid_brush);
-    }
-
-    /* Secondary lines */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(191,191,191));
-    for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
-        if(x == 0)
-            continue;
-
-        x0 = line_map_x(x, geom);
-        y0 = geom->core_rect.y0;
-        x1 = x0;
-        y1 = geom->core_rect.y1;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    }
-    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
-        if(y == 0)
-            continue;
-
-        x0 = geom->core_rect.x0;
-        y0 = line_map_y(y, geom);
-        x1 = geom->core_rect.x1;
-        y1 = y0;
-        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    }
-
-    /* Primary lines (axis) */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    x0 = line_map_x(0, geom);
-    y0 = geom->core_rect.y0;
-    x1 = x0;
-    y1 = geom->core_rect.y1;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    x0 = geom->core_rect.x0;
-    y0 = line_map_y(0, geom);
-    x1 = geom->core_rect.x1;
-    y1 = y0;
-    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-
-    /* Labels */
-    for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
-        WD_RECT rc;
-
-        rc.x0 = line_map_x(x, geom);
-        rc.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
-        rc.x1 = rc.x0;
-        rc.y1 = rc.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis1, x, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rc, buffer, -1, ctx->solid_brush,
-                          WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
-        WD_RECT rc;
-
-        rc.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
-        rc.y0 = line_map_y(y, geom) - (layout->font_size.cy+1) / 2.0f;
-        rc.x1 = rc.x0;
-        rc.y1 = rc.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis2, y, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rc, buffer, -1, ctx->solid_brush,
-                          WD_STR_RIGHTALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-}
-
-static void
-line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
-           const chart_layout_t* layout)
-{
-    cache_t cache;
-    line_geometry_t geom;
-    int set_ix, n;
-    int x, y;
-
-    n = dsa_size(&chart->data);
-
-    CACHE_INIT(&cache, chart);
-
-    line_calc_geometry(chart, is_stacked, ctx, layout, &cache, &geom);
-    line_paint_grid(chart, ctx, layout, &geom);
-
-    /* Paint area */
-    if(is_area  &&  geom.min_count > 1) {
-        for(set_ix = 0; set_ix < n; set_ix++) {
-            WD_HPATH path;
-            WD_PATHSINK sink;
-            float fy0;
-            BYTE alpha;
-
-            path = wdCreatePath(ctx->canvas);
-            if(MC_ERR(path == NULL)) {
-                MC_TRACE("line_paint: wdCreatePath() failed.");
-                continue;
-            }
-
-            if(MC_ERR(!wdOpenPathSink(&sink, path))) {
-                MC_TRACE("line_paint: wdOpenPathSink() failed.");
-                wdDestroyPath(path);
-                continue;
-            }
-
-            fy0 = line_map_y(0, &geom);
-            wdBeginFigure(&sink, line_map_x(0, &geom), fy0);
-
-            for(x = 0; x < geom.min_count; x++) {
-                if(is_stacked)
-                    y = cache_stack(&cache, set_ix, x);
-                else
-                    y = CACHE_VALUE(&cache, set_ix, x);
-                wdAddLine(&sink, line_map_x(x, &geom), line_map_y(y, &geom));
-            }
-
-            if(!is_stacked || set_ix == 0) {
-                wdAddLine(&sink, line_map_x(geom.min_count - 1, &geom), fy0);
-            } else {
-                for(x = geom.min_count - 1; x >= 0; x--) {
-                    y = cache_stack(&cache, set_ix-1, x);
-                    wdAddLine(&sink, line_map_x(x, &geom), line_map_y(y, &geom));
-                }
-            }
-
-            wdEndFigure(&sink, TRUE);
-            wdClosePathSink(&sink);
-
-            if(set_ix == chart->hot_set_ix  &&  chart->hot_i < 0)
-                alpha = 0x60;
-            else
-                alpha = 0x2f;
-
-            wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI_EX(alpha, chart_data_color(chart, set_ix)));
-            wdFillPath(ctx->canvas, ctx->solid_brush, path);
-            wdDestroyPath(path);
+            pt.x = grid_map_x(x, gl);
+            pt.y = grid_map_y(y, gl);
+            c_ID2D1GeometrySink_AddLine(sink, pt);
         }
     }
+    c_ID2D1GeometrySink_EndFigure(sink, c_D2D1_FIGURE_END_CLOSED);
 
-    /* Paint hot aura */
-    if(chart->hot_set_ix >= 0) {
-        int x0, x1;
-        float fx, fy;
-        float prev_fx, prev_fy;
+    c_ID2D1GeometrySink_Close(sink);
+    c_ID2D1GeometrySink_Release(sink);
 
-        set_ix = chart->hot_set_ix;
+    c_ID2D1RenderTarget_FillGeometry(rt, (c_ID2D1Geometry*) path,
+                (c_ID2D1Brush*) ctx->solid_brush, NULL);
+    c_ID2D1PathGeometry_Release(path);
+}
 
+static void
+line_paint_lines(chart_t* chart, cache_t* cache, int set_ix, BOOL is_stacked,
+                 chart_xd2d_ctx_t* ctx, const grid_layout_t* gl, BOOL is_aura)
+{
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
+    int x0, x1, x, y;
+    float line_width;
+    c_D2D1_POINT_2F pt0, pt1;
+    c_D2D1_COLOR_F c;
+    c_D2D1_ELLIPSE e;
+
+    if(is_aura) {
         if(chart->hot_i >= 0) {
             x0 = chart->hot_i;
             x1 = chart->hot_i+1;
@@ -1275,65 +1368,84 @@ line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_paint_t* ctx,
             x0 = 0;
             x1 = DSA_ITEM(&chart->data, set_ix, chart_data_t)->count;
         }
-
-        wdSetSolidBrushColor(ctx->solid_brush,
-                WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-
-        for(x = x0; x < x1; x++) {
-            if(is_stacked)
-                y = cache_stack(&cache, set_ix, x);
-            else
-                y = CACHE_VALUE(&cache, set_ix, x);
-
-            fx = line_map_x(x, &geom);
-            fy = line_map_y(y, &geom);
-            wdFillCircle(ctx->canvas, ctx->solid_brush, fx, fy, 4.0f);
-
-            if(x > x0)
-                wdDrawLine(ctx->canvas, ctx->solid_brush, prev_fx, prev_fy, fx, fy, 3.5f);
-
-            prev_fx = fx;
-            prev_fy = fy;
-        }
+        xd2d_color_set_cref(&c, color_hint(chart_data_color(chart, set_ix)));
+        e.radiusX = 4.0f;
+        e.radiusY = 4.0f;
+        line_width = 3.5f;
+    } else {
+        x0 = 0;
+        x1 = DSA_ITEM(&chart->data, set_ix, chart_data_t)->count;
+        xd2d_color_set_cref(&c, chart_data_color(chart, set_ix));
+        e.radiusX = 2.0f;
+        e.radiusY = 2.0f;
+        line_width = 1.0f;
     }
+
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+
+    for(x = x0; x < x1; x++) {
+        if(is_stacked)
+            y = cache_stack(cache, set_ix, x);
+        else
+            y = CACHE_VALUE(cache, set_ix, x);
+
+        pt1.x = grid_map_x(x, gl);
+        pt1.y = grid_map_y(y, gl);
+        if(x > x0) {
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1,
+                    (c_ID2D1Brush*) ctx->solid_brush, line_width, NULL);
+        }
+
+        e.point.x = pt1.x;
+        e.point.y = pt1.y;
+        c_ID2D1RenderTarget_FillEllipse(rt, &e, (c_ID2D1Brush*) ctx->solid_brush);
+
+        pt0.x = pt1.x;
+        pt0.y = pt1.y;
+    }
+}
+
+static void
+line_paint(chart_t* chart, BOOL is_area, BOOL is_stacked, chart_xd2d_ctx_t* ctx,
+           const chart_layout_t* layout)
+{
+    cache_t cache;
+    grid_layout_t gl;
+    int set_ix, n;
+
+    n = dsa_size(&chart->data);
+
+    CACHE_INIT(&cache, chart);
+
+    grid_calc_layout(chart, layout, &cache, &gl);
+    grid_paint(chart, ctx, &gl);
+
+    /* Paint areas */
+    if(is_area) {
+        for(set_ix = 0; set_ix < n; set_ix++)
+            line_paint_area(chart, &cache, set_ix, is_stacked, ctx, &gl);
+    }
+
+    /* Paint aura */
+    if(chart->hot_set_ix >= 0)
+        line_paint_lines(chart, &cache, chart->hot_set_ix, is_stacked, ctx, &gl, TRUE);
 
     /* Paint all data sets */
-    for(set_ix = 0; set_ix < n; set_ix++) {
-        float fx, fy;
-        float prev_fx, prev_fy;
-
-        wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-        for(x = 0; x < geom.min_count; x++) {
-            if(is_stacked)
-                y = cache_stack(&cache, set_ix, x);
-            else
-                y = CACHE_VALUE(&cache, set_ix, x);
-
-            fx = line_map_x(x, &geom);
-            fy = line_map_y(y, &geom);
-            wdFillCircle(ctx->canvas, ctx->solid_brush, fx, fy, 2.0f);
-
-            if(x > 0)
-                wdDrawLine(ctx->canvas, ctx->solid_brush, prev_fx, prev_fy, fx, fy, 1.0f);
-
-            prev_fx = fx;
-            prev_fy = fy;
-        }
-    }
+    for(set_ix = 0; set_ix < n; set_ix++)
+        line_paint_lines(chart, &cache, set_ix, is_stacked, ctx, &gl, FALSE);
 
     CACHE_FINI(&cache);
 }
 
 static void
-line_hit_test(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
-              const chart_layout_t* layout, int x, int y, int* p_set_ix, int* p_i)
+line_hit_test(chart_t* chart, BOOL is_stacked, const chart_layout_t* layout,
+              int x, int y, int* p_set_ix, int* p_i)
 {
     cache_t cache;
-    line_geometry_t geom;
+    grid_layout_t gl;
     int set_ix, n, i;
-    int i0, i1;
     float ri;
+    int i0, i1;
     float rx = (float) x;
     float ry = (float) y;
     int max_dx, max_dy;
@@ -1345,15 +1457,15 @@ line_hit_test(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
     dist2 = max_dx * max_dy;
 
     CACHE_INIT(&cache, chart);
-    line_calc_geometry(chart, is_stacked, ctx, layout, &cache, &geom);
+    grid_calc_layout(chart, layout, &cache, &gl);
 
     /* Find index which maps horizontally close enough to the X mouse
      * coordinate. */
-    ri = chart_unmap_x((float) x, geom.min_x, geom.max_x, &geom.core_rect);
+    ri = grid_unmap_x(rx, &gl);
 
     /* Any close hot point must be close of the ri */
-    i0 = (int) (ri - MC_MAX(max_dx, max_dy) + 0.9999f);
-    i1 = (int) (ri + MC_MAX(max_dx, max_dy));
+    i0 = (int) floorf(ri - MC_MAX(max_dx, max_dy));
+    i1 = (int) ceilf(ri + MC_MAX(max_dx, max_dy));
 
     for(set_ix = 0; set_ix < n; set_ix++) {
         int ii0 = MC_MAX(i0, 0);
@@ -1368,8 +1480,8 @@ line_hit_test(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
             else
                 y = CACHE_VALUE(&cache, set_ix, i);
 
-            dx = rx - line_map_x(i, &geom);
-            dy = ry - line_map_y(y, &geom);
+            dx = rx - grid_map_x(i, &gl);
+            dy = ry - grid_map_y(y, &gl);
 
             if(dx * dx + dy * dy < dist2) {
                 *p_set_ix = set_ix;
@@ -1392,310 +1504,91 @@ line_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
  *** Column Chart ***
  ********************/
 
-typedef struct column_geometry_tag column_geometry_t;
-struct column_geometry_tag {
-    WD_RECT axis_x_name_rect;
-    WD_RECT axis_y_name_rect;
-    WD_RECT core_rect;
-
-    int min_count;
-
-    int min_y;
-    int max_y;
-    int step_y;
-    int min_step_y;
-
-    float column_width;
-    float column_padding;
-    float group_padding;
+typedef struct column_layout_tag column_layout_t;
+struct column_layout_tag {
+    float group_delta;
+    float col_width;
+    float col_delta;
+    float col0_offset;
 };
 
-static inline float
-column_map_y(int y, const column_geometry_t* geom)
+static void
+column_calc_layout(chart_t* chart, BOOL is_stacked, const grid_axis_t* axis,
+                   column_layout_t* col_layout)
 {
-    return chart_map_y(y, geom->min_y, geom->max_y, &geom->core_rect);
+    static const float GRf = 1.618f;     /* golden ratio */
+    int n = (is_stacked ? 1 : dsa_size(&(chart)->data));
+    float group_width;
+
+    col_layout->group_delta = axis->coord_delta;
+    group_width = col_layout->group_delta / GRf;
+    col_layout->col_width = group_width / (n + (n-1)/GRf);
+    col_layout->col_delta = col_layout->col_width * (1.0f + 1.0f/GRf);
+    col_layout->col0_offset = floorf(0.5f * (col_layout->group_delta - group_width));
+    if(col_layout->col_width > 3.0f)
+        col_layout->col_width = floorf(col_layout->col_width);
+    if(col_layout->col_delta > 3.0f)
+        col_layout->col_delta = ceilf(col_layout->col_delta);
 }
 
 static void
-column_calc_geometry(chart_t* chart, BOOL is_stacked, const chart_layout_t* layout,
-                     cache_t* cache, column_geometry_t* geom)
-{
-    int set_ix, n, i;
-    chart_data_t* data;
-    int label_x_w, label_x_h;
-    int label_y_w, label_y_h;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-    int tw;
-
-    n = dsa_size(&chart->data);
-
-    if(n > 0) {
-        /* Find extreme values */
-        geom->min_count = INT32_MAX;
-        geom->min_y = INT32_MAX;
-        geom->max_y = INT32_MIN;
-        for(set_ix = 0; set_ix < n; set_ix++) {
-            data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-
-            if(data->count < geom->min_count)
-                geom->min_count = data->count;
-
-            for(i = 0; i < data->count; i++) {
-                int y;
-
-                if(is_stacked)
-                    y = cache_stack(cache, set_ix, i);
-                else
-                    y = CACHE_VALUE(cache, set_ix, i);
-
-                if(y < geom->min_y)
-                    geom->min_y = y;
-                if(y > geom->max_y)
-                    geom->max_y = y;
-            }
-        }
-
-        /* We want the chart to include the axis */
-        if(geom->min_y > 0)
-            geom->min_y = 0;
-        else if(geom->max_y < 0)
-            geom->max_y = 0;
-    } else {
-        geom->min_count = 0;
-        geom->min_y = 0;
-        geom->max_y = 0;
-    }
-
-    /* Avoid singularity */
-    if(geom->min_y >= geom->max_y)
-        geom->max_y = geom->min_y + 1;
-
-    /* Round to nice values */
-    geom->min_y = chart_round_value(geom->min_y + chart->axis2.offset, FALSE) - chart->axis2.offset;
-    geom->max_y = chart_round_value(geom->max_y + chart->axis2.offset, TRUE) - chart->axis2.offset;
-
-    /* Compute space for labels of horizontal axis */
-    label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis1, 0, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis1, geom->min_count, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    label_x_h = (3 * layout->font_size.cy + 1) / 2;
-
-    /* Compute space for labels of vertical axis */
-    label_y_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis2, geom->min_y, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis2, geom->max_y, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
-    label_y_h = layout->font_size.cy;
-
-    /* Compute axis legend width/height */
-    if(chart->axis2.name != NULL) {
-        geom->axis_x_name_rect.y0 = layout->body_rect.bottom - layout->font_size.cy;
-        geom->axis_x_name_rect.y1 = geom->axis_x_name_rect.y0 + layout->font_size.cy;
-    } else {
-        geom->axis_x_name_rect.y0 = layout->body_rect.bottom;
-        geom->axis_x_name_rect.y1  = geom->axis_x_name_rect.y0;
-    }
-    if(chart->axis1.name != NULL) {
-        geom->axis_y_name_rect.x0 = layout->body_rect.left;
-        geom->axis_y_name_rect.x1 = geom->axis_y_name_rect.x0 + layout->font_size.cy;
-    } else {
-        geom->axis_y_name_rect.x0 = layout->body_rect.left;
-        geom->axis_y_name_rect.x1 = geom->axis_y_name_rect.x0;
-    }
-
-    /* Compute core area */
-    geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
-    geom->core_rect.x1 = layout->body_rect.right;
-    geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
-    if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0)
-        geom->core_rect.y1 -= geom->axis_x_name_rect.y1 - geom->axis_x_name_rect.y0 + layout->margin;
-    if(geom->axis_y_name_rect.x1 > geom->axis_y_name_rect.x0)
-        geom->core_rect.x0 += geom->axis_y_name_rect.x1 - geom->axis_y_name_rect.x0 + layout->margin;
-
-    /* Steps for painting secondary lines */
-    geom->step_y = chart_round_value((geom->max_y - geom->min_y) * label_y_h / (geom->core_rect.y1 - geom->core_rect.y0), TRUE);
-    if(geom->step_y < 1)
-        geom->step_y = 1;
-
-    /* Fix-up the core rect so that painting secondary lines does mot lead
-     * to anti-aliasing to neighborhood pixels as it looks too ugly. */
-    chart_fixup_rect_v(&geom->core_rect, geom->min_y, geom->max_y, geom->step_y);
-    geom->min_step_y = ((geom->min_y + geom->step_y - 1) / geom->step_y) * geom->step_y;
-
-    if(is_stacked) {
-        geom->column_width = (geom->core_rect.x1 - geom->core_rect.x0) / (1.61f * geom->min_count);
-        geom->group_padding = 0.5f * 0.61f * geom->column_width;
-        geom->column_padding = 0.0f;
-    } else {
-        if(n > 0) {
-            geom->column_width = (geom->core_rect.x1 - geom->core_rect.x0) / ((n+0.5f) * geom->min_count);
-            geom->group_padding = 0.25f * geom->column_width;
-            geom->column_padding = 0.15f * geom->column_width;
-            geom->column_width -= 2.0f * geom->column_padding;
-        } else {
-            geom->column_width = 0.0f;
-            geom->column_padding = 0.0f;
-            geom->group_padding = 0.0f;
-        }
-    }
-
-    /* Refresh axis legend areas after the fix-up */
-    geom->axis_x_name_rect.x0 = geom->core_rect.x0;
-    geom->axis_x_name_rect.x1 = geom->core_rect.x1;
-    geom->axis_y_name_rect.y0 = geom->core_rect.y0;
-    geom->axis_y_name_rect.y1 = geom->core_rect.y1;
-}
-
-static void
-column_paint_grid(chart_t* chart, chart_paint_t* ctx,
-                  const chart_layout_t* layout, const column_geometry_t* geom)
-{
-    float x0, y0, x1, y1;
-    WD_RECT rect;
-    int x, y;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-
-    /* Axis legends */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(95,95,95));
-    if(chart->axis1.name != NULL) {
-        wdDrawString(ctx->canvas, ctx->font, &geom->axis_x_name_rect,
-                chart->axis1.name, -1, ctx->solid_brush,
-                WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-    if(chart->axis2.name != NULL) {
-        chart_draw_vert_string(ctx->canvas, ctx->font, &geom->axis_y_name_rect,
-                chart->axis2.name, -1, ctx->solid_brush);
-    }
-
-    /* Horizontal grid lines */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(191,191,191));
-    x0 = geom->core_rect.x0;
-    x1 = geom->core_rect.x1;
-    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
-        if(y == 0)
-            continue;
-
-        y1 = y0 = column_map_y(y, geom);
-        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    }
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    y1 = y0 = column_map_y(0, geom);
-    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-
-    /* Labels */
-    for(x = 0; x < geom->min_count; x++) {
-        rect.x0 = geom->core_rect.x0 + (x + 0.5f) *
-                (geom->core_rect.x1 - geom->core_rect.x0) / geom->min_count;
-        rect.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
-        rect.x1 = rect.x0;
-        rect.y1 = rect.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis1, x, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rect, buffer, -1,
-                ctx->solid_brush, WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-
-    for(y = geom->min_step_y; y <= geom->max_y; y += geom->step_y) {
-        rect.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
-        rect.y0 = column_map_y(y, geom) - (layout->font_size.cy+1) / 2.0f;
-        rect.x1 = rect.x0;
-        rect.y1 = rect.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis2, y, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rect, buffer, -1,
-                ctx->solid_brush, WD_STR_RIGHTALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-}
-
-static void
-column_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
+column_paint(chart_t* chart, BOOL is_stacked, chart_xd2d_ctx_t* ctx,
              const chart_layout_t* layout)
 {
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
     cache_t cache;
-    column_geometry_t geom;
-    int set_ix, n, i;
-    WD_RECT column_rect;
-
-    n = dsa_size(&chart->data);
+    grid_layout_t gl;
+    column_layout_t cl;
+    int set_ix, i, n;
+    chart_data_t* data;
+    D2D1_RECT_F r;
+    c_D2D1_POINT_2F pt0, pt1;
+    c_D2D1_COLOR_F c, c_full;
 
     CACHE_INIT(&cache, chart);
 
-    column_calc_geometry(chart, is_stacked, layout, &cache, &geom);
-    column_paint_grid(chart, ctx, layout, &geom);
+    grid_calc_layout(chart, layout, &cache, &gl);
+    grid_paint(chart, ctx, &gl);
 
-    /* Paint all data sets */
-    if(is_stacked) {
-        column_rect.x0 = geom.core_rect.x0;
-        for(i = 0; i < geom.min_count; i++) {
-            column_rect.x0 += geom.group_padding + geom.column_padding;
-            column_rect.x1 = column_rect.x0 + geom.column_width;
-            column_rect.y1 = column_map_y(0, &geom);
+    column_calc_layout(chart, is_stacked, &gl.x_axis, &cl);
 
-            for(set_ix = 0; set_ix < n; set_ix++) {
-                column_rect.y0 = column_map_y(cache_stack(&cache, set_ix, i), &geom);
+    n = dsa_size(&chart->data);
+    for(set_ix = 0; set_ix < n; set_ix++) {
+        data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+        xd2d_color_set_cref(&c_full, chart_data_color(chart, set_ix));
+        xd2d_color_set_crefa(&c, chart_data_color(chart, set_ix), 175);
 
-                /* Paint aura for hot bar */
-                if(chart->hot_set_ix == set_ix  &&
-                   (chart->hot_i == i  ||  chart->hot_i < 0))
-                {
-                    float aura_inlate = 0.75f * geom.group_padding;
-
-                    wdSetSolidBrushColor(ctx->solid_brush,
-                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush,
-                            column_rect.x0 - aura_inlate, column_rect.y0,
-                            column_rect.x1 + aura_inlate, column_rect.y1);
-                }
-
-                /* Paint bar */
-                wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush,
-                        column_rect.x0, column_rect.y0, column_rect.x1, column_rect.y1);
-                column_rect.y1 = column_rect.y0;
+        r.left = gl.x_axis.coord0 + cl.col0_offset;
+        if(!is_stacked)
+            r.left += set_ix * cl.col_delta;
+        for(i = 0; i < data->count; i++) {
+            if(set_ix == chart->hot_set_ix  &&  (i == chart->hot_i || chart->hot_i < 0))
+                c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c_full);
+            else
+                c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+            r.right = r.left + cl.col_width;
+            if(!is_stacked  ||  set_ix == 0) {
+                r.top = grid_map_y(CACHE_VALUE(&cache, set_ix, i), &gl);
+                r.bottom = grid_map_y(0, &gl);
+            } else {
+                r.top = grid_map_y(cache_stack(&cache, set_ix, i), &gl);
+                r.bottom = grid_map_y(cache_stack(&cache, set_ix-1, i), &gl);
             }
+            c_ID2D1RenderTarget_FillRectangle(rt, &r, (c_ID2D1Brush*) ctx->solid_brush);
 
-            column_rect.x0 = column_rect.x1 + geom.group_padding + geom.column_padding;
-        }
-    } else {
-        column_rect.x0 = geom.core_rect.x0;
-        column_rect.y1 = column_map_y(0, &geom);
-        for(i = 0; i < geom.min_count; i++) {
-            column_rect.x0 += geom.group_padding;
+            pt0.x = r.left;
+            pt0.y = r.bottom - 0.5f;
+            pt1.x = r.left;
+            pt1.y = r.top;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+            pt0.x = r.right;
+            pt1.x = r.right;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+            pt0.x = r.left;
+            pt0.y = r.top;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
 
-            for(set_ix = 0; set_ix < n; set_ix++) {
-                column_rect.x0 += geom.column_padding;
-                column_rect.x1 = column_rect.x0 + geom.column_width;
-                column_rect.y0 = column_map_y(CACHE_VALUE(&cache, set_ix, i), &geom);
-
-                /* Paint aura for hot bar */
-                if(chart->hot_set_ix == set_ix  &&
-                   (chart->hot_i == i  ||  chart->hot_i < 0))
-                {
-                    float aura_inlate = 0.75f * geom.group_padding;
-
-                    wdSetSolidBrushColor(ctx->solid_brush,
-                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush,
-                            column_rect.x0 - aura_inlate, column_rect.y0,
-                            column_rect.x1 + aura_inlate, column_rect.y1);
-                }
-
-                /* Paint bar */
-                wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush,
-                        column_rect.x0, column_rect.y0, column_rect.x1, column_rect.y1);
-                column_rect.x0 = column_rect.x1 + geom.column_padding;
-            }
-
-            column_rect.x0 += geom.group_padding;
+            r.left += cl.group_delta;
         }
     }
 
@@ -1703,67 +1596,49 @@ column_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
 }
 
 static void
-column_hit_test(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
-             chart_layout_t* layout, int x, int y, int* p_set_ix, int* p_i)
+column_hit_test(chart_t* chart, BOOL is_stacked, chart_layout_t* layout,
+                int x, int y, int* p_set_ix, int* p_i)
 {
     cache_t cache;
-    column_geometry_t geom;
-    int set_ix, n, i;
-    WD_RECT column_rect;
+    grid_layout_t gl;
+    column_layout_t cl;
+    int set_ix, i, n;
+    chart_data_t* data;
+    D2D1_RECT_F r;
+
+    CACHE_INIT(&cache, chart);
+
+    grid_calc_layout(chart, layout, &cache, &gl);
+    column_calc_layout(chart, is_stacked, &gl.x_axis, &cl);
 
     n = dsa_size(&chart->data);
-    CACHE_INIT(&cache, chart);
-    column_calc_geometry(chart, is_stacked, layout, &cache, &geom);
+    for(set_ix = 0; set_ix < n; set_ix++) {
+        data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
 
-    /* Paint all data sets */
-    if(is_stacked) {
-        column_rect.x0 = geom.core_rect.x0;
-        for(i = 0; i < geom.min_count; i++) {
-            column_rect.x0 += geom.group_padding + geom.column_padding;
-            column_rect.x1 = column_rect.x0 + geom.column_width;
-            column_rect.y1 = column_map_y(0, &geom);
-
-            for(set_ix = 0; set_ix < n; set_ix++) {
-                column_rect.y0 = column_map_y(cache_stack(&cache, set_ix, i), &geom);
-
-                if(column_rect.x0 <= x  &&  x < column_rect.x1  &&
-                   column_rect.y0 <= y  &&  y < column_rect.y1) {
-                    *p_set_ix = set_ix;
-                    *p_i = i;
-                    goto done;
-                }
-
-                column_rect.y1 = column_rect.y0;
+        r.left = gl.x_axis.coord0 + cl.col0_offset;
+        if(!is_stacked)
+            r.left += set_ix * cl.col_delta;
+        for(i = 0; i < data->count; i++) {
+            r.right = r.left + cl.col_width;
+            if(!is_stacked  ||  set_ix == 0) {
+                r.top = grid_map_y(CACHE_VALUE(&cache, set_ix, i), &gl);
+                r.bottom = grid_map_y(0, &gl);
+            } else {
+                r.top = grid_map_y(cache_stack(&cache, set_ix, i), &gl);
+                r.bottom = grid_map_y(cache_stack(&cache, set_ix-1, i), &gl);
             }
 
-            column_rect.x0 = column_rect.x1 + geom.group_padding + geom.column_padding;
-        }
-    } else {
-        column_rect.x0 = geom.core_rect.x0;
-        column_rect.y1 = column_map_y(0, &geom);
-        for(i = 0; i < geom.min_count; i++) {
-            column_rect.x0 += geom.group_padding;
-
-            for(set_ix = 0; set_ix < n; set_ix++) {
-                column_rect.x0 += geom.column_padding;
-                column_rect.x1 = column_rect.x0 + geom.column_width;
-                column_rect.y0 = column_map_y(CACHE_VALUE(&cache, set_ix, i), &geom);
-
-                if(column_rect.x0 <= x  &&  x < column_rect.x1  &&
-                   column_rect.y0 <= y  &&  y < column_rect.y1) {
-                    *p_set_ix = set_ix;
-                    *p_i = i;
-                    goto done;
-                }
-
-                column_rect.x0 = column_rect.x1 + geom.column_padding;
+            if(r.left <= x  &&  x <= r.right  &&  r.top <= y  &&  y <= r.bottom) {
+                *p_set_ix = set_ix;
+                *p_i = i;
+                goto out;
             }
 
-            column_rect.x0 += geom.group_padding;
+            r.left += cl.group_delta;
         }
     }
 
-done:
+out:
     CACHE_FINI(&cache);
 }
 
@@ -1778,310 +1653,73 @@ column_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
  *** Bar Chart ***
  *****************/
 
-typedef struct bar_geometry_tag bar_geometry_t;
-struct bar_geometry_tag {
-    WD_RECT axis_x_name_rect;
-    WD_RECT axis_y_name_rect;
-    WD_RECT core_rect;
+typedef column_layout_t bar_layout_t;
 
-    int min_count;
-
-    int min_x;
-    int max_x;
-    int step_x;
-    int min_step_x;
-
-    float bar_height;
-    float bar_padding;
-    float group_padding;
-};
-
-static inline float
-bar_map_x(int x, const bar_geometry_t* geom)
+static inline void
+bar_calc_layout(chart_t* chart, BOOL is_stacked, const grid_axis_t* axis,
+                bar_layout_t* bar_layout)
 {
-    return chart_map_x(x, geom->min_x, geom->max_x, &geom->core_rect);
+    column_calc_layout(chart, is_stacked, axis, bar_layout);
 }
 
 static void
-bar_calc_geometry(chart_t* chart, BOOL is_stacked, const chart_layout_t* layout,
-                  cache_t* cache, bar_geometry_t* geom)
-{
-    int set_ix, n, i;
-    chart_data_t* data;
-    int label_x_w, label_x_h;
-    int label_y_w, label_y_h;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-    int tw;
-
-    n = dsa_size(&chart->data);
-
-    if(n > 0) {
-        /* Find extreme values */
-        geom->min_count = INT32_MAX;
-        geom->min_x = INT32_MAX;
-        geom->max_x = INT32_MIN;
-        for(set_ix = 0; set_ix < n; set_ix++) {
-            data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-
-            if(data->count < geom->min_count)
-                geom->min_count = data->count;
-
-            for(i = 0; i < data->count; i++) {
-                int x;
-
-                if(is_stacked)
-                    x = cache_stack(cache, set_ix, i);
-                else
-                    x = CACHE_VALUE(cache, set_ix, i);
-
-                if(x < geom->min_x)
-                    geom->min_x = x;
-                if(x > geom->max_x)
-                    geom->max_x = x;
-            }
-        }
-
-        /* We want the chart to include the axis */
-        if(geom->min_x > 0)
-            geom->min_x = 0;
-        else if(geom->max_x < 0)
-            geom->max_x = 0;
-    } else {
-        geom->min_count = 0;
-        geom->min_x = 0;
-        geom->max_x = 0;
-    }
-
-    /* Avoid singularity */
-    if(geom->min_x >= geom->max_x)
-        geom->max_x = geom->min_x + 1;
-
-    /* Round to nice values */
-    geom->min_x = chart_round_value(geom->min_x + chart->axis2.offset, FALSE) - chart->axis2.offset;
-    geom->max_x = chart_round_value(geom->max_x + chart->axis2.offset, TRUE) - chart->axis2.offset;
-
-    /* Compute space for labels of horizontal axis
-     * (note for BAR chart this is secondary!!!) */
-    label_x_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis2, geom->min_x, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis2, geom->max_x, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_x_w = MC_MAX(label_x_w, tw + layout->font_size.cx);
-    label_x_h = (3 * layout->font_size.cy + 1) / 2;
-
-    /* Compute space for labels of vertical axis */
-    label_y_w = 3 * layout->font_size.cx;
-    chart_str_value(&chart->axis1, 0, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx);
-    chart_str_value(&chart->axis1, geom->min_count, buffer);
-    tw = mc_string_width(buffer, chart->font);
-    label_y_w = MC_MAX(label_y_w, tw + layout->font_size.cx) + (layout->font_size.cx + 1) / 2;
-    label_y_h = layout->font_size.cy;
-
-    /* Compute axis legend width/height */
-    if(chart->axis2.name != NULL) {
-        geom->axis_x_name_rect.y0 = layout->body_rect.bottom - layout->font_size.cy;
-        geom->axis_x_name_rect.y1 = geom->axis_x_name_rect.y0 + layout->font_size.cy;
-    } else {
-        geom->axis_x_name_rect.y0 = layout->body_rect.bottom;
-        geom->axis_x_name_rect.y1  = geom->axis_x_name_rect.y0;
-    }
-    if(chart->axis1.name != NULL) {
-        geom->axis_y_name_rect.x0 = layout->body_rect.left;
-        geom->axis_y_name_rect.x1 = geom->axis_y_name_rect.x0 + layout->font_size.cy;
-    } else {
-        geom->axis_y_name_rect.x0 = layout->body_rect.left;
-        geom->axis_y_name_rect.x1 = geom->axis_y_name_rect.x0;
-    }
-
-    /* Compute core area */
-    geom->core_rect.x0 = layout->body_rect.left + label_y_w;
-    geom->core_rect.y0 = layout->body_rect.top + (label_y_h+1) / 2.0f;
-    geom->core_rect.x1 = layout->body_rect.right;
-    geom->core_rect.y1 = layout->body_rect.bottom - label_x_h;
-    if(geom->axis_x_name_rect.y1 > geom->axis_x_name_rect.y0)
-        geom->core_rect.y1 -= geom->axis_x_name_rect.y1 - geom->axis_x_name_rect.y0 + layout->margin;
-    if(geom->axis_y_name_rect.x1 > geom->axis_y_name_rect.x0)
-        geom->core_rect.x0 += geom->axis_y_name_rect.x1 - geom->axis_y_name_rect.x0 + layout->margin;
-
-    /* Steps for painting secondary lines */
-    geom->step_x = chart_round_value((geom->max_x - geom->min_x) * label_x_w / (geom->core_rect.x1 - geom->core_rect.x0), TRUE);
-    if(geom->step_x < 1)
-        geom->step_x = 1;
-
-    /* Fix-up the core rect so that painting secondary lines does mot lead
-     * to anti-aliasing to neighborhood pixels as it looks too ugly. */
-    chart_fixup_rect_h(&geom->core_rect, geom->min_x, geom->max_x, geom->step_x);
-    geom->min_step_x = ((geom->min_x + geom->step_x - 1) / geom->step_x) * geom->step_x;
-
-    if(is_stacked) {
-        geom->bar_height = (geom->core_rect.y1 - geom->core_rect.y0) / (1.61f * geom->min_count);
-        geom->group_padding = (0.61f * geom->bar_height) / 2;
-        geom->bar_padding = 0.0f;
-    } else {
-        if(n > 0) {
-            geom->bar_height = (geom->core_rect.y1 - geom->core_rect.y0) / ((n+0.5f) * geom->min_count);
-            geom->group_padding = 0.25f * geom->bar_height;
-            geom->bar_padding = 0.15f * geom->bar_height;
-            geom->bar_height -= 2.0f * geom->bar_padding;
-        } else {
-            geom->bar_height = 0.0f;
-            geom->bar_padding = 0.0f;
-            geom->group_padding = 0.0f;
-        }
-    }
-
-    /* Refresh axis legend areas after the fix-up */
-    geom->axis_x_name_rect.x0 = geom->core_rect.x0;
-    geom->axis_x_name_rect.x1 = geom->core_rect.x1;
-    geom->axis_y_name_rect.y0 = geom->core_rect.y0;
-    geom->axis_y_name_rect.y1 = geom->core_rect.y1;
-}
-
-static void
-bar_paint_grid(chart_t* chart, chart_paint_t* ctx,
-               const chart_layout_t* layout, const bar_geometry_t* geom)
-{
-    int x, y;
-    float x0, y0, x1, y1;
-    WD_RECT rect;
-    WCHAR buffer[CHART_STR_VALUE_MAX_LEN];
-
-    /* Axis legends */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(95,95,95));
-    if(chart->axis2.name != NULL) {
-        wdDrawString(ctx->canvas, ctx->font, &geom->axis_x_name_rect,
-                chart->axis2.name, -1, ctx->solid_brush,
-                WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-    if(chart->axis1.name != NULL) {
-        chart_draw_vert_string(ctx->canvas, ctx->font, &geom->axis_y_name_rect,
-                chart->axis1.name, -1, ctx->solid_brush);
-    }
-
-    /* Vertical grid lines */
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(191,191,191));
-    y0 = geom->core_rect.y0;
-    y1 = geom->core_rect.y1;
-    for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
-        if(x == 0)
-            continue;
-        x1 = x0 = bar_map_x(x, geom);
-        wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-    }
-    wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-    x1 = x0 = bar_map_x(0, geom);
-    wdDrawLine(ctx->canvas, ctx->solid_brush, x0, y0, x1, y1, 1.0f);
-
-    /* Labels */
-    for(x = geom->min_step_x; x <= geom->max_x; x += geom->step_x) {
-        rect.x0 = bar_map_x(x, geom);
-        rect.y0 = geom->core_rect.y1 + (layout->font_size.cy+1) / 2.0f;
-        rect.x1 = rect.x0;
-        rect.y1 = rect.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis2, x, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rect, buffer, -1, ctx->solid_brush,
-                WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-
-    for(y = 0; y < geom->min_count; y++) {
-        rect.x0 = geom->core_rect.x0 - (layout->font_size.cx+1) / 2.0f;
-        rect.y0 = geom->core_rect.y1 - (y + 0.5f) *
-                (geom->core_rect.y1 - geom->core_rect.y0) / geom->min_count -
-                (layout->font_size.cy+1) / 2.0f;
-        rect.x1 = rect.x0;
-        rect.y1 = rect.y0 + layout->font_size.cy;
-        chart_str_value(&chart->axis1, y, buffer);
-        wdDrawString(ctx->canvas, ctx->font, &rect, buffer, -1, ctx->solid_brush,
-                WD_STR_RIGHTALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
-    }
-}
-
-static void
-bar_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
+bar_paint(chart_t* chart, BOOL is_stacked, chart_xd2d_ctx_t* ctx,
           const chart_layout_t* layout)
 {
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
     cache_t cache;
-    bar_geometry_t geom;
-    int set_ix, n, i;
-    WD_RECT bar_rect;
-
-    n = dsa_size(&chart->data);
+    grid_layout_t gl;
+    bar_layout_t bl;
+    int set_ix, i, n;
+    chart_data_t* data;
+    D2D1_RECT_F r;
+    c_D2D1_POINT_2F pt0, pt1;
+    c_D2D1_COLOR_F c, c_full;
 
     CACHE_INIT(&cache, chart);
 
-    bar_calc_geometry(chart, is_stacked, layout, &cache, &geom);
-    bar_paint_grid(chart, ctx, layout, &geom);
+    grid_calc_layout(chart, layout, &cache, &gl);
+    grid_paint(chart, ctx, &gl);
 
-    /* Paint all data sets */
-    if(is_stacked) {
-        bar_rect.y1 = geom.core_rect.y1;
-        for(i = 0; i < geom.min_count; i++) {
-            bar_rect.y1 -= geom.group_padding + geom.bar_padding;
-            bar_rect.y0 = bar_rect.y1 - geom.bar_height;
-            bar_rect.x0 = bar_map_x(0, &geom);
+    bar_calc_layout(chart, is_stacked, &gl.y_axis, &bl);
 
-            for(set_ix = 0; set_ix < n; set_ix++) {
-                bar_rect.x1 = bar_map_x(cache_stack(&cache, set_ix, i), &geom);
+    n = dsa_size(&chart->data);
+    for(set_ix = 0; set_ix < n; set_ix++) {
+        data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+        xd2d_color_set_cref(&c_full, chart_data_color(chart, set_ix));
+        xd2d_color_set_crefa(&c, chart_data_color(chart, set_ix), 175);
 
-                /* Paint aura for hot bar */
-                if(chart->hot_set_ix == set_ix  &&
-                   (chart->hot_i == i  ||  chart->hot_i < 0))
-                {
-                    float aura_inlate = 0.75f * geom.group_padding;
-
-                    wdSetSolidBrushColor(ctx->solid_brush,
-                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush,
-                            bar_rect.x0, bar_rect.y0 - aura_inlate,
-                            bar_rect.x1, bar_rect.y1 + aura_inlate);
-                }
-
-                /* Paint bar */
-                wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush,
-                        bar_rect.x0, bar_rect.y0, bar_rect.x1, bar_rect.y1);
-                bar_rect.x0 = bar_rect.x1;
+        r.bottom = gl.y_axis.coord1 - bl.col0_offset;
+        if(!is_stacked)
+            r.bottom -= (n-1 - set_ix) * bl.col_delta;
+        for(i = 0; i < data->count; i++) {
+            if(set_ix == chart->hot_set_ix  &&  (i == chart->hot_i || chart->hot_i < 0))
+                c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c_full);
+            else
+                c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+            r.top = r.bottom - bl.col_width;
+            if(!is_stacked  ||  set_ix == 0) {
+                r.left = grid_map_x(0, &gl);
+                r.right = grid_map_x(CACHE_VALUE(&cache, set_ix, i), &gl);
+            } else {
+                r.left = grid_map_x(cache_stack(&cache, set_ix-1, i), &gl);
+                r.right = grid_map_x(cache_stack(&cache, set_ix, i), &gl);
             }
+            c_ID2D1RenderTarget_FillRectangle(rt, &r, (c_ID2D1Brush*) ctx->solid_brush);
 
-            bar_rect.y1 = bar_rect.y0 - geom.group_padding - geom.bar_padding;
-        }
-    } else {
-        bar_rect.x0 = bar_map_x(0, &geom);
-        bar_rect.y1 = geom.core_rect.y1;
-        for(i = 0; i < geom.min_count; i++) {
-            bar_rect.y1 -= geom.group_padding;
-            for(set_ix = n-1; set_ix >= 0; set_ix--) {
-                bar_rect.y1 -= geom.bar_padding;
-                bar_rect.y0 = bar_rect.y1 - geom.bar_height;
-                bar_rect.x1 = bar_map_x(CACHE_VALUE(&cache, set_ix, i), &geom);
+            pt0.x = r.left + 0.5f;
+            pt0.y = r.bottom;
+            pt1.x = r.right;
+            pt1.y = r.bottom;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+            pt0.y = r.top;
+            pt1.y = r.top;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+            pt0.x = r.right;
+            pt0.y = r.bottom;
+            c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
 
-                /* Paint aura for hot bar */
-                if(chart->hot_set_ix == set_ix  &&
-                   (chart->hot_i == i  ||  chart->hot_i < 0))
-                {
-                    float aura_inlate = 0.8f * geom.bar_padding;
-
-                    wdSetSolidBrushColor(ctx->solid_brush,
-                            WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-                    wdFillRect(ctx->canvas, ctx->solid_brush,
-                            bar_rect.x0, bar_rect.y0 - aura_inlate,
-                            bar_rect.x1, bar_rect.y1 + aura_inlate);
-                }
-
-                /* Paint bar */
-                wdSetSolidBrushColor(ctx->solid_brush,
-                        WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-                wdFillRect(ctx->canvas, ctx->solid_brush,
-                        bar_rect.x0, bar_rect.y0, bar_rect.x1, bar_rect.y1);
-                bar_rect.y1 = bar_rect.y0 - geom.bar_padding;
-            }
-
-            bar_rect.y1 -= geom.group_padding;
+            r.bottom -= bl.group_delta;
         }
     }
 
@@ -2089,63 +1727,49 @@ bar_paint(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
 }
 
 static void
-bar_hit_test(chart_t* chart, BOOL is_stacked, chart_paint_t* ctx,
-             const chart_layout_t* layout, int x, int y, int* p_set_ix, int* p_i)
+bar_hit_test(chart_t* chart, BOOL is_stacked, chart_layout_t* layout,
+             int x, int y, int* p_set_ix, int* p_i)
 {
     cache_t cache;
-    bar_geometry_t geom;
-    int set_ix, n, i;
-    WD_RECT bar_rect;
+    grid_layout_t gl;
+    column_layout_t bl;
+    int set_ix, i, n;
+    chart_data_t* data;
+    D2D1_RECT_F r;
+
+    CACHE_INIT(&cache, chart);
+
+    grid_calc_layout(chart, layout, &cache, &gl);
+    bar_calc_layout(chart, is_stacked, &gl.y_axis, &bl);
 
     n = dsa_size(&chart->data);
-    CACHE_INIT(&cache, chart);
-    bar_calc_geometry(chart, is_stacked, layout, &cache, &geom);
+    for(set_ix = 0; set_ix < n; set_ix++) {
+        data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
 
-    /* Paint all data sets */
-    if(is_stacked) {
-        bar_rect.y1 = geom.core_rect.y1;
-        for(i = 0; i < geom.min_count; i++) {
-            bar_rect.y1 -= geom.group_padding + geom.bar_padding;
-            bar_rect.y0 = bar_rect.y1 - geom.bar_height;
-            bar_rect.x0 = bar_map_x(0, &geom);
-
-            for(set_ix = 0; set_ix < n; set_ix++) {
-                bar_rect.x1 = bar_map_x(cache_stack(&cache, set_ix, i), &geom);
-
-                if(bar_rect.x0 <= x  &&  x < bar_rect.x1  &&
-                   bar_rect.y0 <= y  &&  y < bar_rect.y1) {
-                    *p_set_ix = set_ix;
-                    *p_i = i;
-                    goto done;
-                }
+        r.bottom = gl.y_axis.coord1 - bl.col0_offset;
+        if(!is_stacked)
+            r.bottom -= (n-1 - set_ix) * bl.col_delta;
+        for(i = 0; i < data->count; i++) {
+            r.top = r.bottom - bl.col_width;
+            if(!is_stacked  ||  set_ix == 0) {
+                r.left = grid_map_x(0, &gl);
+                r.right = grid_map_x(CACHE_VALUE(&cache, set_ix, i), &gl);
+            } else {
+                r.left = grid_map_x(cache_stack(&cache, set_ix-1, i), &gl);
+                r.right = grid_map_x(cache_stack(&cache, set_ix, i), &gl);
             }
 
-            bar_rect.y1 = bar_rect.y0 - geom.group_padding + geom.bar_padding;
-        }
-    } else {
-        bar_rect.x0 = bar_map_x(0, &geom);
-        bar_rect.y1 = geom.core_rect.y1;
-        for(i = 0; i < geom.min_count; i++) {
-            bar_rect.y1 -= geom.group_padding;
-            for(set_ix = n-1; set_ix >= 0; set_ix--) {
-                bar_rect.y1 -= geom.bar_padding;
-                bar_rect.y0 = bar_rect.y1 - geom.bar_height;
-                bar_rect.x1 = bar_map_x(CACHE_VALUE(&cache, set_ix, i), &geom);
-
-                if(bar_rect.x0 <= x  &&  x < bar_rect.x1  &&
-                   bar_rect.y0 <= y  &&  y < bar_rect.y1) {
-                    *p_set_ix = set_ix;
-                    *p_i = i;
-                    goto done;
-                }
-                bar_rect.y1 = bar_rect.y0 - geom.bar_padding;
+            if(r.left <= x  &&  x <= r.right  &&  r.top <= y  &&  y <= r.bottom) {
+                *p_set_ix = set_ix;
+                *p_i = i;
+                goto out;
             }
 
-            bar_rect.y1 -= geom.group_padding;
+            r.bottom -= bl.group_delta;
         }
     }
 
-done:
+out:
     CACHE_FINI(&cache);
 }
 
@@ -2153,6 +1777,163 @@ static inline void
 bar_tooltip_text(chart_t* chart, TCHAR* buffer, UINT bufsize)
 {
     chart_tooltip_text_common(chart, &chart->axis2, buffer, bufsize);
+}
+
+
+/******************************
+ *** Chart Legend Functions ***
+ ******************************/
+
+static void
+legend_paint(chart_t* chart, chart_xd2d_ctx_t* ctx, const chart_layout_t* layout)
+{
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
+    float font_height;
+    float color_size;
+    c_D2D1_RECT_F label_rect;
+    c_D2D1_RECT_F color_rect;
+    int set_ix, n;
+
+    if(chart->text_fmt == NULL)
+        return;
+
+    font_height = c_IDWriteTextFormat_GetFontSize(chart->text_fmt);
+    color_size = roundf(((float)chart->font_cap_height * font_height) / (float)chart->font_units_per_height);
+
+    label_rect.left = layout->legend_rect.left + color_size + MC_MIN(4.0f, ceilf(0.3f * font_height));
+    label_rect.top = layout->legend_rect.top;
+    label_rect.right = layout->legend_rect.right;
+    label_rect.bottom = layout->legend_rect.bottom;
+
+    color_rect.left = layout->legend_rect.left;
+    color_rect.right = color_rect.left + color_size;
+
+    n = dsa_size(&chart->data);
+    for(set_ix = 0; set_ix < n; set_ix++) {
+        chart_data_t* data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+        c_D2D1_COLOR_F c;
+        TCHAR buf[20];
+        TCHAR* name;
+        c_IDWriteTextLayout* text_layout;
+        c_D2D1_POINT_2F pt;
+        c_DWRITE_TEXT_METRICS text_metrics;
+        c_DWRITE_LINE_METRICS line_metrics[4];
+        UINT32 dummy;
+
+        if(data->name != NULL) {
+            name = data->name;
+        } else {
+            _stprintf(buf, _T("data-set-%d"), set_ix);
+            name = buf;
+        }
+
+        /* Paint legend label */
+        text_layout = xdwrite_create_text_layout(name, _tcslen(name), chart->text_fmt,
+                    label_rect.right - label_rect.left, label_rect.bottom - label_rect.top,
+                    XDWRITE_ALIGN_LEFT | XDWRITE_VALIGN_TOP);
+        if(text_layout == NULL)
+            continue;
+        xd2d_color_set_rgb(&c, 0, 0, 0);
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+        pt.x = label_rect.left;
+        pt.y = label_rect.top;
+        c_ID2D1RenderTarget_DrawTextLayout(rt, pt, text_layout, (c_ID2D1Brush*) ctx->solid_brush, 0);
+        c_IDWriteTextLayout_GetMetrics(text_layout, &text_metrics);
+        c_IDWriteTextLayout_GetLineMetrics(text_layout, line_metrics, text_metrics.lineCount, &dummy);
+        c_IDWriteTextLayout_Release(text_layout);
+
+        /* Paint legend color */
+        color_rect.bottom = floorf(label_rect.top + line_metrics[0].baseline);
+        color_rect.top = color_rect.bottom - color_size;
+        xd2d_color_set_cref(&c, chart_data_color(chart, set_ix));
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+        c_ID2D1RenderTarget_FillRectangle(rt, &color_rect, (c_ID2D1Brush*) ctx->solid_brush);
+        c_ID2D1RenderTarget_DrawRectangle(rt, &color_rect, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
+
+        /* Paint active aura */
+        if(set_ix == chart->hot_set_ix) {
+            c_D2D1_RECT_F aura_rect = { color_rect.left - 2.5f, color_rect.top - 2.5f,
+                                        color_rect.right + 2.5f, color_rect.bottom + 2.5f };
+            xd2d_color_set_cref(&c, color_hint(chart_data_color(chart, set_ix)));
+            c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+            c_ID2D1RenderTarget_DrawRectangle(rt, &aura_rect, (c_ID2D1Brush*) ctx->solid_brush, 2.0f, NULL);
+        }
+
+        /* Recalculate coordinates for the next data series */
+        label_rect.top += text_metrics.height;
+        if(label_rect.top >= label_rect.bottom)
+            break;
+    }
+}
+
+static int
+legend_hit_test(chart_t* chart, chart_layout_t* layout, int x, int y)
+{
+    float font_height;
+    float color_size;
+    c_D2D1_RECT_F label_rect;
+    int set_ix, n;
+
+    if(MC_ERR(chart->text_fmt == NULL))
+        return -1;
+
+    font_height = c_IDWriteTextFormat_GetFontSize(chart->text_fmt);
+    color_size = roundf(((float)chart->font_cap_height * font_height) / (float)chart->font_units_per_height);
+
+    label_rect.left = layout->legend_rect.left + color_size + MC_MIN(4.0f, ceilf(0.3f * font_height));
+    label_rect.top = layout->legend_rect.top;
+    label_rect.right = layout->legend_rect.right;
+    label_rect.bottom = layout->legend_rect.bottom;
+
+    n = dsa_size(&chart->data);
+    for(set_ix = 0; set_ix < n; set_ix++) {
+        chart_data_t* data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
+        TCHAR buf[20];
+        TCHAR* name;
+        c_IDWriteTextLayout* text_layout;
+        c_DWRITE_TEXT_METRICS text_metrics;
+        BOOL is_inside = FALSE;
+
+        if(data->name != NULL) {
+            name = data->name;
+        } else {
+            _stprintf(buf, _T("data-set-%d"), set_ix);
+            name = buf;
+        }
+        text_layout = xdwrite_create_text_layout(name, _tcslen(name), chart->text_fmt,
+                    label_rect.right - label_rect.left, label_rect.bottom - label_rect.top,
+                    XDWRITE_ALIGN_LEFT | XDWRITE_VALIGN_TOP);
+        if(text_layout == NULL)
+            continue;
+
+        c_IDWriteTextLayout_GetMetrics(text_layout, &text_metrics);
+
+        if(label_rect.top <= y  &&  y < label_rect.top + text_metrics.height) {
+            if(x < label_rect.left)
+                return set_ix;
+
+            if(label_rect.left <= x  &&  x < label_rect.left + text_metrics.width) {
+                c_DWRITE_HIT_TEST_METRICS ht_metrics;
+                BOOL is_trailing_hit;
+
+                c_IDWriteTextLayout_HitTestPoint(text_layout,
+                            x - label_rect.left, y - label_rect.top,
+                            &is_trailing_hit, &is_inside, &ht_metrics);
+            }
+        }
+
+        c_IDWriteTextLayout_Release(text_layout);
+
+        if(is_inside)
+            return set_ix;
+
+        /* Recalculate coordinates for the next data series */
+        label_rect.top += text_metrics.height;
+        if(label_rect.top >= label_rect.bottom)
+            break;
+    }
+
+    return -1;
 }
 
 
@@ -2167,7 +1948,8 @@ chart_calc_layout(chart_t* chart, chart_layout_t* layout)
     RECT rect;
 
     GetClientRect(chart->win, &rect);
-    mc_font_size(chart->font, &layout->font_size, FALSE);
+    // FIXME: we should use DirectWrite metrics here.
+    mc_font_size(chart->gdi_font, &layout->font_size, FALSE);
 
     layout->margin = (layout->font_size.cy+1) / 2;
 
@@ -2193,195 +1975,52 @@ chart_calc_layout(chart_t* chart, chart_layout_t* layout)
 }
 
 static void
-chart_paint_legend(chart_t* chart, chart_paint_t* ctx,
-                   const chart_layout_t* layout)
+chart_paint(void* ctrl, xd2d_ctx_t* raw_ctx)
 {
-    WD_FONTMETRICS fm;
-    float color_size;
-    int set_ix, n;
-    WD_RECT color_rect;
-    WD_RECT text_rect;
-
-    if(MC_ERR(ctx->font == NULL)) {
-        MC_TRACE("chart_paint_legend: ctx->font == NULL");
-        return;
-    }
-
-    wdFontMetrics(ctx->font, &fm);
-    color_size = fm.fEmHeight;
-
-    color_rect.x0 = layout->legend_rect.left;
-    color_rect.y0 = layout->legend_rect.top + (fm.fLeading - fm.fEmHeight) / 2.0f;
-    color_rect.x1 = color_rect.x0 + color_size;
-    color_rect.y1 = color_rect.y0 + color_size;
-
-    /* Fix into the pixel grid (anti-aliasing would do ugly effects here). */
-    color_rect.x0 = color_rect.x0 + 0.5f;
-    color_rect.x1 = ceilf(color_rect.x1) + 0.5f;
-
-    text_rect.x0 = color_rect.x1 + ceilf(0.2f * color_size);
-    text_rect.y0 = layout->legend_rect.top;
-    text_rect.x1 = layout->legend_rect.right;
-    text_rect.y1 = layout->legend_rect.bottom;
-
-    n = dsa_size(&chart->data);
-    for(set_ix = 0; set_ix < n; set_ix++) {
-        chart_data_t* data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-        TCHAR buf[20];
-        TCHAR* name;
-        WD_RECT measure;
-        float text_height;
-
-        /* Paint active aura */
-        if(set_ix == chart->hot_set_ix) {
-            wdSetSolidBrushColor(ctx->solid_brush,
-                    WD_COLOR_FROM_GDI(color_hint(chart_data_color(chart, set_ix))));
-            wdDrawRect(ctx->canvas, ctx->solid_brush,
-                    color_rect.x0 - 2.5f, color_rect.y0 - 2.5f,
-                    color_rect.x1 + 2.5f, color_rect.y1 + 2.5f, 2.0);
-        }
-
-        /* Legend color */
-        wdSetSolidBrushColor(ctx->solid_brush,
-                WD_COLOR_FROM_GDI(chart_data_color(chart, set_ix)));
-        wdFillRect(ctx->canvas, ctx->solid_brush,
-                color_rect.x0, color_rect.y0, color_rect.x1, color_rect.y1);
-
-        /* Legend text */
-        if(data->name != NULL) {
-            name = data->name;
-        } else {
-            _stprintf(buf, _T("data-set-%d"), set_ix);
-            name = buf;
-        }
-        wdMeasureString(ctx->canvas, ctx->font, &text_rect, name, -1, &measure, 0);
-        wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-        wdDrawString(ctx->canvas, ctx->font, &text_rect, name, -1, ctx->solid_brush, WD_STR_NOCLIP);
-
-        /* Recalculate for next data series */
-        text_height = ceilf(measure.y1 - measure.y0);
-        color_rect.y0 += text_height;
-        color_rect.y1 += text_height;
-        text_rect.y0 += text_height;
-        if(text_rect.y0 >= text_rect.y1)
-            break;
-    }
-}
-
-static int
-chart_hit_test_legend(chart_t* chart, chart_paint_t* ctx,
-                      chart_layout_t* layout, int x, int y)
-{
-    WD_FONTMETRICS fm;
-    float color_size;
-    WD_RECT color_rect;
-    WD_RECT text_rect;
-    int set_ix, n;
-
-    if(MC_ERR(ctx->font == NULL)) {
-        MC_TRACE("chart_hit_test_legend: ctx->font == NULL");
-        return -1;
-    }
-
-    wdFontMetrics(ctx->font, &fm);
-    color_size = fm.fEmHeight;
-
-    color_rect.x0 = layout->legend_rect.left;
-    color_rect.y0 = layout->legend_rect.top + (fm.fLeading - fm.fEmHeight) / 2.0f;
-    color_rect.x1 = color_rect.x0 + color_size;
-    color_rect.y1 = color_rect.y0 + color_size;
-
-    /* Fix into the pixel grid (anti-aliasing would do ugly effects here). */
-    color_rect.x0 = color_rect.x0 + 0.5f;
-    color_rect.x1 = ceilf(color_rect.x1) + 0.5f;
-
-    text_rect.x0 = color_rect.x1 + ceilf(0.2f * color_size);
-    text_rect.y0 = layout->legend_rect.top;
-    text_rect.x1 = layout->legend_rect.right;
-    text_rect.y1 = layout->legend_rect.bottom;
-
-    n = dsa_size(&chart->data);
-    for(set_ix = 0; set_ix < n; set_ix++) {
-        chart_data_t* data = DSA_ITEM(&chart->data, set_ix, chart_data_t);
-        TCHAR buf[20];
-        TCHAR* name;
-        WD_RECT measure;
-        float text_height;
-
-        /* Legend text */
-        if(data->name != NULL) {
-            name = data->name;
-        } else {
-            _stprintf(buf, _T("data-set-%d"), set_ix);
-            name = buf;
-        }
-
-        wdMeasureString(ctx->canvas, ctx->font, &text_rect, name, -1, &measure, 0);
-        if(measure.y0 <= y  &&  y <= measure.y1)
-            return set_ix;
-        text_height = ceilf(measure.y1 - measure.y0);
-        text_rect.y0 += text_height;
-    }
-
-    return -1;
-}
-
-static void
-chart_paint_ctx_init(chart_paint_t* ctx, WD_HCANVAS canvas, HFONT font)
-{
-    ctx->canvas = canvas;
-    ctx->solid_brush = wdCreateSolidBrush(canvas, 0);
-    ctx->font = wdCreateFontWithGdiHandle(font);
-}
-
-static void
-chart_paint_ctx_fini(chart_paint_t* ctx)
-{
-    if(ctx->font != NULL)
-        wdDestroyFont(ctx->font);
-    if(ctx->solid_brush != NULL)
-        wdDestroyBrush(ctx->solid_brush);
-    if(ctx->canvas != NULL)
-        wdDestroyCanvas(ctx->canvas);
-}
-
-static void
-chart_free_cached_paint_ctx(chart_t* chart)
-{
-    if(chart->paint_ctx != NULL) {
-        chart_paint_ctx_fini(chart->paint_ctx);
-        free(chart->paint_ctx);
-        chart->paint_ctx = NULL;
-    }
-}
-
-static BOOL
-chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase)
-{
+    chart_t* chart = (chart_t*) ctrl;
+    chart_xd2d_ctx_t* ctx = (chart_xd2d_ctx_t*) raw_ctx;
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
     chart_layout_t layout;
+    c_D2D1_MATRIX_3X2_F matrix;
 	DWORD type;
 
-    wdBeginPaint(ctx->canvas);
+    if(ctx->ctx.erase) {
+        c_D2D1_COLOR_F c = XD2D_COLOR_CREF(GetSysColor(COLOR_WINDOW));
+        c_ID2D1RenderTarget_Clear(rt, &c);
+    }
 
-    if(erase)
-        wdClear(ctx->canvas, WD_COLOR_FROM_GDI(GetSysColor(COLOR_WINDOW)));
+    /* Transform to make [0,0] to fit in the pixel matrix. */
+    matrix._11 = 1.0f;  matrix._12 = 0.0f;
+    matrix._21 = 0.0f;  matrix._22 = 1.0f;
+    matrix._31 = 0.5f;  matrix._32 = 0.5f;
+    c_ID2D1RenderTarget_SetTransform(rt, &matrix);
 
     chart_calc_layout(chart, &layout);
 
     /* Paint title */
     if(!mc_rect_is_empty(&layout.title_rect)) {
-        WCHAR title[256];
-        WD_RECT rc = { layout.title_rect.left, layout.title_rect.top,
-                            layout.title_rect.right, layout.title_rect.bottom };
+        TCHAR title[256];
+        c_IDWriteTextLayout* text_layout;
+        int len;
 
-        GetWindowTextW(chart->win, title, MC_SIZEOF_ARRAY(title));
-        wdSetSolidBrushColor(ctx->solid_brush, WD_RGB(0,0,0));
-        wdDrawString(ctx->canvas, ctx->font, &rc, title, -1, ctx->solid_brush,
-                          WD_STR_CENTERALIGN | WD_STR_NOWRAP | WD_STR_NOCLIP);
+        len = GetWindowText(chart->win, title, MC_SIZEOF_ARRAY(title));
+        text_layout = xdwrite_create_text_layout(title, len, chart->text_fmt,
+                    mc_width(&layout.title_rect), mc_height(&layout.title_rect),
+                    XDWRITE_ALIGN_CENTER | XDWRITE_NOWRAP | XDWRITE_ELLIPSIS_END);
+        if(text_layout != NULL) {
+            c_D2D1_COLOR_F c = XD2D_COLOR_RGB(0,0,0);
+            c_D2D1_POINT_2F pt = { layout.title_rect.left, layout.title_rect.top };
+            c_DWRITE_TEXT_RANGE range = { 0, len };
+
+            c_IDWriteTextLayout_SetFontWeight(text_layout, FW_MEDIUM, range);
+            c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &c);
+            c_ID2D1RenderTarget_DrawTextLayout(rt, pt, text_layout, (c_ID2D1Brush*) ctx->solid_brush, 0);
+            c_IDWriteTextLayout_Release(text_layout);
+        }
     }
 
     /* Paint legend */
-    chart_paint_legend(chart, ctx, &layout);
+    legend_paint(chart, ctx, &layout);
 
     /* Paint the chart body */
     type = (chart->style & MC_CHS_TYPEMASK);
@@ -2399,8 +2038,8 @@ chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase
         case MC_CHS_AREA:
         case MC_CHS_STACKEDAREA:
         {
-            BOOL is_stacked = (type == MC_CHS_STACKEDLINE  ||  type == MC_CHS_STACKEDAREA);
-            BOOL is_area = (type == MC_CHS_AREA  ||  type == MC_CHS_STACKEDAREA);
+            BOOL is_stacked = (type == MC_CHS_STACKEDLINE || type == MC_CHS_STACKEDAREA);
+            BOOL is_area = (type == MC_CHS_AREA || type == MC_CHS_STACKEDAREA);
             line_paint(chart, is_area, is_stacked, ctx, &layout);
             break;
         }
@@ -2421,80 +2060,10 @@ chart_paint_with_ctx(chart_t* chart, chart_paint_t* ctx, RECT* dirty, BOOL erase
             break;
         }
     }
-
-    return wdEndPaint(ctx->canvas);
 }
 
 static void
-chart_paint(chart_t* chart)
-{
-    PAINTSTRUCT ps;
-    chart_paint_t* ctx;
-    chart_paint_t tmp_ctx;
-
-    BeginPaint(chart->win, &ps);
-    if(chart->no_redraw)
-        goto no_paint;
-
-    if(chart->paint_ctx != NULL) {
-        /* Use the cached paint context. */
-        ctx = chart->paint_ctx;
-    } else {
-        /* Initialize new context. */
-        WD_HCANVAS c = wdCreateCanvasWithPaintStruct(chart->win, &ps,
-                (chart->style & MC_CHS_DOUBLEBUFFER) ? WD_CANVAS_DOUBLEBUFFER : 0);
-        if(MC_ERR(c == NULL))
-            goto no_paint;
-        chart_paint_ctx_init(&tmp_ctx, c, chart->font);
-        ctx = &tmp_ctx;
-    }
-
-    /* Do the painting itself. */
-    if(chart_paint_with_ctx(chart, ctx, &ps.rcPaint, ps.fErase)) {
-        /* We are allowed to cache the context for reuse. */
-        if(ctx == &tmp_ctx) {
-            ctx = (chart_paint_t*) malloc(sizeof(chart_paint_t));
-            if(ctx != NULL) {
-                memcpy(ctx, &tmp_ctx, sizeof(chart_paint_t));
-                chart->paint_ctx = ctx;
-            } else {
-                chart_paint_ctx_fini(&tmp_ctx);
-            }
-        }
-    } else {
-        /* We are instructed to destroy the context. */
-        chart_paint_ctx_fini(ctx);
-        if(chart->paint_ctx != NULL) {
-            free(chart->paint_ctx);
-            chart->paint_ctx = NULL;
-        }
-    }
-
-no_paint:
-    EndPaint(chart->win, &ps);
-}
-
-static void
-chart_printclient(chart_t* chart, HDC dc)
-{
-    chart_paint_t ctx;
-    WD_HCANVAS c;
-    RECT rect;
-
-    GetClientRect(chart->win, &rect);
-
-    c = wdCreateCanvasWithHDC(dc, &rect, 0);
-    if(c == NULL)
-        return;
-
-    chart_paint_ctx_init(&ctx, c, chart->font);
-    chart_paint_with_ctx(chart, &ctx, &rect, TRUE);
-    chart_paint_ctx_fini(&ctx);
-}
-
-static void
-chart_hit_test_with_ctx(chart_t* chart, chart_paint_t* ctx, int x, int y,
-                        int* set_ix, int* i)
+chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
 {
     chart_layout_t layout;
 
@@ -2504,16 +2073,16 @@ chart_hit_test_with_ctx(chart_t* chart, chart_paint_t* ctx, int x, int y,
     *i = -1;
 
     if(mc_rect_contains_xy(&layout.legend_rect, x, y)) {
-        *set_ix = chart_hit_test_legend(chart, ctx, &layout, x, y);
+        *set_ix = legend_hit_test(chart, &layout, x, y);
     } else if(mc_rect_contains_xy(&layout.body_rect, x, y)) {
         DWORD type = (chart->style & MC_CHS_TYPEMASK);
         switch(type) {
             case MC_CHS_PIE:
-                pie_hit_test(chart, ctx, &layout, x, y, set_ix, i);
+                pie_hit_test(chart, &layout, x, y, set_ix, i);
                 return;
 
             case MC_CHS_SCATTER:
-                scatter_hit_test(chart, ctx, &layout, x, y, set_ix, i);
+                scatter_hit_test(chart, &layout, x, y, set_ix, i);
                 return;
 
             case MC_CHS_STACKEDLINE:
@@ -2522,7 +2091,7 @@ chart_hit_test_with_ctx(chart_t* chart, chart_paint_t* ctx, int x, int y,
             case MC_CHS_AREA:
             {
                 BOOL is_stacked = (type == MC_CHS_STACKEDLINE || type == MC_CHS_STACKEDAREA);
-                line_hit_test(chart, is_stacked, ctx, &layout, x, y, set_ix, i);
+                line_hit_test(chart, is_stacked, &layout, x, y, set_ix, i);
                 return;
             }
 
@@ -2530,7 +2099,7 @@ chart_hit_test_with_ctx(chart_t* chart, chart_paint_t* ctx, int x, int y,
             case MC_CHS_COLUMN:
             {
                 BOOL is_stacked = (type == MC_CHS_STACKEDCOLUMN);
-                column_hit_test(chart, is_stacked, ctx, &layout, x, y, set_ix, i);
+                column_hit_test(chart, is_stacked, &layout, x, y, set_ix, i);
                 return;
             }
 
@@ -2538,50 +2107,11 @@ chart_hit_test_with_ctx(chart_t* chart, chart_paint_t* ctx, int x, int y,
             case MC_CHS_BAR:
             {
                 BOOL is_stacked = (type == MC_CHS_STACKEDBAR);
-                bar_hit_test(chart, is_stacked, ctx, &layout, x, y, set_ix, i);
+                bar_hit_test(chart, is_stacked, &layout, x, y, set_ix, i);
                 return;
             }
         }
     }
-}
-
-static void
-chart_hit_test(chart_t* chart, int x, int y, int* set_ix, int* i)
-{
-    chart_paint_t* ctx;
-    chart_paint_t tmp_ctx;
-    HDC dc = NULL;
-
-    if(chart->paint_ctx != NULL) {
-        /* Use the cached paint context. */
-        ctx = chart->paint_ctx;
-    } else {
-        /* Initialize new context. */
-        RECT rect;
-        WD_HCANVAS c;
-
-        dc = GetDCEx(NULL, NULL, DCX_CACHE);
-        GetClientRect(chart->win, &rect);
-        c = wdCreateCanvasWithHDC(dc, &rect, 0);
-        if(MC_ERR(c == NULL)) {
-            MC_TRACE("chart_hit_test: wdCreateCanvasWithHDC() failed.");
-            *set_ix = -1;
-            *i = -1;
-            return;
-        }
-        chart_paint_ctx_init(&tmp_ctx, c, chart->font);
-        ctx = &tmp_ctx;
-    }
-
-    if(MC_ERR(ctx->canvas == NULL))
-        return;
-
-    chart_hit_test_with_ctx(chart, ctx, x, y, set_ix, i);
-
-    if(ctx == &tmp_ctx)
-        chart_paint_ctx_fini(ctx);
-    if(dc != NULL)
-        ReleaseDC(NULL, dc);
 }
 
 static void
@@ -2659,7 +2189,7 @@ chart_mouse_move(chart_t* chart, int x, int y)
         chart_update_tooltip(chart);
 
         if(!chart->no_redraw)
-            InvalidateRect(chart->win, NULL, TRUE);
+            xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
     }
 
     if(chart->tooltip_win != NULL  &&  chart->tooltip_active) {
@@ -2685,7 +2215,7 @@ chart_mouse_leave(chart_t* chart)
         chart_update_tooltip(chart);
 
         if(!chart->no_redraw)
-            InvalidateRect(chart->win, NULL, TRUE);
+            xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
     }
 }
 
@@ -2693,13 +2223,9 @@ static void
 chart_setup_hot(chart_t* chart)
 {
     if(IsWindowEnabled(chart->win)) {
-        DWORD pos;
-        int set_ix, i;
-
-        pos = GetMessagePos();
-        chart_hit_test(chart, GET_X_LPARAM(pos), GET_Y_LPARAM(pos), &set_ix, &i);
-        chart->hot_set_ix = set_ix;
-        chart->hot_i = i;
+        DWORD pos = GetMessagePos();
+        chart_hit_test(chart, GET_X_LPARAM(pos), GET_Y_LPARAM(pos),
+                        &chart->hot_set_ix, &chart->hot_i);
     } else {
         chart->hot_set_ix = -1;
         chart->hot_i = -1;
@@ -2756,7 +2282,7 @@ chart_insert_dataset(chart_t* chart, int set_ix, MC_CHDATASET* dataset)
     chart_setup_hot(chart);
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 
     return set_ix;
 }
@@ -2774,7 +2300,7 @@ chart_delete_dataset(chart_t* chart, int set_ix)
     chart_setup_hot(chart);
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 
     return TRUE;
 }
@@ -2851,7 +2377,7 @@ fast_code_path:
     chart_setup_hot(chart);
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
     return TRUE;
 }
 
@@ -2879,7 +2405,7 @@ chart_set_dataset_color(chart_t* chart, int set_ix, COLORREF color)
     DSA_ITEM(&chart->data, set_ix, chart_data_t)->color = color;
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 
     return TRUE;
 }
@@ -2933,7 +2459,7 @@ chart_set_dataset_legend(chart_t* chart, int set_ix, void* text, BOOL unicode)
     chart_setup_hot(chart);
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 
     return TRUE;
 }
@@ -2986,7 +2512,7 @@ chart_set_factor_exponent(chart_t* chart, int axis_id, int exp)
     chart_setup_hot(chart);
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 
     return TRUE;
 }
@@ -3029,7 +2555,7 @@ chart_set_axis_offset(chart_t* chart, int axis_id, int offset)
     chart_setup_hot(chart);
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 
     return TRUE;
 }
@@ -3086,7 +2612,7 @@ chart_set_axis_legend(chart_t* chart, int axis_id, void* text, BOOL unicode)
     chart_setup_hot(chart);
 
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 
     return TRUE;
 }
@@ -3105,14 +2631,11 @@ chart_style_changed(chart_t* chart, STYLESTRUCT* ss)
         }
     }
 
-    if((chart->style & MC_CHS_DOUBLEBUFFER) != (ss->styleNew & MC_CHS_DOUBLEBUFFER))
-        chart_free_cached_paint_ctx(chart);
-
     chart->style = ss->styleNew;
 
     chart_setup_hot(chart);
     if(!chart->no_redraw)
-        InvalidateRect(chart->win, NULL, TRUE);
+        xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
 }
 
 static chart_t*
@@ -3139,9 +2662,23 @@ chart_nccreate(HWND win, CREATESTRUCT* cs)
     return chart;
 }
 
+static void
+chart_setup_text_fmt(chart_t* chart)
+{
+    c_DWRITE_FONT_METRICS font_metrics;
+
+    if(chart->text_fmt != NULL)
+        c_IDWriteTextFormat_Release(chart->text_fmt);
+
+    chart->text_fmt = xdwrite_create_text_format(chart->gdi_font, &font_metrics);
+    chart->font_units_per_height = font_metrics.designUnitsPerEm;
+    chart->font_cap_height = font_metrics.capHeight;
+}
+
 static int
 chart_create(chart_t* chart)
 {
+    chart_setup_text_fmt(chart);
     chart_setup_hot(chart);
 
     if(!(chart->style & MC_CHS_NOTOOLTIPS))
@@ -3159,6 +2696,11 @@ chart_destroy(chart_t* chart)
         else
             tooltip_uninstall(chart->tooltip_win, chart->win);
     }
+
+    if(chart->text_fmt != NULL) {
+        c_IDWriteTextFormat_Release(chart->text_fmt);
+        chart->text_fmt = NULL;
+    }
 }
 
 static void
@@ -3173,7 +2715,7 @@ chart_ncdestroy(chart_t* chart)
     if(chart->axis2.name != NULL)
         free(chart->axis2.name);
 
-    chart_free_cached_paint_ctx(chart);
+    xd2d_free_cache(&chart->xd2d_cache);
     free(chart);
 }
 
@@ -3184,21 +2726,32 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
     switch(msg) {
         case WM_PAINT:
-            chart_paint(chart);
+            xd2d_paint(win, chart->no_redraw, 0,
+                    &chart_xd2d_vtable, (void*) chart, &chart->xd2d_cache);
+            if(chart->xd2d_cache != NULL)
+                SetTimer(win, CHART_XD2D_CACHE_TIMER_ID, 30 * 1000, NULL);
             return 0;
 
         case WM_PRINTCLIENT:
-            chart_printclient(chart, (HDC) wp);
+            xd2d_printclient(win, (HDC) wp, 0, &chart_xd2d_vtable, (void*) chart);
             return 0;
 
         case WM_DISPLAYCHANGE:
-            chart_free_cached_paint_ctx(chart);
-            InvalidateRect(win, NULL, FALSE);
+            xd2d_free_cache(&chart->xd2d_cache);
+            xd2d_invalidate(win, NULL, TRUE, &chart->xd2d_cache);
             break;
 
         case WM_ERASEBKGND:
             /* Keep it on WM_PAINT */
             return FALSE;
+
+        case WM_TIMER:
+            if(wp == CHART_XD2D_CACHE_TIMER_ID) {
+                xd2d_free_cache(&chart->xd2d_cache);
+                KillTimer(win, CHART_XD2D_CACHE_TIMER_ID);
+                return 0;
+            }
+            break;
 
         case WM_MOUSEMOVE:
             chart_mouse_move(chart, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
@@ -3214,7 +2767,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
         case MC_CHM_DELETEALLDATASETS:
             dsa_clear(&chart->data, chart_data_dtor);
             if(!chart->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
+                xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
             return TRUE;
 
         case MC_CHM_INSERTDATASET:
@@ -3274,8 +2827,10 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                                          (msg == MC_CHM_SETAXISLEGENDW));
 
         case WM_SIZE:
-            if(chart->paint_ctx != NULL)
-                wdResizeCanvas(chart->paint_ctx->canvas, LOWORD(lp), HIWORD(lp));
+            if(chart->xd2d_cache != NULL) {
+                c_D2D1_SIZE_U size = { LOWORD(lp), HIWORD(lp) };
+                c_ID2D1HwndRenderTarget_Resize((c_ID2D1HwndRenderTarget*) chart->xd2d_cache->rt, &size);
+            }
             break;
 
         case WM_SETTEXT:
@@ -3284,27 +2839,27 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             res = DefWindowProc(win, msg, wp, lp);
             chart_setup_hot(chart);
             if(!chart->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
+                xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
             return res;
         }
 
         case WM_GETFONT:
-            return (LRESULT) chart->font;
+            return (LRESULT) chart->gdi_font;
 
         case WM_SETFONT:
-            if(chart->font != (HFONT) wp) {
-                chart->font = (HFONT) wp;
-                chart_free_cached_paint_ctx(chart);
+            if(chart->gdi_font != (HFONT) wp) {
+                chart->gdi_font = (HFONT) wp;
+                chart_setup_text_fmt(chart);
                 chart_setup_hot(chart);
+                if((BOOL) lp  &&  !chart->no_redraw)
+                    xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
             }
-            if((BOOL) lp  &&  !chart->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
             return 0;
 
         case WM_SETREDRAW:
             chart->no_redraw = !wp;
             if(!chart->no_redraw)
-                InvalidateRect(win, NULL, RDW_INVALIDATE | RDW_FRAME | RDW_ERASE);
+                xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
             return 0;
 
         case WM_GETDLGCODE:
@@ -3317,7 +2872,7 @@ chart_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 
         case WM_SYSCOLORCHANGE:
             if(!chart->no_redraw)
-                InvalidateRect(win, NULL, TRUE);
+                xd2d_invalidate(chart->win, NULL, TRUE, &chart->xd2d_cache);
             break;
 
         case CCM_SETNOTIFYWINDOW:
@@ -3355,19 +2910,13 @@ chart_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
-    if(MC_ERR(!wdInitialize(WD_INIT_STRINGAPI))) {
-        MC_TRACE("chart_init_module: wdInitialize() failed.");
-        return -1;
-    }
-
     wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = chart_proc;
     wc.cbWndExtra = sizeof(chart_t*);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = chart_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
-        MC_TRACE_ERR("chart_init_module: RegisterClass() failed");
-        wdTerminate(WD_INIT_STRINGAPI);
+        MC_TRACE_ERR("chart_init_module: RegisterClass() failed.");
         return -1;
     }
 
@@ -3378,6 +2927,4 @@ void
 chart_fini_module(void)
 {
     UnregisterClass(chart_wc, NULL);
-
-    wdTerminate(WD_INIT_STRINGAPI);
 }

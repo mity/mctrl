@@ -147,6 +147,9 @@ xdwrite_create_text_layout(const TCHAR* str, UINT len, c_IDWriteTextFormat* tf,
     int align;
     HRESULT hr;
 
+    if(str == NULL  ||  tf == NULL)
+        return NULL;
+
     hr = c_IDWriteFactory_CreateTextLayout(xdwrite_factory, str, len, tf, max_width, max_height, &tl);
     if(MC_ERR(FAILED(hr))) {
         MC_TRACE_HR("xdwrite_create_text_layout: IDWriteFactory::CreateTextLayout() failed.");

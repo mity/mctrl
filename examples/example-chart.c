@@ -80,7 +80,7 @@ SetupCommonChart(HWND hwndChart)
 {
     const int austriaData[] = { 1336060, 1538156, 1576579, 1600652, 1968113 };
     const int denmarkData[] = { 1001582, 1119450,  993360, 1004163,  979198 };
-    const int greeceData[] =  {  997974,  941795,  930593,  897127, 1080887 };
+    const int greeceData[] =  { 1197974, 1041795,  930593,  867127,  780887 };
 
     MC_CHDATASET dataSet;
 

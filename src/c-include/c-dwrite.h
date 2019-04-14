@@ -157,6 +157,29 @@ struct c_DWRITE_TEXT_METRICS_tag {
     UINT32 lineCount;
 };
 
+typedef struct c_DWRITE_HIT_TEST_METRICS_tag c_DWRITE_HIT_TEST_METRICS;
+struct c_DWRITE_HIT_TEST_METRICS_tag {
+    UINT32 textPosition;
+    UINT32 length;
+    FLOAT left;
+    FLOAT top;
+    FLOAT width;
+    FLOAT height;
+    UINT32 bidiLevel;
+    BOOL isText;
+    BOOL isTrimmed;
+};
+
+typedef struct c_DWRITE_LINE_METRICS_tag c_DWRITE_LINE_METRICS;
+struct c_DWRITE_LINE_METRICS_tag {
+    UINT32 length;
+    UINT32 trailingWhitespaceLength;
+    UINT32 newlineLength;
+    FLOAT height;
+    FLOAT baseline;
+    BOOL isTrimmed;
+};
+
 typedef struct c_DWRITE_TEXT_RANGE_tag c_DWRITE_TEXT_RANGE;
 struct c_DWRITE_TEXT_RANGE_tag {
     UINT32 startPosition;
@@ -545,12 +568,12 @@ struct c_IDWriteTextLayoutVtbl_tag {
     STDMETHOD(dummy_GetLocaleNameLength2)(void);
     STDMETHOD(dummy_GetLocaleName2)(void);
     STDMETHOD(dummy_Draw)(void);
-    STDMETHOD(dummy_GetLineMetrics)(void);
+    STDMETHOD(GetLineMetrics)(c_IDWriteTextLayout*, c_DWRITE_LINE_METRICS*, UINT32, UINT32*);
     STDMETHOD(GetMetrics)(c_IDWriteTextLayout*, c_DWRITE_TEXT_METRICS*);
     STDMETHOD(dummy_GetOverhangMetrics)(void);
     STDMETHOD(dummy_GetClusterMetrics)(void);
     STDMETHOD(DetermineMinWidth)(c_IDWriteTextLayout*, FLOAT*);
-    STDMETHOD(dummy_HitTestPoint)(void);
+    STDMETHOD(HitTestPoint)(c_IDWriteTextLayout*, FLOAT, FLOAT, BOOL*, BOOL*, c_DWRITE_HIT_TEST_METRICS*);
     STDMETHOD(dummy_HitTestTextPosition)(void);
     STDMETHOD(dummy_HitTestTextRange)(void);
 };
@@ -577,8 +600,10 @@ struct c_IDWriteTextLayout_tag {
 #define c_IDWriteTextLayout_SetUnderline(self,a,b)          (self)->vtbl->SetUnderline(self,a,b)
 #define c_IDWriteTextLayout_GetMaxWidth(self)               (self)->vtbl->GetMaxWidth(self)
 #define c_IDWriteTextLayout_GetFontSize2(self,a,b,c)        (self)->vtbl->GetFontSize2(self,a,b,c)
+#define c_IDWriteTextLayout_GetLineMetrics(self,a,b,c)      (self)->vtbl->GetLineMetrics(self,a,b,c)
 #define c_IDWriteTextLayout_GetMetrics(self,a)              (self)->vtbl->GetMetrics(self,a)
 #define c_IDWriteTextLayout_DetermineMinWidth(self,a)       (self)->vtbl->DetermineMinWidth(self,a)
+#define c_IDWriteTextLayout_HitTestPoint(self,a,b,c,d,e)    (self)->vtbl->HitTestPoint(self,a,b,c,d,e)
 
 
 #endif  /* MC_C_DWRITE_H */

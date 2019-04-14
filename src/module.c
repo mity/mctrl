@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2015 Martin Mitas
+ * Copyright (c) 2009-2019 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -152,7 +152,7 @@ DEFINE_MODULE(xwic);
 static module_t* mod_button_deps[] = { &mod_mc, &mod_button };
 DEFINE_PUBLIC_IFACE(button, Button, mod_button_deps)
 
-static module_t* mod_chart_deps[] = { &mod_mc, &mod_chart };
+static module_t* mod_chart_deps[] = { &mod_mc, &mod_xd2d, &mod_xdwrite, &mod_chart };
 DEFINE_PUBLIC_IFACE(chart, Chart, mod_chart_deps)
 
 static module_t* mod_expand_deps[] = { &mod_mc, &mod_expand };
