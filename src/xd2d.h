@@ -78,7 +78,7 @@ xd2d_color_set_cref(c_D2D1_COLOR_F* c, COLORREF cref)
 
 c_ID2D1HwndRenderTarget* xd2d_CreateHwndRenderTarget(HWND win, PAINTSTRUCT* ps, DWORD flags);
 c_ID2D1DCRenderTarget* xd2d_CreateDCRenderTarget(HDC dc, const RECT* rect, DWORD flags);
-c_ID2D1PathGeometry* xd2d_CreatePathGeometry(void);
+c_ID2D1PathGeometry* xd2d_CreatePathGeometry(c_ID2D1GeometrySink** p_sink);
 
 
 /************************************

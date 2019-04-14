@@ -1413,15 +1413,9 @@ mditab_paint_item(mditab_t* mditab, mditab_xd2d_ctx_t* ctx, const RECT* client,
     mditab_setup_item_layout(mditab, &di, x0, y0, x1, y1, &layout);
 
     /* Construct a path defining shape of the item. */
-    path = xd2d_CreatePathGeometry();
+    path = xd2d_CreatePathGeometry(&path_sink);
     if(MC_ERR(path == NULL)) {
         MC_TRACE("mditab_paint_item: xd2d_CreatePathGeometry() failed.");
-        return;
-    }
-    hr = c_ID2D1PathGeometry_Open(path, &path_sink);
-    if(MC_ERR(FAILED(hr))) {
-        MC_TRACE("mditab_paint_item: ID2D1PathGeometry::Open() failed.");
-        c_ID2D1PathGeometry_Release(path);
         return;
     }
 

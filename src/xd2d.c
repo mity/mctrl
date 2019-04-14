@@ -129,7 +129,7 @@ err_CreateDCRenderTarget:
 }
 
 c_ID2D1PathGeometry*
-xd2d_CreatePathGeometry(void)
+xd2d_CreatePathGeometry(c_ID2D1GeometrySink** p_sink)
 {
     c_ID2D1PathGeometry* path_geom;
     HRESULT hr;
@@ -142,10 +142,20 @@ xd2d_CreatePathGeometry(void)
         goto err_CreatePathGeometry;
     }
 
+    if(p_sink != NULL) {
+        hr = c_ID2D1PathGeometry_Open(path_geom, p_sink);
+        if(MC_ERR(FAILED(hr))) {
+            MC_TRACE_HR("xd2d_CreatePathGeometry: ID2D1PathGeometry::Open() failed.");
+            goto err_Open;
+        }
+    }
+
     /* Success. */
     return path_geom;
 
     /* Error unrolling. */
+err_Open:
+    c_ID2D1PathGeometry_Release(path_geom);
 err_CreatePathGeometry:
     return NULL;
 }
