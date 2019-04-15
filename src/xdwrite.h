@@ -27,7 +27,7 @@
 #include "c-dwrite.h"
 
 
-c_IDWriteTextFormat* xdwrite_create_text_format(HFONT gdi_font);
+c_IDWriteTextFormat* xdwrite_create_text_format(HFONT gdi_font, c_DWRITE_FONT_METRICS* p_metrics);
 
 
 /* FLags for xdwrite_create_text_layout() */

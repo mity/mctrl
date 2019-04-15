@@ -28,7 +28,7 @@ static HMODULE xdwrite_dll;
 
 
 c_IDWriteTextFormat*
-xdwrite_create_text_format(HFONT gdi_font)
+xdwrite_create_text_format(HFONT gdi_font, c_DWRITE_FONT_METRICS* p_metrics)
 {
     /* See https://github.com/Microsoft/Windows-classic-samples/blob/master/Samples/Win7Samples/multimedia/DirectWrite/RenderTest/TextHelpers.cpp */
     LOGFONT lf;
@@ -67,6 +67,9 @@ retry_CreateFontFromLOGFONT:
         MC_TRACE_HR("xdwrite_create_text_format: IDWriteGdiInterop::CreateFontFromLOGFONT() failed.");
         goto err_CreateFontFromLOGFONT;
     }
+
+    if(p_metrics != NULL)
+        c_IDWriteFont_GetMetrics(font, p_metrics);
 
     hr = c_IDWriteFont_GetFontFamily(font, &family);
     if(MC_ERR(FAILED(hr))) {

@@ -536,7 +536,7 @@ struct c_IDWriteTextLayoutVtbl_tag {
     STDMETHOD(dummy_GetFontWeight2)(void);
     STDMETHOD(dummy_GetFontStyle2)(void);
     STDMETHOD(dummy_GetFontStretch2)(void);
-    STDMETHOD(dummy_GetFontSize2)(void);
+    STDMETHOD(GetFontSize2)(c_IDWriteTextLayout*, UINT32, FLOAT*, c_DWRITE_TEXT_RANGE*);
     STDMETHOD(dummy_GetUnderline)(void);
     STDMETHOD(dummy_GetStrikethrough)(void);
     STDMETHOD(dummy_GetDrawingEffect)(void);
@@ -576,6 +576,7 @@ struct c_IDWriteTextLayout_tag {
 #define c_IDWriteTextLayout_SetStrikethrough(self,a,b)      (self)->vtbl->SetStrikethrough(self,a,b)
 #define c_IDWriteTextLayout_SetUnderline(self,a,b)          (self)->vtbl->SetUnderline(self,a,b)
 #define c_IDWriteTextLayout_GetMaxWidth(self)               (self)->vtbl->GetMaxWidth(self)
+#define c_IDWriteTextLayout_GetFontSize2(self,a,b,c)        (self)->vtbl->GetFontSize2(self,a,b,c)
 #define c_IDWriteTextLayout_GetMetrics(self,a)              (self)->vtbl->GetMetrics(self,a)
 #define c_IDWriteTextLayout_DetermineMinWidth(self,a)       (self)->vtbl->DetermineMinWidth(self,a)
 

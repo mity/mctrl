@@ -2875,7 +2875,7 @@ mditab_create(mditab_t* mditab, CREATESTRUCT* cs)
 {
     WORD ui_state;
 
-    mditab->text_fmt = xdwrite_create_text_format(mditab->gdi_font);
+    mditab->text_fmt = xdwrite_create_text_format(mditab->gdi_font, NULL);
 
     ui_state = MC_SEND(mditab->win, WM_QUERYUISTATE, 0, 0);
     mditab->hide_focus = (ui_state & UISF_HIDEFOCUS) ? TRUE : FALSE;
@@ -3114,7 +3114,7 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
                 mditab->gdi_font = (HFONT) wp;
                 if(mditab->text_fmt != NULL)
                     c_IDWriteTextFormat_Release(mditab->text_fmt);
-                mditab->text_fmt = xdwrite_create_text_format(mditab->gdi_font);
+                mditab->text_fmt = xdwrite_create_text_format(mditab->gdi_font, NULL);
                 if(mditab->item_def_width == 0) {
                     mditab_reset_ideal_widths(mditab);
                     mditab_update_layout(mditab, FALSE);
