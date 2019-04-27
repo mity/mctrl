@@ -27,7 +27,6 @@ export_test(void)
        return;
 
    TEST_CHECK(GetProcAddress(dll, "DllGetVersion") != NULL);
-   TEST_CHECK(GetProcAddress(dll, "mcBeginBufferedAnimation") != NULL);
    TEST_CHECK(GetProcAddress(dll, "mcGrid_Initialize") != NULL);
    TEST_CHECK(GetProcAddress(dll, "mcVersion") != NULL);
 
