@@ -1541,7 +1541,7 @@ column_paint(chart_t* chart, BOOL is_stacked, chart_xd2d_ctx_t* ctx,
     column_layout_t cl;
     int set_ix, i, n;
     chart_data_t* data;
-    D2D1_RECT_F r;
+    c_D2D1_RECT_F r;
     c_D2D1_POINT_2F pt0, pt1;
     c_D2D1_COLOR_F c, c_full;
 
@@ -1604,7 +1604,7 @@ column_hit_test(chart_t* chart, BOOL is_stacked, chart_layout_t* layout,
     column_layout_t cl;
     int set_ix, i, n;
     chart_data_t* data;
-    D2D1_RECT_F r;
+    c_D2D1_RECT_F r;
 
     CACHE_INIT(&cache, chart);
 
@@ -1672,7 +1672,7 @@ bar_paint(chart_t* chart, BOOL is_stacked, chart_xd2d_ctx_t* ctx,
     bar_layout_t bl;
     int set_ix, i, n;
     chart_data_t* data;
-    D2D1_RECT_F r;
+    c_D2D1_RECT_F r;
     c_D2D1_POINT_2F pt0, pt1;
     c_D2D1_COLOR_F c, c_full;
 
@@ -1735,7 +1735,7 @@ bar_hit_test(chart_t* chart, BOOL is_stacked, chart_layout_t* layout,
     column_layout_t bl;
     int set_ix, i, n;
     chart_data_t* data;
-    D2D1_RECT_F r;
+    c_D2D1_RECT_F r;
 
     CACHE_INIT(&cache, chart);
 
