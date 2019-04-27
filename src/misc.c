@@ -21,8 +21,6 @@
 #include "module.h"
 #include "xcom.h"
 
-#include <wdl.h>
-
 
 /***************
  *** Globals ***
@@ -749,21 +747,6 @@ void debug_dllmain_init(void);
 void debug_dllmain_fini(void);
 
 
-/* Critical section for WinDrawLib */
-static mc_mutex_t dllmain_wdl_mutex = MC_MUTEX_INIT;
-
-static void
-dllmain_lock_wdl(void)
-{
-    mc_mutex_lock(&dllmain_wdl_mutex);
-}
-
-static void
-dllmain_unlock_wdl(void)
-{
-    mc_mutex_unlock(&dllmain_wdl_mutex);
-}
-
 static int
 dllmain_init(HINSTANCE instance)
 {
@@ -777,10 +760,6 @@ dllmain_init(HINSTANCE instance)
         MC_TRACE_ERR("dllmain_init: GetModuleHandle(KERNEL32.DLL) failed.");
         return -1;
     }
-
-    /* We have no control over how many threads of the application create
-     * some controls. Hence, enable WinDrawLib's multi-threading support. */
-    wdPreInitialize(dllmain_lock_wdl, dllmain_unlock_wdl, 0);
 
     /* BEWARE when changing this: All these functions are very limited in what
      * they can do because of DllMain() context.

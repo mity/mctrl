@@ -33,7 +33,6 @@ OPTION(MCTRL_BUILD_TESTS "Enable/disable building of mCtrl tests" ON)
 
 # Add sub-directories
 add_subdirectory(lib/hsluv-c)
-add_subdirectory(lib/windrawlib)
 add_subdirectory(src)
 if(MCTRL_BUILD_EXAMPLES)
     add_subdirectory(examples)

@@ -52,14 +52,12 @@ add_library(mCtrl SHARED
     xdwm.c                          xdwm.h
     xd2d.c                          xd2d.h
     xdwrite.c                       xdwrite.h
-    xdraw.c                         xdraw.h
     xwic.c                          xwic.h
 )
 
-add_dependencies(mCtrl windrawlib)
 target_link_libraries(mCtrl
     gdi32 comctl32 ole32 oleaut32 uuid uxtheme windowscodecs    # Windows SDK libs
-    hsluv-c windrawlib)                                         # Libs distributed with us
+    hsluv-c)                                                    # Libs distributed with us
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)
