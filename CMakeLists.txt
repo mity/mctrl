@@ -31,6 +31,20 @@ set(MCTRL_BUILD_COMPLETETREE ON CACHE BOOL "Tell examples/CMakeListst.txt it is 
 OPTION(MCTRL_BUILD_EXAMPLES "Enable/disable building of mCtrl examples" ON)
 OPTION(MCTRL_BUILD_TESTS "Enable/disable building of mCtrl tests" ON)
 
+
+if(MSVC)
+    # Enforce multi-threading runtime lib.
+    string(REGEX REPLACE "/M[DT]d?" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/M[DT]d?" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+    string(REGEX REPLACE "/M[DT]d?" "" CMAKE_C_FLAGS_RELWITHDEBINFO "{$CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    string(REGEX REPLACE "/M[DT]d?" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_RELEASE} /MT")
+endif()
+
+
 # Add sub-directories
 add_subdirectory(lib/hsluv-c)
 add_subdirectory(src)

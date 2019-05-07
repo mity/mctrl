@@ -160,11 +160,5 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     if(NOT(MSVC_VERSION GREATER 1200))
         target_link_libraries(mCtrl msimg32)
     endif()
-
-    # Specify proper C runtime library:
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELEASE} /MT")
-    set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_RELEASE} /MT")
 endif()
 
