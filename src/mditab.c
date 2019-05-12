@@ -171,6 +171,7 @@ static void mditab_set_tooltip_pos(mditab_t* mditab);
 static void mditab_mouse_move(mditab_t* mditab, int x, int y);
 static void mditab_update_layout(mditab_t* mditab, BOOL refresh);
 static BOOL mditab_get_item_rect(mditab_t* mditab, WORD index, RECT* rect, BOOL whole);
+static BOOL mditab_ensure_visible(mditab_t* mditab, int index);
 
 
 typedef struct mditab_item_layout_tag mditab_item_layout_t;
@@ -2149,6 +2150,7 @@ mditab_delete_item(mditab_t* mditab, int index)
             mditab->item_selected = n-2;
 
         mditab_notify_sel_change(mditab, old_item_selected, mditab->item_selected);
+        mditab_ensure_visible(mditab, mditab->item_selected);
     }
 
     if(index == mditab->item_mclose)
