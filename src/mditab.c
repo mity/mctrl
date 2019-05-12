@@ -2150,7 +2150,8 @@ mditab_delete_item(mditab_t* mditab, int index)
             mditab->item_selected = n-2;
 
         mditab_notify_sel_change(mditab, old_item_selected, mditab->item_selected);
-        mditab_ensure_visible(mditab, mditab->item_selected);
+        if(mditab->item_selected >= 0)
+            mditab_ensure_visible(mditab, mditab->item_selected);
     }
 
     if(index == mditab->item_mclose)
