@@ -108,6 +108,7 @@ static const TCHAR mditab_wc[] = MC_WC_MDITAB;  /* window class name */
 #define MDITAB_ITEM_PADDING           8    /* horizontal padding inside the item */
 #define MDITAB_ITEM_ICON_MARGIN       5    /* space between icon and text */
 
+#define MDITAB_OUTER_MARGIN           8
 #define MDITAB_COLOR_BACKGROUND     GetSysColor(COLOR_APPWORKSPACE)
 #define MDITAB_COLOR_BORDER         GetSysColor(COLOR_3DDKSHADOW)
 
@@ -391,7 +392,7 @@ mditab_reset_ideal_widths(mditab_t* mditab)
 static inline int
 mditab_button_size(const RECT* client)
 {
-    return mc_height(client) - 4;
+    return ((mc_height(client) * 4) / 5 - 3);
 }
 
 static void
@@ -408,12 +409,12 @@ mditab_button_rect(mditab_t* mditab, int btn_id, RECT* rect)
     y0 = (client.bottom - btn_size + 1) / 2;
 
     if(btn_id == BTNID_LSCROLL) {
-        x0 = 0;
+        x0 = MDITAB_OUTER_MARGIN;
         mc_rect_set(rect, x0, y0, x0 + btn_size, y0 + btn_size);
         return;
     }
 
-    x0 = client.right - btn_size;
+    x0 = client.right - btn_size - MDITAB_OUTER_MARGIN;
     if(btn_id == BTNID_CLOSE) {
         mc_rect_set(rect, x0, y0, x0 + btn_size, y0 + btn_size);
         return;
@@ -647,8 +648,12 @@ mditab_invalidate_item(mditab_t* mditab, WORD index)
 
     item = mditab_item(mditab, index);
 
-    GetClientRect(mditab->win, &rect);
-    r = mc_height(&rect) - MDITAB_ITEM_TOP_MARGIN;
+    if(mditab->style & MC_MTS_ROUNDEDITEMS) {
+        GetClientRect(mditab->win, &rect);
+        r = (mc_height(&rect) - MDITAB_ITEM_TOP_MARGIN) / 2;
+    } else {
+        r = 0;
+    }
 
     rect.left = mditab->area_margin0 + item->x0 - mditab->scroll_x - r;
     rect.right = mditab->area_margin0 + item->x1 - mditab->scroll_x + r;
@@ -1035,17 +1040,24 @@ again_with_scroll:
         btn_mask |= BTNMASK_SCROLL;
 
     /* Determine what item area we need. */
-    area_margin0 = (mditab->style & MC_MTS_ROUNDEDITEMS) ? mc_height(&client) / 2 : 4;
+    area_margin0 = MDITAB_OUTER_MARGIN;
+    area_margin1 = MDITAB_OUTER_MARGIN;
     if(btn_mask & BTNMASK_LSCROLL)
         area_margin0 += btn_size;
-
-    area_margin1 = (mditab->style & MC_MTS_ROUNDEDITEMS) ? mc_height(&client) / 2 : 4;
     if(btn_mask & BTNMASK_RSCROLL)
         area_margin1 += btn_size;
     if(btn_mask & BTNMASK_LIST)
         area_margin1 += btn_size;
     if(btn_mask & BTNMASK_CLOSE)
         area_margin1 += btn_size;
+    if(btn_mask != 0) {
+        area_margin0 += MDITAB_OUTER_MARGIN;
+        area_margin1 += MDITAB_OUTER_MARGIN;
+    }
+    if(mditab->style & MC_MTS_ROUNDEDITEMS) {
+        area_margin0 = MC_MAX(area_margin0, mc_height(&client) / 2);
+        area_margin1 = MC_MAX(area_margin1, mc_height(&client) / 2);
+    }
 
     area_width = mc_width(&client) - area_margin0 - area_margin1;
 
@@ -1272,8 +1284,6 @@ static void
 mditab_do_paint_button(mditab_t* mditab, mditab_xd2d_ctx_t* ctx, int btn_id,
                        c_D2D1_RECT_F* rect, int state)
 {
-    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
-    c_ID2D1SolidColorBrush* b = ctx->solid_brush;
     static const struct {
         float ax0;
         float ay0;
@@ -1289,49 +1299,97 @@ mditab_do_paint_button(mditab_t* mditab, mditab_xd2d_ctx_t* ctx, int btn_id,
         { 0.3f, 0.4f, 0.5f, 0.6f,   0.5f, 0.6f, 0.7f, 0.4f },
         { 0.3f, 0.3f, 0.7f, 0.7f,   0.3f, 0.7f, 0.7f, 0.3f }
     };
-
-    float x = rect->left;
-    float y = rect->top;
-    float w = rect->right - rect->left;
-    float h = rect->bottom - rect->top;
-    c_D2D1_COLOR_F c;
+    c_ID2D1RenderTarget* rt = ctx->ctx.rt;
+    c_ID2D1SolidColorBrush* b = ctx->solid_brush;
+    float x, y, w, h;
     c_D2D1_POINT_2F pt0, pt1;
-    float stroke_width;
+    c_D2D1_COLOR_F c;
 
-    if(state == BTNSTATE_HOT  ||  state == BTNSTATE_PRESSED) {
-        c_D2D1_ELLIPSE ellipse;
+    /* The background. */
+    if(state == BTNSTATE_HOT || state == BTNSTATE_PRESSED) {
+        c_ID2D1PathGeometry* path;
+        c_ID2D1GeometrySink* sink;
+        c_D2D1_ARC_SEGMENT arc;
+        c_D2D1_POINT_2F pt;
+        float r;
+
+        path = xd2d_CreatePathGeometry(&sink);
+        if(MC_ERR(path == NULL)) {
+            MC_TRACE("mditab_do_paint_button: xd2d_CreatePathGeometry() failed.");
+            goto err_CreatePathGeometry;
+        }
+
+        r = MC_MIN(rect->right - rect->left, rect->bottom - rect->top) * 0.125f;
+        pt.x = rect->right - r;
+        pt.y = rect->top;
+        c_ID2D1GeometrySink_BeginFigure(sink, pt, c_D2D1_FIGURE_BEGIN_FILLED);
+        arc.point.x = rect->right;
+        arc.point.y = rect->top + r;
+        arc.size.width = r;
+        arc.size.height = r;
+        arc.rotationAngle = 0.0f;
+        arc.sweepDirection = c_D2D1_SWEEP_DIRECTION_CLOCKWISE;
+        arc.arcSize = c_D2D1_ARC_SIZE_SMALL;
+        c_ID2D1GeometrySink_AddArc(sink, &arc);
+        pt.x = rect->right;
+        pt.y = rect->bottom - r;
+        c_ID2D1GeometrySink_AddLine(sink, pt);
+        arc.point.x = rect->right - r;
+        arc.point.y = rect->bottom;
+        c_ID2D1GeometrySink_AddArc(sink, &arc);
+        pt.x = rect->left + r;
+        pt.y = rect->bottom;
+        c_ID2D1GeometrySink_AddLine(sink, pt);
+        arc.point.x = rect->left;
+        arc.point.y = rect->bottom - r;
+        c_ID2D1GeometrySink_AddArc(sink, &arc);
+        pt.x = rect->left;
+        pt.y = rect->top + r;
+        c_ID2D1GeometrySink_AddLine(sink, pt);
+        arc.point.x = rect->left + r;
+        arc.point.y = rect->top;
+        c_ID2D1GeometrySink_AddArc(sink, &arc);
+        c_ID2D1GeometrySink_EndFigure(sink, c_D2D1_FIGURE_END_CLOSED);
+
+        c_ID2D1GeometrySink_Close(sink);
+        c_ID2D1GeometrySink_Release(sink);
 
         if(state == BTNSTATE_HOT)
-            xd2d_color_set_crefa(&c, GetSysColor(COLOR_BTNFACE), 191);
+            xd2d_color_set_rgb(&c, 149, 149, 149);
         else
-            xd2d_color_set_crefa(&c, GetSysColor(COLOR_BTNFACE), 127);
+            xd2d_color_set_rgb(&c, 127, 127, 127);
         c_ID2D1SolidColorBrush_SetColor(b, &c);
+        c_ID2D1RenderTarget_FillGeometry(rt, (c_ID2D1Geometry*)path, (c_ID2D1Brush*)b, NULL);
+        c_ID2D1RenderTarget_DrawGeometry(rt, (c_ID2D1Geometry*)path, (c_ID2D1Brush*)b, 1.0f, NULL);
+        c_ID2D1PathGeometry_Release(path);
 
-        ellipse.point.x = x + w/2.0f;
-        ellipse.point.y = y + h/2.0f;
-        ellipse.radiusX = w / 2.0f - 1.0f;
-        ellipse.radiusY = w / 2.0f - 1.0f;
-        c_ID2D1RenderTarget_FillEllipse(rt, &ellipse, (c_ID2D1Brush*) b);
+err_CreatePathGeometry:
+        ;
     }
 
-    stroke_width = (mc_win_version >= MC_WIN_10 ? 1.0f : 2.0f);
+    x = rect->left;
+    y = rect->top;
+    w = rect->right - rect->left;
+    h = rect->bottom - rect->top;
 
-    if(state == BTNSTATE_DISABLED)
-        xd2d_color_set_crefa(&c, GetSysColor(COLOR_BTNTEXT), 191);
-    else
-        xd2d_color_set_cref(&c, GetSysColor(COLOR_BTNTEXT));
+    switch(state) {
+        case BTNSTATE_DISABLED:     xd2d_color_set_rgb(&c, 126, 133, 156); break;
+        case BTNSTATE_HOT:          /* Pass through. */
+        case BTNSTATE_PRESSED:      xd2d_color_set_rgb(&c, 255, 255, 255); break;
+        default:                    xd2d_color_set_rgb(&c, 0, 0, 0); break;
+    }
     c_ID2D1SolidColorBrush_SetColor(b, &c);
 
     pt0.x = x + w * dies[btn_id].ax0;
     pt0.y = y + h * dies[btn_id].ay0;
     pt1.x = x + w * dies[btn_id].ax1;
     pt1.y = y + h * dies[btn_id].ay1;
-    c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) b, stroke_width, NULL);
+    c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) b, 2.0f, NULL);
     pt0.x = x + w * dies[btn_id].bx0;
     pt0.y = y + h * dies[btn_id].by0;
     pt1.x = x + w * dies[btn_id].bx1;
     pt1.y = y + h * dies[btn_id].by1;
-    c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) b, stroke_width, NULL);
+    c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) b, 2.0f, NULL);
 }
 
 static void
@@ -1397,8 +1455,6 @@ mditab_paint_item(mditab_t* mditab, mditab_xd2d_ctx_t* ctx, const RECT* client,
     float x1 = item_rect->right;
     float y1 = item_rect->bottom;
     float r;
-    BOOL left_block;
-    BOOL right_block;
     c_D2D1_LAYER_PARAMETERS clip_layer_params;
     c_D2D1_RECT_F clip_rect;
     c_D2D1_RECT_F blit_rect;
@@ -1489,14 +1545,10 @@ mditab_paint_item(mditab_t* mditab, mditab_xd2d_ctx_t* ctx, const RECT* client,
     c_ID2D1GeometrySink_Close(path_sink);
     c_ID2D1GeometrySink_Release(path_sink);
 
-    /* Determine if we need to paint scroll blocks. */
-    left_block = (mditab->scroll_x > 0  &&  x0 < area_x0);
-    right_block = (mditab->scroll_x < mditab->scroll_x_max  &&  x1 > area_x1);
-
     /* Clip to the item geometry. */
-    clip_rect.left = (left_block ? area_x0 - r : 0);
+    clip_rect.left = (mditab->scroll_x > 0 ? area_x0 : area_x0 - r - 0.5f);
     clip_rect.top = 0;
-    clip_rect.right = (right_block ? area_x1 + r : area_x1 + 100);
+    clip_rect.right = (mditab->scroll_x < mditab->scroll_x_max ? area_x1 : area_x1 + r + 0.5f);
     clip_rect.bottom = y1;
 
     memcpy(&clip_layer_params.contentBounds, &clip_rect, sizeof(c_D2D1_RECT_F));
@@ -1656,12 +1708,6 @@ err_create_text_layout:
         c_ID2D1RenderTarget_DrawLine(rt, pt0, pt1, (c_ID2D1Brush*) ctx->solid_brush, 1.0f, NULL);
     }
 
-    /* If needed, paint the scrolling blocks. */
-    if(left_block)
-        mditab_paint_scroll_block(mditab, ctx, floorf(area_x0 - r), y0, y1, +1);
-    if(right_block)
-        mditab_paint_scroll_block(mditab, ctx, ceilf(area_x1 + r), y0, y1, -1);
-
     mditab_free_dispinfo(mditab, item, &di);
 }
 
@@ -1766,7 +1812,6 @@ mditab_paint(void* ctrl, xd2d_ctx_t* raw_ctx)
         c_D2D1_RECT_F sel_rect;
         c_D2D1_RECT_F drag_rect;
         BOOL paint_drag_item = FALSE;
-        int r = (mc_height(&client) - MDITAB_ITEM_TOP_MARGIN + 1) / 2;  /* "+1" to compensate rounding errors */
 
         for(i = 0; i < n; i++) {
             mditab_item_t* item = mditab_item(mditab, i);
@@ -1774,9 +1819,9 @@ mditab_paint(void* ctrl, xd2d_ctx_t* raw_ctx)
             int x1 = area_x0 - mditab->scroll_x + item->x1;
             c_D2D1_RECT_F item_rect;
 
-            if(x1 <= area_x0 - r)
+            if(x1 <= area_x0)
                 continue;
-            if(x0 > area_x1 + r)
+            if(x0 > area_x1)
                 break;
 
             /* We need to paint the dragged and selected item as last one, due
@@ -1824,6 +1869,12 @@ mditab_paint(void* ctrl, xd2d_ctx_t* raw_ctx)
                               (mousedrag_index == mditab->item_hot));
         }
     }
+
+    /* If needed, paint the scrolling blocks. */
+    if(mditab->scroll_x > 0)
+        mditab_paint_scroll_block(mditab, ctx, floorf(area_x0), MDITAB_ITEM_TOP_MARGIN, client.bottom, +1);
+    if(mditab->scroll_x < mditab->scroll_x_max)
+        mditab_paint_scroll_block(mditab, ctx, ceilf(area_x1), MDITAB_ITEM_TOP_MARGIN, client.bottom, -1);
 
     /* Painting of selected item does also the bottom border as a side effect.
      * If there are no items or selected items is out of the view port, we have
@@ -2525,9 +2576,8 @@ mditab_list_items(mditab_t* mditab)
     mditab_button_rect(mditab, BTNID_LIST, &tpm_param.rcExclude);
     MapWindowPoints(mditab->win, HWND_DESKTOP, (POINT*) &tpm_param.rcExclude, 2);
 
-    /* Win 2000 do not know TPM_LAYOUTRTL. */
     tpm_flags = TPM_LEFTBUTTON | TPM_RIGHTALIGN | TPM_RETURNCMD | TPM_NONOTIFY;
-    if(mditab->rtl  &&  mc_win_version > MC_WIN_2000)
+    if(mditab->rtl)
         tpm_flags |= TPM_LAYOUTRTL;
     cmd = TrackPopupMenuEx(popup, tpm_flags,
             (mditab->rtl ? tpm_param.rcExclude.left : tpm_param.rcExclude.right),
@@ -2597,12 +2647,17 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
                  * friend with CaptureMouse etc. */
                 RECT btn_rect;
 
-                mditab_button_rect(mditab, BTNID_LIST, &btn_rect);
-                mditab->btn_pressed = TRUE;
-                RedrawWindow(mditab->win, &btn_rect, NULL, RDW_INTERNALPAINT);
-                mditab_list_items(mditab);
-                mditab->btn_pressed = FALSE;
+                mditab_button_rect(mditab, btn_id, &btn_rect);
+
+                mditab_set_hot_button(mditab, btn_id, TRUE);
                 mditab_invalidate_button(mditab, btn_id);
+                RedrawWindow(mditab->win, &btn_rect, NULL, RDW_UPDATENOW);
+
+                mditab_list_items(mditab);
+
+                mditab_set_hot_button(mditab, btn_id, FALSE);
+                mditab_invalidate_button(mditab, btn_id);
+                RedrawWindow(mditab->win, &btn_rect, NULL, RDW_UPDATENOW);
             } else {
                 SetCapture(mditab->win);
                 mditab->mouse_captured = TRUE;
