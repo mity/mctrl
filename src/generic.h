@@ -26,7 +26,7 @@
 /* "Generic" implementations of some standard control messages. */
 
 static inline LRESULT
-generic_paint(HWND win, BOOL no_redraw, BOOL doublebuffer,
+generic_paint(HWND win, BOOL no_redraw, BOOL do_doublebuffer,
               void (*func_paint)(void*, HDC, RECT*, BOOL),
               void* ctrl)
 {
@@ -34,8 +34,8 @@ generic_paint(HWND win, BOOL no_redraw, BOOL doublebuffer,
 
     BeginPaint(win, &ps);
     if(!no_redraw) {
-        if(doublebuffer)
-            doublebuffer_simple(ctrl, &ps, func_paint);
+        if(do_doublebuffer)
+            doublebuffer(ctrl, &ps, func_paint);
         else
             func_paint(ctrl, ps.hdc, &ps.rcPaint, ps.fErase);
     }

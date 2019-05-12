@@ -332,7 +332,7 @@ expand_paint(expand_t* expand)
 
     /* Normal paint. We do not need double buffering without background erase. */
     if((expand->style & MC_EXS_DOUBLEBUFFER)  &&  ps.fErase)
-        doublebuffer_simple(expand, &ps, expand_do_paint);
+        doublebuffer(expand, &ps, expand_do_paint);
     else
         expand_do_paint(expand, ps.hdc, &ps.rcPaint, ps.fErase);
 

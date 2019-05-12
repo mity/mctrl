@@ -33,26 +33,11 @@ struct doublebuffer_tag {
 void doublebuffer_init(void);
 void doublebuffer_fini(void);
 
-HDC doublebuffer_open(doublebuffer_t* dblbuf, HDC dc, const RECT* rect);
-void doublebuffer_close(doublebuffer_t* dblbuf, BOOL blit);
-
-
 /* Simple wrapper for double-buffering controls */
-
 typedef void (*doublebuffer_callback_t)(void* /*control_data*/, HDC /*dc*/,
                                         RECT* /*dirty_rect*/, BOOL /*erase*/);
 
-static inline void
-doublebuffer_simple(void* control, PAINTSTRUCT* ps,
-                    doublebuffer_callback_t callback)
-{
-    doublebuffer_t dblbuf;
-    HDC dc;
-
-    dc = doublebuffer_open(&dblbuf, ps->hdc, &ps->rcPaint);
-    callback(control, dc, &ps->rcPaint, (ps->fErase || dc != ps->hdc));
-    doublebuffer_close(&dblbuf, TRUE);
-}
+void doublebuffer(void* control, PAINTSTRUCT* ps, doublebuffer_callback_t callback);
 
 
 #endif  /* MC_DOUBLEBUFFER_H */
