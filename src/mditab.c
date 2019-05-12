@@ -2643,21 +2643,25 @@ mditab_left_button_down(mditab_t* mditab, UINT keys, short x, short y)
 
         if(btn_id >= 0) {
             if(btn_id == BTNID_LIST) {
-                /* We handle BTNID_LIST specially because the popup menu is not
-                 * friend with CaptureMouse etc. */
-                RECT btn_rect;
+                if(mc_msgblocker_query(mditab->win, 0)) {
+                    /* We handle BTNID_LIST specially because the popup menu is not
+                     * friend with CaptureMouse etc. */
+                    RECT btn_rect;
 
-                mditab_button_rect(mditab, btn_id, &btn_rect);
+                    mditab_button_rect(mditab, btn_id, &btn_rect);
 
-                mditab_set_hot_button(mditab, btn_id, TRUE);
-                mditab_invalidate_button(mditab, btn_id);
-                RedrawWindow(mditab->win, &btn_rect, NULL, RDW_UPDATENOW);
+                    mditab_set_hot_button(mditab, btn_id, TRUE);
+                    mditab_invalidate_button(mditab, btn_id);
+                    RedrawWindow(mditab->win, &btn_rect, NULL, RDW_UPDATENOW);
 
-                mditab_list_items(mditab);
+                    mditab_list_items(mditab);
 
-                mditab_set_hot_button(mditab, btn_id, FALSE);
-                mditab_invalidate_button(mditab, btn_id);
-                RedrawWindow(mditab->win, &btn_rect, NULL, RDW_UPDATENOW);
+                    mditab_set_hot_button(mditab, btn_id, FALSE);
+                    mditab_invalidate_button(mditab, btn_id);
+                    RedrawWindow(mditab->win, &btn_rect, NULL, RDW_UPDATENOW);
+
+                    mc_msgblocker_start(mditab->win, 0);
+                }
             } else {
                 SetCapture(mditab->win);
                 mditab->mouse_captured = TRUE;

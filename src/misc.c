@@ -390,6 +390,41 @@ mc_clip_reset(HDC dc, HRGN old_clip)
 }
 
 
+/***********************
+ *** Blocker Utility ***
+ ***********************/
+
+static mc_mutex_t mc_blocker_mutex = MC_MUTEX_INIT;
+static HWND mc_blocker_win;
+static UINT_PTR mc_blocker_id;
+static DWORD mc_blocker_start = 0;
+
+void
+mc_msgblocker_start(HWND win, UINT_PTR id)
+{
+    mc_mutex_lock(&mc_blocker_mutex);
+    mc_blocker_win = win;
+    mc_blocker_id = id;
+    mc_blocker_start = GetTickCount();
+    mc_mutex_unlock(&mc_blocker_mutex);
+}
+
+BOOL
+mc_msgblocker_query(HWND win, UINT_PTR id)
+{
+    BOOL ret = TRUE;
+
+    mc_mutex_lock(&mc_blocker_mutex);
+    if(win == mc_blocker_win  &&  id == mc_blocker_id) {
+        LONG period = GetMessageTime() - mc_blocker_start;
+        ret = !(-200 <= period  &&  period <= 0);
+    }
+    mc_mutex_unlock(&mc_blocker_mutex);
+
+    return ret;
+}
+
+
 /**************************
  *** Assorted Utilities ***
  **************************/

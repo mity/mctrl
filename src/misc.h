@@ -464,6 +464,32 @@ void mc_clip_set(HDC dc, LONG left, LONG top, LONG right, LONG bottom);
 void mc_clip_reset(HDC dc, HRGN old_clip);
 
 
+/*******************************
+ *** Message Blocker Utility ***
+ *******************************/
+
+/* In some cases, controls may need to block certain auto-repeat from
+ * happening. Imagine e.g. a button which triggers a popup menu. If user
+ * clicks on the button 2nd time, it leads to (1) canceling the popup menu
+ * (because it happened outside the popup menu window) and (2) re-creation of
+ * the popup menu (because that's what the button does).
+ *
+ * In such case the control may want to block the (2). That's what these
+ * functions are for.
+ *
+ * mc_msgblocker_start() starts some short time period when any call to
+ * mc_msgblocker_query() with the same window handle and id parameter shall
+ * return FALSE. Otherwise it shall return TRUE.
+ *
+ * Note only one blocker can be running at the same time. That's usually fine:
+ * If multiple controls use popup menues, opening different one means the
+ * button for the former can be used for sure. So mc_msgblocker_start()
+ * invalidates any former blocker which can be in effect.
+ */
+void mc_msgblocker_start(HWND win, UINT_PTR id);
+BOOL mc_msgblocker_query(HWND win, UINT_PTR id);
+
+
 /**************************
  *** Assorted Utilities ***
  **************************/

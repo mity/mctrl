@@ -78,7 +78,6 @@ struct menubar_tag {
     HMENU menu;
     short hot_item;
     short pressed_item;
-    LONG dropdown_close_time;
     WORD rtl                    : 1;
     WORD continue_hot_track     : 1;
     WORD select_from_keyboard   : 1;
@@ -276,7 +275,7 @@ menubar_perform_dropdown(menubar_t* mb)
         MENUBAR_SENDMSG(mb->win, TB_SETSTATE, item, MAKELONG(btn_state, 0));
     }
 
-    mb->dropdown_close_time = (LONG) GetTickCount();
+    mc_msgblocker_start(mb->win, 0);
 
     menubar_reset_hot_item(mb);
     menubar_ht_disable(mb);
@@ -286,8 +285,6 @@ menubar_perform_dropdown(menubar_t* mb)
 static inline void
 menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
 {
-    LONG period_since_last_dropdownclose;
-
     MENUBAR_TRACE("menubar_dropdown(%p, %d)", mb, item);
 
     /* A dropdown menu may be closed by clicking outside the (sub)menu;
@@ -301,8 +298,7 @@ menubar_dropdown(menubar_t* mb, int item, BOOL from_keyboard)
      *
      * See https://github.com/mity/mctrl/issues/53
      */
-    period_since_last_dropdownclose = GetMessageTime() - mb->dropdown_close_time;
-    if(-200 <= period_since_last_dropdownclose  &&  period_since_last_dropdownclose <= 0) {
+    if(!mc_msgblocker_query(mb->win, 0)) {
         MENUBAR_TRACE("menubar_dropdown: Ignoring a click which was responsible "
                       "for the end of the most recent dropdown menu.");
         return;
