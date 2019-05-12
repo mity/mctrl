@@ -2657,8 +2657,6 @@ chart_nccreate(HWND win, CREATESTRUCT* cs)
     chart->hot_i = -1;
     dsa_init(&chart->data, sizeof(chart_data_t));
 
-    doublebuffer_init();
-
     return chart;
 }
 
@@ -2706,7 +2704,6 @@ chart_destroy(chart_t* chart)
 static void
 chart_ncdestroy(chart_t* chart)
 {
-    doublebuffer_fini();
     dsa_fini(&chart->data, chart_data_dtor);
 
     if(chart->axis1.name != NULL)
