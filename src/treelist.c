@@ -2489,6 +2489,9 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         return -1;
     }
 
+	/* Implement MC_TLCF_IMAGE by sending HDM_SETIMAGELIST to show icon on WC_HEADER .iImage*/
+	MC_SEND(tl->header_win, HDM_SETIMAGELIST, (WPARAM)HDSIL_NORMAL, (LPARAM)tl->imglist);
+
     /* Update subitems. Hopefully, sane applications should not insert columns
      * after inserting the data, hence MC_UNLIKELY. */
     if(MC_UNLIKELY(tl->root_head != NULL)) {
