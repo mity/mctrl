@@ -2489,9 +2489,6 @@ treelist_insert_column(treelist_t* tl, int col_ix, const MC_TLCOLUMN* col,
         return -1;
     }
 
-	/* Implement MC_TLCF_IMAGE by sending HDM_SETIMAGELIST to show icon on WC_HEADER .iImage*/
-	MC_SEND(tl->header_win, HDM_SETIMAGELIST, (WPARAM)HDSIL_NORMAL, (LPARAM)tl->imglist);
-
     /* Update subitems. Hopefully, sane applications should not insert columns
      * after inserting the data, hence MC_UNLIKELY. */
     if(MC_UNLIKELY(tl->root_head != NULL)) {
@@ -3436,14 +3433,18 @@ treelist_set_indent(treelist_t* tl, int indent)
 static void
 treelist_set_imagelist(treelist_t* tl, HIMAGELIST imglist)
 {
-    TREELIST_TRACE("treelist_set_imagelist(%p, %p)", tl, imglist);
+	TREELIST_TRACE("treelist_set_imagelist(%p, %p)", tl, imglist);
 
-    if(imglist == tl->imglist)
-        return;
+	if (imglist == tl->imglist)
+		return;
 
-    tl->imglist = imglist;
-    if(!tl->no_redraw)
-        InvalidateRect(tl->win, NULL, TRUE);
+	tl->imglist = imglist;
+
+	/* Assign treelist icons to header control */
+	MC_SEND(tl->header_win, HDM_SETIMAGELIST, (WPARAM)HDSIL_NORMAL, (LPARAM)tl->imglist);
+
+	if (!tl->no_redraw)
+		InvalidateRect(tl->win, NULL, TRUE);
 }
 
 static int
