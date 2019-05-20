@@ -3440,8 +3440,8 @@ treelist_set_imagelist(treelist_t* tl, HIMAGELIST imglist)
 
     tl->imglist = imglist;
 
-	/* Assign treelist icons to header control */
-	MC_SEND(tl->header_win, HDM_SETIMAGELIST, (WPARAM)HDSIL_NORMAL, (LPARAM)tl->imglist);
+    /* Assign treelist icons to header control */
+    MC_SEND(tl->header_win, HDM_SETIMAGELIST, (WPARAM)HDSIL_NORMAL, (LPARAM)tl->imglist);
 
     if(!tl->no_redraw)
         InvalidateRect(tl->win, NULL, TRUE);
