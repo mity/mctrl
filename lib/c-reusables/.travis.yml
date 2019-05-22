@@ -1,0 +1,31 @@
+# YAML definition for travis-ci.com continuous integration.
+# See https://docs.travis-ci.com/user/languages/c
+
+language: c
+
+compiler:
+    - gcc
+
+addons:
+    apt:
+        packages:
+            - lcov      # for generating code coverage report
+
+before_script:
+    - mkdir build
+    - cd build
+    - CFLAGS='--coverage -g -O0' cmake -DCMAKE_BUILD_TYPE=Debug -G 'Unix Makefiles' ..
+
+script:
+    - make VERBOSE=1
+
+after_success:
+    # Run tests
+    - for testsuite in test-*; do echo "Running $testsuite:"; ./$testsuite; done
+    # Create coverage data
+    - lcov --directory . --capture --output-file coverage.info # capture coverage info
+    - lcov --remove coverage.info '/usr/*' --output-file coverage.info # filter out system
+    - lcov --remove coverage.info 'tests/*' --output-file coverage.info # filter out unit test suites
+    - lcov --list coverage.info # debug info
+    # Upload coverage data to CodeCov
+    - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
