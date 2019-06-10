@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2016 Martin Mitas
+ * Copyright (c) 2008-2019 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -22,7 +22,7 @@
 
 
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
-#pragma code_page(DEFAULT)
+#pragma code_page(65001)    /* UTF-8 */
 
 
 
@@ -70,9 +70,7 @@ BEGIN
             VALUE "CompanyName",       "morous.org"
             VALUE "FileVersion",       MC_VERSION_STR
             VALUE "ProductVersion",    MC_VERSION_STR
-#pragma code_page(1250)
-            VALUE "LegalCopyright",    "© 2008-2013 Martin Mitáš"
-#pragma code_page(DEFAULT)
+            VALUE "LegalCopyright",    "Â© 2008-2019 Martin MitÃ¡Å¡"
             VALUE "WWW",               "http://mctrl.org"
         END
     END

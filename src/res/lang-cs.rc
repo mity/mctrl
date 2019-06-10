@@ -17,12 +17,10 @@
  */
 
 LANGUAGE LANG_CZECH, SUBLANG_NEUTRAL
-#pragma code_page(1250)
-
-#define STR(s)    MC_STRINGIZE(s ## \\0x)
+#pragma code_page(65001)    /* UTF-8 */
 
 STRINGTABLE
 BEGIN
-    IDS_EXPAND_MOREDETAILS    "Další podrobnosti\0"
-    IDS_EXPAND_FEWERDETAILS   "Ménì podrobností\0"
+    IDS_EXPAND_MOREDETAILS    "DalÅ¡Ã­ podrobnosti\0"
+    IDS_EXPAND_FEWERDETAILS   "MÃ©nÄ› podrobnostÃ­\0"
 END

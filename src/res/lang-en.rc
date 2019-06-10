@@ -17,7 +17,7 @@
  */
 
 LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
-#pragma code_page(1252)
+#pragma code_page(65001)    /* UTF-8 */
 
 STRINGTABLE
 BEGIN

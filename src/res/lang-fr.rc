@@ -17,10 +17,10 @@
  */
 
 LANGUAGE LANG_FRENCH, SUBLANG_NEUTRAL
-#pragma code_page(1252)
+#pragma code_page(65001)    /* UTF-8 */
 
 STRINGTABLE
 BEGIN
-    IDS_EXPAND_MOREDETAILS    "Afficher les détails\0"
-    IDS_EXPAND_FEWERDETAILS   "Masquer les détails\0"
+    IDS_EXPAND_MOREDETAILS    "Afficher les dÃ©tails\0"
+    IDS_EXPAND_FEWERDETAILS   "Masquer les dÃ©tails\0"
 END
