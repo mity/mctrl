@@ -8,7 +8,7 @@
 #
 # The script has to be run from MSYS (or cygwin) environment.
 # Additionally the following stuff has to be installed on the machine:
-#  - CMake 3.1 or newer.
+#  - CMake 3.14 or newer.
 #       - "cmake" has to be in $PATH
 #  - gcc-based multitarget toolchain:
 #       - Must be capable to target both 32-bit (-m32) and 64-bit (-m64) Windows
@@ -104,45 +104,45 @@ echo "$BUILD_GCC" >&3
 # Detect Visual Studio #
 ########################
 
-#echo -n "Detecting MSVC generator... " >&3
-#if [ -d "/c/Program Files/Microsoft Visual Studio 14.0/" -o \
-#     -d "/c/Program Files (x86)/Microsoft Visual Studio 14.0/" ]; then
-#     CMAKE_GENERATOR_MSVC32="Visual Studio 14 2015"
-#     CMAKE_GENERATOR_MSVC64="Visual Studio 14 2015 Win64"
-#elif [ -d "/c/Program Files/Microsoft Visual Studio 12.0/" -o \
-#       -d "/c/Program Files (x86)/Microsoft Visual Studio 12.0/" ]; then
-#     CMAKE_GENERATOR_MSVC32="Visual Studio 12 2013"
-#     CMAKE_GENERATOR_MSVC64="Visual Studio 12 2013 Win64"
-#else
-#    echo "Not found." >&3
-#    exit 1
-#fi
-#echo "$CMAKE_GENERATOR_MSVC32" >&3
+echo -n "Detecting MSVC... " >&3
 
-echo -n "Detecting MSBuild... " >&3
-if [ -x "/c/Program Files/MSBuild/14.0/bin/msbuild.exe" -o \
-     -x "/c/Program Files (x86)/MSBuild/14.0/bin/msbuild.exe" ]; then
-     CMAKE_GENERATOR_MSVC32="Visual Studio 14 2015"
-     CMAKE_GENERATOR_MSVC64="Visual Studio 14 2015 Win64"
-     if [ -x "/c/Program Files/MSBuild/14.0/bin/msbuild.exe" ]; then
-        BUILD_MSVC="/c/Program Files/MSBuild/14.0/bin/msbuild.exe"
-    else
-        BUILD_MSVC="/c/Program Files (x86)/MSBuild/14.0/bin/msbuild.exe"
-    fi
-elif [ -x "/c/Program Files/MSBuild/12.0/bin/msbuild.exe" -o \
-       -x "/c/Program Files (x86)/MSBuild/12.0/bin/msbuild.exe" ]; then
-     CMAKE_GENERATOR_MSVC32="Visual Studio 12 2013"
-     CMAKE_GENERATOR_MSVC64="Visual Studio 12 2013 Win64"
-     if [ -x "/c/Program Files/MSBuild/12.0/bin/msbuild.exe" ]; then
-        BUILD_MSVC="/c/Program Files/MSBuild/12.0/bin/msbuild.exe"
-    else
-        BUILD_MSVC="/c/Program Files (x86)/MSBuild/12.0/bin/msbuild.exe"
-    fi
+MSVC_2013_BUILDER="MSBuild/12.0/bin/MSBuild.exe"
+MSVC_2013_GENERATOR="Visual Studio 12 2013"
+
+MSVC_2015_BUILDER="MSBuild/14.0/bin/MSBuild.exe"
+MSVC_2015_GENERATOR="Visual Studio 14 2015"
+
+MSVC_2017_BUILDER="Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe"
+MSVC_2017_GENERATOR="Visual Studio 15 2017"
+
+MSVC_2019_BUILDER="Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
+MSVC_2019_GENERATOR="Visual Studio 16 2019"
+
+MSVC_LIST="2019 2017 2015 2013"
+
+for msvc in $MSVC_LIST; do
+    MSVC_NAME="MSVC ${msvc}"
+    eval msvc_builder=$`echo MSVC_${msvc}_BUILDER`
+    eval msvc_generator=$`echo MSVC_${msvc}_GENERATOR`
+
+    while read progfiles; do
+        if [ -e "${progfiles}/${msvc_builder}" ]; then
+            BUILD_MSVC="${progfiles}/${msvc_builder}"
+            CMAKE_GENERATOR_MSVC="$msvc_generator"
+            break 2
+        fi
+    done <<EOF
+/c/Program Files
+/c/Program Files (x86)
+EOF
+done
+
+if [ -n "$BUILD_MSVC" ]; then
+    echo "$MSVC_NAME" >&3
 else
     echo "Not found." >&3
     exit 1
 fi
-echo "$BUILD_MSVC" >&3
 
 
 ############################
@@ -207,30 +207,26 @@ function build_gcc()
 function build_msvc()
 {
     ARCH=$1
+    CONFIG=$2
 
     echo -n "Build with MSVC $ARCH... " >&3
-    if [ "$ARCH" = "x86_64" ]; then
-        GENERATOR="$CMAKE_GENERATOR_MSVC64"
-    else
-        GENERATOR="$CMAKE_GENERATOR_MSVC32"
-    fi
-
     BUILDDIR="./build-msvc-$ARCH"
     mkdir -p "$BUILDDIR"
     (cd "$BUILDDIR"  && \
-     cmake -G "$GENERATOR" ..  && \
-     "$BUILD_MSVC" /property:Configuration=Release mCtrl.sln > "$PRJ/build-msvc-$ARCH-Release.log" 2>&1  && \
-     "$BUILD_MSVC" /property:Configuration=Debug mCtrl.sln > "$PRJ/build-msvc-$ARCH-Debug.log" 2>&1)
+     cmake -G "$CMAKE_GENERATOR_MSVC" -A "$ARCH" ..  && \
+     "$BUILD_MSVC" "/property:Configuration=$CONFIG" mCtrl.sln > "$PRJ/build-msvc-$ARCH-$CONFIG.log" 2>&1)
     if [ $? -eq 0 ]; then
         echo "Done." >&3
     else
-        echo "Failed. See $PRJ/build-msvc-$ARCH.log for more info." >&3
+        echo "Failed. See $PRJ/build-msvc-$ARCH-$CONFIG.log for more info." >&3
     fi
 }
 
 (cd $TMP/mCtrl-$VERSION  && \
- build_msvc x86_64  && \
- build_msvc x86)
+ build_msvc x64 Release && \
+ build_msvc x64 Debug && \
+ build_msvc Win32 Release && \
+ build_msvc Win32 Debug)
 
 
 ##########################
@@ -267,14 +263,14 @@ cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Release/example-*.exe $TMP/mCtrl-$VE
 cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Release/test-*.exe $TMP/mCtrl-$VERSION/bin64/
 mkdir -p $TMP/mCtrl-$VERSION/lib64
 cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Release/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib64/
-cp $TMP/mCtrl-$VERSION-src/build-msvc-x86_64/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib64/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x64/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib64/
 
 # x86_64 Debug
 mkdir -p $TMP/mCtrl-$VERSION/bin64/debug-gcc
 cp $TMP/mCtrl-$VERSION-src/build-gcc-x86_64-Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/debug-gcc/
 mkdir -p $TMP/mCtrl-$VERSION/bin64/debug-msvc
-cp $TMP/mCtrl-$VERSION-src/build-msvc-x86_64/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/debug-msvc/
-cp $TMP/mCtrl-$VERSION-src/build-msvc-x86_64/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin64/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x64/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin64/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-x64/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin64/debug-msvc/
 
 # x86 Release
 mkdir -p $TMP/mCtrl-$VERSION/bin
@@ -283,14 +279,14 @@ cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Release/example-*.exe $TMP/mCtrl-$VERSI
 cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Release/test-*.exe $TMP/mCtrl-$VERSION/bin/
 mkdir -p $TMP/mCtrl-$VERSION/lib
 cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Release/libmCtrl.dll.a $TMP/mCtrl-$VERSION/lib/
-cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-Win32/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib/
 
 # x86 Debug
 mkdir -p $TMP/mCtrl-$VERSION/bin/debug-gcc
 cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-gcc/
 mkdir -p $TMP/mCtrl-$VERSION/bin/debug-msvc
-cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-msvc/
-cp $TMP/mCtrl-$VERSION-src/build-msvc-x86/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-Win32/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-Win32/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin/debug-msvc/
 
 # Some vanilla contents from the source tree
 cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
