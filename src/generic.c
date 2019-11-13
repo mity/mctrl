@@ -20,9 +20,15 @@
 #include "tooltip.h"
 
 
+#define HAS_BORDER(style, exstyle)              \
+            ((style & WS_BORDER)  ||            \
+             (exstyle & WS_EX_CLIENTEDGE))
+
+
 LRESULT
 generic_ncpaint(HWND win, HTHEME theme, HRGN orig_clip)
 {
+    DWORD style, exstyle;
     HDC dc;
     int edge_h, edge_v;
     RECT rect;
@@ -30,7 +36,10 @@ generic_ncpaint(HWND win, HTHEME theme, HRGN orig_clip)
     HRGN tmp;
     LRESULT ret;
 
-    if(theme == NULL)
+    style = GetWindowLong(win, GWL_STYLE);
+    exstyle =  GetWindowLong(win, GWL_EXSTYLE);
+
+    if(theme == NULL  ||  !HAS_BORDER(style, exstyle))
         return DefWindowProc(win, WM_NCPAINT, (WPARAM)orig_clip, 0);
 
     edge_h = GetSystemMetrics(SM_CXEDGE);
@@ -48,6 +57,9 @@ generic_ncpaint(HWND win, HTHEME theme, HRGN orig_clip)
     CombineRgn(clip, clip, tmp, RGN_AND);
     DeleteObject(tmp);
 
+    /* Paint the border of the control (WS_BORDER or WS_EX_CLIENTEDGE) in
+     * a themed-friendly fashion, because DefWindowProc() does not support
+     * this. */
     mc_rect_offset(&rect, -rect.left, -rect.top);
     dc = GetWindowDC(win);
     ExcludeClipRect(dc, edge_h, edge_v, rect.right - 2*edge_h, rect.bottom - 2*edge_v);
