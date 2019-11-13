@@ -207,6 +207,9 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
             MC_ASSERT(copy_src[i].col1-copy_src[i].col0 == copy_dst[i].col1-copy_dst[i].col0);
             MC_ASSERT(copy_src[i].row1-copy_src[i].row0 == copy_dst[i].row1-copy_dst[i].row0);
 
+            if(copy_src[i].col1-copy_src[i].col0 == 0  ||  copy_src[i].row1-copy_src[i].row0 == 0)
+                continue;
+
             if(col_delta == 0) {
                 memcpy(&cells[copy_dst[i].row0 * col_count],
                        &table->cells[copy_src[i].row0 * col_count],
@@ -226,6 +229,9 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
     /* Init new cells in the new buffer */
     if(cells != NULL) {
         for(i = 0; i < init_count; i++) {
+            if(init_dst[i].col1-init_dst[i].col0 == 0  ||  init_dst[i].row1-init_dst[i].row0 == 0)
+                continue;
+
             if(col_delta == 0) {
                 memset(&cells[col_count * init_dst[i].row0], 0,
                        col_count * (init_dst[i].row1-init_dst[i].row0) * sizeof(table_cell_t));
