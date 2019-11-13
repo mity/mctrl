@@ -241,5 +241,11 @@ Please provide the following information with the bug report:
  * As explicit description of the issue as possible, i.e. what behavior
    you expect and what behavior you see.
    (Reports of the kind "it does not work." do not help).
- * If relevant, consider attaching a screenshot or some code reproducing
-   the issue.
+ * If relevant, consider attaching a screenshot.
+ * If relevant, some code reproducing the issue can be vital. Ideally in some
+   of these forms:
+    - a complete source code which can compile as a standalone C or C++ program;
+    - a patch or pull request to be applied to one of the examples in mCtrl
+      source tree;
+    - or (if it is not overly long) as a C function (or few functions) which
+      can replace whole function (or few functions) in one of those examples.
