@@ -27,5 +27,12 @@ headers, specify what tool(s) you are using. E.g. is it Microsoft Visual
 Studio? Mingw-w64? Something else? What version of it?
 
 **Attachments:**
-If it is possible (and relevant), please provide any code which can help to 
-reproduce the issue and/or a screenshot illustrating what's wrong.
+If it is relevant, attach a screenshot illustrating what's wrong.
+
+Also, if it is relevant, providing some code reproducing the issue can be vital.
+Ideally in some of these forms:
+ * a complete source code which can compile as a standalone C or C++ program;
+ * a patch or pull request to be applied to one of the examples in mCtrl source
+   tree;
+ * or (if it is not overly long) as a C function (or few functions) which can
+   replace whole function (or few functions) in one of those examples.
