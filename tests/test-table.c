@@ -140,15 +140,98 @@ test_resize(void)
     mcTable_Release(table);
 }
 
+static void
+test_append_column(void)
+{
+    MC_HTABLE table;
+
+    table = create_and_populate(4, 4);
+
+    TEST_CHECK(mcTable_Resize(table, 5, 4) == TRUE);
+    TEST_CHECK(mcTable_ColumnCount(table) == 5);
+    TEST_CHECK(mcTable_RowCount(table) == 4);
+
+    check(table, MC_TABLE_HEADER, 0, MAKELPARAM(MC_TABLE_HEADER, 0));
+    check(table, 2, MC_TABLE_HEADER, MAKELPARAM(2, MC_TABLE_HEADER));
+
+    check(table, 0, 0, MAKELPARAM(0, 0));
+    check(table, 1, 1, MAKELPARAM(1, 1));
+    check(table, 2, 2, MAKELPARAM(2, 2));
+    check(table, 3, 3, MAKELPARAM(3, 3));
+
+    /* Check the new column is zeroed. */
+    check(table, 4, MC_TABLE_HEADER, MAKELPARAM(0, 0));
+    check(table, 4, 0, MAKELPARAM(0, 0));
+    check(table, 4, 1, MAKELPARAM(0, 0));
+    check(table, 4, 2, MAKELPARAM(0, 0));
+    check(table, 4, 3, MAKELPARAM(0, 0));
+
+    mcTable_Release(table);
+}
+
+static void
+test_append_row(void)
+{
+    MC_HTABLE table;
+
+    table = create_and_populate(4, 4);
+
+    TEST_CHECK(mcTable_Resize(table, 4, 5) == TRUE);
+    TEST_CHECK(mcTable_ColumnCount(table) == 4);
+    TEST_CHECK(mcTable_RowCount(table) == 5);
+
+    check(table, MC_TABLE_HEADER, 0, MAKELPARAM(MC_TABLE_HEADER, 0));
+    check(table, 2, MC_TABLE_HEADER, MAKELPARAM(2, MC_TABLE_HEADER));
+
+    check(table, 0, 0, MAKELPARAM(0, 0));
+    check(table, 1, 1, MAKELPARAM(1, 1));
+    check(table, 2, 2, MAKELPARAM(2, 2));
+    check(table, 3, 3, MAKELPARAM(3, 3));
+
+    /* Check the new row is zeroed. */
+    check(table, MC_TABLE_HEADER, 4, MAKELPARAM(0, 0));
+    check(table, 0, 4, MAKELPARAM(0, 0));
+    check(table, 1, 4, MAKELPARAM(0, 0));
+    check(table, 2, 4, MAKELPARAM(0, 0));
+    check(table, 3, 4, MAKELPARAM(0, 0));
+
+    mcTable_Release(table);
+}
+
+static void
+test_remove_row(void)
+{
+    MC_HTABLE table;
+
+    table = create_and_populate(4, 4);
+
+    TEST_CHECK(mcTable_Resize(table, 4, 3) == TRUE);
+    TEST_CHECK(mcTable_ColumnCount(table) == 4);
+    TEST_CHECK(mcTable_RowCount(table) == 3);
+
+    check(table, MC_TABLE_HEADER, 0, MAKELPARAM(MC_TABLE_HEADER, 0));
+    check(table, 2, MC_TABLE_HEADER, MAKELPARAM(2, MC_TABLE_HEADER));
+
+    check(table, 0, 0, MAKELPARAM(0, 0));
+    check(table, 1, 1, MAKELPARAM(1, 1));
+    check(table, 2, 2, MAKELPARAM(2, 2));
+
+    mcTable_Release(table);
+}
+
+
 
 /*****************
  *** Test List ***
  *****************/
 
 TEST_LIST = {
-    { "simple",         test_simple },
-    { "no-columns",     test_no_columns },
-    { "no-rows",        test_no_rows },
-    { "resize",         test_resize },
+    { "simple",                 test_simple },
+    { "no-columns",             test_no_columns },
+    { "no-rows",                test_no_rows },
+    { "resize",                 test_resize },
+    { "resize-append-column",   test_append_column },
+    { "resize-append-row",      test_append_row },
+    { "resize-remove-row",      test_remove_row },
     { 0 }
 };

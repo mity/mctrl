@@ -45,279 +45,263 @@ table_refresh(table_t* table, table_refresh_detail_t* detail)
     view_list_refresh(&table->vlist, detail);
 }
 
+
+typedef struct table_cell_buffer_tag table_cell_buffer_t;
+struct table_cell_buffer_tag {
+    table_cell_t* cells;
+    table_cell_t* cols;
+    table_cell_t* rows;
+    int col_count;
+    int row_count;
+};
+
+static void
+table_init_region(table_cell_buffer_t* buf, const table_region_t* reg,
+                  BOOL init_cols, BOOL init_rows)
+{
+    if(reg->col1 - reg->col0 > 0  &&  reg->row1 - reg->row0 > 0) {
+        if(reg->col0 == 0  &&  reg->col1 == buf->col_count) {
+            /* Special case: If the region covers whole rows, we can do it with a
+             * single memset(). */
+            memset(buf->cells + reg->row0 * buf->col_count, 0,
+                   (reg->row1 - reg->row0) * buf->col_count * sizeof(table_cell_t));
+        } else {
+            int row;
+
+            for(row = reg->row0; row < reg->row1; row++) {
+                memset(buf->cells + row * buf->col_count + reg->col0, 0,
+                       (reg->col1 - reg->col0) * sizeof(table_cell_t));
+            }
+        }
+    }
+
+    if(init_cols  &&  reg->col1 - reg->col0 > 0) {
+        memset(buf->cols + reg->col0, 0,
+               (reg->col1 - reg->col0) * sizeof(table_cell_t));
+    }
+
+    if(init_rows  &&  reg->row1 - reg->row0 > 0) {
+        memset(buf->rows + reg->row0, 0,
+               (reg->row1 - reg->row0) * sizeof(table_cell_t));
+    }
+}
+
+static void
+table_clear_region(table_cell_buffer_t* buf, const table_region_t* reg,
+                   BOOL clear_cols, BOOL clear_rows)
+{
+    int col, row;
+
+    for(row = reg->row0; row < reg->row1; row++) {
+        for(col = reg->col0; col < reg->col1; col++)
+            table_cell_clear(buf->cells + row * buf->col_count + col);
+    }
+
+    if(clear_cols) {
+        for(col = reg->col0; col < reg->col1; col++)
+            table_cell_clear(buf->cols + col);
+    }
+
+    if(clear_rows) {
+        for(row = reg->row0; col < reg->row1; row++)
+            table_cell_clear(buf->rows + row);
+    }
+}
+
+static void
+table_copy_region(table_cell_buffer_t* buf_dst, const table_region_t* reg_dst,
+                  table_cell_buffer_t* buf_src, const table_region_t* reg_src,
+                  BOOL copy_cols, BOOL copy_rows)
+{
+    MC_ASSERT(reg_dst->col1 - reg_dst->col0 == reg_src->col1 - reg_src->col0);
+    MC_ASSERT(reg_dst->row1 - reg_dst->row0 == reg_src->row1 - reg_src->row0);
+
+    if(reg_dst->col1 - reg_dst->col0 > 0  &&  reg_dst->row1 - reg_dst->row0 > 0) {
+        if(reg_dst->col0 == 0  &&  reg_dst->col1 == buf_dst->col_count  &&
+           reg_src->col0 == 0  &&  reg_src->col1 == buf_src->col_count)
+        {
+            /* Special case: If the both regions cover whole rows, we can do it
+             * with a single memcpy(). */
+            memcpy(buf_dst->cells + reg_dst->row0 * buf_dst->col_count,
+                   buf_src->cells + reg_src->row0 * buf_src->col_count,
+                   (reg_dst->row1 - reg_dst->row0) * buf_dst->col_count * sizeof(table_cell_t));
+        } else {
+            int row_dst, row_src;
+
+            for(row_dst = reg_dst->row0, row_src = reg_src->row0;
+                row_dst < reg_dst->row1;
+                row_dst++, row_src++)
+            {
+                memcpy(buf_dst->cells + row_dst * buf_dst->col_count + reg_dst->col0,
+                       buf_src->cells + row_src * buf_src->col_count + reg_src->col0,
+                       (reg_dst->col1 - reg_dst->col0) * sizeof(table_cell_t));
+            }
+        }
+    }
+
+    if(copy_cols  &&  reg_dst->col1 - reg_dst->col0 > 0) {
+        memcpy(buf_dst->cols + reg_dst->col0,
+               buf_src->cols + reg_src->col0,
+               (reg_dst->col1 - reg_dst->col0) * sizeof(table_cell_t));
+    }
+
+    if(copy_rows  &&  reg_dst->row1 - reg_dst->row0 > 0) {
+        memcpy(buf_dst->rows + reg_dst->row0,
+               buf_src->rows + reg_src->row0,
+               (reg_dst->row1 - reg_dst->row0) * sizeof(table_cell_t));
+
+    }
+}
+
 static int
 table_resize_helper(table_t* table, int col_pos, int col_delta,
                                     int row_pos, int row_delta)
 {
+    table_cell_buffer_t buf_dst;
+    table_cell_buffer_t buf_src;
     size_t size;
-    table_cell_t* cols;
-    table_cell_t* rows;
-    table_cell_t* cells;
-    table_region_t copy_src[4];
-    table_region_t copy_dst[4];
-    table_region_t init_dst[3];
-    table_region_t free_src[3];
-    int copy_count, init_count, free_count;
-    int col_count, row_count;
-    int i;
-    table_refresh_detail_t refresh_detail;
 
-    TABLE_TRACE("table_resize_helper(%p, %d, %d, %d, %d)",
-                table, col_pos, col_delta, row_pos, row_delta);
+    buf_src.cells = table->cells;
+    buf_src.cols = table->cols;
+    buf_src.rows = table->rows;
+    buf_src.col_count = table->col_count;
+    buf_src.row_count = table->row_count;
 
-    if(col_delta == 0  &&  row_delta == 0) {
-        /* noop */
-        return 0;
-    }
-
-    col_count = table->col_count + col_delta;
-    row_count = table->row_count + row_delta;
+    buf_dst.col_count = table->col_count + col_delta;
+    buf_dst.row_count = table->row_count + row_delta;
 
     if(col_delta == 0)
-        col_pos = col_count;
+        col_pos = table->col_count;
     if(row_delta == 0)
-        row_pos = row_count;
+        row_pos = table->row_count;
 
-    /* Allocate buffer for resized table */
-    size = col_count * sizeof(table_cell_t) +
-           row_count * sizeof(table_cell_t) +
-           (col_count*row_count) * sizeof(table_cell_t);
-    if(size > 0) {
-        cells = (table_cell_t*) malloc(size);
-        if(MC_ERR(cells == NULL)) {
-            MC_TRACE("table_resize: malloc() failed");
+    size = (buf_dst.col_count * buf_dst.row_count) * sizeof(table_cell_t) +
+           buf_dst.col_count * sizeof(table_cell_t) +
+           buf_dst.row_count * sizeof(table_cell_t);
+
+    if(size == 0) {
+        /* Trivial case: Resizing to an empty table. */
+        table_region_t clear_reg = { 0, 0, buf_src.col_count, buf_src.row_count };
+        table_clear_region(&buf_src, &clear_reg, TRUE, TRUE);
+        free(buf_src.cells);
+
+        buf_dst.cells = NULL;
+        buf_dst.cols = NULL;
+        buf_dst.rows = NULL;
+    } else if(col_delta == 0  &&  row_delta > 0  &&  row_pos == buf_src.row_count) {
+        /* Optimized case: When just adding new rows at the end of the table,
+         * we can handle it more effectively with a realloc(). */
+        table_region_t init_reg = { 0, row_pos, buf_dst.col_count, buf_dst.row_count };
+
+        buf_dst.cells = (table_cell_t*) realloc(table->cells, size);
+        if(MC_ERR(buf_dst.cells == NULL)) {
+            MC_TRACE("table_resize_helper: realloc() failed");
             return -1;
         }
 
-        cols = cells + (col_count * row_count);
-        rows = cols + col_count;
-    } else {
-        cells = NULL;
-        cols = NULL;
-        rows = NULL;
-    }
+        /* Move col/row headers to the proper new place. */
+        memmove(buf_dst.cells + (buf_dst.col_count * buf_dst.row_count),
+                buf_dst.cells + (buf_src.col_count * buf_src.row_count),
+                (buf_src.col_count + buf_src.row_count) * sizeof(table_cell_t));
+        buf_dst.cols = buf_dst.cells + (buf_dst.col_count * buf_dst.row_count);
+        buf_dst.rows = buf_dst.cols + buf_dst.col_count;
 
-    /* Analyze which region of the original cells shall be freed, which shall
-     * be reused in the reallocated buffer, and which in the new buffer need
-     * initialization. */
-#define REGSET(reg, c0, r0, c1, r1)                                           \
-            do { reg.col0 = c0; reg.row0 = r0;                                \
-                 reg.col1 = c1; reg.row1 = r1; } while (0)
-    if(col_delta >= 0  &&  row_delta >= 0) {
+        /* Init the new rows (and their headers). */
+        table_init_region(&buf_dst, &init_reg, FALSE, TRUE);
+    } else if(col_delta == 0  &&  row_delta < 0  &&  row_pos == buf_dst.row_count) {
+        /* Optimized case: When just removing some rows  at the end of the table.
+         * This is similar to the above but we have to handle the realloc() failure
+         * differently: If it fails we are in a situation when we have already
+         * destroyed the old stuff. */
+        table_region_t clear_reg = { 0, row_pos, buf_src.col_count, buf_src.row_count };
+        table_clear_region(&buf_src, &clear_reg, FALSE, TRUE);
+
+        /* Move col/row headers to the proper new place. */
+        memmove(buf_src.cells + (buf_dst.col_count * buf_dst.row_count),
+                buf_src.cells + (buf_src.col_count * buf_src.row_count),
+                (buf_dst.col_count + buf_dst.row_count) * sizeof(table_cell_t));
+
+        buf_dst.cells = (table_cell_t*) realloc(table->cells, size);
+        if(MC_ERR(buf_dst.cells == NULL)) {
+            MC_TRACE("table_resize_helper: realloc() failed. Cannot shrink.");
+            /* Work with the original bigger buffer.
+             * We just are just wasting some memory... */
+        }
+
+        buf_dst.cols = buf_dst.cells + (buf_dst.col_count * buf_dst.row_count);
+        buf_dst.rows = buf_dst.cols + buf_dst.col_count;
+    } else {
+        /* This is the most general and complex case when we may be adding
+         * or removing some columns and/or rows at the same time, anywhere
+         * in the table.
+         */
+        buf_dst.cells = (table_cell_t*) malloc(size);
+        if(MC_ERR(buf_dst.cells == NULL)) {
+            MC_TRACE("table_resize_helper: malloc() failed");
+            return -1;
+        }
+        buf_dst.cols = buf_dst.cells + (buf_dst.col_count * buf_dst.row_count);
+        buf_dst.rows = buf_dst.cols + buf_dst.col_count;
+
         /*
          *                     +---+-+---+
-         *    +---+---+        | 0 | | 1 |
-         *    | 0 | 1 |        +---+-+---+
+         *    +---+---+        | A | | B |
+         *    | A | B |        +---+-+---+
          *    +---+---+  --->  |         |
-         *    | 2 | 3 |        +---+-+---+
-         *    +---+---+        | 2 | | 3 |
+         *    | C | D |        +---+-+---+
+         *    +---+---+        | C | | D |
          *                     +---+-+---+
          */
-        REGSET(copy_src[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_dst[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_src[1], col_pos, 0, table->col_count, row_pos);
-        REGSET(copy_dst[1], col_pos + col_delta, 0, col_count, row_pos);
-        REGSET(copy_src[2], 0, row_pos, col_pos, table->row_count);
-        REGSET(copy_dst[2], 0, row_pos + row_delta, col_pos, row_count);
-        REGSET(copy_src[3], col_pos, row_pos, table->col_count, table->row_count);
-        REGSET(copy_dst[3], col_pos + col_delta, row_pos + row_delta, col_count, row_count);
-        copy_count = 4;
-        REGSET(init_dst[0], col_pos, 0, col_pos + col_delta, row_pos);
-        REGSET(init_dst[1], 0, row_pos, col_count, row_pos + row_delta);
-        REGSET(init_dst[2], col_pos, row_pos + row_delta, col_pos + col_delta, row_count);
-        init_count = 3;
-        free_count = 0;
-    } else if(col_delta >= 0  &&  row_delta < 0) {
-        /*
-         *    +---+---+
-         *    | 0 | 1 |        +---+-+---+
-         *    +---+---+        | 0 | | 1 |
-         *    |       |  --->  +---+ +---+
-         *    +---+---+        | 2 | | 3 |
-         *    | 2 | 3 |        +---+-+---+
-         *    +---+---+
-         */
-        REGSET(copy_src[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_dst[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_src[1], col_pos, 0, table->col_count, row_pos);
-        REGSET(copy_dst[1], col_pos + col_delta, 0, col_count, row_pos);
-        REGSET(copy_src[2], 0, row_pos - row_delta, col_pos, table->row_count);
-        REGSET(copy_dst[2], 0, row_pos, col_pos, row_count);
-        REGSET(copy_src[3], col_pos, row_pos - row_delta, table->col_count, table->row_count);
-        REGSET(copy_dst[3], col_pos + col_delta, row_pos, col_count, row_count);
-        copy_count = 4;
-        REGSET(init_dst[0], col_pos, 0, col_pos + col_delta, row_count);
-        init_count = 1;
-        REGSET(free_src[0], 0, row_pos, table->col_count, row_pos - row_delta);
-        free_count = 1;
-    } else if(col_delta < 0  &&  row_delta >= 0) {
-        /*
-         *                       +---+---+
-         *    +---+-+---+        | 0 | 1 |
-         *    | 0 | | 1 |        +---+---+
-         *    +---+ +---+  --->  |       |
-         *    | 2 | | 3 |        +---+---+
-         *    +---+-+---+        | 2 | 3 |
-         *                       +---+---+
-         */
-        REGSET(copy_src[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_dst[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_src[1], col_pos - col_delta, 0, table->col_count, row_pos);
-        REGSET(copy_dst[1], col_pos, 0, col_count, row_pos);
-        REGSET(copy_src[2], 0, row_pos, col_pos, table->row_count);
-        REGSET(copy_dst[2], 0, row_pos + row_delta, col_pos, row_count);
-        REGSET(copy_src[3], col_pos - col_delta, row_pos, table->col_count, table->row_count);
-        REGSET(copy_dst[3], col_pos, row_pos + row_delta, col_count, row_count);
-        copy_count = 4;
-        REGSET(init_dst[0], 0, row_pos, col_count, row_pos + row_delta);
-        init_count = 1;
-        REGSET(free_src[0], col_pos, 0, col_pos - col_delta, table->row_count);
-        free_count = 1;
-    } else {
-        MC_ASSERT(col_delta < 0  &&  row_delta < 0);
-        /*
-         *    +---+-+---+
-         *    | 0 | | 1 |        +---+---+
-         *    +---+-+---+        | 0 | 1 |
-         *    |         |  --->  +---+---+
-         *    +---+-+---+        | 2 | 3 |
-         *    | 2 | | 3 |        +---+---+
-         *    +---+-+---+
-         */
-        REGSET(copy_src[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_dst[0], 0, 0, col_pos, row_pos);
-        REGSET(copy_src[1], col_pos - col_delta, 0, table->col_count, row_pos);
-        REGSET(copy_dst[1], col_pos, 0, col_count, row_pos);
-        REGSET(copy_src[2], 0, row_pos - row_delta, col_pos, table->row_count);
-        REGSET(copy_dst[2], 0, row_pos, col_pos, row_count);
-        REGSET(copy_src[3], col_pos - col_delta, row_pos - row_delta, table->col_count, table->row_count);
-        REGSET(copy_dst[3], col_pos, row_pos, col_count, row_count);
-        copy_count = 4;
-        init_count = 0;
-        REGSET(free_src[0], col_pos, 0, col_pos - col_delta, row_pos);
-        REGSET(free_src[1], 0, row_pos, table->col_count, row_pos - row_delta);
-        REGSET(free_src[2], col_pos, row_pos - row_delta, col_pos - col_delta, table->row_count);
-        free_count = 3;
-    }
-#undef REGSET
+        {
+            /* Copy the corner areas (A, B, C, D) which do not change */
+            table_region_t reg_src_A = { 0, 0, col_pos, row_pos };
+            table_region_t reg_dst_A = { 0, 0, col_pos, row_pos };
+            table_region_t reg_src_B = { col_pos + (col_delta >= 0 ? 0 : -col_delta), 0, buf_src.col_count, row_pos };
+            table_region_t reg_dst_B = { col_pos + (col_delta >= 0 ? col_delta : 0), 0, buf_dst.col_count, row_pos };
+            table_region_t reg_src_C = { 0, row_pos + (row_delta >= 0 ? 0 : -row_delta), col_pos, buf_src.row_count };
+            table_region_t reg_dst_C = { 0, row_pos + (row_delta >= 0 ? row_delta : 0), col_pos, buf_dst.row_count };
+            table_region_t reg_src_D = { col_pos + (col_delta >= 0 ? 0 : -col_delta), row_pos + (row_delta >= 0 ? 0 : -row_delta), buf_src.col_count, buf_src.row_count };
+            table_region_t reg_dst_D = { col_pos + (col_delta >= 0 ? col_delta : 0), row_pos + (row_delta >= 0 ? row_delta : 0), buf_dst.col_count, buf_dst.row_count };
 
-    /* Copy cells to be reused */
-    if(table->cells != NULL  &&  cells != NULL) {
-        for(i = 0; i < copy_count; i++) {
-            MC_ASSERT(copy_src[i].col1-copy_src[i].col0 == copy_dst[i].col1-copy_dst[i].col0);
-            MC_ASSERT(copy_src[i].row1-copy_src[i].row0 == copy_dst[i].row1-copy_dst[i].row0);
+            table_copy_region(&buf_dst, &reg_dst_A, &buf_src, &reg_src_A, TRUE, TRUE);
+            table_copy_region(&buf_dst, &reg_dst_B, &buf_src, &reg_src_B, TRUE, FALSE);
+            table_copy_region(&buf_dst, &reg_dst_C, &buf_src, &reg_src_C, FALSE, TRUE);
+            table_copy_region(&buf_dst, &reg_dst_D, &buf_src, &reg_src_D, FALSE, FALSE);
 
-            if(copy_src[i].col1-copy_src[i].col0 == 0  ||  copy_src[i].row1-copy_src[i].row0 == 0)
-                continue;
+            /* Handle new/removed rows. */
+            if(row_delta > 0) {
+                table_region_t reg_dst_X = { 0, row_pos, buf_dst.col_count, row_pos + row_delta };
+                table_init_region(&buf_dst, &reg_dst_X, FALSE, TRUE);
+            } else if(row_delta < 0) {
+                table_region_t reg_src_X = { 0, row_pos, buf_src.col_count, row_pos - row_delta };
+                table_clear_region(&buf_src, &reg_src_X, FALSE, TRUE);
+            }
 
-            if(col_delta == 0) {
-                memcpy(&cells[copy_dst[i].row0 * col_count],
-                       &table->cells[copy_src[i].row0 * col_count],
-                       (copy_src[i].row1-copy_src[i].row0) * (copy_src[i].col1-copy_src[i].col0) * sizeof(table_cell_t));
-            } else {
-                WORD row_src, row_dst;
-                for(row_src = copy_src[i].row0, row_dst = copy_dst[i].row0;
-                            row_src < copy_src[i].row1; row_src++, row_dst++) {
-                    memcpy(&cells[row_dst * col_count + copy_dst[i].col0],
-                           &table->cells[row_src * table->col_count + copy_src[i].col0],
-                           (copy_src[i].col1-copy_src[i].col0) * sizeof(table_cell_t));
-                }
+            /* Handle new/removed columns.
+             * Beware they may be "interrupted" by an area of removed or
+             * added rows. */
+            if(col_delta > 0) {
+                table_region_t reg_dst_X0 = { reg_dst_A.col1, reg_dst_A.row0, reg_dst_B.col0, reg_dst_B.row1 };
+                table_region_t reg_dst_X1 = { reg_dst_C.col1, reg_dst_C.row0, reg_dst_D.col0, reg_dst_D.row1 };
+                table_init_region(&buf_dst, &reg_dst_X0, TRUE, FALSE);
+                table_init_region(&buf_dst, &reg_dst_X1, FALSE, FALSE);
+            } else if(col_delta < 0) {
+                table_region_t reg_src_X0 = { reg_src_A.col1, reg_src_A.row0, reg_src_B.col0, reg_src_B.row1 };
+                table_region_t reg_src_X1 = { reg_src_C.col1, reg_src_C.row0, reg_src_D.col0, reg_src_D.row1 };
+                table_clear_region(&buf_src, &reg_src_X0, TRUE, FALSE);
+                table_clear_region(&buf_src, &reg_src_X1, FALSE, FALSE);
             }
         }
+
+        free(buf_src.cells);
     }
 
-    /* Init new cells in the new buffer */
-    if(cells != NULL) {
-        for(i = 0; i < init_count; i++) {
-            if(init_dst[i].col1-init_dst[i].col0 == 0  ||  init_dst[i].row1-init_dst[i].row0 == 0)
-                continue;
-
-            if(col_delta == 0) {
-                memset(&cells[col_count * init_dst[i].row0], 0,
-                       col_count * (init_dst[i].row1-init_dst[i].row0) * sizeof(table_cell_t));
-            } else {
-                WORD row;
-                for(row = init_dst[i].row0; row < init_dst[i].row1; row++) {
-                    memset(&cells[row * col_count + init_dst[i].col0], 0,
-                           (init_dst[i].col1-init_dst[i].col0) * sizeof(table_cell_t));
-                }
-            }
-        }
-    }
-
-    /* Free bogus cells in the old buffer */
-    if(table->cells != NULL) {
-        for(i = 0; i < free_count; i++) {
-            WORD col, row;
-            for(row = free_src[i].row0; row < free_src[i].row1; row++) {
-                for(col = free_src[i].col0; col < free_src[i].col1; col++) {
-                    table_cell_clear(&table->cells[row * table->col_count + col]);
-                }
-            }
-        }
-    }
-
-    /* Handle column headers */
-    if(cols != NULL  &&  table->cols != NULL) {
-        memcpy(&cols[0], &table->cols[0], col_pos * sizeof(table_cell_t));
-        if(col_delta > 0)
-            memcpy(&cols[col_pos + col_delta], &table->cols[col_pos],
-                   (table->col_count - col_pos) * sizeof(table_cell_t));
-        else if(col_delta < 0)
-            memcpy(&cols[col_pos], &table->cols[col_pos - col_delta],
-                   (col_count - col_pos) * sizeof(table_cell_t));
-    }
-    if(cols != NULL  &&  col_delta > 0)
-        memset(&cols[col_pos], 0, col_delta * sizeof(table_cell_t));
-    if(table->cols != NULL  &&  col_delta < 0) {
-        WORD col;
-        for(col = col_pos; col < col_pos - col_delta; col++)
-            table_cell_clear(&table->cols[col]);
-    }
-
-    /* Handle row headers */
-    if(rows != NULL  &&  table->rows != NULL) {
-        memcpy(&rows[0], &table->rows[0], row_pos * sizeof(table_cell_t));
-        if(row_delta > 0)
-            memcpy(&rows[row_pos + row_delta], &table->rows[row_pos],
-                   (table->row_count - row_pos) * sizeof(table_cell_t));
-        else if(row_delta < 0)
-            memcpy(&rows[row_pos], &table->rows[row_pos - row_delta],
-                   (row_count - row_pos) * sizeof(table_cell_t));
-    }
-    if(rows != NULL  &&  row_delta > 0)
-        memset(&rows[row_pos], 0, row_delta * sizeof(table_cell_t));
-    if(table->rows != NULL  &&  row_delta < 0) {
-        WORD row;
-        for(row = row_pos; row < row_pos - row_delta; row++)
-            table_cell_clear(&table->rows[row]);
-    }
-
-    /* Install the new buffer */
-    if(table->cells != NULL)
-        free(table->cells);
-    table->cols = cols;
-    table->rows = rows;
-    table->cells = cells;
-    table->col_count = col_count;
-    table->row_count = row_count;
-
-    /* Refresh */
-    if(col_delta != 0) {
-        refresh_detail.event = TABLE_COLCOUNT_CHANGED;
-        refresh_detail.param[0] = table->col_count - col_delta;
-        refresh_detail.param[1] = table->col_count;
-        refresh_detail.param[2] = col_pos;
-        table_refresh(table, &refresh_detail);
-    }
-    if(row_delta != 0) {
-        refresh_detail.event = TABLE_ROWCOUNT_CHANGED;
-        refresh_detail.param[0] = table->row_count - row_delta;
-        refresh_detail.param[1] = table->row_count;
-        refresh_detail.param[2] = row_pos;
-        table_refresh(table, &refresh_detail);
-    }
-
+    /* Install the new buffer. */
+    table->cells = buf_dst.cells;
+    table->cols = buf_dst.cols;
+    table->rows = buf_dst.rows;
+    table->col_count = buf_dst.col_count;
+    table->row_count = buf_dst.row_count;
     return 0;
 }
 
