@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/mity/acutest
 	branch = master
-	commit = 7993908833d57d3619a1a663d1a78becd82ed260
-	parent = 7296f253b3b0df2b3d11bbe05df982dc70e0089d
+	commit = d9f0f0a2c132e806219e7275cc179d05f9c89876
+	parent = 29d8efb640125d81d5e0bd36962fce85a1f3586a
 	method = merge
 	cmdver = 0.4.0
