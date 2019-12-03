@@ -1,0 +1,6 @@
+# The nature of these headers is quite atypical and GitHub tends to mis-detect
+# them as different languages. So lets tell explicitly.
+#
+# See https://github.com/github/linguist#overrides
+
+*.h linguist-language=C
