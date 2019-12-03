@@ -1,17 +1,13 @@
 
 configure_file(version.h.in "version.h" @ONLY)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
-include_directories("c-include")
 
 set(CRE_PATH "${PROJECT_SOURCE_DIR}/lib/c-reusables")
 include_directories("${PROJECT_SOURCE_DIR}/lib")
+include_directories("${PROJECT_SOURCE_DIR}/lib/c-win32/include")
 
 add_library(mCtrl SHARED
     mCtrl.def
-
-    # pure C SDK header replacement:
-    c-include/c-d2d1.h
-    c-include/c-dwrite.h
 
     # from c-reusables
     ${CRE_PATH}/win32/memstream.c   ${CRE_PATH}/win32/memstream.h
