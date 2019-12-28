@@ -1,0 +1,33 @@
+/*
+ * This file contains example code for mCtrl library. Code of this example
+ * (but not the library itself) has been released into the public domain.
+ */
+
+#include <windows.h>
+#include "example-mdview.h"
+
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(65001)    /* UTF-8 */
+
+
+/* Manifest enabling XP themes */
+1 RT_MANIFEST res/manifest.xml
+
+/* Application icon */
+2 ICON res/app.ico
+
+
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+
+/* Markdown resources. 
+ *
+ * Note that we use RT_HTML resource type, as it is semantically close to
+ * what we do. But you could use other resource type (e.g. RT_RCDATA or
+ * custom one >= 256) if you prefer.
+ *
+ * The control does not enforce any type. Application just has to specify 
+ * in argument of the message MC_MDM_LOADRESOURCE.
+ */
+
+doc.md HTML res/doc.md

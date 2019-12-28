@@ -8,6 +8,7 @@ add_library(mCtrl SHARED
     mCtrl.def
 
     # from c-reusables
+    ${CRE_PATH}/data/buffer.c       ${CRE_PATH}/data/buffer.h
     ${CRE_PATH}/win32/memstream.c   ${CRE_PATH}/win32/memstream.h
 
     # Source:                       # Header:       # Public header:
@@ -30,6 +31,8 @@ add_library(mCtrl SHARED
     imgview.c                       imgview.h       ../include/mCtrl/imgview.h
     labeledit.c                     labeledit.h
     mditab.c                        mditab.h        ../include/mCtrl/mditab.h
+    mdtext.c                        mdtext.h
+    mdview.c                        mdview.h        ../include/mCtrl/mdview.h
     menubar.c                       menubar.h       ../include/mCtrl/menubar.h
     misc.c                          misc.h
     module.c                        module.h
@@ -40,6 +43,7 @@ add_library(mCtrl SHARED
     table.c                         table.h         ../include/mCtrl/table.h
     tooltip.c                       tooltip.h
     treelist.c                      treelist.h      ../include/mCtrl/treelist.h
+    url.c                           url.h
     version.c                       version.h.in
     viewlist.c                      viewlist.h
     xcom.c                          xcom.h

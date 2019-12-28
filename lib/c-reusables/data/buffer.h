@@ -77,6 +77,24 @@ BUFFER_INLINE__ void* buffer_data_at(BUFFER* buf, size_t pos)
         { return (void*) (((uint8_t*)buf->data) + pos); }
 BUFFER_INLINE__ void* buffer_data(BUFFER* buf)
         { return buf->data; }
+BUFFER_INLINE__ int8_t buffer_int8_at(BUFFER* buf, size_t pos)
+        { int8_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(int8_t)); return ret; }
+BUFFER_INLINE__ uint8_t buffer_uint8_at(BUFFER* buf, size_t pos)
+        { uint8_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(uint8_t)); return ret; }
+BUFFER_INLINE__ int16_t buffer_int16_at(BUFFER* buf, size_t pos)
+        { int16_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(int16_t)); return ret; }
+BUFFER_INLINE__ uint16_t buffer_uint16_at(BUFFER* buf, size_t pos)
+        { uint16_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(uint16_t)); return ret; }
+BUFFER_INLINE__ int32_t buffer_int32_at(BUFFER* buf, size_t pos)
+        { int32_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(int32_t)); return ret; }
+BUFFER_INLINE__ uint32_t buffer_uint32_at(BUFFER* buf, size_t pos)
+        { uint32_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(uint32_t)); return ret; }
+BUFFER_INLINE__ int64_t buffer_int64_at(BUFFER* buf, size_t pos)
+        { int64_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(int64_t)); return ret; }
+BUFFER_INLINE__ uint64_t buffer_uint64_at(BUFFER* buf, size_t pos)
+        { uint64_t ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(uint64_t)); return ret; }
+BUFFER_INLINE__ void* buffer_ptr_at(BUFFER* buf, size_t pos)
+        { void* ret; memcpy(&ret, buffer_data_at(buf, pos), sizeof(void*)); return ret; }
 BUFFER_INLINE__ size_t buffer_size(const BUFFER* buf)
         { return buf->size; }
 BUFFER_INLINE__ int buffer_is_empty(const BUFFER* buf)
@@ -119,8 +137,7 @@ BUFFER_INLINE__ void* stack_peek_raw(STACK* stack, size_t n)
 BUFFER_INLINE__ void stack_peek(STACK* stack, void* addr, size_t n)
         { memcpy(addr, buffer_data_at(stack, stack_size(stack) - n), n); }
 BUFFER_INLINE__ void* stack_pop_raw(STACK* stack, size_t n)
-        { return buffer_data_at(stack, stack_size(stack) - n);
-          buffer_remove(stack, stack_size(stack) - n, n); }
+        { stack->size -= n; return buffer_data_at(stack, stack->size); }
 BUFFER_INLINE__ void stack_pop(STACK* stack, void* addr, size_t n)
         { stack_peek(stack, addr, n);
           buffer_remove(stack, stack_size(stack) - n, n); }

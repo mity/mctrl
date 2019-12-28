@@ -81,6 +81,9 @@ target_link_libraries(example-imgview mCtrl comctl32)
 add_executable(example-mditab WIN32 example-mditab.c example-mditab.h example-mditab.rc)
 target_link_libraries(example-mditab mCtrl comctl32)
 
+add_executable(example-mdview WIN32 example-mdview.c example-mdview.h example-mdview.rc)
+target_link_libraries(example-mdview mCtrl comctl32)
+
 add_executable(example-mditab-dwm WIN32 example-mditab-dwm.c example-mditab-dwm.h example-mditab-dwm.rc)
 target_link_libraries(example-mditab-dwm mCtrl comctl32)
 

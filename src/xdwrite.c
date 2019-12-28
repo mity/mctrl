@@ -23,6 +23,22 @@
 #include "xdwrite.h"
 
 
+/* Uncomment this to have more verbose traces from this module. */
+/*#define XDWRITE_DEBUG     1*/
+
+#ifdef XDWRITE_DEBUG
+    #define XDWRITE_TRACE       MC_TRACE
+    #define XDWRITE_TRACE_GUID  MC_TRACE_GUID
+#else
+    #define XDWRITE_TRACE       MC_NOOP
+    #define XDWRITE_TRACE_GUID  MC_NOOP
+#endif
+
+
+/************************
+ *** DWrite Factories ***
+ ************************/
+
 static c_IDWriteFactory* xdwrite_factory;
 static HMODULE xdwrite_dll;
 
@@ -160,6 +176,7 @@ xdwrite_create_text_layout(const TCHAR* str, UINT len, c_IDWriteTextFormat* tf,
         switch(flags & XDWRITE_ALIGN_MASK) {
             case XDWRITE_ALIGN_CENTER:  align = c_DWRITE_TEXT_ALIGNMENT_CENTER; break;
             case XDWRITE_ALIGN_RIGHT:   align = c_DWRITE_TEXT_ALIGNMENT_TRAILING; break;
+            case XDWRITE_ALIGN_JUSTIFY: align = c_DWRITE_TEXT_ALIGNMENT_JUSTIFIED; break;
             default:                    MC_UNREACHABLE;
         }
         c_IDWriteTextLayout_SetTextAlignment(tl, align);
@@ -206,6 +223,200 @@ err_CreateEllipsisTrimmingSign:
     return tl;
 }
 
+
+/******************************************
+ *** Custom IDWriteTextRenderer Effects ***
+ ******************************************/
+
+static const GUID IID_xce = {0x23d224e8,0x9e4c,0x4b73,{0xac,0xc3,0x98,0xfc,0x3f,0x2b,0x32,0x65}};
+
+static HRESULT STDMETHODCALLTYPE
+xce_QueryInterface(IUnknown* self, REFIID riid, void** obj)
+{
+    if(IsEqualGUID(riid, &IID_IUnknown)  ||  IsEqualGUID(riid, &IID_xce)) {
+        XDWRITE_TRACE_GUID("xce_QueryInterface", riid);
+        *obj = self;
+        return S_OK;
+    } else {
+        XDWRITE_TRACE_GUID("xce_QueryInterface: unsupported GUID", riid);
+        *obj = NULL;
+        return E_NOINTERFACE;
+    }
+}
+
+static ULONG STDMETHODCALLTYPE
+xce_AddRef_Release(IUnknown* self)
+{
+    /* Dummy AddRef/Release() - we never really release this object, so
+     * we may just return any non-zero. */
+    return 42;
+}
+
+IUnknownVtbl xdwrite_color_effect_vtbl_ = {
+    xce_QueryInterface,
+    xce_AddRef_Release,
+    xce_AddRef_Release
+};
+
+
+/*************************************************
+ *** Custom IDWriteTextRenderer Implementation ***
+ *************************************************/
+
+/* We need this in order to apply our custom text effects.
+ * See https://docs.microsoft.com/en-us/windows/win32/directwrite/how-to-implement-a-custom-text-renderer
+ */
+
+static void
+xtr_apply_effect(xdwrite_ctx_t* ctx, IUnknown* effect)
+{
+    HRESULT hr;
+    void* obj;
+
+    if(effect == NULL)
+        return;
+
+    /* Try to interpret it as a color effect. */
+    hr = IUnknown_QueryInterface(effect, &IID_xce, &obj);
+    if(SUCCEEDED(hr)) {
+        xdwrite_color_effect_t* xce = MC_CONTAINEROF(obj, xdwrite_color_effect_t, vtbl);
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &xce->color);
+        /* No release needed: xdwrite_color_effect_t uses dummy ref. counting. */
+    }
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_QueryInterface(c_IDWriteTextRenderer* self, REFIID riid, void** obj)
+{
+    if(IsEqualGUID(riid, &IID_IUnknown)  ||
+       IsEqualGUID(riid, &c_IID_IDWritePixelSnapping)  ||
+       IsEqualGUID(riid, &c_IID_IDWriteTextRenderer))
+    {
+        XDWRITE_TRACE_GUID("xtr_QueryInterface", riid);
+        *obj = self;
+        return S_OK;
+    } else {
+        XDWRITE_TRACE_GUID("xtr_QueryInterface: unsupported GUID", riid);
+        *obj = NULL;
+        return E_NOINTERFACE;
+    }
+}
+
+static ULONG STDMETHODCALLTYPE
+xtr_AddRef_Release(c_IDWriteTextRenderer* self)
+{
+    /* Dummy AddRef/Release() - we never really release this object, so
+     * we may just return any non-zero. */
+    return 42;
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_IsPixelSnappingDisabled(c_IDWriteTextRenderer* self, void* context, BOOL* p_disabled)
+{
+    XDWRITE_TRACE("xtr_IsPixelSnappingDisabled()");
+    *p_disabled = FALSE;
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_GetCurrentTransform(c_IDWriteTextRenderer* self, void* context, c_DWRITE_MATRIX* p_matrix)
+{
+    xdwrite_ctx_t* ctx = (xdwrite_ctx_t*) context;
+
+    XDWRITE_TRACE("xtr_GetCurrentTransform()");
+
+    /* Note c_D2D1_MATRIX_3X2_F and c_DWRITE_MATRIX are binary-compatible. */
+    c_ID2D1RenderTarget_GetTransform(ctx->rt, (c_D2D1_MATRIX_3X2_F*) p_matrix);
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_GetPixelsPerDip(c_IDWriteTextRenderer* self, void* context, float* p_ppd)
+{
+    xdwrite_ctx_t* ctx = (xdwrite_ctx_t*) context;
+    float dpi_x, dpi_y;
+
+    XDWRITE_TRACE("xtr_GetPixelsPerDip()");
+
+    c_ID2D1RenderTarget_GetDpi(ctx->rt, &dpi_x, &dpi_y);
+    *p_ppd = dpi_x / 96.0f;
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_DrawGlyphRun(c_IDWriteTextRenderer* self, void* context, float x, float y,
+                 c_DWRITE_MEASURING_MODE measuring_mode,
+                 c_DWRITE_GLYPH_RUN const* run,
+                 c_DWRITE_GLYPH_RUN_DESCRIPTION const* desc,
+                 IUnknown* effect)
+{
+    xdwrite_ctx_t* ctx = (xdwrite_ctx_t*) context;
+    c_D2D1_POINT_2F pt = { x, y };
+
+    XDWRITE_TRACE("xtr_DrawGlyphRun()");
+
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &ctx->default_color);
+    xtr_apply_effect(ctx, effect);
+    c_ID2D1RenderTarget_DrawGlyphRun(ctx->rt, pt, run,
+                    (c_ID2D1Brush*) ctx->solid_brush, measuring_mode);
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_DrawUnderline(c_IDWriteTextRenderer* self, void* context, float x, float y,
+                  c_DWRITE_UNDERLINE const* u, IUnknown* effect)
+{
+    xdwrite_ctx_t* ctx = (xdwrite_ctx_t*) context;
+    c_D2D1_POINT_2F pt0 = { x, y + u->offset + 0.5f };
+    c_D2D1_POINT_2F pt1 = { x + u->width, y + u->offset + 0.5f };
+
+    XDWRITE_TRACE("xtr_DrawUnderline(y: %f, offset: %f, thickness: %f)",
+                    (double)y, (double)u->offset, (double)u->thickness);
+
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &ctx->default_color);
+
+    xtr_apply_effect(ctx, effect);
+    c_ID2D1RenderTarget_DrawLine(ctx->rt, pt0, pt1,
+                (c_ID2D1Brush*) ctx->solid_brush, u->thickness, NULL);
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_DrawStrikethrough(c_IDWriteTextRenderer* self, void* context, float x, float y,
+                      c_DWRITE_STRIKETHROUGH const* s, IUnknown* effect)
+{
+    XDWRITE_TRACE("xtr_DrawStrikethrough()");
+    return E_NOTIMPL;
+}
+
+static HRESULT STDMETHODCALLTYPE
+xtr_DrawInlineObject(c_IDWriteTextRenderer* self, void* context, float x, float y,
+                     c_IDWriteInlineObject* inline_object, BOOL is_sideways,
+                     BOOL is_rtl, IUnknown* effect)
+{
+    XDWRITE_TRACE("xtr_DrawInlineObject()");
+    return E_NOTIMPL;
+}
+
+static c_IDWriteTextRendererVtbl xdwrite_text_renderer_vtbl = {
+    xtr_QueryInterface,
+    xtr_AddRef_Release,
+    xtr_AddRef_Release,
+    xtr_IsPixelSnappingDisabled,
+    xtr_GetCurrentTransform,
+    xtr_GetPixelsPerDip,
+    xtr_DrawGlyphRun,
+    xtr_DrawUnderline,
+    xtr_DrawStrikethrough,
+    xtr_DrawInlineObject
+};
+
+c_IDWriteTextRenderer xdwrite_text_renderer_ = { &xdwrite_text_renderer_vtbl };
+
+
+/*****************************
+ *** Module Initialization ***
+ *****************************/
 
 int
 xdwrite_init_module(void)
