@@ -3,8 +3,6 @@ configure_file(version.h.in "version.h" @ONLY)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 set(CRE_PATH "${PROJECT_SOURCE_DIR}/lib/c-reusables")
-include_directories("${PROJECT_SOURCE_DIR}/lib")
-include_directories("${PROJECT_SOURCE_DIR}/lib/c-win32/include")
 
 add_library(mCtrl SHARED
     mCtrl.def
@@ -53,7 +51,7 @@ add_library(mCtrl SHARED
 
 target_link_libraries(mCtrl
     gdi32 comctl32 ole32 oleaut32 uuid uxtheme windowscodecs    # Windows SDK libs
-    hsluv-c)                                                    # Libs distributed with us
+    hsluv-c md4c-utf16)                                         # Libs distributed with us
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)
