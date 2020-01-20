@@ -10,11 +10,11 @@ elseif(MSVC)
 endif()
 
 
-add_executable(test-build WIN32 test-build.c)
+add_executable(test-build test-build.c)
 # (test-build.exe uses LoadLibrary. Do not link with the mCtrl lib.)
 
-add_executable(test-grid WIN32 test-grid.c)
+add_executable(test-grid test-grid.c)
 target_link_libraries(test-grid mCtrl)
 
-add_executable(test-table WIN32 test-table.c)
+add_executable(test-table test-table.c)
 target_link_libraries(test-table mCtrl)
