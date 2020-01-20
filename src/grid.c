@@ -27,7 +27,6 @@
 
 /* Uncomment this to have more verbose traces about MC_GRID control. */
 /*#define GRID_DEBUG     1*/
-#define GRID_DEBUG     1
 
 #ifdef GRID_DEBUG
     #define GRID_TRACE  MC_TRACE
