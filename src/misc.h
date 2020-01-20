@@ -470,21 +470,29 @@ void mc_clip_reset(HDC dc, HRGN old_clip);
 
 /* In some cases, controls may need to block certain auto-repeat from
  * happening. Imagine e.g. a button which triggers a popup menu. If user
- * clicks on the button 2nd time, it leads to (1) canceling the popup menu
- * (because it happened outside the popup menu window) and (2) re-creation of
- * the popup menu (because that's what the button does).
+ * clicks on the button for the 2nd time, it leads to:
  *
- * In such case the control may want to block the (2). That's what these
- * functions are for.
+ * (1) canceling the popup menu (because it happened outside the popup menu
+ *     window); and
+ * (2) re-creation of the popup menu (because that's what the button does).
+ *
+ * But that's likely not what the user intended. He wanted to just cancel the
+ * the popup menu. I.e. the control may want to block temporarily the (2) so
+ * the single mouse click does only one action.
  *
  * mc_msgblocker_start() starts some short time period when any call to
  * mc_msgblocker_query() with the same window handle and id parameter shall
- * return FALSE. Otherwise it shall return TRUE.
+ * return FALSE. Otherwise it shall return TRUE. (The id can be used to
+ * distinguish e.g. when a single control manages multiple popup menus. Use
+ * zero if you do not need that.)
  *
- * Note only one blocker can be running at the same time. That's usually fine:
- * If multiple controls use popup menues, opening different one means the
- * button for the former can be used for sure. So mc_msgblocker_start()
- * invalidates any former blocker which can be in effect.
+ * Note only one blocker can be running at the same time. That's actually fine:
+ * If multiple controls use a popup menu, opening different one means the
+ * button for the former can be used for sure even without any blocking like
+ * this.
+ *
+ * Hence, mc_msgblocker_start() invalidates any former blocker if there is an
+ * active one.
  */
 void mc_msgblocker_start(HWND win, UINT_PTR id);
 BOOL mc_msgblocker_query(HWND win, UINT_PTR id);
