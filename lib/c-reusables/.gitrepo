@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/mity/c-reusables
 	branch = master
-	commit = 113b55619fa472e74db3f780fe5b00e7e8ccc4c3
-	parent = c9da0e288368d4719321f1fcf5b4a13586e03a77
+	commit = 91298f3b2f6c4992a8e544eb25fca03c4d958713
+	parent = 51e1b38d2836429dbad84f2a9c42bfe2415510c7
 	method = merge
 	cmdver = 0.4.0

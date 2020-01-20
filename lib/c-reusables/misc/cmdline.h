@@ -49,7 +49,7 @@ extern "C" {
  *   of the argv[i] from commandline.
  *
  * 2. Double dash ("--") is not automatically prepended to
- *    CMDLINE_OPTION::longname. (If you desire any leadin dash, include it
+ *    CMDLINE_OPTION::longname. (If you desire any leading dash, include it
  *    explicitly in CMDLINE_OPTION initialization.)
  *
  * 3. An argument (optionally after a whitespace) is required (the flag
@@ -70,7 +70,7 @@ extern "C" {
 
 
 /* Special (reserved) option IDs. Do not use these for any CMDLINE_OPTION::id.
- * See documention of cmdline_read() to get info about their meaning.
+ * See documentation of cmdline_read() to get info about their meaning.
  */
 #define CMDLINE_OPTID_NONE              0
 #define CMDLINE_OPTID_UNKNOWN           (-0x7fffffff + 0)
@@ -86,33 +86,59 @@ typedef struct CMDLINE_OPTION {
 } CMDLINE_OPTION;
 
 
-/* Parse all options and their arguments as specified by argc, argv accordingly
- * with the given options. The array of supported options has to be ended
- * with member whose CMDLINE_OPTION::id is zero.
+/* Parses all options and their arguments as specified by argc, argv accordingly
+ * with the given options (except argv[0] which is ignored).
  *
- * Note argv[0] is ignored.
+ * The caller must specify the list of supported options in the 1st parameter
+ * of the function. The array must end with a record whose CMDLINE_OPTION::id
+ * is zero to zero.
  *
- * The callback is called for each (validly matching) option.
- * It is also called for any positional argument (with id set to zero).
+ * The provided callback function is called for each option on the command
+ * line so that:
  *
- * Special cases (errorneous command line) are reported to the callback by
- * negative id:
+ *   -- the "id" refers to the id of the option as specified  in options[].
  *
- *   -- CMDLINE_OPTID_UNKNOWN: The given option name does not exist.
+ *   -- the "arg" specifies an argument of the option or NULL if none is
+ *      provided.
  *
- *   -- CMDLINE_OPTID_MISSINGARG: The option requires an argument but none
- *      is present on the command line.
+ *   -- the "userdata" just allows to pass in some caller's context into
+ *      the callback.
  *
- *   -- CMDLINE_OPTID_BOGUSARG: The option expects no argument but some
- *      is provided.
+ * Special cases (recognized via special "id" value) are reported to the
+ * callback as follows:
  *
- * In all those cases, name of the affected command line option is provided
- * in arg.
+ *   -- If id is CMDLINE_OPTID_NONE, the callback informs about a non-option
+ *      also known as a positional argument.
+ *
+ *      All argv[] tokens which are not interpreted as an options or an argument
+ *      of any option fall into this category.
+ *
+ *      Usually, programs interpret these as paths to file to process.
+ *
+ *   -- If id is CMDLINE_OPTID_UNKNOWN, the corresponding argv[] looks like an
+ *      option but it is not found in the options[] passed to cmdline_read().
+ *
+ *      The callback's parameter arg specifies the guilty command line token.
+ *      Usually, program writes down an error message and exits.
+ *
+ *   -- If id is CMDLINE_OPTID_MISSINGARG, the given option is valid but its
+ *      flag in options[] requires an argument; yet there is none on the
+ *      command line.
+ *
+ *      The callback's parameter arg specifies the guilty option name.
+ *      Usually, program writes down an error message and exits.
+ *
+ *   -- If id is CMDLINE_OPTID_BOGUSARG, the given option is valid but its
+ *      flag in options[] does not expect an argument; yet the command line
+ *      does provide one.
+ *
+ *      The callback's parameter arg specifies the guilty option name.
+ *      Usually, program writes down an error message and exits.
  *
  * On success, zero is returned.
  *
- * If the callback returns non-zero cmdline_read() aborts any subsequent
- * parsing and it returns the same value to the caller.
+ * If the callback returns a non-zero, cmdline_read() aborts immediately and
+ * cmdline_read() propagates the same return value to the caller.
  */
 
 int cmdline_read(const CMDLINE_OPTION* options, int argc, char** argv,

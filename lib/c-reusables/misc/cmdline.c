@@ -2,7 +2,7 @@
  * C Reusables
  * <http://github.com/mity/c-reusables>
  *
- * Copyright (c) 2017 Martin Mitas
+ * Copyright (c) 2017-2020 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -87,19 +87,22 @@ cmdline_read(const CMDLINE_OPTION* options, int argc, char** argv,
     auxbuf[CMDLINE_AUXBUF_SIZE] = '\0';
 
     /* Check whether there is any CMDLINE_OPTFLAG_COMPILERLIKE option with
-     * a name not starting with '-'. That would need we have to check
-     * for non-option arguments only after refusing all such options. */
+     * a name not starting with '-'. That would imply we can to check for
+     * non-option arguments only after refusing all such options. */
     for(opt = options; opt->id != 0; opt++) {
         if((opt->flags & CMDLINE_OPTFLAG_COMPILERLIKE)  &&  opt->longname[0] != '-')
-            fast_optarg_decision = 1;
+            fast_optarg_decision = 0;
     }
 
     while(i < argc) {
         if(after_doubledash  ||  strcmp(argv[i], "-") == 0) {
-            /* Non-option argument. */
+            /* Non-option argument.
+             * Standalone "-" usually means "read from stdin" or "write to
+             * stdout" so treat it always as a non-option. */
             ret = callback(CMDLINE_OPTID_NONE, argv[i], userdata);
         } else if(strcmp(argv[i], "--") == 0) {
-            /* End of options. All the remaining members are non-otion arguments. */
+            /* End of options. All the remaining tokens are non-options
+             * even if they start with a dash. */
             after_doubledash = 1;
         } else if(fast_optarg_decision  &&  argv[i][0] != '-') {
             /* Non-option argument. */

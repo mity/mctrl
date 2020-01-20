@@ -874,13 +874,13 @@ value_dict_payload(VALUE* v)
 static int
 value_dict_default_cmp(const char* key1, size_t len1, const char* key2, size_t len2)
 {
-    /* Comparing lengths 1st might be in general especially if the keys are
-     * long, but it would break value_dict_walk_sorted().
+    /* Comparing lengths 1st might be in general better for performance
+     * (especially when the strings are long) but that would affect
+     * value_dict_walk_sorted().
      *
-     * In most apps keys are short and ASCII. It is nice to follow
-     * lexicographic order at least in such cases as that's what most
-     * people expect. And real world, the keys are usually quite short so
-     * the cost should be acceptable.
+     * In most apps keys tend to be ASCII. It is nice to follow lexicographic
+     * order at least in such cases as that's what most people expect. In real
+     * world, the keys are usually quite short so the cost should be acceptable.
      */
 
     size_t min_len = (len1 < len2) ? len1 : len2;
@@ -1120,7 +1120,8 @@ value_dict_add_(VALUE* v, const char* key, size_t key_len)
     return (value_is_new(res) ? res : NULL);
 }
 
-VALUE* value_dict_add(VALUE* v, const char* key)
+VALUE*
+value_dict_add(VALUE* v, const char* key)
 {
     return value_dict_add_(v, key, strlen(key));
 }
