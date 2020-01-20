@@ -332,12 +332,6 @@ mc_load_sys_dll(const TCHAR* dll_name)
     }
 }
 
-HMODULE
-mc_load_redist_dll(const TCHAR* dll_name)
-{
-    return LoadLibrary(dll_name);
-}
-
 
 /**************************
  *** Clipping Utilities ***
