@@ -160,6 +160,7 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
     table_cell_buffer_t buf_dst;
     table_cell_buffer_t buf_src;
     size_t size;
+    table_refresh_detail_t refresh_detail;
 
     buf_src.cells = table->cells;
     buf_src.cols = table->cols;
@@ -302,6 +303,23 @@ table_resize_helper(table_t* table, int col_pos, int col_delta,
     table->rows = buf_dst.rows;
     table->col_count = buf_dst.col_count;
     table->row_count = buf_dst.row_count;
+
+    /* Refresh */
+    if(col_delta != 0) {
+        refresh_detail.event = TABLE_COLCOUNT_CHANGED;
+        refresh_detail.param[0] = table->col_count - col_delta;
+        refresh_detail.param[1] = table->col_count;
+        refresh_detail.param[2] = col_pos;
+        table_refresh(table, &refresh_detail);
+    }
+    if(row_delta != 0) {
+        refresh_detail.event = TABLE_ROWCOUNT_CHANGED;
+        refresh_detail.param[0] = table->row_count - row_delta;
+        refresh_detail.param[1] = table->row_count;
+        refresh_detail.param[2] = row_pos;
+        table_refresh(table, &refresh_detail);
+    }
+
     return 0;
 }
 
