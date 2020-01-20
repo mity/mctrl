@@ -3871,9 +3871,6 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     treelist_t* tl = (treelist_t*) GetWindowLongPtr(win, 0);
     MC_ASSERT(tl != NULL  ||  msg == WM_NCCREATE  ||  msg == WM_NCDESTROY);
 
-    if(tl != NULL  &&  tl->tooltip_win != NULL)
-        tooltip_forward_msg(tl->tooltip_win, win, msg, wp, lp);
-
     switch(msg) {
         case WM_PAINT:
             return generic_paint(win, tl->no_redraw,

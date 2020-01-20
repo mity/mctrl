@@ -2988,9 +2988,6 @@ mditab_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     /* This shuts up Coverity issues CID1327525, CID1327526, CID1327527. */
     MC_ASSERT(mditab != NULL  ||  msg == WM_NCCREATE  ||  msg == WM_NCDESTROY);
 
-    if(mditab != NULL  &&  mditab->tooltip_win != NULL)
-        tooltip_forward_msg(mditab->tooltip_win, win, msg, wp, lp);
-
     switch(msg) {
         case WM_PAINT:
             xd2d_paint(win, mditab->no_redraw, 0,

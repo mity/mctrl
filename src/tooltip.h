@@ -34,11 +34,6 @@ void tooltip_destroy(HWND tooltip_win);
 void tooltip_install(HWND tooltip_win, HWND control_win, BOOL tracking);
 void tooltip_uninstall(HWND tooltip_win, HWND control_win);
 
-/* Forwards some mouse messages to the tooltip window so it can do its job.
- * Must be called from control window procedure whenever the tooltip exists
- * and parameter tracking was set to FALSE in tooltip_install(). */
-void tooltip_forward_msg(HWND tooltip_win, HWND control_win, UINT msg, WPARAM wp, LPARAM lp);
-
 /* Functions to be used only for tracking tooltip. */
 void tooltip_show_tracking(HWND tooltip_win, HWND control_win, BOOL show);
 void tooltip_move_tracking(HWND tooltip_win, HWND control_win, int x, int y);

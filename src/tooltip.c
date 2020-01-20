@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Martin Mitas
+ * Copyright (c) 2015-2020 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -84,7 +84,7 @@ tooltip_install(HWND tooltip_win, HWND control_win, BOOL tracking)
                   tooltip_win, control_win, tracking ? ", tracking" : "");
 
     info.cbSize = TTTOOLINFO_V1_SIZE;
-    info.uFlags = TTF_TRANSPARENT | TTF_IDISHWND;
+    info.uFlags = TTF_TRANSPARENT | TTF_IDISHWND | TTF_SUBCLASS;
     if(tracking)
         info.uFlags = TTF_TRACK | TTF_ABSOLUTE;
     info.uId = (UINT_PTR) control_win;
@@ -104,34 +104,6 @@ tooltip_uninstall(HWND tooltip_win, HWND control_win)
     info.uId = (UINT_PTR) control_win;
     info.hwnd = control_win;
     MC_SEND(tooltip_win, TTM_DELTOOL, 0, &info);
-}
-
-void
-tooltip_forward_msg(HWND tooltip_win, HWND control_win, UINT msg, WPARAM wp, LPARAM lp)
-{
-    TOOLTIP_TRACE("tooltip_forward_msg(%p, %p, %u)", tooltip_win, control_win, msg);
-
-    /* Accordingly to docs of TTM_RELAYEVENT, only these messages are really
-     * needed. */
-    if(msg == WM_LBUTTONDOWN  ||  msg == WM_LBUTTONUP  ||
-       msg == WM_MBUTTONDOWN  ||  msg == WM_MBUTTONUP  ||
-       msg == WM_RBUTTONDOWN  ||  msg == WM_RBUTTONUP  ||
-       msg == WM_MOUSEMOVE)
-    {
-        DWORD pos;
-        MSG m;
-
-        pos = GetMessagePos();
-
-        m.hwnd = control_win;
-        m.message = msg;
-        m.wParam = wp;
-        m.lParam = lp;
-        m.time = GetMessageTime();
-        m.pt.x = LOWORD(pos);
-        m.pt.y = HIWORD(pos);
-        MC_SEND(tooltip_win, TTM_RELAYEVENT, 0, &m);
-    }
 }
 
 void
