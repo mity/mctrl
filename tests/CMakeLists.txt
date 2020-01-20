@@ -10,24 +10,11 @@ elseif(MSVC)
 endif()
 
 
-file(GLOB TEST_SOURCES "*.c")
+add_executable(test-build WIN32 test-build.c)
+# (test-build.exe uses LoadLibrary. Do not link with the mCtrl lib.)
 
-foreach(SOURCE ${TEST_SOURCES})
-    get_filename_component(TARGET ${SOURCE} NAME_WE)
+add_executable(test-grid WIN32 test-grid.c)
+target_link_libraries(test-grid mCtrl)
 
-    string(REGEX REPLACE "\\.c$" "" BASENAME ${SOURCE})
-
-    if(EXISTS ${BASENAME}.h)
-        set(HEADER ${BASENAME}.h)
-    else()
-        unset(HEADER)
-    endif()
-
-    add_executable(${TARGET} ${SOURCE} ${HEADER})
-
-    # all tests but test-build.exe link with mCtrl.dll
-    if(NOT ${TARGET} MATCHES test-build)
-        target_link_libraries(${TARGET} mCtrl)
-    endif()
-endforeach()
-
+add_executable(test-table WIN32 test-table.c)
+target_link_libraries(test-table mCtrl)
