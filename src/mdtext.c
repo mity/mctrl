@@ -17,6 +17,7 @@
  */
 
 #include "mdtext.h"
+#include "entity.h"
 #include "md4c-utf16.h"
 #include "c-reusables/data/buffer.h"
 
@@ -783,6 +784,19 @@ mdtext_text_cb(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, void* userda
         case MD_TEXT_NULLCHAR:
             err = buffer_append(&ctx->buffer, replacement, sizeof(replacement));
             break;
+
+        case MD_TEXT_ENTITY:
+            if(size > 2  &&  text[0] == _T('&')  &&  text[size-1] == _T(';')) {
+                entity_t ent;
+
+                if(entity_decode(text+1, &ent) == 0) {
+                    err = buffer_append(&ctx->buffer, ent.buffer, ent.len * sizeof(TCHAR));
+                    break;
+                } else {
+                    MC_TRACE("mdtext_text_cb: Unknown entity name '%.*S'.", (int)size, text);
+                }
+            }
+            /* Pass through: Output the entity verbatim as an ordinary text. */
 
         case MD_TEXT_NORMAL:
         case MD_TEXT_CODE:

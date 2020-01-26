@@ -24,6 +24,8 @@ add_library(mCtrl SHARED
     dialog.c                        dialog.h        ../include/mCtrl/dialog.h
     doublebuffer.c                  doublebuffer.h
     dsa.c                           dsa.h
+    entity.c                        entity.h
+                                    entity_map.h
     expand.c                        expand.h        ../include/mCtrl/expand.h
     generic.c                       generic.h
     grid.c                          grid.h          ../include/mCtrl/grid.h
