@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Martin Mitas
+ * Copyright (c) 2019-2020 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -228,12 +228,13 @@ err_CreateEllipsisTrimmingSign:
  *** Custom IDWriteTextRenderer Effects ***
  ******************************************/
 
-static const GUID IID_xce = {0x23d224e8,0x9e4c,0x4b73,{0xac,0xc3,0x98,0xfc,0x3f,0x2b,0x32,0x65}};
+static const GUID IID_xeff =
+            {0x23d224e8,0x9e4c,0x4b73,{0xac,0xc3,0x98,0xfc,0x3f,0x2b,0x32,0x65}};
 
 static HRESULT STDMETHODCALLTYPE
-xce_QueryInterface(IUnknown* self, REFIID riid, void** obj)
+xeff_QueryInterface(IUnknown* self, REFIID riid, void** obj)
 {
-    if(IsEqualGUID(riid, &IID_IUnknown)  ||  IsEqualGUID(riid, &IID_xce)) {
+    if(IsEqualGUID(riid, &IID_IUnknown)  ||  IsEqualGUID(riid, &IID_xeff)) {
         XDWRITE_TRACE_GUID("xce_QueryInterface", riid);
         *obj = self;
         return S_OK;
@@ -245,17 +246,17 @@ xce_QueryInterface(IUnknown* self, REFIID riid, void** obj)
 }
 
 static ULONG STDMETHODCALLTYPE
-xce_AddRef_Release(IUnknown* self)
+xeff_AddRef_Release(IUnknown* self)
 {
     /* Dummy AddRef/Release() - we never really release this object, so
      * we may just return any non-zero. */
     return 42;
 }
 
-IUnknownVtbl xdwrite_color_effect_vtbl_ = {
-    xce_QueryInterface,
-    xce_AddRef_Release,
-    xce_AddRef_Release
+IUnknownVtbl xdwrite_effect_vtbl_ = {
+    xeff_QueryInterface,
+    xeff_AddRef_Release,
+    xeff_AddRef_Release
 };
 
 
@@ -268,20 +269,51 @@ IUnknownVtbl xdwrite_color_effect_vtbl_ = {
  */
 
 static void
-xtr_apply_effect(xdwrite_ctx_t* ctx, IUnknown* effect)
+xtr_apply_effect(xdwrite_ctx_t* ctx, float x, float y,
+                 c_DWRITE_GLYPH_RUN const* run, IUnknown* effect_obj)
 {
-    HRESULT hr;
     void* obj;
+    xdwrite_effect_t* effect;
+    HRESULT hr;
 
-    if(effect == NULL)
+    if(effect_obj == NULL)
+        return;
+    hr = IUnknown_QueryInterface(effect_obj, &IID_xeff, &obj);
+    if(!SUCCEEDED(hr))
         return;
 
-    /* Try to interpret it as a color effect. */
-    hr = IUnknown_QueryInterface(effect, &IID_xce, &obj);
-    if(SUCCEEDED(hr)) {
-        xdwrite_color_effect_t* xce = MC_CONTAINEROF(obj, xdwrite_color_effect_t, vtbl);
-        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &xce->color);
-        /* No release needed: xdwrite_color_effect_t uses dummy ref. counting. */
+    effect = MC_CONTAINEROF(obj, xdwrite_effect_t, vtbl);
+
+    /* If provided, use the given background color. */
+    if((effect->mask & XDWRITE_EFFECT_MASK_BK_COLOR)  &&  run != NULL) {
+        c_DWRITE_FONT_METRICS font_metrics;
+        float run_width, run_ascent, run_descent, size_factor;
+        c_D2D1_RECT_F rect;
+        UINT32 i;
+
+        c_IDWriteFontFace_GetMetrics(run->fontFace, &font_metrics);
+        size_factor = run->fontEmSize / font_metrics.designUnitsPerEm;
+        run_ascent = size_factor * font_metrics.ascent;
+        run_descent = size_factor * font_metrics.descent;
+
+        /* FIXME: Isn't there a way how to get the width directly, without
+         * manually summing all the glyph advances? */
+        run_width = 0;
+        for(i = 0; i < run->glyphCount; i++)
+            run_width += run->glyphAdvances[i];
+
+        rect.left = x;
+        rect.top = y - run_ascent;
+        rect.right = x + run_width;
+        rect.bottom = y + run_descent;
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &effect->bk_color);
+        c_ID2D1RenderTarget_FillRectangle(ctx->rt, &rect, (c_ID2D1Brush*) ctx->solid_brush);
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &ctx->default_color);
+    }
+
+    /* If provided, use the given foreground color. */
+    if(effect->mask & XDWRITE_EFFECT_MASK_COLOR) {
+        c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &effect->color);
     }
 }
 
@@ -356,7 +388,7 @@ xtr_DrawGlyphRun(c_IDWriteTextRenderer* self, void* context, float x, float y,
     XDWRITE_TRACE("xtr_DrawGlyphRun()");
 
     c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &ctx->default_color);
-    xtr_apply_effect(ctx, effect);
+    xtr_apply_effect(ctx, x, y, run, effect);
     c_ID2D1RenderTarget_DrawGlyphRun(ctx->rt, pt, run,
                     (c_ID2D1Brush*) ctx->solid_brush, measuring_mode);
     return S_OK;
@@ -375,7 +407,7 @@ xtr_DrawUnderline(c_IDWriteTextRenderer* self, void* context, float x, float y,
 
     c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &ctx->default_color);
 
-    xtr_apply_effect(ctx, effect);
+    xtr_apply_effect(ctx, x, y, NULL, effect);
     c_ID2D1RenderTarget_DrawLine(ctx->rt, pt0, pt1,
                 (c_ID2D1Brush*) ctx->solid_brush, u->thickness, NULL);
     return S_OK;
@@ -394,7 +426,7 @@ xtr_DrawStrikethrough(c_IDWriteTextRenderer* self, void* context, float x, float
 
     c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &ctx->default_color);
 
-    xtr_apply_effect(ctx, effect);
+    xtr_apply_effect(ctx, x, y, NULL, effect);
     c_ID2D1RenderTarget_DrawLine(ctx->rt, pt0, pt1,
                 (c_ID2D1Brush*) ctx->solid_brush, s->thickness, NULL);
     return S_OK;

@@ -426,8 +426,10 @@ mdtext_downgrade_text_contents(mdtext_parse_ctx_t* ctx, mdtext_stack_record_t* s
     return 0;
 }
 
-static const xdwrite_color_effect_t mdtext_link_effect =
-                    XDWRITE_COLOR_EFFECT_INIT_CREF(MDTEXT_LINK_COLOR);
+static const xdwrite_effect_t mdtext_link_effect =
+                    XDWRITE_EFFECT_INIT_CREF(MDTEXT_LINK_COLOR);
+static const xdwrite_effect_t mdtext_codespan_effect =
+                    XDWRITE_EFFECT_INIT_BK_CREF(MDTEXT_CODE_BK_COLOR);
 
 static void
 mdtext_use_code_font(c_IDWriteTextLayout* text_layout, c_DWRITE_TEXT_RANGE range)
@@ -566,6 +568,8 @@ mdtext_flush_text(mdtext_parse_ctx_t* ctx, mdtext_stack_record_t* stack_record)
                 break;
 
             case MD_SPAN_CODE:
+                c_IDWriteTextLayout_SetDrawingEffect(text_layout,
+                            (IUnknown*) &mdtext_codespan_effect, range);
                 mdtext_use_code_font(text_layout, range);
                 break;
 

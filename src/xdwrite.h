@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Martin Mitas
+ * Copyright (c) 2019-2020 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -61,18 +61,51 @@ c_IDWriteTextLayout* xdwrite_create_text_layout(const TCHAR* str, UINT len,
  *** Custom IDWriteTextRenderer Effects ***
  ******************************************/
 
-extern IUnknownVtbl xdwrite_color_effect_vtbl_;
+extern IUnknownVtbl xdwrite_effect_vtbl_;
 
-typedef struct xdwrite_color_effect_tag xdwrite_color_effect_t;
-struct xdwrite_color_effect_tag {
+#define XDWRITE_EFFECT_MASK_COLOR       0x0001
+#define XDWRITE_EFFECT_MASK_BK_COLOR    0x0002
+
+typedef struct xdwrite_effect_tag xdwrite_effect_t;
+struct xdwrite_effect_tag {
     IUnknownVtbl* vtbl;
+    DWORD mask;
     c_D2D1_COLOR_F color;
+    c_D2D1_COLOR_F bk_color;
 };
 
-#define XDWRITE_COLOR_EFFECT_INIT_RGB(r,g,b)                                \
-        { &xdwrite_color_effect_vtbl_, XD2D_COLOR_RGB((r),(g),(b)) }
-#define XDWRITE_COLOR_EFFECT_INIT_CREF(cref)                                \
-        { &xdwrite_color_effect_vtbl_, XD2D_COLOR_CREF((cref)) }
+/* Simple initializers for the most commonly needed stuff. */
+#define XDWRITE_EFFECT_INIT_RGB(r,g,b)                                  \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_COLOR,                                  \
+            XD2D_COLOR_RGB((r),(g),(b)),                                \
+            { 0, 0, 0, 0 }                                              \
+        }
+
+#define XDWRITE_EFFECT_INIT_CREF(cref)                                  \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_COLOR,                                  \
+            XD2D_COLOR_CREF((cref)),                                    \
+            { 0, 0, 0, 0 }                                              \
+        }
+
+#define XDWRITE_EFFECT_INIT_BK_RGB(r,g,b)                               \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_BK_COLOR,                               \
+            { 0, 0, 0, 0 },                                             \
+            XD2D_COLOR_RGB((r),(g),(b))                                 \
+        }
+
+#define XDWRITE_EFFECT_INIT_BK_CREF(cref)                               \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_BK_COLOR,                               \
+            { 0, 0, 0, 0 },                                             \
+            XD2D_COLOR_CREF((cref))                                     \
+        }
 
 
 /*************************************************
