@@ -45,6 +45,7 @@
 
 
 #define MDTEXT_NODE_IS_CONTAINER        0x01
+#define MDTEXT_NODE_IS_TIGHT            0x02
 
 /* Keep the members in this struct in the (unnatural) order they are. It is
  * to minimize the memory consumption. Depending on the Markdown document,
@@ -229,6 +230,9 @@ mdtext_padding_bottom(mdtext_t* mdtext, mdtext_node_t* node)
 static int
 mdtext_margin_top(mdtext_t* mdtext, mdtext_node_t* node)
 {
+    if(node->type == MD_BLOCK_LI  &&  (node->flags & MDTEXT_NODE_IS_TIGHT))
+        return 0;
+
     return mdtext_unit(mdtext);
 }
 
@@ -653,6 +657,24 @@ mdtext_enter_block_cb(MD_BLOCKTYPE type, void* detail, void* userdata)
         case MD_BLOCK_H:
             node->aux = ((MD_BLOCK_H_DETAIL*) detail)->level;
             break;
+
+        case MD_BLOCK_UL:
+            if(((MD_BLOCK_UL_DETAIL*) detail)->is_tight)
+                node->flags |= MDTEXT_NODE_IS_TIGHT;
+            break;
+
+        case MD_BLOCK_OL:
+            if(((MD_BLOCK_OL_DETAIL*) detail)->is_tight)
+                node->flags |= MDTEXT_NODE_IS_TIGHT;
+            break;
+
+        case MD_BLOCK_LI:
+        {
+            mdtext_node_t* parent = NODE(ctx, parent_stack_record->node_index);
+            if(parent->flags & MDTEXT_NODE_IS_TIGHT)
+                node->flags |= MDTEXT_NODE_IS_TIGHT;
+            break;
+        }
 
         default:
             break;
