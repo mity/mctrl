@@ -393,7 +393,7 @@ struct c_IDWriteFontFaceVtbl_tag {
     STDMETHOD(dummy_GetIndex)(void);
     STDMETHOD(dummy_GetSimulations)(void);
     STDMETHOD(dummy_IsSymbolFont)(void);
-    STDMETHOD(dummy_GetMetrics)(void);
+    STDMETHOD(GetMetrics)(c_IDWriteFontFace*, c_DWRITE_FONT_METRICS*);
     STDMETHOD(dummy_GetGlyphCount)(void);
     STDMETHOD(dummy_GetDesignGlyphMetrics)(void);
     STDMETHOD(dummy_GetGlyphIndices)(void);
@@ -412,6 +412,7 @@ struct c_IDWriteFontFace_tag {
 #define c_IDWriteFontFace_QueryInterface(self,a,b)  (self)->vtbl->QueryInterface(self,a,b)
 #define c_IDWriteFontFace_AddRef(self)              (self)->vtbl->AddRef(self)
 #define c_IDWriteFontFace_Release(self)             (self)->vtbl->Release(self)
+#define c_IDWriteFontFace_GetMetrics(self,a)        (self)->vtbl->GetMetrics(self,a)
 
 
 /*****************************************
