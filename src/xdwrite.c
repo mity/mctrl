@@ -385,8 +385,19 @@ static HRESULT STDMETHODCALLTYPE
 xtr_DrawStrikethrough(c_IDWriteTextRenderer* self, void* context, float x, float y,
                       c_DWRITE_STRIKETHROUGH const* s, IUnknown* effect)
 {
-    XDWRITE_TRACE("xtr_DrawStrikethrough()");
-    return E_NOTIMPL;
+    xdwrite_ctx_t* ctx = (xdwrite_ctx_t*) context;
+    c_D2D1_POINT_2F pt0 = { x, y + s->offset + 0.5f };
+    c_D2D1_POINT_2F pt1 = { x + s->width, y + s->offset + 0.5f };
+
+    XDWRITE_TRACE("xtr_DrawStrikethrough(y: %f, offset: %f, thickness: %f)",
+                    (double)y, (double)s->offset, (double)s->thickness);
+
+    c_ID2D1SolidColorBrush_SetColor(ctx->solid_brush, &ctx->default_color);
+
+    xtr_apply_effect(ctx, effect);
+    c_ID2D1RenderTarget_DrawLine(ctx->rt, pt0, pt1,
+                (c_ID2D1Brush*) ctx->solid_brush, s->thickness, NULL);
+    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE

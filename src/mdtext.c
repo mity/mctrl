@@ -46,7 +46,7 @@
 
 #define MDTEXT_NODE_IS_CONTAINER        0x01
 
-/* Keep the members in this tstruct in the (unnatural) order they are. It is
+/* Keep the members in this struct in the (unnatural) order they are. It is
  * to minimize the memory consumption. Depending on the Markdown document,
  * we may have quite a lot of these. */
 typedef struct mdtext_node_tag mdtext_node_t;
@@ -429,6 +429,21 @@ mdtext_downgrade_text_contents(mdtext_parse_ctx_t* ctx, mdtext_stack_record_t* s
 static const xdwrite_color_effect_t mdtext_link_effect =
                     XDWRITE_COLOR_EFFECT_INIT_CREF(MDTEXT_LINK_COLOR);
 
+static void
+mdtext_use_code_font(c_IDWriteTextLayout* text_layout, c_DWRITE_TEXT_RANGE range)
+{
+    static const WCHAR* family_list[] = { L"Consolas", L"Courier New", NULL };
+    int i;
+    HRESULT hr;
+
+    for(i = 0; family_list[i] != NULL; i++) {
+        hr = c_IDWriteTextLayout_SetFontFamilyName(text_layout, family_list[i], range);
+        if(SUCCEEDED(hr))
+            return;
+    }
+    MC_TRACE_HR("mdtext_use_code_font: IDWriteTextLayout::SetFontFamilyName() failed.");
+}
+
 static int
 mdtext_flush_text(mdtext_parse_ctx_t* ctx, mdtext_stack_record_t* stack_record)
 {
@@ -507,6 +522,14 @@ mdtext_flush_text(mdtext_parse_ctx_t* ctx, mdtext_stack_record_t* stack_record)
             break;
         }
 
+        case MD_BLOCK_CODE:
+        {
+            c_DWRITE_TEXT_RANGE range = { 0, text_len };
+
+            mdtext_use_code_font(text_layout, range);
+            break;
+        }
+
         default:
             break;
     }
@@ -532,10 +555,18 @@ mdtext_flush_text(mdtext_parse_ctx_t* ctx, mdtext_stack_record_t* stack_record)
                 c_IDWriteTextLayout_SetFontWeight(text_layout, FW_BOLD, range);
                 break;
 
+            case MD_SPAN_DEL:
+                c_IDWriteTextLayout_SetStrikethrough(text_layout, TRUE, range);
+                break;
+
             case MD_SPAN_A:
                 c_IDWriteTextLayout_SetDrawingEffect(text_layout,
                             (IUnknown*) &mdtext_link_effect, range);
                 c_IDWriteTextLayout_SetUnderline(text_layout, TRUE, range);
+                break;
+
+            case MD_SPAN_CODE:
+                mdtext_use_code_font(text_layout, range);
                 break;
 
             default:
@@ -824,7 +855,8 @@ mdtext_debug_cb(const char* msg, void* userdata)
 
 #define MDTEXT_PARSER_FLAGS                                                  \
         (MD_FLAG_COLLAPSEWHITESPACE | MD_FLAG_PERMISSIVEATXHEADERS |         \
-         MD_FLAG_PERMISSIVEAUTOLINKS | MD_FLAG_NOHTML)
+         MD_FLAG_STRIKETHROUGH | MD_FLAG_PERMISSIVEAUTOLINKS |               \
+         MD_FLAG_NOHTML)
 
 static const MD_PARSER mdtext_parser = {
     0,                      /* abi_version */
