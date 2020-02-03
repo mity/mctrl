@@ -1,5 +1,5 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/d3ypc0ot57u47itw/branch/master?svg=true)](https://ci.appveyor.com/project/mity/mctrl/branch/master)
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/mctrl/badge.svg?flat=1)](https://scan.coverity.com/projects/mctrl)
+[![Windows Build Status (appveyor.com)](https://img.shields.io/appveyor/ci/mity/mctrl/master.svg?logo=windows&label=windows%20build)](https://ci.appveyor.com/project/mity/mctrl/branch/master)
+[![Coverity Scan Status](https://img.shields.io/coverity/scan/mctrl.svg?label=coverity%20scan)](https://scan.coverity.com/projects/mctrl)
 
 # mCtrl Readme
 
