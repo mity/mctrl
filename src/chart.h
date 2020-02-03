@@ -1,5 +1,9 @@
 /*
- * Copyright (c) 2013 Martin Mitas
+ * mCtrl: Additional Win32 controls
+ * <https://github.com/mity/mctrl>
+ * <https://mctrl.org>
+ *
+ * Copyright (c) 2020 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by

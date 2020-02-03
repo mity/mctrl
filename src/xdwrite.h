@@ -1,4 +1,8 @@
 /*
+ * mCtrl: Additional Win32 controls
+ * <https://github.com/mity/mctrl>
+ * <https://mctrl.org>
+ *
  * Copyright (c) 2019-2020 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
