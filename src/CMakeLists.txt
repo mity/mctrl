@@ -57,8 +57,8 @@ add_library(mCtrl SHARED
 )
 
 target_link_libraries(mCtrl
-    gdi32 comctl32 ole32 oleaut32 uuid uxtheme windowscodecs    # Windows SDK libs
-    hsluv-c md4c-utf16)                                         # Libs distributed with us
+    gdi32 comctl32 ole32 oleaut32 shell32 uuid uxtheme windowscodecs    # Windows SDK libs
+    hsluv-c md4c-utf16)                                                 # Libs distributed with us
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)

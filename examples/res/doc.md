@@ -25,48 +25,6 @@ and it also implements some commonly used extensions to it.
 not want to implement HTML parser and renderer in the Markdown view control.
 
 
-## Current Status
-
-**Disclaimer:** This control is currently a work in progress. There may be
-bugs, some stuff can be rendered in a sub-optimal way, and some features are
-not yet implemented at all.
-
-To do (must-to-have):
-
- * Rendering of unordered lists marks.
-
- * Rendering of ordered list marks.
-
- * Rendering of entities.
-
- * Rendering of strike-through spans.
-
- * Rendering of code spans.
-
- * Interactivity of links.
-
- * Improve margins around the block elements to make the layout more balanced
-   and readable.
-
-To do (nice-to-have, likely added incrementally later):
-
- * Downloading and rendering of images.
-
- * Rendering of task lists.
-
- * Rendering of tables.
-
- * Copy & paste support.
-
- * Syntax highlighting support in code blocks.
-
- * Interactivity support for the task lists.
-
- * Some table of contents support.
-
- * Automatic header anchors that may be used as link targets.
-
-
 ## About This Document
 
 This example document lives as a resource embedded in the program. The Markdown

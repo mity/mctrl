@@ -76,11 +76,12 @@ static HCURSOR mdview_cursor_hand;
 static BOOL
 mdview_set_cursor(mdview_t* mdview)
 {
-    mdtext_hittest_info_t htinfo;
     HCURSOR cur = mdview_cursor_arrow;
 
     if(mdview->mdtext != NULL) {
+        mdtext_hittest_info_t htinfo;
         POINT pt;
+
         GetCursorPos(&pt);
         ScreenToClient(mdview->win, &pt);
         mdtext_hit_test(mdview->mdtext, pt.x + mdview->scroll_x,
@@ -93,7 +94,6 @@ mdview_set_cursor(mdview_t* mdview)
 
     SetCursor(cur);
     return TRUE;
-
 }
 
 static void
@@ -299,7 +299,7 @@ mdview_mdtext(mdview_t* mdview)
     mdview->mdtext = mdtext_create(mdview->text_fmt, mdview->text, mdview->text_len,
                                 mc_width(&client), flags);
     if(MC_ERR(mdview->mdtext == NULL))
-        MC_TRACE("mdview_set_text: mdtext_create() failed.");
+        MC_TRACE("mdview_mdtext: mdtext_create() failed.");
     mdview_setup_text_width_and_scrollbars(mdview);
 
     return mdview->mdtext;
@@ -410,6 +410,11 @@ mdview_set_text(mdview_t* mdview, const char* input, UINT32 size, BOOL convert)
     if(mdview->mdtext != NULL)
         mdtext_destroy(mdview->mdtext);
     mdview->mdtext = NULL;
+
+    mdview_scroll_xy(mdview, 0, 0);
+
+    if(!mdview->no_redraw)
+        xd2d_invalidate(mdview->win, NULL, TRUE, &mdview->xd2d_cache);
 
     return 0;
 }
@@ -620,6 +625,32 @@ mdview_goto_url(mdview_t* mdview, const TCHAR* url, BOOL is_unicode)
     return ret;
 }
 
+static void
+mdview_left_button_up(mdview_t* mdview, int x, int y)
+{
+    mdtext_hittest_info_t htinfo;
+
+    if(mdview->mdtext == NULL)
+        return;
+
+    mdtext_hit_test(mdview->mdtext, x + mdview->scroll_x, y + mdview->scroll_y, &htinfo);
+
+    if(htinfo.in_link) {
+        /* If the link href ends with ".md" or ".markdown", we assume we can open
+         * it in-place. Otherwice let the Windows shell open it. (E.g. http[s]:
+         * urls then shall be opened in a default browser.) */
+        size_t href_len = _tcslen(htinfo.link_href);
+
+        if((href_len > 3 && _tcscmp(htinfo.link_href + href_len - 3, _T(".md")) == 0)  ||
+           (href_len > 9 && _tcscmp(htinfo.link_href + href_len - 9, _T(".markdown")) == 0))
+        {
+            mdview_goto_url(mdview, htinfo.link_href, MC_IS_UNICODE);
+        } else {
+            ShellExecute(NULL, _T("open"), htinfo.link_href, NULL, NULL, SW_SHOWNORMAL);
+        }
+    }
+}
+
 static mdview_t*
 mdview_nccreate(HWND win, CREATESTRUCT* cs)
 {
@@ -693,6 +724,10 @@ mdview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             if(LOWORD(lp) == HTCLIENT)
                 return mdview_set_cursor(mdview);
             break;
+
+        case WM_LBUTTONUP:
+            mdview_left_button_up(mdview, GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
+            return 0;
 
         case WM_PAINT:
             /* Make sure mdview->text exists before we might create the canvas.

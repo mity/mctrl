@@ -26,6 +26,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <commctrl.h>
+#include <shellapi.h>
 #include <shlwapi.h>
 #include <vssym32.h>
 #include <vsstyle.h>
