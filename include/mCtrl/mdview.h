@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Martin Mitas
+ * Copyright (c) 2019-2020 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,10 +30,54 @@ extern "C" {
 /**
  * @file Markdown view control (@c MC_WC_MDVIEW)
  *
- * TODO: describe me.
+ * Markdown view control is a control which is able to display Markdown files
+ * which can be stored on a file system or embedded in the executable as a
+ * resource loadable via @code LoadResource() API.
+ *
+ * @note The control is very new and at the moment the control has many
+ * limitations. It should have more features added in the future.
+ *
+ * This control has been created as a much light-wighted variant for the HTML
+ * control and the primary motivation is displaying richer text for showing
+ * license, readme or simple help.
  *
  *
- * @section treelist_std_msgs Standard Messages
+ * @section mdview_markdown_dialect Markdown Dialect
+ *
+ * The control uses MD4C Markdown parser (https://github.com/mity/md4c) under
+ * the hood. The parser is fully compliant to CommonMark specification
+ * (https://spec.commonmark.org/0.29/). Additionally supports some extensions.
+ *
+ * Therefore refer to the specification and MD4C documentation for exact
+ * description of the Markdown syntax supported.
+ *
+ * However note that some Markdown features are not yet implemented in the
+ * control:
+ *
+ * Not yet supported (planned to be added):
+ *  - Images
+ *  - Task Lists
+ *  - Tables
+ *
+ * Also note that raw HTML blocks and spans are intentionally disabled and
+ * won't be supported.
+ *
+ *
+ * @section mdview_links Handling Links
+ *
+ * Currently the control attempts to follow the links with addresses which end
+ * with '.md' or '.markdown'. Other links are opened via @code ShellExecute()
+ * so, depending on the link address, they are opened by some default
+ * application as defined by system configuration.
+ *
+ * Therefore typical links with the http: or https: schemes are opened in the
+ * default web browser and links with the mailto: scheme in the default e-mail
+ * client.
+ *
+ * (We plan some better control and API to make this more flexible.)
+ *
+ *
+ * @section mdview_std_msgs Standard Messages
  *
  * These standard messages are handled by the control:
  * - @c WM_GETFONT
