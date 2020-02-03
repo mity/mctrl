@@ -20,6 +20,7 @@ add_library(mCtrl SHARED
     chart.c                         chart.h         ../include/mCtrl/chart.h
     color.c                         color.h
                                     compat.h
+    comua.c                         comua.h
     debug.c                         debug.h
     dialog.c                        dialog.h        ../include/mCtrl/dialog.h
     doublebuffer.c                  doublebuffer.h

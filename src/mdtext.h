@@ -42,4 +42,17 @@ void mdtext_paint(mdtext_t* mdtext, c_ID2D1RenderTarget* rt,
                   int portview_y0, int portview_y1);
 
 
+typedef struct mdtext_hittest_info_tag mdtext_hittest_info_t;
+struct mdtext_hittest_info_tag {
+    BOOL in_text;
+
+    BOOL in_link;
+    const TCHAR* link_href;
+    const TCHAR* link_title;
+};
+
+
+void mdtext_hit_test(mdtext_t* mdtext, int x, int y, mdtext_hittest_info_t* info);
+
+
 #endif  /* MC_MDTEXT_H */

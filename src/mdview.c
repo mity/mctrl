@@ -68,6 +68,34 @@ struct mdview_tag {
 };
 
 
+static HCURSOR mdview_cursor_arrow;
+static HCURSOR mdview_cursor_ibeam;
+static HCURSOR mdview_cursor_hand;
+
+
+static BOOL
+mdview_set_cursor(mdview_t* mdview)
+{
+    mdtext_hittest_info_t htinfo;
+    HCURSOR cur = mdview_cursor_arrow;
+
+    if(mdview->mdtext != NULL) {
+        POINT pt;
+        GetCursorPos(&pt);
+        ScreenToClient(mdview->win, &pt);
+        mdtext_hit_test(mdview->mdtext, pt.x + mdview->scroll_x,
+                    pt.y + mdview->scroll_y, &htinfo);
+        if(htinfo.in_link)
+            cur = mdview_cursor_hand;
+        else if(htinfo.in_text)
+            cur = mdview_cursor_ibeam;
+    }
+
+    SetCursor(cur);
+    return TRUE;
+
+}
+
 static void
 mdview_setup_scrollbars(mdview_t* mdview)
 {
@@ -160,8 +188,7 @@ mdview_scroll_xy(mdview_t* mdview, int scroll_x, int scroll_y)
     if(scroll_x == old_scroll_x  &&  scroll_y == old_scroll_y)
         return;
 
-    /* FIXME: Some WinDrawLib moral equivalent for ScrollWindowEx() would be
-     * better here. */
+    /* Some moral equivalent for ScrollWindowEx() would be better here. */
     if(!mdview->no_redraw)
         xd2d_invalidate(mdview->win, NULL, TRUE, &mdview->xd2d_cache);
 
@@ -169,6 +196,8 @@ mdview_scroll_xy(mdview_t* mdview, int scroll_x, int scroll_y)
     SetScrollPos(mdview->win, SB_VERT, scroll_y, TRUE);
     mdview->scroll_x = scroll_x;
     mdview->scroll_y = scroll_y;
+
+    mdview_set_cursor(mdview);
 }
 
 static void
@@ -647,6 +676,7 @@ mdview_ncdestroy(mdview_t* mdview)
 {
     if(mdview->mdtext != NULL)
         mdtext_destroy(mdview->mdtext);
+
     if(mdview->text != NULL)
         free(mdview->text);
     xd2d_free_cache(&mdview->xd2d_cache);
@@ -659,6 +689,11 @@ mdview_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
     mdview_t* mdview = (mdview_t*) GetWindowLongPtr(win, 0);
 
     switch(msg) {
+        case WM_SETCURSOR:
+            if(LOWORD(lp) == HTCLIENT)
+                return mdview_set_cursor(mdview);
+            break;
+
         case WM_PAINT:
             /* Make sure mdview->text exists before we might create the canvas.
              *
@@ -845,10 +880,14 @@ mdview_init_module(void)
 {
     WNDCLASS wc = { 0 };
 
+    mdview_cursor_arrow = LoadCursor(NULL, IDC_ARROW);
+    mdview_cursor_ibeam = LoadCursor(NULL, IDC_IBEAM);
+    mdview_cursor_hand = LoadCursor(NULL, IDC_HAND);
+
     wc.style = CS_GLOBALCLASS | CS_PARENTDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = mdview_proc;
     wc.cbWndExtra = sizeof(mdview_t*);
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hCursor = mdview_cursor_arrow;
     wc.lpszClassName = mdview_wc;
     if(MC_ERR(RegisterClass(&wc) == 0)) {
         MC_TRACE_ERR("mdview_init_module: RegisterClass() failed");
