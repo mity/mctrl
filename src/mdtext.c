@@ -776,12 +776,13 @@ mdtext_enter_block_cb(MD_BLOCKTYPE type, void* detail, void* userdata)
         case MD_BLOCK_UL:
             if(((MD_BLOCK_UL_DETAIL*) detail)->is_tight)
                 node->flags |= MDTEXT_NODE_IS_TIGHT;
-            node->aux = ((MD_BLOCK_UL_DETAIL*) detail)->mark;
+            node->aux = 10000 + ((MD_BLOCK_UL_DETAIL*) detail)->mark;
             break;
 
         case MD_BLOCK_OL:
             if(((MD_BLOCK_OL_DETAIL*) detail)->is_tight)
                 node->flags |= MDTEXT_NODE_IS_TIGHT;
+            node->aux = ((MD_BLOCK_OL_DETAIL*) detail)->start % 10000;
             break;
 
         case MD_BLOCK_LI:
@@ -792,6 +793,8 @@ mdtext_enter_block_cb(MD_BLOCKTYPE type, void* detail, void* userdata)
             if(parent->flags & MDTEXT_NODE_IS_TIGHT)
                 node->flags |= MDTEXT_NODE_IS_TIGHT;
             node->aux = parent->aux;
+            if(parent->aux < 10000)
+                parent->aux = (parent->aux + 1) % 10000;
             break;
         }
 
@@ -1252,44 +1255,62 @@ mdtext_paint(mdtext_t* mdtext, c_ID2D1RenderTarget* rt, int x_offset, int y_offs
 
             case MD_BLOCK_LI:
             {
-                float bullet_size = 0.33f * (float)mdtext->line_height;
-                c_D2D1_POINT_2F pt0 = {
-                        (float) (node->rect.left + x_offset + padding_left - mdtext->digit_width) - 0.5f * bullet_size,
-                        (float) (node->rect.top + y_offset + padding_top) + 0.5f * (float)mdtext->line_height
-                };
-
                 xd2d_color_set_cref(&c, MDTEXT_TEXT_COLOR);
-                switch(node->aux) {
-                    case _T('+'):
-                    {
-                        c_D2D1_RECT_F rect = {
-                                pt0.x - 0.5f * bullet_size, pt0.y - 0.5f * bullet_size,
-                                pt0.x + 0.5f * bullet_size, pt0.y + 0.5f * bullet_size
-                        };
-                        c_ID2D1RenderTarget_FillRectangle(rt, &rect, (c_ID2D1Brush*) brush);
-                    }
 
-                    case _T('-'):
-                    {
-                        c_D2D1_ELLIPSE ellipse = {
-                                { pt0.x, pt0.y },
-                                0.5f * bullet_size,
-                                0.5f * bullet_size
-                        };
-                        c_ID2D1RenderTarget_DrawEllipse(rt, &ellipse, (c_ID2D1Brush*) brush, 1.0f, NULL);
-                        break;
-                    }
+                if(node->aux < 10000) {
+                    TCHAR buf[8];
+                    c_D2D1_RECT_F rect = {
+                            (float) (0 + x_offset), (float) node->rect.top + y_offset,
+                            (float) (node->rect.left + x_offset + padding_left - mdtext->digit_width), (float) node->rect.bottom + y_offset
+                    };
+                    c_IDWriteTextLayout* text_layout;
 
-                    case _T('*'):
-                    default:
-                    {
-                        c_D2D1_ELLIPSE ellipse = {
-                                { pt0.x, pt0.y },
-                                0.5f * bullet_size,
-                                0.5f * bullet_size
-                        };
-                        c_ID2D1RenderTarget_FillEllipse(rt, &ellipse, (c_ID2D1Brush*) brush);
-                        break;
+                    _sntprintf(buf, MC_SIZEOF_ARRAY(buf), _T("%u."), (UINT) node->aux);
+                    text_layout = xdwrite_create_text_layout(buf, _tcslen(buf),
+                            mdtext->text_fmt, rect.right - rect.left, rect.bottom - rect.top, XDWRITE_ALIGN_RIGHT | XDWRITE_NOWRAP);
+                    if(text_layout != NULL) {
+                        xdwrite_draw(text_layout, &xdwrite_ctx, rect.left, rect.top);
+                        c_IDWriteTextLayout_Release(text_layout);
+                    }
+                } else {
+                    float bullet_size = 0.33f * (float)mdtext->line_height;
+                    c_D2D1_POINT_2F pt0 = {
+                            (float) (node->rect.left + x_offset + padding_left - mdtext->digit_width) - 0.5f * bullet_size,
+                            (float) (node->rect.top + y_offset + padding_top) + 0.5f * (float)mdtext->line_height
+                    };
+
+                    switch(node->aux - 10000) {
+                        case _T('+'):
+                        {
+                            c_D2D1_RECT_F rect = {
+                                    pt0.x - 0.5f * bullet_size, pt0.y - 0.5f * bullet_size,
+                                    pt0.x + 0.5f * bullet_size, pt0.y + 0.5f * bullet_size
+                            };
+                            c_ID2D1RenderTarget_FillRectangle(rt, &rect, (c_ID2D1Brush*) brush);
+                        }
+
+                        case _T('-'):
+                        {
+                            c_D2D1_ELLIPSE ellipse = {
+                                    { pt0.x, pt0.y },
+                                    0.5f * bullet_size,
+                                    0.5f * bullet_size
+                            };
+                            c_ID2D1RenderTarget_DrawEllipse(rt, &ellipse, (c_ID2D1Brush*) brush, 1.0f, NULL);
+                            break;
+                        }
+
+                        case _T('*'):
+                        default:
+                        {
+                            c_D2D1_ELLIPSE ellipse = {
+                                    { pt0.x, pt0.y },
+                                    0.5f * bullet_size,
+                                    0.5f * bullet_size
+                            };
+                            c_ID2D1RenderTarget_FillEllipse(rt, &ellipse, (c_ID2D1Brush*) brush);
+                            break;
+                        }
                     }
                 }
             }
