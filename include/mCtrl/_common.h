@@ -150,6 +150,9 @@ typedef struct MC_NMCUSTOMDRAWINFO_tag {
 #define MC_IVM_FIRST        (WM_USER+0x4000 + 800)
 #define MC_IVM_LAST         (WM_USER+0x4000 + 849)
 
+#define MC_MDM_FIRST        (WM_USER+0x4000 + 850)
+#define MC_MDM_LAST         (WM_USER+0x4000 + 899)
+
 /*@}*/
 
 
@@ -178,6 +181,9 @@ typedef struct MC_NMCUSTOMDRAWINFO_tag {
 
 #define MC_TLN_FIRST        (0x40000000 + 600)
 #define MC_TLN_LAST         (0x40000000 + 699)
+
+#define MC_MDN_FIRST        (0x40000000 + 700)
+#define MC_MDN_LAST         (0x40000000 + 799)
 
 /*@}*/
 

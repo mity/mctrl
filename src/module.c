@@ -140,6 +140,7 @@ DEFINE_MODULE(grid);
 DEFINE_MODULE(html);
 DEFINE_MODULE(imgview);
 DEFINE_MODULE(mditab);
+DEFINE_MODULE(mdview);
 DEFINE_MODULE(menubar);
 DEFINE_MODULE(treelist);
 DEFINE_MODULE(xd2d);
@@ -169,6 +170,9 @@ DEFINE_PUBLIC_IFACE(imgview, ImgView, mod_imgview_deps)
 
 static module_t* mod_mditab_deps[] = { &mod_mc, &mod_xdwm, &mod_xd2d, &mod_xdwrite, &mod_xwic, &mod_mditab };
 DEFINE_PUBLIC_IFACE(mditab, Mditab, mod_mditab_deps)
+
+static module_t* mod_mdview_deps[] = { &mod_mc, &mod_xd2d, &mod_xdwrite, &mod_mdview };
+DEFINE_PUBLIC_IFACE(mdview, MdView, mod_mdview_deps)
 
 static module_t* mod_menubar_deps[] = { &mod_mc, &mod_menubar };
 DEFINE_PUBLIC_IFACE(menubar, Menubar, mod_menubar_deps)

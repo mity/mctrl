@@ -28,11 +28,12 @@
 #include <mCtrl/grid.h>
 #include <mCtrl/html.h>
 #include <mCtrl/imgview.h>
-#include <mCtrl/menubar.h>
 #include <mCtrl/mditab.h>
+#include <mCtrl/mdview.h>
+#include <mCtrl/menubar.h>
 #include <mCtrl/table.h>
-#include <mCtrl/version.h>
 #include <mCtrl/treelist.h>
+#include <mCtrl/version.h>
 
 
 /**

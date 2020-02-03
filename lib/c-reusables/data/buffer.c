@@ -2,7 +2,7 @@
  * C Reusables
  * <http://github.com/mity/c-reusables>
  *
- * Copyright (c) 2018 Martin Mitas
+ * Copyright (c) 2018-2019 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -60,7 +60,7 @@ buffer_shrink(BUFFER* buf)
 }
 
 void*
-buffer_insert_(BUFFER* buf, size_t pos, size_t n)
+buffer_insert_raw(BUFFER* buf, size_t pos, size_t n)
 {
     if(buf->size + n > buf->alloc) {
         if(buffer_realloc(buf, (buf->size + n) * 2) != 0)
@@ -79,7 +79,7 @@ buffer_insert(BUFFER* buf, size_t pos, const void* data, size_t n)
 {
     void* ptr;
 
-    ptr = buffer_insert_(buf, pos, n);
+    ptr = buffer_insert_raw(buf, pos, n);
     if(ptr == NULL)
         return -1;
 

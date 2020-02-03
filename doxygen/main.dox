@@ -42,8 +42,9 @@
  * - @ref mCtrl/grid.h - Grid control
  * - @ref mCtrl/html.h - HTML control
  * - @ref mCtrl/imgview.h - Image view control
- * - @ref mCtrl/menubar.h - Menu bar control
  * - @ref mCtrl/mditab.h - MDI tab control
+ * - @ref mCtrl/mdview.h - Markdown view control
+ * - @ref mCtrl/menubar.h - Menu bar control
  * - @ref mCtrl/treelist.h - Tree-list view control
  *
  * @subsection toc_data Control Data Models

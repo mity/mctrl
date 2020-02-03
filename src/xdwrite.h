@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Martin Mitas
+ * Copyright (c) 2019-2020 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,12 @@
 
 #include "misc.h"
 #include "c-dwrite.h"
+#include "c-d2d1.h"
 
+
+/************************
+ *** DWrite Factories ***
+ ************************/
 
 c_IDWriteTextFormat* xdwrite_create_text_format(HFONT gdi_font, c_DWRITE_FONT_METRICS* p_metrics);
 
@@ -34,6 +39,7 @@ c_IDWriteTextFormat* xdwrite_create_text_format(HFONT gdi_font, c_DWRITE_FONT_ME
 #define XDWRITE_ALIGN_LEFT      0x0000
 #define XDWRITE_ALIGN_CENTER    0x0001
 #define XDWRITE_ALIGN_RIGHT     0x0002
+#define XDWRITE_ALIGN_JUSTIFY   0x0003
 #define XDWRITE_VALIGN_TOP      0x0000
 #define XDWRITE_VALIGN_CENTER   0x0004
 #define XDWRITE_VALIGN_BOTTOM   0x0008
@@ -43,12 +49,85 @@ c_IDWriteTextFormat* xdwrite_create_text_format(HFONT gdi_font, c_DWRITE_FONT_ME
 #define XDWRITE_ELLIPSIS_PATH   0x0040
 #define XDWRITE_NOWRAP          0x0100
 
-#define XDWRITE_ALIGN_MASK      (XDWRITE_ALIGN_LEFT | XDWRITE_ALIGN_CENTER | XDWRITE_ALIGN_RIGHT)
+#define XDWRITE_ALIGN_MASK      (XDWRITE_ALIGN_LEFT | XDWRITE_ALIGN_CENTER | XDWRITE_ALIGN_RIGHT | XDWRITE_ALIGN_JUSTIFY)
 #define XDWRITE_VALIGN_MASK     (XDWRITE_VALIGN_TOP | XDWRITE_VALIGN_CENTER | XDWRITE_VALIGN_BOTTOM)
 #define XDWRITE_ELLIPSIS_MASK   (XDWRITE_ELLIPSIS_NONE | XDWRITE_ELLIPSIS_END | XDWRITE_ELLIPSIS_WORD | XDWRITE_ELLIPSIS_PATH)
 
 c_IDWriteTextLayout* xdwrite_create_text_layout(const TCHAR* str, UINT len,
             c_IDWriteTextFormat* tf, float max_width, float max_height, DWORD flags);
+
+
+/******************************************
+ *** Custom IDWriteTextRenderer Effects ***
+ ******************************************/
+
+extern IUnknownVtbl xdwrite_effect_vtbl_;
+
+#define XDWRITE_EFFECT_MASK_COLOR       0x0001
+#define XDWRITE_EFFECT_MASK_BK_COLOR    0x0002
+
+typedef struct xdwrite_effect_tag xdwrite_effect_t;
+struct xdwrite_effect_tag {
+    IUnknownVtbl* vtbl;
+    DWORD mask;
+    c_D2D1_COLOR_F color;
+    c_D2D1_COLOR_F bk_color;
+};
+
+/* Simple initializers for the most commonly needed stuff. */
+#define XDWRITE_EFFECT_INIT_RGB(r,g,b)                                  \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_COLOR,                                  \
+            XD2D_COLOR_RGB((r),(g),(b)),                                \
+            { 0, 0, 0, 0 }                                              \
+        }
+
+#define XDWRITE_EFFECT_INIT_CREF(cref)                                  \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_COLOR,                                  \
+            XD2D_COLOR_CREF((cref)),                                    \
+            { 0, 0, 0, 0 }                                              \
+        }
+
+#define XDWRITE_EFFECT_INIT_BK_RGB(r,g,b)                               \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_BK_COLOR,                               \
+            { 0, 0, 0, 0 },                                             \
+            XD2D_COLOR_RGB((r),(g),(b))                                 \
+        }
+
+#define XDWRITE_EFFECT_INIT_BK_CREF(cref)                               \
+        {                                                               \
+            &xdwrite_effect_vtbl_,                                      \
+            XDWRITE_EFFECT_MASK_BK_COLOR,                               \
+            { 0, 0, 0, 0 },                                             \
+            XD2D_COLOR_CREF((cref))                                     \
+        }
+
+
+/*************************************************
+ *** Custom IDWriteTextRenderer Implementation ***
+ *************************************************/
+
+/* Custom text renderer which is capable to use the effects provided above. */
+
+extern c_IDWriteTextRenderer xdwrite_text_renderer_;
+
+typedef struct xdwrite_ctx_tag xdwrite_ctx_t;
+struct xdwrite_ctx_tag {
+    c_ID2D1RenderTarget* rt;
+    c_ID2D1SolidColorBrush* solid_brush;
+    c_D2D1_COLOR_F default_color;
+};
+
+static inline void
+xdwrite_draw(c_IDWriteTextLayout* text_layout, xdwrite_ctx_t* ctx, float x, float y)
+{
+    c_IDWriteTextLayout_Draw(text_layout, (void*) ctx, &xdwrite_text_renderer_, x, y);
+}
 
 
 #endif  /* MC_XDWRITE_H */

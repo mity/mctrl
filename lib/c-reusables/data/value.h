@@ -38,10 +38,10 @@ extern "C" {
  * Use as opaque.
  */
 typedef struct VALUE {
-    /* We need at least 2 * sizeof(void*). Sixteen bytes seems as a good
-     * compromise allowing on all normal platforms to "inline" all numeric
-     * types as well as short strings; which is good idea. Most dict keys as
-     * well as many string values are in practice quite short. */
+    /* We need at least 2 * sizeof(void*). Sixteen bytes covers that on 64-bit
+     * platforms and it seems as a good compromise allowing to "inline" all
+     * numeric types as well as short strings; which is good idea: most dict
+     * keys as well as many string values are in practice quite short. */
     uint8_t data[16];
 } VALUE;
 
@@ -87,13 +87,15 @@ int value_is_compatible(const VALUE* v, VALUE_TYPE type);
 
 /* Values newly added into array or dictionary are of type VALUE_NULL.
  *
- * Additionally a flag marks the value was never explicitly initialized by
- * the application. This function checks the flag, and allows caller to
- * distinguish whether the value was just added; or whether it was value
- * NULL already present in the container.
+ * Additionally, for such newly created values, an internal flag is used to
+ * mark that the value was never explicitly initialized by the application.
  *
- * Caller is supposed to initialize the newly added value with any of the
- * value_init_XXX() functions, and hence reset the flag).
+ * This function checks value of the flag, and allows thus the caller to
+ * distinguish whether the value was just added; or whether the value was
+ * explicitly initialized as VALUE_NULL with value_init_null().
+ *
+ * Caller is supposed to initialize all such newly added value with any of the
+ * value_init_XXX() functions, and hence reset the flag.
  */
 int value_is_new(const VALUE* v);
 
@@ -171,7 +173,7 @@ VALUE* value_build_path(VALUE* root, const char* path);
  *** VALUE_NULL ***
  ******************/
 
-/* Note it is guaranteed that NULL does not need any explicit clean-up;
+/* Note it is guaranteed that VALUE_NULL does not need any explicit clean-up;
  * i.e. application may avoid calling value_fini().
  *
  * But it is allowed to. value_fini() for VALUE_NULL is a noop.
@@ -210,12 +212,16 @@ int value_init_double(VALUE* v, double d);
 
 /* Getters.
  *
- * Note you may use any of the getter function for any numeric value. These
- * functions perform required conversions under the hood. The conversion may
- * have have the same side/limitations as C casting.
+ * Note you may use any of the getter functions for any numeric value type.
+ * All these functions are able to perform any required conversion under the
+ * hood.
  *
- * However application may use value_is_compatible() to verify whether the
- * conversion should provide reasonable result.
+ * Naturally, the conversion may have similar side effects as C casting, such
+ * as an overflow, an underflow or, when converting float/double to any integer
+ * type, a rounding.
+ *
+ * However application may use value_is_compatible() to verify the getter
+ * will provide a reasonable result for the particular value in question.
  */
 int32_t value_int32(const VALUE* v);
 uint32_t value_uint32(const VALUE* v);
@@ -229,15 +235,32 @@ double value_double(const VALUE* v);
  *** VALUE_STRING ***
  ********************/
 
-/* Note STRING allows strings of any bytes (including zero bytes).
- * But in that case init_string_() has to be used to initialize it.
+/* Note VALUE_STRING allows to store any sequences of any bytes, even a binary
+ * data. No particular encoding of the string is assumed. Even zero bytes are
+ * allowed (but then the caller has to use value_init_string_() and specify
+ * the string length explicitly).
  */
 
+/* The function value_init_string_() initializes the VALUE_STRING with any
+ * sequence of bytes, of any length. It also adds automatically one zero byte
+ * (not counted in the length of the string).
+ *
+ * The function value_init_string() is equivalent to calling directly
+ * value_init_string_(str, strlen(str)).
+ *
+ * The parameter str is allowed to be NULL (then the functions behave the same
+ * way as if it is points to an empty string).
+ */
 int value_init_string_(VALUE* v, const char* str, size_t len);
 int value_init_string(VALUE* v, const char* str);
 
+/* Get pointer to the internal buffer holding the string. The caller may assume
+ * the returned string is always zero-terminated.
+ */
 const char* value_string(const VALUE* v);
 
+/* Get length of the string. (The implicit zero terminator does not count.)
+ */
 size_t value_string_length(const VALUE* v);
 
 
@@ -247,8 +270,11 @@ size_t value_string_length(const VALUE* v);
 
 /* Array of values.
  *
- * Note that all functions returning VALUE* allow caller to modify
- * the value in-place by re-initializing the value.
+ * Note that any new value added into the array with value_array_append() or
+ * value_array_insert() is initially of the type VALUE_NULL and that it has
+ * an internal flag marking the value as new (so that value_is_new() returns
+ * non-zero for it). Application is supposed to initialize the newly added
+ * value by any of the value initialization functions.
  *
  * WARNING: Modifying contents of an array (i.e. inserting, appending and also
  * removing a value)  can lead to reallocation of internal array buffer.
@@ -291,8 +317,11 @@ void value_array_clean(VALUE* v);
 
 /* Dictionary of values. (Internally implemented as red-black tree.)
  *
- * Note that all functions returning VALUE* allow caller to modify
- * the value in-place by re-initializing the value.
+ * Note that any new value added into the dictionary is initially of the type
+ * VALUE_NULL and that it has  an internal flag marking the value as new
+ * (so that value_is_new() returns non-zero for it). Application is supposed
+ * to initialize the newly added value by any of the value initialization
+ * functions.
  *
  * Note that all the functions adding/removing any items may invalidate all
  * pointers into the dictionary.
@@ -300,16 +329,16 @@ void value_array_clean(VALUE* v);
 
 
 /* Flag for init_dict_ex() asking to maintain the order in which the dictionary
- * is populated and enables dict_walk_ordered().
+ * is populated and enabling dict_walk_ordered().
  *
- * If used, the dictionary consumes more memory for every node.
+ * If used, the dictionary consumes more memory.
  */
 #define VALUE_DICT_MAINTAINORDER      0x0001
 
 /* Initialize the value as a (empty) dictionary.
  *
  * value_init_dict_ex() allows to specify custom comparer function (may be NULL)
- * or flags.
+ * or flags changing the default behavior of the dictionary.
  */
 int value_init_dict(VALUE* v);
 int value_init_dict_ex(VALUE* v,
@@ -327,7 +356,8 @@ size_t value_dict_size(const VALUE* v);
 
 /* Get all keys.
  *
- * If the buffer is too small, only subset of keys may be retrieved.
+ * If the buffer provided by the caller is too small, only subset of keys shall
+ * be retrieved.
  *
  * Returns count of retrieved keys.
  */
@@ -351,12 +381,12 @@ VALUE* value_dict_add(VALUE* v, const char* key);
  * Get value of the given key. If no such value exists, new one is added.
  * Application can check for such situation with value_is_new().
  *
- * NULL is returned only in an out of memory condition.
+ * NULL is returned only in an out-of-memory situation.
  */
 VALUE* value_dict_get_or_add_(VALUE* v, const char* key, size_t key_len);
 VALUE* value_dict_get_or_add(VALUE* v, const char* key);
 
-/* Remove and destroy the given item from the dictionary.
+/* Remove and destroy (recursively) the given item from the dictionary.
  */
 int value_dict_remove_(VALUE* v, const char* key, size_t key_len);
 int value_dict_remove(VALUE* v, const char* key);

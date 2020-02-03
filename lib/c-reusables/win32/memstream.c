@@ -2,7 +2,7 @@
  * C Reusables
  * <http://github.com/mity/c-reusables>
  *
- * Copyright (c) 2015-2018 Martin Mitas
+ * Copyright (c) 2015-2020 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -92,7 +92,6 @@ memstream_Read(IStream* self, void* buf, ULONG n, ULONG* n_read)
 
     /* Return S_FALSE, if we are already in the end-of-file situation. */
     if(s->pos >= s->size) {
-        n = 0;
         if(n_read != NULL)
             *n_read = 0;
         return S_FALSE;
@@ -106,12 +105,10 @@ memstream_Read(IStream* self, void* buf, ULONG n, ULONG* n_read)
     if(n_read != NULL)
         *n_read = n;
 
-    /* From https://msdn.microsoft.com/en-us/library/windows/desktop/aa380037(v=vs.85).aspx:
+    /* See https://docs.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-isequentialstream-read
      *
-     * Reads a specified number of bytes from the stream object into memory
-     * starting at the current seek pointer. This implementation returns S_OK
-     * if the end of the stream was reached during the read. (This is the same
-     * as the "end of file" behavior found in the MS-DOS FAT file system.)
+     * We are allowed to return S_OK even when we reach end-of-file as long as
+     * we provide the caller at least _some_ data.
      */
     return S_OK;
 }
@@ -140,16 +137,20 @@ memstream_Seek(IStream* self, LARGE_INTEGER delta, DWORD origin,
         default:               hr = STG_E_INVALIDPARAMETER; goto end;
     }
 
-    /* Note MSDN states it is an error, if the result is negative, but it is
-     * in principle OK, if we are beyond end-of-file. (In such case subsequent
-     * Read() just shall return S_FALSE to indicate end-of-file situation.)
+    /* See https://docs.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-istream-seek
+     *
+     * It is an error, if the result is negative. But it is completely fine
+     * if we are _beyond_ the data we have: Read() just shall return S_FALSE
+     * to indicate end-of-file situation.
      */
     if(pos.QuadPart < 0) {
         hr = STG_E_INVALIDFUNCTION;
         goto end;
     }
 
-    /* In 32-bit, there is a danger of overflow. */
+    /* Prevent an overflow; we simply do not support offsets/sizes >= 2^32.
+     * Most of the IStream interface (except the Seek()) uses ULONG anyway.
+     */
     if(pos.QuadPart != (ULONG) pos.QuadPart) {
         hr = STG_E_INVALIDFUNCTION;
         goto end;
@@ -184,15 +185,17 @@ memstream_CopyTo(IStream* self, IStream* other, ULARGE_INTEGER n,
 
     hr = IStream_Write(other, s->buffer + s->pos, (ULONG) n.QuadPart, &written);
 
-    /* In case of failure, MSDN states that the seek pointers are invalid
-     * in source as well as destinations streams. So lets just abort. */
+    /* See https://docs.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-istream-copyto
+     *
+     * In case of failure, MSDN states that the seek pointers are invalid
+     * in source as well as destinations streams. So lets just abort.
+     */
     if(FAILED(hr))
         return hr;
 
     s->pos += written;
 
-    /* And in the case of success, MSDN specifies that *n_read and *n_written
-     * are set to the same value. */
+    /* In the successful case, *n_read and *n_written have to be the same. */
     if(n_read != NULL)
         n_read->QuadPart = written;
     if(n_written != NULL)
@@ -308,12 +311,13 @@ memstream_create_from_resource(HINSTANCE instance,
     HGLOBAL res_global;
     void* res_data;
 
-    /* We rely on the fact that UnlockResource() and FreeResource() do nothing:
+    /* We rely on the fact that UnlockResource() and FreeResource() are legacy
+     * from 16-bit Windows 3.x and in the 32/64-bit world, the functions do
+     * just nothing:
      *  -- MSDN docs for LockResource() says no unlocking is needed.
-     *  -- MSDN docs for FreeResource() says it just returns FALSE on 32/64-bit
-     *     Windows.
+     *  -- MSDN docs for FreeResource() says it just returns FALSE.
      *
-     * See also http://blogs.msdn.com/b/oldnewthing/archive/2011/03/07/10137456.aspx
+     * See also https://devblogs.microsoft.com/oldnewthing/20110307-00/?p=11283
      *
      * It may look a bit ugly, but it simplifies things a lot as the stream
      * does not need to do any bookkeeping for the resource.

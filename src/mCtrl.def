@@ -24,6 +24,8 @@ EXPORTS
     mcMditab_DefWindowProc
     mcMditab_Initialize
     mcMditab_Terminate
+    mcMdView_Initialize
+    mcMdView_Terminate
     mcMenubar_HandleRebarChevronPushed
     mcMenubar_Initialize
     mcMenubar_Terminate

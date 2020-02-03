@@ -20,6 +20,9 @@ target_include_directories(test-buffer PRIVATE ../data)
 add_executable(test-list acutest.h test-list.c ../data/list.h)
 target_include_directories(test-list PRIVATE ../data)
 
+add_executable(test-rbtree acutest.h test-rbtree.c ../data/rbtree.h ../data/rbtree.c)
+target_include_directories(test-rbtree PRIVATE ../data)
+
 add_executable(test-value acutest.h test-value.c ../data/value.h ../data/value.c)
 target_include_directories(test-value PRIVATE ../data)
 

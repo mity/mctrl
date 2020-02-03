@@ -27,8 +27,8 @@
 #include "c-d2d1.h"
 
 
-#define XD2D_COLOR_RGBA(r,g,b,a)    { (float)(r) / 255.0f, (float)(g) / 255.0f, (float)(b) / 255.0f, (a) / 255.0f };
-#define XD2D_COLOR_RGB(r,g,b)       { (float)(r) / 255.0f, (float)(g) / 255.0f, (float)(b) / 255.0f, 1.0f };
+#define XD2D_COLOR_RGBA(r,g,b,a)    { (float)(r) / 255.0f, (float)(g) / 255.0f, (float)(b) / 255.0f, (a) / 255.0f }
+#define XD2D_COLOR_RGB(r,g,b)       { (float)(r) / 255.0f, (float)(g) / 255.0f, (float)(b) / 255.0f, 1.0f }
 #define XD2D_COLOR_CREFA(cref,a)    XD2D_COLOR_RGBA(GetRValue(cref), GetGValue(cref), GetBValue(cref), (a))
 #define XD2D_COLOR_CREF(cref)       XD2D_COLOR_RGB(GetRValue(cref), GetGValue(cref), GetBValue(cref))
 

@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/mity/md4c
+	branch = master
+	commit = 6709a869d4703b57e738a0456741b009f3942508
+	parent = 2a50b89afdcffa4c2deb407a5f892cf7b13243b1
+	method = merge
+	cmdver = 0.4.0

@@ -3,13 +3,12 @@ configure_file(version.h.in "version.h" @ONLY)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 set(CRE_PATH "${PROJECT_SOURCE_DIR}/lib/c-reusables")
-include_directories("${PROJECT_SOURCE_DIR}/lib")
-include_directories("${PROJECT_SOURCE_DIR}/lib/c-win32/include")
 
 add_library(mCtrl SHARED
     mCtrl.def
 
     # from c-reusables
+    ${CRE_PATH}/data/buffer.c       ${CRE_PATH}/data/buffer.h
     ${CRE_PATH}/win32/memstream.c   ${CRE_PATH}/win32/memstream.h
 
     # Source:                       # Header:       # Public header:
@@ -21,10 +20,13 @@ add_library(mCtrl SHARED
     chart.c                         chart.h         ../include/mCtrl/chart.h
     color.c                         color.h
                                     compat.h
+    comua.c                         comua.h
     debug.c                         debug.h
     dialog.c                        dialog.h        ../include/mCtrl/dialog.h
     doublebuffer.c                  doublebuffer.h
     dsa.c                           dsa.h
+    entity.c                        entity.h
+                                    entity_map.h
     expand.c                        expand.h        ../include/mCtrl/expand.h
     generic.c                       generic.h
     grid.c                          grid.h          ../include/mCtrl/grid.h
@@ -32,6 +34,8 @@ add_library(mCtrl SHARED
     imgview.c                       imgview.h       ../include/mCtrl/imgview.h
     labeledit.c                     labeledit.h
     mditab.c                        mditab.h        ../include/mCtrl/mditab.h
+    mdtext.c                        mdtext.h
+    mdview.c                        mdview.h        ../include/mCtrl/mdview.h
     menubar.c                       menubar.h       ../include/mCtrl/menubar.h
     misc.c                          misc.h
     module.c                        module.h
@@ -42,6 +46,7 @@ add_library(mCtrl SHARED
     table.c                         table.h         ../include/mCtrl/table.h
     tooltip.c                       tooltip.h
     treelist.c                      treelist.h      ../include/mCtrl/treelist.h
+    url.c                           url.h
     version.c                       version.h.in
     viewlist.c                      viewlist.h
     xcom.c                          xcom.h
@@ -52,8 +57,8 @@ add_library(mCtrl SHARED
 )
 
 target_link_libraries(mCtrl
-    gdi32 comctl32 ole32 oleaut32 uuid uxtheme windowscodecs    # Windows SDK libs
-    hsluv-c)                                                    # Libs distributed with us
+    gdi32 comctl32 ole32 oleaut32 shell32 uuid uxtheme windowscodecs    # Windows SDK libs
+    hsluv-c md4c-utf16)                                                 # Libs distributed with us
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)

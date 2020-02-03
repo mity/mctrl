@@ -2,7 +2,7 @@
  * C Reusables
  * <http://github.com/mity/c-reusables>
  *
- * Copyright (c) 2017 Martin Mitas
+ * Copyright (c) 2017-2020 Martin Mitas
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -45,14 +45,14 @@ test_error_propagation(void)
     TEST_CHECK(ret == 0xbeef);
 }
 
-
+/****************************************************************************/
 
 static int
 test_unknown_short_option_callback(int optid, const char* arg, void* userdata)
 {
     switch(optid) {
         case CMDLINE_OPTID_UNKNOWN:
-            TEST_CHECK(strcmp(arg, "-x") == 0);
+            TEST_CHECK(strcmp(arg, "-X") == 0);
             return -1;
 
         default:
@@ -67,11 +67,54 @@ static void
 test_unknown_short_option(void)
 {
     static const CMDLINE_OPTION optlist[] = { { 0 } };
-    static char* argv[] = { "foo", "-x" };
+    static char* argv[] = { "foo", "-X" };
     static const int argc = sizeof(argv) / sizeof(argv[0]);
     int ret;
 
     ret = cmdline_read(optlist, argc, argv, test_unknown_short_option_callback, NULL);
+    TEST_CHECK(ret == -1);
+}
+
+/****************************************************************************/
+
+static int
+test_unknown_grouped_option_callback(int optid, const char* arg, void* userdata)
+{
+    switch(optid) {
+        case 'a':
+        case 'b':
+        case 'c':
+        case 'd':
+            return 0;
+
+        case CMDLINE_OPTID_UNKNOWN:
+            TEST_CHECK(strcmp(arg, "-X") == 0 || strcmp(arg, "-Y") == 0 || strcmp(arg, "-Z") == 0);
+            return -1;
+
+        default:
+            TEST_CHECK(0);  /* Should never be here */
+            break;
+    }
+
+    return 0;
+}
+
+static void
+test_unknown_grouped_option(void)
+{
+    static const CMDLINE_OPTION optlist[] = {
+        { 'a', NULL, 'a', 0 },
+        { 'b', NULL, 'b', 0 },
+        { 'c', NULL, 'c', 0 },
+        { 'd', NULL, 'd', 0 },
+        { 0 }
+    };
+
+    static char* argv[] = { "foo", "-aX", "-bY", "-cZd", "-XX" };
+    static const int argc = sizeof(argv) / sizeof(argv[0]);
+    int ret;
+
+    ret = cmdline_read(optlist, argc, argv, test_unknown_grouped_option_callback, NULL);
     TEST_CHECK(ret == -1);
 }
 
@@ -189,8 +232,6 @@ test_short_options_callback(int optid, const char* arg, void* userdata)
     return 0;
 }
 
-/****************************************************************************/
-
 static void
 test_short_options(void)
 {
@@ -211,7 +252,7 @@ test_short_options(void)
     ret = cmdline_read(optlist, argc, argv, test_short_options_callback, &res);
     TEST_CHECK_(ret == 0, "return value");
     TEST_CHECK_(res.a_used, "short option handling");
-    TEST_CHECK_(res.b_used  &&  res.c_used, "shortoption group handling");
+    TEST_CHECK_(res.b_used  &&  res.c_used, "short option group handling");
     TEST_CHECK_(res.d_used, "short option with argument");
     TEST_CHECK_(res.e_used, "short option with argument delimited with whitespace");
     TEST_CHECK_(res.f_used  &&  res.nonoption_arg_used, "short option ignores optional arg. flag.");
@@ -281,6 +322,54 @@ test_long_options(void)
     TEST_CHECK_(res.b_used, "long option with required argument");
     TEST_CHECK_(res.c_used, "long option with missing optional argument");
     TEST_CHECK_(res.d_used, "long option with present optional argument");
+}
+
+/****************************************************************************/
+
+static int
+test_compilerlike_options_callback(int optid, const char* arg, void* userdata)
+{
+    switch(optid) {
+        case 'D':
+            TEST_CHECK(strcmp(arg, "DEBUG=1") == 0);
+            break;
+
+        case 'I':
+            TEST_CHECK(strcmp(arg, "../include") == 0);
+            break;
+
+        case CMDLINE_OPTID_UNKNOWN:
+            TEST_CHECK(strcmp(arg, "-Xunknown") == 0);
+            return 0;
+
+        case CMDLINE_OPTID_MISSINGARG:
+            TEST_CHECK(strcmp(arg, "-Y") == 0);
+            return 0;
+
+        default:
+            TEST_CHECK(0);  /* should never be called. */
+            break;
+    }
+
+    return 0;
+
+}
+
+static void
+test_compilerlike_options(void)
+{
+    static const CMDLINE_OPTION optlist[] = {
+        { 0, "-D", 'D', CMDLINE_OPTFLAG_COMPILERLIKE },
+        { 0, "-I", 'I', CMDLINE_OPTFLAG_COMPILERLIKE },
+        { 0, "-Y", 'Y', CMDLINE_OPTFLAG_COMPILERLIKE },
+        { 0 }
+    };
+    static char* argv[] = { "foo", "-DDEBUG=1", "-I../include", "-Xunknown", "-Y"/*missingarg*/ };
+    static const int argc = sizeof(argv) / sizeof(argv[0]);
+    int ret;
+
+    ret = cmdline_read(optlist, argc, argv, test_compilerlike_options_callback, NULL);
+    TEST_CHECK(ret == 0);
 }
 
 /****************************************************************************/
@@ -373,10 +462,12 @@ test_nonoptions(void)
 TEST_LIST = {
     { "error-propagation",      test_error_propagation },
     { "unknown-short-option",   test_unknown_short_option },
+    { "unknown-grouped-option", test_unknown_grouped_option },
     { "unknown-long-option",    test_unknown_long_option },
     { "no-options",             test_no_options },
     { "short-options",          test_short_options },
     { "long-options",           test_long_options },
+    { "compilerlike-options",   test_compilerlike_options },
     { "non-options",            test_nonoptions },
-    { 0 }
+    { NULL, NULL }
 };
