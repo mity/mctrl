@@ -72,7 +72,7 @@ strres_enum_lang(HMODULE dll, const TCHAR* type, const TCHAR* name, WORD lang_id
 
         if(len > 0) {
             TEST_CHECK_(strres_is_zero_terminated(str, len), "[%u:%u] zero-terminated",
-                        lang_id, (((ULONG_PTR)name - 1) * 16 + i));
+                        lang_id, (unsigned)(((ULONG_PTR)name - 1) * 16 + i));
             str += len;
         }
     }
