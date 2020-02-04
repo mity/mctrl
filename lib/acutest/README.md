@@ -1,5 +1,5 @@
-[![Build status (travis-ci.com)](https://img.shields.io/travis/mity/acutest/master.svg?label=linux%20build)](https://travis-ci.org/mity/acutest)
-[![Build status (appveyor.com)](https://img.shields.io/appveyor/ci/mity/acutest/master.svg?label=windows%20build)](https://ci.appveyor.com/project/mity/acutest/branch/master)
+[![Linux Build Status (travis-ci.com)](https://img.shields.io/travis/mity/acutest/master.svg?logo=linux&label=linux%20build)](https://travis-ci.org/mity/acutest)
+[![Windows Build Status (appveyor.com)](https://img.shields.io/appveyor/ci/mity/acutest/master.svg?logo=windows&label=windows%20build)](https://ci.appveyor.com/project/mity/acutest/branch/master)
 
 
 # Acutest Readme
@@ -9,8 +9,8 @@ Home: http://github.com/mity/acutest
 
 ## What Is Acutest
 
-Acutest is C/C++ unit testing facility aiming to be as simple as possible, to
-not to stand in the developer's way and to minimize any external dependencies.
+Acutest is C/C++ unit testing facility aiming to be as simple as possible, not
+to stand in the developer's way and to minimize any external dependencies.
 
 To achieve that, the complete implementation resides in a single C header file,
 and its core depends only on few standard C library functions.
@@ -37,31 +37,35 @@ and its core depends only on few standard C library functions.
 * If the exception is derived from `std::exception`, `what()` is written out
   in the error message.
 
-**Unix specific features:**
+**Unix/Posix specific features:**
 * By default, every unit test is executed as a child process.
 * By default, if the output is directed to a terminal, the output is colorized.
+* If the system offers Posix timer (`clock_gettime()`), user can measure test
+  execution times with `--time=real` (same as `--time`) and `--time=cpu`.
+
+**Linux specific features:**
+* If a debugger is detected, the default execution of tests as child processes
+  is suppressed in order to make the debugging easier.
 
 **Windows specific features:**
 * By default, every unit test is executed as a child process.
+* If a debugger is detected, the default execution of tests as child processes
+  is suppressed in order to make the debugging easier.
 * By default, if the output is directed to a terminal, the output is colorized.
 * Acutest installs a SEH filter to print out uncaught SEH exceptions.
+* User can measure test execution times with `--time`.
 
 Any C/C++ module implementing one or more unit tests and including `acutest.h`,
 can be built as a standalone program. We call the resulted binary as a "test
 suite" for purposes of this document. The suite is then executed to run the
 tests, as specified with its command line options.
 
-By default, all unit tests in the program are run and (on Windows and Unix)
-every unit test is executed in a context of its own subprocess. Both can be
-overridden on the command line.
-
-We say any unit test succeeds if all conditions (preprocessor macros `TEST_CHECK`
-or `TEST_CHECK_`) called throughout its execution pass, the test does not throw
-any exception (C++ only), and (on Windows/Unix) the unit test subprocess is not
-interrupted/terminated (e.g. by a signal on Unix or SEH on Windows).
-
-Exit code of the test suite is 0 if all executed unit tests pass, 1 if any of
-them fails, or any other number if an internal error occurs.
+We say any unit test succeeds if and only if:
+1. all condition checks (as described below) called throughout its execution
+   pass;
+2. the test does not throw any exception (C++ only); and
+3. (on Windows or Unix) the unit test subprocess is not interrupted/terminated
+   (e.g. by a signal on Unix or SEH on Windows).
 
 
 ## Writing Unit Tests
@@ -105,6 +109,15 @@ void test_example(void)
     TEST_CHECK(mem != NULL);
 }
 ```
+
+`TEST_ASSERT` is similar to `TEST_CHECK` but, if it fails, it aborts execution
+of the current unit test instantly, either by calling `abort()` if the test
+is executed as a child process, or via `longjmp()` if it is not.
+
+(Therefore you should use it only if you understand the costs connected with
+such brutal abortion of the test, like e.g. unflushed file descriptors, memory
+leaks, C++ objects destructed without calling their destructors etc., depending
+on what your unit test does.)
 
 Note that the tests should be completely independent on each other. Whenever
 the test suite is invoked, the user may run any number of tests in the suite,
@@ -158,9 +171,6 @@ provides the macros `TEST_MSG` and `TEST_DUMP` for this purpose.
 The former one outputs any `printf`-like message, the other one outputs a
 hexadecimal dump of a provided memory block.
 
-Note that both macros only output anything in the most recently checking
-macro failed.
-
 So for example:
 
 ```C
@@ -169,17 +179,32 @@ void test_example(void)
     char produced[100];
     char expected[] = "Hello World!";
 
-    SomeSprintfLikeFunction(expected, "Hello %s!", world);
-    TEST_CHECK(strlen(produced) == strlen(expected));
+    SomeSprintfLikeFunction(produced, "Hello %s!", "world");
+    TEST_CHECK(strcmp(produced, expected) == 0);
     TEST_MSG("Expected: %s", expected);
     TEST_MSG("Produced: %s", produced);
 
-    /* Or if the function would provide some binary stuff, we might rather
-     * use TEST_DUMP instead and output a hexadecimal dump. */
+    /* Or, if the function could provide some binary stuff, we might rather
+     * use TEST_DUMP instead in order to output a hexadecimal dump of the data.
+     */
     TEST_DUMP("Expected:", expected, strlen(expected));
     TEST_DUMP("Produced:", produced, strlen(produced));
 }
 ```
+
+Note that both macros output anything only when the most recently checking
+macro has failed. In other words, these two are equivalent:
+
+```C
+if(!TEST_CHECK(some_condition != 0))
+    TEST_MSG("some message");
+```
+
+```C
+TEST_CHECK(some_condition != 0);
+TEST_MSG("some message");
+```
+
 
 (Note that `TEST_MSG` requires the compiler with variadic macros support.)
 
@@ -201,8 +226,8 @@ the provided name precedes any message from subsequent condition checks in its
 output log (until `TEST_CASE` is used again or the whole unit test ends).
 
 For example lets assume we are testing `SomeFunction()` which is supposed,
-for a given byte array of some size, return another some another array of bytes
-in a newly `malloc`-ed buffer. Then we can do something like this:
+for a given byte array of some size, return another array of bytes in a newly
+`malloc`-ed buffer. Then we can do something like this:
 
 ```C
 struct TestVector {
@@ -263,25 +288,34 @@ void test_example(void)
 
 ### Custom Log Messages
 
-Many of the macros mentioned in the earlier sections have a variant which
+Many of the macros mentioned in the earlier sections have a counterpart which
 allows to output a custom messages instead of some default ones.
 
-All of these have the same name as the aforementioned macros with the
-additional underscore suffix and they also expect `printf`-like string format
-(and corresponding additional arguments).
+All of these have the same name as the aforementioned macros, just with the
+underscore suffix added. With the suffix, they then expect `printf`-like string
+format and corresponding additional arguments.
 
-So for example instead of
+So, for example, instead of the simple checking macros
 ```C++
 TEST_CHECK(a == b);
+TEST_ASSERT(x < y);
 TEST_EXCEPTION(SomeFunction(), std::exception);
 ```
-we can use
+we can use their respective counterparts with a custom messages:
 ```C++
 TEST_CHECK_(a == b, "%d is equal to %d", a, b);
+TEST_ASSERT_(x < y, "%d is lower than %d", x, y);
 TEST_EXCEPTION_(SomeFunction(), std::exception, "SomeFunction() throws std::exception");
 ```
 
-Similarly instead instead of
+You should use some neutral wording for them because, with the command line
+option `--verbose`, the messages are logged out even if the respective check
+passes successfully.
+
+(If you need to output some diagnostic information just in the case the check
+fails, use the macro `TEST_MSG`. That's exactly its purpose.)
+
+Similarly, instead of
 ```C
 TEST_CASE("name");
 ```
@@ -291,7 +325,8 @@ TEST_CASE_("iteration #%d", 42);
 ```
 
 However note all of these can only be used if your compiler supports variadic
-macros.
+preprocessor macros. Variadic macros became a standard part of the C language
+with C99.
 
 
 ## Building the Test Suite
@@ -309,6 +344,9 @@ $ cc test_example.c -o test_example
 When the test suite is compiled, the resulted testing binary can be used to run
 the tests.
 
+Exit code of the test suite is 0 if all the executed unit tests pass, 1 if any
+of them fails, or any other number if an internal error occurs.
+
 By default (without any command line options), it runs all implemented unit
 tests. It can also run only subset of the unit tests as specified on the
 command line:
@@ -319,17 +357,17 @@ $ ./test_example test1 test2    # Runs only tests specified
 $ ./test_example --skip test3   # Runs all tests but those specified
 ```
 
-Note that a single command line argument can select whole group of test units
+Note that a single command line argument can select a whole group of test units
 because Acutest implements several levels of unit test selection (the 1st one
 matching at least one test unit is used):
 
-1. *Exact match*: When the argument matches exactly the whole name of some unit
+1. *Exact match*: When the argument matches exactly the whole name of a unit
    test then just the given test is selected.
 
 2. *Word match*: When the argument does not match any complete test name, but
    it does match whole word in one or more test names, then all such tests are
    selected. (Note that space ` `, tabulator `\t`, dash `-` and underscore `_`
-   are seen as word delimiters in test names.)
+   are recognized as word delimiters in the test names.)
 
 3. *Substring match*: If even the word match failed to select any test, then
    all tests with a name which contains the argument as its substring are

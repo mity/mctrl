@@ -2,7 +2,8 @@
  * Acutest -- Another C/C++ Unit Test facility
  * <http://github.com/mity/acutest>
  *
- * Copyright (c) 2013-2019 Martin Mitas
+ * Copyright 2013-2020 Martin Mitas
+ * Copyright 2019 Garrett D'Amore
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -81,6 +82,34 @@
 #define TEST_CHECK_(cond,...)   test_check__((cond), __FILE__, __LINE__, __VA_ARGS__)
 #define TEST_CHECK(cond)        test_check__((cond), __FILE__, __LINE__, "%s", #cond)
 
+
+/* These macros are the same as TEST_CHECK_ and TEST_CHECK except that if the
+ * condition fails, the currently executed unit test is immediately aborted.
+ *
+ * That is done either by calling abort() if the unit test is executed as a
+ * child process; or via longjmp() if the unit test is executed within the
+ * main Acutest process.
+ *
+ * As a side effect of such abortion, your unit tests may cause memory leaks,
+ * unflushed file descriptors, and other fenomena caused by the abortion.
+ *
+ * Therefore you should not use these as a general replacement for TEST_CHECK.
+ * Use it with some caution, especially if your test causes some other side
+ * effects to the outside world (e.g. communicating with some server, inserting
+ * into a database etc.).
+ */
+#define TEST_ASSERT_(cond,...)                                                 \
+    do {                                                                       \
+        if (!test_check__((cond), __FILE__, __LINE__, __VA_ARGS__))            \
+            test_abort__();                                                    \
+    } while(0)
+#define TEST_ASSERT(cond)                                                      \
+    do {                                                                       \
+        if (!test_check__((cond), __FILE__, __LINE__, "%s", #cond))            \
+            test_abort__();                                                    \
+    } while(0)
+
+
 #ifdef __cplusplus
 /* Macros to verify that the code (the 1st argument) throws exception of given
  * type (the 2nd argument). (Note these macros are only available in C++.)
@@ -150,7 +179,7 @@
  * the last test case after exiting the loop), you may use TEST_CASE(NULL).
  */
 #define TEST_CASE_(...)         test_case__(__VA_ARGS__)
-#define TEST_CASE(name)         test_case__("%s", name);
+#define TEST_CASE(name)         test_case__("%s", name)
 
 
 /* printf-like macro for outputting an extra information about a failure.
@@ -216,6 +245,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <setjmp.h>
 
 #if defined(unix) || defined(__unix__) || defined(__unix) || defined(__APPLE__)
     #define ACUTEST_UNIX__      1
@@ -248,6 +278,19 @@
     #include <exception>
 #endif
 
+/* Load valgrind.h, if available. This allows to detect valgrind's presence via RUNNING_ON_VALGRIND. */
+#ifdef __has_include
+    #if __has_include(<valgrind.h>)
+        #include <valgrind.h>
+    #endif
+#endif
+
+/* Enable the use of the non-standard keyword __attribute__ to silence warnings under some compilers */
+#if defined(__GNUC__) || defined(__clang__)
+    #define TEST_ATTRIBUTE__(_x) __attribute__ ((_x))
+#else
+    #define TEST_ATTRIBUTE__(_x)
+#endif
 
 /* Note our global private identifiers end with '__' to mitigate risk of clash
  * with the unit tests implementation. */
@@ -280,6 +323,7 @@ int test_check__(int cond, const char* file, int line, const char* fmt, ...);
 void test_case__(const char* fmt, ...);
 void test_message__(const char* fmt, ...);
 void test_dump__(const char* title, const void* addr, size_t size);
+void test_abort__(void) TEST_ATTRIBUTE__(noreturn);
 
 
 #ifndef TEST_NO_MAIN
@@ -295,6 +339,7 @@ static int test_skip_mode__ = 0;
 static int test_worker__ = 0;
 static int test_worker_index__ = 0;
 static int test_cond_failed__ = 0;
+static int test_was_aborted__ = 0;
 static FILE *test_xml_output__ = NULL;
 
 static int test_stat_failed_units__ = 0;
@@ -309,6 +354,9 @@ static int test_verbose_level__ = 2;
 static int test_current_failures__ = 0;
 static int test_colorize__ = 0;
 static int test_timer__ = 0;
+
+static int test_abort_has_jmp_buf__ = 0;
+static jmp_buf test_abort_jmp_buf__;
 
 #if defined ACUTEST_WIN__
     typedef LARGE_INTEGER test_timer_type__;
@@ -331,8 +379,8 @@ static int test_timer__ = 0;
     static double
     test_timer_diff__(LARGE_INTEGER start, LARGE_INTEGER end)
     {
-        double duration = end.QuadPart - start.QuadPart;
-        duration /= test_timer_freq__.QuadPart;
+        double duration = (double)(end.QuadPart - start.QuadPart);
+        duration /= (double)test_timer_freq__.QuadPart;
         return duration;
     }
 
@@ -351,12 +399,7 @@ static int test_timer__ = 0;
     test_timer_init__(void)
     {
         if(test_timer__ == 1)
-    #ifdef CLOCK_MONOTONIC_RAW
-            /* linux specific; not subject of NTP adjustments or adjtime() */
-            test_timer_id__ = CLOCK_MONOTONIC_RAW;
-    #else
             test_timer_id__ = CLOCK_MONOTONIC;
-    #endif
         else if(test_timer__ == 2)
             test_timer_id__ = CLOCK_PROCESS_CPUTIME_ID;
     }
@@ -370,11 +413,18 @@ static int test_timer__ = 0;
     static double
     test_timer_diff__(struct timespec start, struct timespec end)
     {
-        return ((double) end.tv_sec +
-                (double) end.tv_nsec * 10e-9)
-               -
-               ((double) start.tv_sec +
-                (double) start.tv_nsec * 10e-9);
+        double endns;
+        double startns;
+
+        endns = end.tv_sec;
+        endns *= 1e9;
+        endns += end.tv_nsec;
+
+        startns = start.tv_sec;
+        startns *= 1e9;
+        startns += start.tv_nsec;
+
+        return ((endns - startns)/ 1e9);
     }
 
     static void
@@ -418,7 +468,7 @@ static int test_timer__ = 0;
 #define TEST_COLOR_GREEN_INTENSIVE__    4
 #define TEST_COLOR_RED_INTENSIVE__      5
 
-static int
+static int TEST_ATTRIBUTE__(format (printf, 2, 3))
 test_print_in_color__(int color, const char* fmt, ...)
 {
     va_list args;
@@ -517,7 +567,7 @@ test_finish_test_line__(int result)
         int color = (result == 0) ? TEST_COLOR_GREEN_INTENSIVE__ : TEST_COLOR_RED_INTENSIVE__;
         const char* str = (result == 0) ? "OK" : "FAILED";
         printf("[ ");
-        test_print_in_color__(color, str);
+        test_print_in_color__(color, "%s", str);
         printf(" ]");
 
         if(result == 0  &&  test_timer__) {
@@ -547,7 +597,7 @@ test_line_indent__(int level)
     printf("%.*s", n, spaces);
 }
 
-int
+int TEST_ATTRIBUTE__(format (printf, 4, 5))
 test_check__(int cond, const char* file, int line, const char* fmt, ...)
 {
     const char *result_str;
@@ -581,21 +631,19 @@ test_check__(int cond, const char* file, int line, const char* fmt, ...)
 
         test_line_indent__(test_case_name__[0] ? 2 : 1);
         if(file != NULL) {
-            if(test_verbose_level__ < 3) {
 #ifdef ACUTEST_WIN__
-                const char* lastsep1 = strrchr(file, '\\');
-                const char* lastsep2 = strrchr(file, '/');
-                if(lastsep1 == NULL)
-                    lastsep1 = file-1;
-                if(lastsep2 == NULL)
-                    lastsep2 = file-1;
-                file = (lastsep1 > lastsep2 ? lastsep1 : lastsep2) + 1;
+            const char* lastsep1 = strrchr(file, '\\');
+            const char* lastsep2 = strrchr(file, '/');
+            if(lastsep1 == NULL)
+                lastsep1 = file-1;
+            if(lastsep2 == NULL)
+                lastsep2 = file-1;
+            file = (lastsep1 > lastsep2 ? lastsep1 : lastsep2) + 1;
 #else
-                const char* lastsep = strrchr(file, '/');
-                if(lastsep != NULL)
-                    file = lastsep+1;
+            const char* lastsep = strrchr(file, '/');
+            if(lastsep != NULL)
+                file = lastsep+1;
 #endif
-            }
             printf("%s:%d: Check ", file, line);
         }
 
@@ -604,7 +652,7 @@ test_check__(int cond, const char* file, int line, const char* fmt, ...)
         va_end(args);
 
         printf("... ");
-        test_print_in_color__(result_color, result_str);
+        test_print_in_color__(result_color, "%s", result_str);
         printf("\n");
         test_current_already_logged__++;
     }
@@ -613,7 +661,7 @@ test_check__(int cond, const char* file, int line, const char* fmt, ...)
     return !test_cond_failed__;
 }
 
-void
+void TEST_ATTRIBUTE__(format (printf, 1, 2))
 test_case__(const char* fmt, ...)
 {
     va_list args;
@@ -642,7 +690,7 @@ test_case__(const char* fmt, ...)
     }
 }
 
-void
+void TEST_ATTRIBUTE__(format (printf, 1, 2))
 test_message__(const char* fmt, ...)
 {
     char buffer[TEST_MSG_MAXSIZE];
@@ -709,14 +757,14 @@ test_dump__(const char* title, const void* addr, size_t size)
         printf("%08lx: ", (unsigned long)line_beg);
         for(off = line_beg; off < line_end; off++) {
             if(off < size)
-                printf(" %02x", ((unsigned char*)addr)[off]);
+                printf(" %02x", ((const unsigned char*)addr)[off]);
             else
                 printf("   ");
         }
 
         printf("  ");
         for(off = line_beg; off < line_end; off++) {
-            unsigned char byte = ((unsigned char*)addr)[off];
+            unsigned char byte = ((const unsigned char*)addr)[off];
             if(off < size)
                 printf("%c", (iscntrl(byte) ? '.' : byte));
             else
@@ -730,6 +778,15 @@ test_dump__(const char* title, const void* addr, size_t size)
         test_line_indent__(test_case_name__[0] ? 4 : 3);
         printf("           ... (and more %u bytes)\n", (unsigned) truncate);
     }
+}
+
+void
+test_abort__(void)
+{
+    if(test_abort_has_jmp_buf__)
+        longjmp(test_abort_jmp_buf__, 1);
+    else
+        abort();
 }
 
 static void
@@ -831,23 +888,13 @@ test_lookup__(const char* pattern)
 /* Called if anything goes bad in Acutest, or if the unit test ends in other
  * way then by normal returning from its function (e.g. exception or some
  * abnormal child process termination). */
-static void
+static void TEST_ATTRIBUTE__(format (printf, 1, 2))
 test_error__(const char* fmt, ...)
 {
     va_list args;
 
     if(test_verbose_level__ == 0)
         return;
-
-    if(test_verbose_level__ <= 2  &&  !test_current_already_logged__  &&  test_current_unit__ != NULL) {
-        if(test_tap__) {
-            test_finish_test_line__(-1);
-        } else {
-            printf("[ ");
-            test_print_in_color__(TEST_COLOR_RED_INTENSIVE__, "FAILED");
-            printf(" ]\n");
-        }
-    }
 
     if(test_verbose_level__ >= 2) {
         test_line_indent__(1);
@@ -868,6 +915,7 @@ test_error__(const char* fmt, ...)
 static int
 test_do_run__(const struct test__* test, int index)
 {
+    test_was_aborted__ = 0;
     test_current_unit__ = test;
     test_current_index__ = index;
     test_current_failures__ = 0;
@@ -884,8 +932,18 @@ test_do_run__(const struct test__* test, int index)
         fflush(stdout);
         fflush(stderr);
 
+        if(!test_worker__) {
+            test_abort_has_jmp_buf__ = 1;
+            if(setjmp(test_abort_jmp_buf__) != 0) {
+                test_was_aborted__ = 1;
+                goto aborted;
+            }
+        }
+
         test_timer_get_time__(&test_timer_start__);
         test->func();
+aborted:
+        test_abort_has_jmp_buf__ = 0;
         test_timer_get_time__(&test_timer_end__);
 
         if(test_verbose_level__ >= 3) {
@@ -902,10 +960,14 @@ test_do_run__(const struct test__* test, int index)
                 }
             } else {
                 test_print_in_color__(TEST_COLOR_RED_INTENSIVE__, "FAILED: ");
-                printf("%d condition%s %s failed.\n",
-                        test_current_failures__,
-                        (test_current_failures__ == 1) ? "" : "s",
-                        (test_current_failures__ == 1) ? "has" : "have");
+                if(!test_was_aborted__) {
+                    printf("%d condition%s %s failed.\n",
+                            test_current_failures__,
+                            (test_current_failures__ == 1) ? "" : "s",
+                            (test_current_failures__ == 1) ? "has" : "have");
+                } else {
+                    printf("Aborted.\n");
+                }
             }
             printf("\n");
         } else if(test_verbose_level__ >= 1 && test_current_failures__ == 0) {
@@ -919,13 +981,26 @@ test_do_run__(const struct test__* test, int index)
 #ifdef __cplusplus
     } catch(std::exception& e) {
         const char* what = e.what();
+        test_check__(0, NULL, 0, "Threw std::exception");
         if(what != NULL)
-            test_error__("Threw std::exception: %s", what);
-        else
-            test_error__("Threw std::exception");
+            test_message__("std::exception::what(): %s", what);
+
+        if(test_verbose_level__ >= 3) {
+            test_line_indent__(1);
+            test_print_in_color__(TEST_COLOR_RED_INTENSIVE__, "FAILED: ");
+            printf("C++ exception.\n\n");
+        }
+
         return -1;
     } catch(...) {
-        test_error__("Threw an exception");
+        test_check__(0, NULL, 0, "Threw an exception");
+
+        if(test_verbose_level__ >= 3) {
+            test_line_indent__(1);
+            test_print_in_color__(TEST_COLOR_RED_INTENSIVE__, "FAILED: ");
+            printf("C++ exception.\n\n");
+        }
+
         return -1;
     }
 #endif
@@ -961,6 +1036,7 @@ test_run__(const struct test__* test, int index, int master_index)
             failed = 1;
         } else if(pid == 0) {
             /* Child: Do the test. */
+            test_worker__ = 1;
             failed = (test_do_run__(test, index) != 0);
             exit(failed ? 1 : 0);
         } else {
@@ -986,9 +1062,9 @@ test_run__(const struct test__* test, int index, int master_index)
                     case SIGTERM: signame = "SIGTERM"; break;
                     default:      sprintf(tmp, "signal %d", WTERMSIG(exit_code)); signame = tmp; break;
                 }
-                test_error__("Test interrupted by %s", signame);
+                test_error__("Test interrupted by %s.", signame);
             } else {
-                test_error__("Test ended in an unexpected way [%d]", exit_code);
+                test_error__("Test ended in an unexpected way [%d].", exit_code);
             }
         }
 
@@ -1003,7 +1079,7 @@ test_run__(const struct test__* test, int index, int master_index)
          * through a command line arguments. */
         _snprintf(buffer, sizeof(buffer)-1,
                  "%s --worker=%d %s --no-exec --no-summary %s --verbose=%d --color=%s -- \"%s\"",
-                 test_argv0__, index, test_timer__ ? "--timer" : "",
+                 test_argv0__, index, test_timer__ ? "--time" : "",
                  test_tap__ ? "--tap" : "", test_verbose_level__,
                  test_colorize__ ? "always" : "never",
                  test->name);
@@ -1015,6 +1091,13 @@ test_run__(const struct test__* test, int index, int master_index)
             CloseHandle(processInfo.hThread);
             CloseHandle(processInfo.hProcess);
             failed = (exitCode != 0);
+            if(exitCode > 1) {
+                switch(exitCode) {
+                    case 3:             test_error__("Aborted."); break;
+                    case 0xC0000005:    test_error__("Access violation."); break;
+                    default:            test_error__("Test ended in an unexpected way [%lu].", exitCode); break;
+                }
+            }
         } else {
             test_error__("Cannot create unit test subprocess [%ld].", GetLastError());
             failed = 1;
@@ -1046,13 +1129,15 @@ test_run__(const struct test__* test, int index, int master_index)
 #if defined(ACUTEST_WIN__)
 /* Callback for SEH events. */
 static LONG CALLBACK
-test_exception_filter__(EXCEPTION_POINTERS *ptrs)
+test_seh_exception_filter__(EXCEPTION_POINTERS *ptrs)
 {
-    test_error__("Unhandled SEH exception %08lx at %p.",
-                 ptrs->ExceptionRecord->ExceptionCode,
-                 ptrs->ExceptionRecord->ExceptionAddress);
+    test_check__(0, NULL, 0, "Unhandled SEH exception");
+    test_message__("Exception code:    0x%08lx", ptrs->ExceptionRecord->ExceptionCode);
+    test_message__("Exception address: 0x%p", ptrs->ExceptionRecord->ExceptionAddress);
+
     fflush(stdout);
     fflush(stderr);
+
     return EXCEPTION_EXECUTE_HANDLER;
 }
 #endif
@@ -1229,14 +1314,14 @@ test_help__(void)
     printf("  -s, --skip            Execute all unit tests but the listed ones\n");
     printf("      --exec[=WHEN]     If supported, execute unit tests as child processes\n");
     printf("                          (WHEN is one of 'auto', 'always', 'never')\n");
+    printf("  -E, --no-exec         Same as --exec=never\n");
 #if defined ACUTEST_WIN__
-    printf("  -t, --timer           Measure test duration\n");
+    printf("  -t, --time            Measure test duration\n");
 #elif defined ACUTEST_HAS_POSIX_TIMER__
-    printf("  -t, --timer           Measure test duration (real time)\n");
-    printf("      --timer=TIMER     Measure test duration, using given timer\n");
+    printf("  -t, --time            Measure test duration (real time)\n");
+    printf("      --time=TIMER      Measure test duration, using given timer\n");
     printf("                          (TIMER is one of 'real', 'cpu')\n");
 #endif
-    printf("  -E, --no-exec         Same as --exec=never\n");
     printf("      --no-summary      Suppress printing of test results summary\n");
     printf("      --tap             Produce TAP-compliant output\n");
     printf("                          (See https://testanything.org/)\n");
@@ -1248,6 +1333,7 @@ test_help__(void)
     printf("                          1 ... Output one line per test (and summary)\n");
     printf("                          2 ... As 1 and failed conditions (this is default)\n");
     printf("                          3 ... As 1 and all conditions (and extended summary)\n");
+    printf("  -q, --quiet           Same as --verbose=0\n");
     printf("      --color[=WHEN]    Enable colorized output\n");
     printf("                          (WHEN is one of 'auto', 'always', 'never')\n");
     printf("      --no-color        Same as --color=never\n");
@@ -1264,14 +1350,17 @@ static const TEST_CMDLINE_OPTION__ test_cmdline_options__[] = {
     {  0,   "exec",         'e', TEST_CMDLINE_OPTFLAG_OPTIONALARG__ },
     { 'E',  "no-exec",      'E', 0 },
 #if defined ACUTEST_WIN__
-    { 't',  "timer",        't', 0 },
+    { 't',  "time",         't', 0 },
+    {  0,   "timer",        't', 0 },   /* kept for compatibility */
 #elif defined ACUTEST_HAS_POSIX_TIMER__
-    { 't',  "timer",        't', TEST_CMDLINE_OPTFLAG_OPTIONALARG__ },
+    { 't',  "time",         't', TEST_CMDLINE_OPTFLAG_OPTIONALARG__ },
+    {  0,   "timer",        't', TEST_CMDLINE_OPTFLAG_OPTIONALARG__ },  /* kept for compatibility */
 #endif
     {  0,   "no-summary",   'S', 0 },
     {  0,   "tap",          'T', 0 },
     { 'l',  "list",         'l', 0 },
     { 'v',  "verbose",      'v', TEST_CMDLINE_OPTFLAG_OPTIONALARG__ },
+    { 'q',  "quiet",        'q', 0 },
     {  0,   "color",        'c', TEST_CMDLINE_OPTFLAG_OPTIONALARG__ },
     {  0,   "no-color",     'C', 0 },
     { 'h',  "help",         'h', 0 },
@@ -1315,7 +1404,7 @@ test_cmdline_callback__(int id, const char* arg)
                 test_timer__ = 2;
     #endif
             } else {
-                fprintf(stderr, "%s: Unrecognized argument '%s' for option --timer.\n", test_argv0__, arg);
+                fprintf(stderr, "%s: Unrecognized argument '%s' for option --time.\n", test_argv0__, arg);
                 fprintf(stderr, "Try '%s --help' for more information.\n", test_argv0__);
                 exit(2);
             }
@@ -1336,6 +1425,10 @@ test_cmdline_callback__(int id, const char* arg)
 
         case 'v':
             test_verbose_level__ = (arg != NULL ? atoi(arg) : test_verbose_level__+1);
+            break;
+
+        case 'q':
+            test_verbose_level__ = 0;
             break;
 
         case 'c':
@@ -1404,33 +1497,44 @@ test_cmdline_callback__(int id, const char* arg)
 static int
 test_is_tracer_present__(void)
 {
-    char buf[256+32+1];
+    /* Must be large enough so the line 'TracerPid: ${PID}' can fit in. */
+    static const int OVERLAP = 32;
+
+    char buf[256+OVERLAP+1];
     int tracer_present = 0;
     int fd;
-    ssize_t n_read;
+    size_t n_read = 0;
 
     fd = open("/proc/self/status", O_RDONLY);
     if(fd == -1)
         return 0;
 
-    n_read = read(fd, buf, sizeof(buf)-1);
-    while(n_read > 0) {
+    while(1) {
         static const char pattern[] = "TracerPid:";
         const char* field;
 
+        while(n_read < sizeof(buf) - 1) {
+            ssize_t n;
+
+            n = read(fd, buf + n_read, sizeof(buf) - 1 - n_read);
+            if(n <= 0)
+                break;
+            n_read += n;
+        }
         buf[n_read] = '\0';
+
         field = strstr(buf, pattern);
-        if(field != NULL  &&  field < buf + sizeof(buf) - 32) {
+        if(field != NULL  &&  field < buf + sizeof(buf) - OVERLAP) {
             pid_t tracer_pid = (pid_t) atoi(field + sizeof(pattern) - 1);
             tracer_present = (tracer_pid != 0);
             break;
         }
 
         if(n_read == sizeof(buf)-1) {
-            memmove(buf, buf + sizeof(buf)-1 - 32, 32);
-            n_read = read(fd, buf+32, sizeof(buf)-1-32);
-            if(n_read > 0)
-                n_read += 32;
+            memmove(buf, buf + sizeof(buf)-1 - OVERLAP, OVERLAP);
+            n_read = OVERLAP;
+        } else {
+            break;
         }
     }
 
@@ -1457,8 +1561,6 @@ main(int argc, char** argv)
     test_colorize__ = 0;
 #endif
 
-    test_timer_init__();
-
     /* Count all test units */
     test_list_size__ = 0;
     for(i = 0; test_list__[i].func != NULL; i++)
@@ -1473,8 +1575,11 @@ main(int argc, char** argv)
     /* Parse options */
     test_cmdline_read__(test_cmdline_options__, argc, argv, test_cmdline_callback__);
 
+    /* Initialize the proper timer. */
+    test_timer_init__();
+
 #if defined(ACUTEST_WIN__)
-    SetUnhandledExceptionFilter(test_exception_filter__);
+    SetUnhandledExceptionFilter(test_seh_exception_filter__);
 #endif
 
     /* By default, we want to run all tests. */
@@ -1496,6 +1601,11 @@ main(int argc, char** argv)
 #endif
 #ifdef ACUTEST_LINUX__
             if(test_is_tracer_present__())
+                test_no_exec__ = 1;
+#endif
+#ifdef RUNNING_ON_VALGRIND
+            /* RUNNING_ON_VALGRIND is provided by valgrind.h */
+            if(RUNNING_ON_VALGRIND)
                 test_no_exec__ = 1;
 #endif
         }
