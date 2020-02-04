@@ -113,7 +113,7 @@ StringizeData(TCHAR* pszBuffer, DWORD dwBufferLen, DWORD dwType, BYTE* data, DWO
             /* For REG_MULTI_SZ we show only the 1st string. It is enough for
              * purposes of this example. */
             _sntprintf(pszBuffer, dwBufferLen, _T("\"%.*s\""),
-                           dwDataLen / sizeof(TCHAR), (TCHAR*) data);
+                           (int)(dwDataLen / sizeof(TCHAR)), (TCHAR*) data);
             pszBuffer[dwBufferLen-1] = _T('\0');
             break;
 

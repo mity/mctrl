@@ -974,8 +974,8 @@ mdtext_leave_span_cb(MD_SPANTYPE type, void* detail, void* userdata)
 static int
 mdtext_text_cb(MD_TEXTTYPE type, const MD_CHAR* text, MD_SIZE size, void* userdata)
 {
-    static const MD_CHAR br[1] = _T("\n");
-    static const MD_CHAR soft_br[1] = _T(" ");
+    static const MD_CHAR br[1] = { _T('\n') };
+    static const MD_CHAR soft_br[1] = { _T(' ') };
     static const MD_CHAR replacement[1] = { 0xfffd };
 
     mdtext_parse_ctx_t* ctx = (mdtext_parse_ctx_t*) userdata;
