@@ -698,8 +698,8 @@ typedef struct MC_NMHTTPERRORA_tag {
  /**
  * @brief Fired before the browser navigates to a new URL.
  *
- * Note that this is sent before (@ref MC_HN_APPLINK), and returning non-zero
- * will prevent (@ref MC_HN_APPLINK) from being sent.
+ * Note that this is sent before @ref MC_HN_APPLINK, and returning non-zero
+ * will prevent @ref MC_HN_APPLINK from being sent.
  *
  * @param[in] wParam (@c int) Id of the control sending the notification.
  * @param[in] lParam (@ref MC_NMHTMLURL*) Pointer to a structure specifying
