@@ -792,7 +792,9 @@ value_array_insert(VALUE* v, size_t index)
         return NULL;
 
     if(a->size >= a->alloc) {
-        if(value_array_realloc(a, (a->alloc > 0) ? a->alloc * 2 : 1) != 0)
+        if(value_array_realloc(a, (a->alloc > 0)
+                    ? a->alloc + (a->alloc+1) / 2
+                    : 1) != 0)
             return NULL;
     }
 
@@ -829,7 +831,7 @@ value_array_remove_range(VALUE* v, size_t index, size_t count)
     }
     a->size -= count;
 
-    if(4 * a->size < a->alloc)
+    if(3 * a->size < a->alloc)
         value_array_realloc(a, a->alloc / 2);
 
     return 0;

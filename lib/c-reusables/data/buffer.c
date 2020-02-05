@@ -55,7 +55,7 @@ void
 buffer_shrink(BUFFER* buf)
 {
     /* Avoid realloc() if the potential memory gain is negligible. */
-    if(buf->alloc / 4 > buf->size / 3)
+    if(buf->alloc / 11 > buf->size / 10)
         buffer_realloc(buf, buf->size);
 }
 
@@ -63,7 +63,7 @@ void*
 buffer_insert_raw(BUFFER* buf, size_t pos, size_t n)
 {
     if(buf->size + n > buf->alloc) {
-        if(buffer_realloc(buf, (buf->size + n) * 2) != 0)
+        if(buffer_realloc(buf, buf->size + n + buf->size / 2) != 0)
             return NULL;
     }
 

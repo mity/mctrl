@@ -60,6 +60,13 @@ The following rules apply:
  * `hash/fnv1a.[hc]`: 32-bit and 64-bit Fowler–Noll–Vo (variant 1a) hash
    functions.
 
+### Directory `mem`
+
+ * `misc/malloca.h`: `MALLOCA()` and `FREEA()` macros, which are a portable
+   variant of `_malloca()` and `_freea()` from Windows SDKs by Microsoft.
+   `MALLOCA()` allocates on stack if requested size below some threshold,
+   for larger allocations it uses `malloc()`.
+
 ### Directory `misc`
 
  * `misc/cmdline.[hc]`: Lightweight command line (`argc`, `argv`) parsing.
@@ -67,11 +74,6 @@ The following rules apply:
  * `misc/defs.h`: Defining set of basic and frequently used preprocessor macros
    `MIN`, `MAX`, `CLAMP`, `ABS`, `SIZEOF_ARRAY`, `OFFSETOF`, `CONTAINEROF`
    etc.
-
- * `misc/malloca.h`: `MALLOCA()` and `FREEA()` macros, which are a portable
-   variant of `_malloca()` and `_freea()` from Windows SDKs by Microsoft.
-   `MALLOCA()` allocates on stack if requested size below some threshold,
-   for larger allocations it uses `malloc()`.
 
 ### Directory `win32` (Windows only)
 
