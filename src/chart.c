@@ -1520,14 +1520,13 @@ static void
 column_calc_layout(chart_t* chart, BOOL is_stacked, const grid_axis_t* axis,
                    column_layout_t* col_layout)
 {
-    static const float GRf = 1.618f;     /* golden ratio */
     int n = (is_stacked ? 1 : dsa_size(&(chart)->data));
     float group_width;
 
     col_layout->group_delta = axis->coord_delta;
-    group_width = col_layout->group_delta / GRf;
-    col_layout->col_width = group_width / (n + (n-1)/GRf);
-    col_layout->col_delta = col_layout->col_width * (1.0f + 1.0f/GRf);
+    group_width = col_layout->group_delta / MC_PHIf;
+    col_layout->col_width = group_width / (n + (n-1)/MC_PHIf);
+    col_layout->col_delta = col_layout->col_width * (1.0f + 1.0f/MC_PHIf);
     col_layout->col0_offset = floorf(0.5f * (col_layout->group_delta - group_width));
     if(col_layout->col_width > 3.0f)
         col_layout->col_width = floorf(col_layout->col_width);

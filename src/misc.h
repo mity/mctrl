@@ -88,8 +88,11 @@
     #define MC_ARRAY_FLEXIBLE_SIZE_SPEC       1
 #endif
 
-/* Pi (float) */
-#define MC_PIf     3.14159265358979323846f
+/* Useful math constants. */
+#define MC_PI       3.14159265358979323846      /* pi (double) */
+#define MC_PIf      3.14159265358979323846f     /* pi (float) */
+#define MC_PHI      1.61803398874989484820      /* golden ratio (double) */
+#define MC_PHIf     1.61803398874989484820f     /* golden ratio (float) */
 
 /* Offset of structure member */
 #if defined offsetof
