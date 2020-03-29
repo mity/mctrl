@@ -59,7 +59,7 @@ mc_str_load(UINT id)
 
     const UINT lang_id[2] = { MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
                               MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT) };
-    TCHAR* rsrc_id = MAKEINTRESOURCE(id/16 + 1);
+    TCHAR* rsrc_id = MC_RES_ID(id/16 + 1);
     int str_num = (id & 15);
     HRSRC rsrc;
     HGLOBAL handle;
@@ -801,23 +801,48 @@ dllmain_fini(void)
     debug_dllmain_fini();
 }
 
-BOOL WINAPI
-DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
-{
-    switch(reason) {
-        case DLL_PROCESS_ATTACH:
-            DisableThreadLibraryCalls(instance);
-            if(MC_ERR(dllmain_init(instance) != 0))
-                return FALSE;
-            break;
+#ifdef MCTRL_BUILD_STATIC
+    int mc_resource_id_base = 0;
 
-        case DLL_PROCESS_DETACH:
-            dllmain_fini();
-            break;
+    /* Building as a static lib. */
+    BOOL MCTRL_API
+    mcInitialize(HINSTANCE instance, int resource_id_base)
+    {
+        mc_resource_id_base = resource_id_base;
+
+        if(MC_ERR(dllmain_init(instance) != 0)) {
+            MC_TRACE("mcInitialize: dllmain_init() failed.");
+            return FALSE;
+        }
+
+        return TRUE;
     }
 
-    return TRUE;
-}
+    void MCTRL_API
+    mcTerminate(void)
+    {
+        dllmain_fini();
+    }
+#else
+    /* Building as a DLL. */
+    BOOL WINAPI
+    DllMain(HINSTANCE instance, DWORD reason, VOID* ignored)
+    {
+        switch(reason) {
+            case DLL_PROCESS_ATTACH:
+                DisableThreadLibraryCalls(instance);
+                if(MC_ERR(dllmain_init(instance) != 0))
+                    return FALSE;
+                break;
+
+            case DLL_PROCESS_DETACH:
+                dllmain_fini();
+                break;
+        }
+
+        return TRUE;
+    }
+#endif
 
 
 /* Include the main public header file as we actually never do this elsewhere.
