@@ -32,11 +32,12 @@ extern "C" {
 
 
 /**
- * @file Markdown view control (@c MC_WC_MDVIEW)
+ * @file
+ * @brief Markdown view control (@c MC_WC_MDVIEW)
  *
  * Markdown view control is a control which is able to display Markdown files
  * which can be stored on a file system or embedded in the executable as a
- * resource loadable via @code LoadResource() API.
+ * resource loadable via @c LoadResource() API.
  *
  * @note The control is very new and at the moment the control has many
  * limitations. It should have more features added in the future.
@@ -70,7 +71,7 @@ extern "C" {
  * @section mdview_links Handling Links
  *
  * Currently the control attempts to follow the links with addresses which end
- * with '.md' or '.markdown'. Other links are opened via @code ShellExecute()
+ * with '.md' or '.markdown'. Other links are opened via @c ShellExecute()
  * so, depending on the link address, they are opened by some default
  * application as defined by system configuration.
  *
