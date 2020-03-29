@@ -111,6 +111,8 @@ BOOL MCTRL_API mcExpand_Initialize(void);
  */
 void MCTRL_API mcExpand_Terminate(void);
 
+/*@}*/
+
 
 /**
  * @name Window Class
