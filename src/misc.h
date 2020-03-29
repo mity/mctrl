@@ -207,21 +207,6 @@ extern DWORD mc_win_version;
 extern DWORD mc_comctl32_version;
 
 
-/* Image list of glyphs used throughout mCtrl */
-
-#define MC_BMP_GLYPH_W               9   /* glyph image size */
-#define MC_BMP_GLYPH_H               9
-
-#define MC_BMP_GLYPH_CLOSE           0   /* indexes of particular glyphs */
-#define MC_BMP_GLYPH_MORE_OPTIONS    1
-#define MC_BMP_GLYPH_CHEVRON_L       2
-#define MC_BMP_GLYPH_CHEVRON_R       3
-#define MC_BMP_GLYPH_EXPANDED        4
-#define MC_BMP_GLYPH_COLLAPSED       5
-
-extern HIMAGELIST mc_bmp_glyphs;
-
-
 /**************************
  *** Light-Weight Mutex ***
  **************************/

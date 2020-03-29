@@ -35,8 +35,6 @@ HINSTANCE mc_instance_kernel32;
 DWORD mc_win_version;
 DWORD mc_comctl32_version;
 
-HIMAGELIST mc_bmp_glyphs;
-
 
 /************************
  *** String Utilities ***
@@ -744,15 +742,6 @@ mc_init_module(void)
         }
     }
 
-    /* Load set of helper symbols used for helper buttons of more complex
-     * controls */
-    mc_bmp_glyphs = ImageList_LoadBitmap(mc_instance, MAKEINTRESOURCE(
-                           IDR_GLYPHS), MC_BMP_GLYPH_W, 1, RGB(255,0,255));
-    if(MC_ERR(mc_bmp_glyphs == NULL)) {
-        MC_TRACE_ERR("mc_init_module: ImageList_LoadBitmap() failed");
-        return -1;
-    }
-
 #if DEBUG >= 2
     /* In debug builds, we may want to run few basic unit tests. */
     perform_unit_tests();
@@ -765,7 +754,7 @@ mc_init_module(void)
 void
 mc_fini_module(void)
 {
-    ImageList_Destroy(mc_bmp_glyphs);
+    /* noop */
 }
 
 

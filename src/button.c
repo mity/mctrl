@@ -38,6 +38,7 @@ static const TCHAR button_wc[] = MC_WC_BUTTON;  /* Window class name */
 static const WCHAR button_tc[] = L"BUTTON";     /* Theming identifier */
 static int extra_offset;
 static WNDPROC orig_button_proc = NULL;
+static HFONT marlett_font = NULL;               /* Used to paint split button glyph */
 
 
 #define DROPDOWN_W     16
@@ -97,6 +98,7 @@ button_send_ctlcolorbtn(HWND win, HDC dc)
 static void
 button_paint_split(HWND win, button_t* button, HDC dc)
 {
+    static const TCHAR glyph_str[1] = { 0x36 };
     RECT rect;
     RECT rect_left, rect_right;
     int state_left, state_right;
@@ -105,10 +107,8 @@ button_paint_split(HWND win, button_t* button, HDC dc)
     int old_bk_mode;
     COLORREF old_text_color;
     HRGN old_clip;
-    HICON glyph;
     int width_right = DROPDOWN_W;
 
-    glyph = ImageList_GetIcon(mc_bmp_glyphs, MC_BMP_GLYPH_MORE_OPTIONS, ILD_TRANSPARENT);
     GetClientRect(win, &rect);
 
     font = (HFONT) MC_SEND(win, WM_GETFONT, 0, 0);
@@ -256,14 +256,6 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         }
     }
 
-    /* Draw glyph into the right part */
-    SelectClipRgn(dc, NULL);
-    IntersectClipRect(dc, rect_right.left, rect_right.top,
-                          rect_right.right, rect_right.bottom);
-    DrawIconEx(dc, (rect_right.right + rect_right.left - MC_BMP_GLYPH_W) / 2,
-                   (rect_right.bottom + rect_right.top - MC_BMP_GLYPH_H) / 2,
-                   glyph, MC_BMP_GLYPH_W, MC_BMP_GLYPH_H, 0, NULL, DI_NORMAL);
-
     /* Draw left part contents */
     SelectClipRgn(dc, NULL);
     IntersectClipRect(dc, rect_left.left, rect_left.top,
@@ -343,6 +335,15 @@ button_paint_split(HWND win, button_t* button, HDC dc)
         }
     }
 
+    /* Draw glyph into the right part */
+    SelectClipRgn(dc, NULL);
+    IntersectClipRect(dc, rect_right.left, rect_right.top,
+                          rect_right.right, rect_right.bottom);
+    SelectObject(dc, marlett_font);
+    SetBkMode(dc, TRANSPARENT);
+    DrawText(dc, glyph_str, MC_SIZEOF_ARRAY(glyph_str), &rect_right,
+            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP | DT_NOPREFIX);
+
     SelectObject(dc, old_font);
     SetBkMode(dc, old_bk_mode);
     SetTextColor(dc, old_text_color);
@@ -375,10 +376,6 @@ button_is_fake_split(button_t* button)
 
     if(mc_comctl32_version < MC_DLL_VER(6, 0))
         return TRUE;
-    if(mc_win_version < MC_WIN_VISTA)
-        return TRUE;
-    if(mc_win_version < MC_WIN_7  &&  (button->style & BS_ICON))
-        return TRUE;
 
     return FALSE;
 }
@@ -387,15 +384,6 @@ static LRESULT CALLBACK
 button_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
 {
     button_t* button = (button_t*) GetWindowLongPtr(win, extra_offset);
-
-    /* Window procedure for our subclassed BUTTON does some logic if
-     * either [1] the control is split button and system does not support it
-     *            (i.e. Windows is older then Vista).
-     *     or [2] the control is BS_ICON and theming is in use, as std.
-     *            control draws in the old unthemed style this kind of button.
-     * In all other cases all messages are just forwarded to the standard
-     * Microsoft button procedure.
-     */
 
     switch(msg) {
         case WM_PAINT:
@@ -615,9 +603,8 @@ button_init_module(void)
     orig_button_proc = wc.lpfnWndProc;
     extra_offset = wc.cbWndExtra;
 
-    /* On Win7 we do not need to emulate anything, so we are just alias class
-     * of the standard button. */
-    if(mc_win_version < MC_WIN_7  ||  mc_comctl32_version < MC_DLL_VER(6, 0)) {
+    /* With COMCTL32.DLL version 6, we do not need to emulate anything. */
+    if(mc_comctl32_version < MC_DLL_VER(6, 0)) {
         wc.lpfnWndProc = button_proc;
         wc.cbWndExtra += sizeof(button_t*);
     }
@@ -629,6 +616,15 @@ button_init_module(void)
         return -1;
     }
 
+    if(wc.lpfnWndProc != orig_button_proc) {
+        LOGFONT lf = { 0 };
+        lf.lfHeight = 12;
+        lf.lfWeight = FW_NORMAL;
+        lf.lfCharSet = SYMBOL_CHARSET;
+        _tcscpy(lf.lfFaceName, _T("Marlett"));
+        marlett_font = CreateFontIndirect(&lf);
+    }
+
     return 0;
 }
 
@@ -636,4 +632,7 @@ void
 button_fini_module(void)
 {
     UnregisterClass(button_wc, NULL);
+
+    if(marlett_font != NULL)
+        DeleteObject(marlett_font);
 }

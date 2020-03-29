@@ -3,7 +3,11 @@
  */
 
 /*
- * Copyright (c) 2008-2015 Martin Mitas
+ * mCtrl: Additional Win32 controls
+ * <https://github.com/mity/mctrl>
+ * <https://mctrl.org>
+ *
+ * Copyright (c) 2008-2020 Martin Mitas
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,16 +32,14 @@
  *** Resource IDs ***
 *********************/
 
-#define IDR_GLYPHS                100
+#define IDR_EXPAND_GLYPHS_19      100
+#define IDR_EXPAND_GLYPHS_24      101
+#define IDR_EXPAND_GLYPHS_29      102
 
-#define IDR_EXPAND_GLYPHS_19      101
-#define IDR_EXPAND_GLYPHS_24      102
-#define IDR_EXPAND_GLYPHS_29      103
-
-#define IDR_CURSOR_DIVIDER_H      104
-#define IDR_CURSOR_DIVIDER_V      105
-#define IDR_CURSOR_DIVOPEN_H      106
-#define IDR_CURSOR_DIVOPEN_V      107
+#define IDR_CURSOR_DIVIDER_H      103
+#define IDR_CURSOR_DIVIDER_V      104
+#define IDR_CURSOR_DIVOPEN_H      105
+#define IDR_CURSOR_DIVOPEN_V      106
 
 
 /******************

@@ -36,56 +36,21 @@ extern "C" {
  * @brief Enhanced button control (@c MC_WC_BUTTON).
  *
  * @c MC_WC_BUTTON control is subclass of standard @c BUTTON class.
+ * It had been designed to overcome some compatibility limitations between
+ * button implementation in various versions of @c COMCTL32.DLL.
  *
- * In fact, @c MC_WC_BUTTON does not provide any new functionality. It only
- * helps to overcome some compatibility limitations between button
- * implementation in various versions of @c COMCTL32.DLL.
+ * However note, that since support for Windows versions older then Vista has
+ * been removed, its benefits are rather small. Actually it only provides
+ * (limited support) of split buttons (styles @c BS_SPLITBUTTON and
+ * @c BS_DEFSPLITBUTTON) if and only if the application links with
+ * @c COMCTL32.DLL version 5.
  *
- * - <b>Icon buttons:</b> Unfortunately @c COMCTL32.DLL in Windows XP does not
- * implement themed buttons with @c BS_ICON style, so the icon button
- * are not consistent with other controls. @c MC_WC_BUTTON solves it, see
- * @ref sec_button_icon for more info.
+ * If application links with @c COMCTL32.DLL version 6, our class behaves
+ * exactly the same way as the vanilla control and there is no reason to use
+ * the control provided by @c MCTRL.DLL.
  *
- * - <b>Split buttons:</b> Although the split buttons were already used in
- * a plenty of applications (including some made by Microsoft itself) for
- * some time, the split buttons are only supported by @c COMCTL32.DLL since
- * Windows Vista. Applications wanting to use them on previous versions of
- * Windows have to re-implement them manually - or they now can use
- * @c MC_WC_BUTTON instead.
- * See @ref sec_button_split for more info.
- *
- * In all other aspects the @c MC_WC_BUTTON control behaves as the standard
- * @c BUTTON (strictly speaking it inherits those features by subclassing)
- * as available on the Windows version and @c COMCTL32.DLL version available
- * on the system where your application runs.
- * So you can use @c MC_WC_BUTTON everywhere, instead of all buttons
- * and use the standard flags when creating them, e.g. @c BS_GROUPBOX or
- * @c BS_CHECKBOX.
- *
- *
- * @section sec_button_icon Icon Buttons
- *
- * On Windows XP, the standard @c BUTTON uses the old and boring look from
- * Windows 95/98 when you use style @c BS_ICON and set image of the button
- * with @c BM_SETIMAGE. If you have enabled the XP theming (as it is by default
- * in Windows XP), then the button simply does not look consistently with
- * other controls in your application.
- *
- * If you use @c MC_WC_BUTTON, the button is styled if XP styles are available
- * and enabled on the system. If your application supports XP theming, you
- * should prefer @c MC_WC_BUTTON windows class over @c BUTTON for icon buttons.
- *
- * Comparison of icon button without and with Windows XP Styles:
- * @image html button_icon.png
- *
- * From developer's point of view, the use of icon button is absolutely the
- * same as the standard @c BUTTON control. Use standard @c BS_ICON style
- * and @c BM_SETIMAGE message.
- *
- * @attention @c MC_WC_BUTTON does @b not implement support for XP styling of
- * buttons with style @c BS_BITMAP. Currently only @c BS_ICON is supported.
- * I.e. on Windows XP, the buttons with style @c BS_BITMAP still look as if
- * not styled with the XP theme.
+ * @attention Remember that @c MC_WC_BUTTON implements only subset of styles
+ * and messages for split buttons offered by @c COMCTL32.DLL version 6.0.
  *
  *
  * @section sec_button_split Split Buttons
@@ -116,22 +81,9 @@ extern "C" {
  * @c <mCtrl/button.h>, while the standard identifiers in @c <commctrl.h>
  * are defined only if <tt>_WIN32_WINNT >= 0x0600</tt>.
  *
- * @attention Remember that @c MC_WC_BUTTON implements only subset of styles
- * and messages for split buttons offered by @c COMCTL32.DLL version 6.0.
- *
- * If the Windows support split button in a natural way (Vista or newer),
- * the @c MC_WC_BUTTON just simply passes all messages down to the original
- * @c BUTTON window procedure. This guarantees good consistency of the
- * control's look and feel with other system controls, but it also brings
- * a minor pitfall for developers: If you use standard identifiers of split
- * button messages and styles (e.g. @c BS_DEFSPLITBUTTON instead of
- * @ref MC_BS_DEFSPLITBUTTON) then it is easy to forget about the limitation.
- * It then will work in runtime as intended on Windows Vista or newer but not
- * on the Windows XP or older.
- *
  * For more information, you can refer to documentation of split buttons on
- * MSDN (but still keep in mind that only some of the features are
- * reimplemented in mCtrl).
+ * MSDN (but still keep in mind that only some of the features are supported
+ * in mCtrl).
  */
 
 

@@ -28,8 +28,6 @@
  *** Resource IDs ***
 *********************/
 
-#define IDR_GLYPHS                @RESOURCE_ID@
-
 #define IDR_EXPAND_GLYPHS_19      @RESOURCE_ID@
 #define IDR_EXPAND_GLYPHS_24      @RESOURCE_ID@
 #define IDR_EXPAND_GLYPHS_29      @RESOURCE_ID@

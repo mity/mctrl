@@ -34,8 +34,6 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
  *** Language neutral resources ***
  **********************************/
 
-IDR_GLYPHS           BITMAP  "res/glyphs.bmp"
-
 IDR_EXPAND_GLYPHS_19 BITMAP  "res/expand-19x19.bmp"
 IDR_EXPAND_GLYPHS_24 BITMAP  "res/expand-24x24.bmp"
 IDR_EXPAND_GLYPHS_29 BITMAP  "res/expand-29x29.bmp"

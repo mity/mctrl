@@ -35,7 +35,7 @@ BEGIN
 
     CONTROL "&Split button", ID_BUTTON_SPLIT_1, MC_WC_BUTTON, WS_TABSTOP | MC_BS_SPLITBUTTON, 5, 90, 70, 25
     CONTROL "", ID_BUTTON_SPLIT_2, MC_WC_BUTTON, WS_TABSTOP | BS_ICON | MC_BS_SPLITBUTTON, 5, 120, 70, 35
-    CONTROL "Microsoft introduced split buttons on Windows Vista's comctl32.dll version 6.0. Some applications implement their own custom control which provide this funcitonality for compatibility with older Windows versions.", -1, "STATIC", 0, 80, 90, 210, 40
+    CONTROL "Microsoft introduced split buttons on Windows Vista's comctl32.dll version 6.0. Some applications implement their own custom control which provide this functionality for compatibility with older Windows versions.", -1, "STATIC", 0, 80, 90, 210, 40
     CONTROL "But having each application to reinvent wheel is just bad idea. So mCtrl provides a split button for you.", -1, "STATIC", 0, 80, 130, 210, 20
 END
 
