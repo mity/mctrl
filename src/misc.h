@@ -445,6 +445,25 @@ static inline BOOL mc_rect_overlaps_rect(const RECT* r0, const RECT* r1)
               r0->right > r1->left  &&  r0->bottom > r1->top); }
 
 
+/********************************************
+ *** COMCTL32.DLL version 5 compatibility ***
+ ********************************************/
+
+/* When application used COMCTL32.DLL version 5, we should not used themed
+ * painting. Therefore we here do some magic to make OpenThemeData() to fail,
+ * when called from our code. */
+static inline HTHEME
+mc_OpenThemeData_(HWND win, const WCHAR* class_list)
+{
+    if(mc_comctl32_version < MC_DLL_VER(6, 0))
+        return NULL;
+    else
+        return OpenThemeData(win, class_list);
+}
+
+#define OpenThemeData   mc_OpenThemeData_
+
+
 /**************************
  *** Clipping Utilities ***
  **************************/
