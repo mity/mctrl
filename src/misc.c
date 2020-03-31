@@ -649,6 +649,10 @@ setup_win_version(void)
 #ifdef DEBUG
     /* Log the detected Windows version. */
     {
+#ifndef IMAGE_FILE_MACHINE_ARM64
+    #define IMAGE_FILE_MACHINE_ARM64    0xAA64
+#endif
+        
         const char* name = "???";
         const char* prefix = "";
         const char* suffix = "";
