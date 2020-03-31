@@ -669,17 +669,17 @@ setup_win_version(void)
                 fn_IsWow64Process(GetCurrentProcess(), &is_64bit);
         }
         if (!is_64bit) {
-          BOOL(WINAPI * fn_IsWow64Process2)(HANDLE, USHORT*, USHORT*);
-          USHORT process_machine;
-          USHORT native_machine;
-
-          fn_IsWow64Process2 = (BOOL(WINAPI*)(HANDLE, USHORT*, USHORT*))
-            GetProcAddress(mc_instance_kernel32, "IsWow64Process2");
-          if (fn_IsWow64Process2 != NULL) {
-            fn_IsWow64Process2(GetCurrentProcess(), &process_machine, &native_machine);
-            if (native_machine == IMAGE_FILE_MACHINE_ARM64)
-              is_64bit = TRUE;
-          }
+            BOOL(WINAPI * fn_IsWow64Process2)(HANDLE, USHORT*, USHORT*);
+            
+            fn_IsWow64Process2 = (BOOL(WINAPI*)(HANDLE, USHORT*, USHORT*))
+                        GetProcAddress(mc_instance_kernel32, "IsWow64Process2");
+            if (fn_IsWow64Process2 != NULL) {
+                USHORT process_machine;
+                USHORT native_machine;
+                fn_IsWow64Process2(GetCurrentProcess(), &process_machine, &native_machine);
+                if (native_machine == IMAGE_FILE_MACHINE_ARM64)
+                    is_64bit = TRUE;
+            }
         }
         if(is_64bit)
             prefix = "64-bit ";
