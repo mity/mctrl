@@ -253,6 +253,26 @@ mc_mutex_unlock(mc_mutex_t* mutex)
 #endif
 
 
+/**************************
+ *** Resource Utilities ***
+ **************************/
+
+/* In case of static build, we have to allow application to remap the resource
+ * IDs to an arbitrary range so that our resource IDs do not collide with
+ * app's own resources.
+ *
+ * In order to support that, we have to use MC_RES_ID() instead of
+ * MAKEINTRESOURCE().
+ */
+#ifdef MCTRL_BUILD_STATIC
+    extern int mc_resource_id_base;
+
+    #define MC_RES_ID(raw_id)   MAKEINTRESOURCE(mc_resource_id_base + (raw_id))
+#else
+    #define MC_RES_ID(raw_id)   MAKEINTRESOURCE(raw_id)
+#endif
+
+
 /************************
  *** String Utilities ***
  ************************/

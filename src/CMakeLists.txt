@@ -4,9 +4,7 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 set(CRE_PATH "${PROJECT_SOURCE_DIR}/lib/c-reusables")
 
-add_library(mCtrl SHARED
-    mCtrl.def
-
+set(SOURCES
     # from c-reusables
     ${CRE_PATH}/data/buffer.c       ${CRE_PATH}/data/buffer.h
     ${CRE_PATH}/win32/memstream.c   ${CRE_PATH}/win32/memstream.h
@@ -41,7 +39,7 @@ add_library(mCtrl SHARED
     module.c                        module.h
     mousedrag.c                     mousedrag.h
     mousewheel.c                    mousewheel.h
-    resource.h                      resource.rc
+    resource.h
     rgn16.c                         rgn16.h
     table.c                         table.h         ../include/mCtrl/table.h
     tooltip.c                       tooltip.h
@@ -56,9 +54,15 @@ add_library(mCtrl SHARED
     xwic.c                          xwic.h
 )
 
+add_library(mCtrl SHARED ${SOURCES} mCtrl.def resource.rc)
 target_link_libraries(mCtrl
     gdi32 comctl32 ole32 oleaut32 shell32 uuid uxtheme windowscodecs    # Windows SDK libs
     hsluv-c md4c-utf16)                                                 # Libs distributed with us
+
+if(MCTRL_BUILD_STATIC)
+    add_library(mCtrl_static STATIC ${SOURCES})
+    target_compile_definitions(mCtrl_static  PRIVATE -DMCTRL_BUILD_STATIC)
+endif()
 
 add_definitions(-DMCTRL_BUILD)
 add_definitions(-DUNICODE -D_UNICODE)

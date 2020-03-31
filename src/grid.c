@@ -3828,8 +3828,7 @@ grid_init_module(void)
     WNDCLASS wc = { 0 };
 
     for(i = 0; i < MC_SIZEOF_ARRAY(grid_cursor); i++) {
-        grid_cursor[i].cur = LoadCursor(mc_instance,
-                                        MAKEINTRESOURCE(grid_cursor[i].res_id));
+        grid_cursor[i].cur = LoadCursor(mc_instance, MC_RES_ID(grid_cursor[i].res_id));
         if(MC_ERR(grid_cursor[i].cur == NULL)) {
             MC_TRACE("grid_init_module: LoadCursor(%d) failed [%lu]",
                      grid_cursor[i].res_id, GetLastError());
