@@ -35,10 +35,19 @@ extern "C" {
  * @file
  * @brief Helper header when using mCtrl as a static library.
  *
+ * @attention This is a new and experimental feature. It may be subject to any
+ * change, even a removal, if it turns out as too problematic.
+ *
+ * @note Currently, building of the static library is by default disabled and
+ * the pre-built binary packages do not contain the static libraries. If you
+ * want to use the static lib, you have to build mCtrl from sources and enable
+ * the feature by specifying @c -DCMAKE_BUILD_STATIC on cmake command line.
+ *
  * @note This header is not included by the all-in-one @c mCtrl.h. Include it
  * manually if and only if you link with mCtrl as a static library.
  * This helper provides prototypes of global initialization and termination
  * (which is otherwise implemented by @c DllMain() when linking with DLL.)
+ *
  *
  * @section sec_static_init Static Library Initialization
  *
