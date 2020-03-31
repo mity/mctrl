@@ -29,8 +29,13 @@ include_directories("${PROJECT_SOURCE_DIR}/lib/md4c-utf16")
 set(HSLUV_C_TESTS OFF CACHE BOOL "Disable building hsluv-c tests.")
 set(MCTRL_BUILD_COMPLETETREE ON CACHE BOOL "Tell examples/CMakeListst.txt it is built as part of complete mCtrl build.")
 
+
 OPTION(MCTRL_BUILD_EXAMPLES "Enable/disable building of mCtrl examples" ON)
 OPTION(MCTRL_BUILD_TESTS "Enable/disable building of mCtrl tests" ON)
+
+# Note this an experimental feature.
+# See discussion in https://github.com/mity/mctrl/issues/75
+OPTION(MCTRL_BUILD_STATIC "Enable/disable build of mCtrl as a static lib" OFF)
 
 
 if(MSVC)

@@ -296,7 +296,7 @@ imgview_nccreate(HWND win, CREATESTRUCT* cs)
     if(cs->lpszName != NULL) {
 #ifdef UNICODE
         if(cs->lpszName != NULL  &&  cs->lpszName[0] == 0xffff)
-            cs->lpszName = MAKEINTRESOURCE(cs->lpszName[1]);
+            cs->lpszName = MC_RES_ID(cs->lpszName[1]);
 #endif
         imgview_load_resource(iv, cs->hInstance, cs->lpszName, MC_IS_UNICODE);
 

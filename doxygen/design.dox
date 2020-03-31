@@ -163,23 +163,11 @@
  * loaded in runtime. In such cases, mCtrl tries to behave in a reasonable
  * manner even if those libraries or are not available:
  *
- * - @c UXTHEME.DLL is used on Windows XP and newer to paint the mCtrl controls
- *   using a current visual theme. Note mCtrl does so only if the application
- *   uses @c COMMCTRL32.DLL version 6 or newer, to be visually consistent with
- *   the standard controls within the application.
+ * - @c D2D1.DLL (Direct2d) and @c DWRITE.DLL (DirectWrite) are used by some
+ *   controls for high quality painting, e.g. when anti-aliasing support or
+ *   alpha channel is needed.
  *
- * - @c D2D1.DLL (Direct2d) and @c DWRITE.DLL (DirectWrite) are used for high
- *   quality painting, e.g. when anti-aliasing support or alpha channel is
- *   needed. Direct2D and DirectWrite are only available since MS Vista
- *   (with some Service Pack or other updates) and newer Windows versions.
- *
- * - @c GDIPLUS.DLL (GDI+) is used as a fall back if Direct2d+DirectWrite are
- *   not available on the system. GDI+ is available since Windows 2000 with
- *   some Service Packs or updates installed.
- *
- * @attention To make @c MCTRL.DLL working on all Windows 2000, even when the
- * system lacks the library, you may need to deploy the redistributable version
- * of GDI+ v. 1.0 into your application directory, when installing your
- * application. The redistributable @c GDIPLUS.DLL can be obtained from
- * Microsoft.
+ * - @c DWMAPI.DLL (Desktop Window Manager) is used by the MDI tab control
+ *   in order to place the control into a possibly extended non-client area
+ *   of top-level window.
  */

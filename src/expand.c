@@ -954,7 +954,7 @@ expand_init_module(void)
 
     for(i = 0; i < MC_SIZEOF_ARRAY(expand_glyphs); i++) {
         expand_glyphs[i].bmp = LoadImage(mc_instance,
-                    MAKEINTRESOURCE(expand_glyphs[i].res_id), IMAGE_BITMAP,
+                    MC_RES_ID(expand_glyphs[i].res_id), IMAGE_BITMAP,
                     0, 0, LR_SHARED | LR_CREATEDIBSECTION);
     }
 
