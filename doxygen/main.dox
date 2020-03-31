@@ -33,7 +33,6 @@
  * @subsection toc_general General Design
  * - @ref page_intro
  * - @ref page_design
- * - @ref page_static
  * - @ref page_debug
  *
  * @subsection toc_controls Control Reference
@@ -55,6 +54,7 @@
  * - @ref mctrl.h - All-in-one header
  * - @ref mCtrl/dialog.h - Dialog functions
  * - @ref mCtrl/version.h - Retrieving mCtrl version
+ * - @ref mCtrl/staticlib.h - Helper when using mCtrl built as a static library
  *
  * @subsection toc_misc Miscellaneous Headers
  * (Do not include these directly.)

@@ -58,12 +58,17 @@
  * #include <mCtrl.h>
  * @endcode
  *
- * Finally, link with the appropriate import library. Import libraries live
- * in subdirectory @c lib or @c lib64 (for 32-bit or 64-bit binaries
- * respectively). In both directories, thw following import libs can be found:
+ * Finally, link with the appropriate library. Most application should use
+ * the dynamic @c MCTRL.DLL. Import libraries live in subdirectory @c lib or
+ * @c lib64 (for 32-bit or 64-bit binaries respectively). In both directories,
+ * the following import libs can be found:
  * - @c libmctrl.a intended for gcc-based toolchains (e.g. mingw).
  * - @c mCtrl.lib intended for MS Visual Studio and Microsoft C compiler.
  *
  * Of course you have then distribute your applications with @c MCTRL.DLL,
  * which is located in subdirectory @c bin or @c bin64 respectively.
+ *
+ * Alternatively, application may link with a static library. However this
+ * involves obstacles and should generally be used only when there is a strong
+ * reason. See @ref mCtrl/staticlib.h for more information about this.
  */
