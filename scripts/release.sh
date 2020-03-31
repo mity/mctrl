@@ -226,7 +226,9 @@ function build_msvc()
  build_msvc x64 Release && \
  build_msvc x64 Debug && \
  build_msvc Win32 Release && \
- build_msvc Win32 Debug)
+ build_msvc Win32 Debug && \
+ build_msvc ARM64 Release && \
+ build_msvc ARM64 Debug)
 
 
 ##########################
@@ -287,6 +289,19 @@ cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin
 mkdir -p $TMP/mCtrl-$VERSION/bin/debug-msvc
 cp $TMP/mCtrl-$VERSION-src/build-msvc-Win32/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-msvc/
 cp $TMP/mCtrl-$VERSION-src/build-msvc-Win32/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin/debug-msvc/
+
+# ARM64 Release
+mkdir -p $TMP/mCtrl-$VERSION/bin-arm64
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/mCtrl.dll $TMP/mCtrl-$VERSION/bin-arm64/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/example-*.exe $TMP/mCtrl-$VERSION/bin-arm64/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/test-*.exe $TMP/mCtrl-$VERSION/bin-arm64/
+mkdir -p $TMP/mCtrl-$VERSION/lib-arm64
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib-arm64/
+
+# ARM64 Debug
+mkdir -p $TMP/mCtrl-$VERSION/bin-arm64/debug-msvc
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin-arm64/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin-arm64/debug-msvc/
 
 # Some vanilla contents from the source tree
 cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/
