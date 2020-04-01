@@ -67,7 +67,7 @@ add_executable(example-grid-customdraw WIN32 example-grid-customdraw.c example-d
 target_link_libraries(example-grid-customdraw mCtrl comctl32)
 
 add_executable(example-grid-ownerdata WIN32 example-grid-ownerdata.c example-default.rc)
-target_link_libraries(example-grid-ownerdata mCtrl comctl32 advapi32)
+target_link_libraries(example-grid-ownerdata mCtrl comctl32)
 
 add_executable(example-html WIN32 example-html.c example-html.rc)
 target_link_libraries(example-html mCtrl comctl32)
@@ -94,4 +94,4 @@ add_executable(example-treelist WIN32 example-treelist.c example-default.rc)
 target_link_libraries(example-treelist mCtrl comctl32)
 
 add_executable(example-treelist-ownerdata WIN32 example-treelist-ownerdata.c example-treelist-ownerdata.h example-treelist-ownerdata.rc)
-target_link_libraries(example-treelist-ownerdata mCtrl comctl32)
+target_link_libraries(example-treelist-ownerdata mCtrl comctl32 advapi32)
