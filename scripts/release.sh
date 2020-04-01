@@ -180,7 +180,7 @@ function build_gcc()
            -D CMAKE_RC_FLAGS="$RCFLAGS" \
            -D DLLTOOL_FLAGS="$DLLFLAGS" \
            -G "$CMAKE_GENERATOR_GCC" ..  && \
-     $BUILD_GCC > "$PRJ/build-gcc-$ARCH-$CONFIG.log" 2>&1)
+     $BUILD_GCC) > "$PRJ/build-gcc-$ARCH-$CONFIG.log" 2>&1
     if [ $? -eq 0 ]; then
         echo "Done." >&3
     else
@@ -209,7 +209,7 @@ function build_msvc()
     mkdir -p "$BUILDDIR"
     (cd "$BUILDDIR"  && \
      cmake -G "$CMAKE_GENERATOR_MSVC" -A "$ARCH" ..  && \
-     "$BUILD_MSVC" "/property:Configuration=$CONFIG" mCtrl.sln > "$PRJ/build-msvc-$ARCH-$CONFIG.log" 2>&1)
+     "$BUILD_MSVC" "/property:Configuration=$CONFIG" mCtrl.sln) > "$PRJ/build-msvc-$ARCH-$CONFIG.log" 2>&1
     if [ $? -eq 0 ]; then
         echo "Done." >&3
     else
@@ -232,7 +232,7 @@ function build_msvc()
 
 echo -n "Generate documentation... " >&3
 if `which doxygen`; then
-    (cd $TMP/mCtrl-$VERSION && ( cat Doxyfile ; echo "PROJECT_NUMBER=$VERSION" ) | doxygen - > $PRJ/build-doc.log 2>&1)
+    (cd $TMP/mCtrl-$VERSION && ( cat Doxyfile ; echo "PROJECT_NUMBER=$VERSION" ) | doxygen -) > $PRJ/build-doc.log 2>&1
     if [ $? -ne 0 ]; then
         echo "Failed: See build-doc.log."
         exit 1
