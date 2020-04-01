@@ -13,8 +13,9 @@
 #  - gcc-based multitarget toolchain:
 #       - Must be capable to target both 32-bit (-m32) and 64-bit (-m64) Windows
 #       - 32-bit mingw-builds from mingw-w64 project provides this feature
-#  - MS Visual Studio 2013 or 2015 (as well as MSBuild tool)
-#       - Must be in the default location
+#  - MS Visual Studio 2017 or 2019 (as well as MSBuild tool)
+#       - Must be in the default location.
+#       - Optional components for build ARM64 binaries have to be installed.
 #  - Doxygen
 #       - "doxygen" has to be in $PATH
 #  - Zip utility (zip or 7zip should work)
@@ -106,19 +107,13 @@ echo "$BUILD_GCC" >&3
 
 echo -n "Detecting MSVC... " >&3
 
-MSVC_2013_BUILDER="MSBuild/12.0/bin/MSBuild.exe"
-MSVC_2013_GENERATOR="Visual Studio 12 2013"
-
-MSVC_2015_BUILDER="MSBuild/14.0/bin/MSBuild.exe"
-MSVC_2015_GENERATOR="Visual Studio 14 2015"
-
 MSVC_2017_BUILDER="Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe"
 MSVC_2017_GENERATOR="Visual Studio 15 2017"
 
 MSVC_2019_BUILDER="Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
 MSVC_2019_GENERATOR="Visual Studio 16 2019"
 
-MSVC_LIST="2019 2017 2015 2013"
+MSVC_LIST="2019 2017"
 
 for msvc in $MSVC_LIST; do
     MSVC_NAME="MSVC ${msvc}"
@@ -185,7 +180,7 @@ function build_gcc()
            -D CMAKE_RC_FLAGS="$RCFLAGS" \
            -D DLLTOOL_FLAGS="$DLLFLAGS" \
            -G "$CMAKE_GENERATOR_GCC" ..  && \
-     $BUILD_GCC > "$PRJ/build-gcc-$ARCH-$CONFIG.log" 2>&1)
+     $BUILD_GCC) > "$PRJ/build-gcc-$ARCH-$CONFIG.log" 2>&1
     if [ $? -eq 0 ]; then
         echo "Done." >&3
     else
@@ -214,7 +209,7 @@ function build_msvc()
     mkdir -p "$BUILDDIR"
     (cd "$BUILDDIR"  && \
      cmake -G "$CMAKE_GENERATOR_MSVC" -A "$ARCH" ..  && \
-     "$BUILD_MSVC" "/property:Configuration=$CONFIG" mCtrl.sln > "$PRJ/build-msvc-$ARCH-$CONFIG.log" 2>&1)
+     "$BUILD_MSVC" "/property:Configuration=$CONFIG" mCtrl.sln) > "$PRJ/build-msvc-$ARCH-$CONFIG.log" 2>&1
     if [ $? -eq 0 ]; then
         echo "Done." >&3
     else
@@ -226,7 +221,9 @@ function build_msvc()
  build_msvc x64 Release && \
  build_msvc x64 Debug && \
  build_msvc Win32 Release && \
- build_msvc Win32 Debug)
+ build_msvc Win32 Debug && \
+ build_msvc ARM64 Release && \
+ build_msvc ARM64 Debug)
 
 
 ##########################
@@ -235,7 +232,7 @@ function build_msvc()
 
 echo -n "Generate documentation... " >&3
 if `which doxygen`; then
-    (cd $TMP/mCtrl-$VERSION && ( cat Doxyfile ; echo "PROJECT_NUMBER=$VERSION" ) | doxygen - > $PRJ/build-doc.log 2>&1)
+    (cd $TMP/mCtrl-$VERSION && ( cat Doxyfile ; echo "PROJECT_NUMBER=$VERSION" ) | doxygen -) > $PRJ/build-doc.log 2>&1
     if [ $? -ne 0 ]; then
         echo "Failed: See build-doc.log."
         exit 1
@@ -287,6 +284,19 @@ cp $TMP/mCtrl-$VERSION-src/build-gcc-x86-Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin
 mkdir -p $TMP/mCtrl-$VERSION/bin/debug-msvc
 cp $TMP/mCtrl-$VERSION-src/build-msvc-Win32/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin/debug-msvc/
 cp $TMP/mCtrl-$VERSION-src/build-msvc-Win32/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin/debug-msvc/
+
+# ARM64 Release
+mkdir -p $TMP/mCtrl-$VERSION/bin-arm64
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/mCtrl.dll $TMP/mCtrl-$VERSION/bin-arm64/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/example-*.exe $TMP/mCtrl-$VERSION/bin-arm64/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/test-*.exe $TMP/mCtrl-$VERSION/bin-arm64/
+mkdir -p $TMP/mCtrl-$VERSION/lib-arm64
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Release/mCtrl.lib $TMP/mCtrl-$VERSION/lib-arm64/
+
+# ARM64 Debug
+mkdir -p $TMP/mCtrl-$VERSION/bin-arm64/debug-msvc
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Debug/mCtrl.dll $TMP/mCtrl-$VERSION/bin-arm64/debug-msvc/
+cp $TMP/mCtrl-$VERSION-src/build-msvc-ARM64/Debug/mCtrl.pdb $TMP/mCtrl-$VERSION/bin-arm64/debug-msvc/
 
 # Some vanilla contents from the source tree
 cp -r $TMP/mCtrl-$VERSION-src/doc $TMP/mCtrl-$VERSION/

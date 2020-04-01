@@ -94,4 +94,4 @@ add_executable(example-treelist WIN32 example-treelist.c example-default.rc)
 target_link_libraries(example-treelist mCtrl comctl32)
 
 add_executable(example-treelist-ownerdata WIN32 example-treelist-ownerdata.c example-treelist-ownerdata.h example-treelist-ownerdata.rc)
-target_link_libraries(example-treelist-ownerdata mCtrl comctl32)
+target_link_libraries(example-treelist-ownerdata mCtrl comctl32 advapi32)
