@@ -13,8 +13,9 @@
 #  - gcc-based multitarget toolchain:
 #       - Must be capable to target both 32-bit (-m32) and 64-bit (-m64) Windows
 #       - 32-bit mingw-builds from mingw-w64 project provides this feature
-#  - MS Visual Studio 2013 or 2015 (as well as MSBuild tool)
-#       - Must be in the default location
+#  - MS Visual Studio 2017 or 2019 (as well as MSBuild tool)
+#       - Must be in the default location.
+#       - Optional components for build ARM64 binaries have to be installed.
 #  - Doxygen
 #       - "doxygen" has to be in $PATH
 #  - Zip utility (zip or 7zip should work)
@@ -106,19 +107,13 @@ echo "$BUILD_GCC" >&3
 
 echo -n "Detecting MSVC... " >&3
 
-MSVC_2013_BUILDER="MSBuild/12.0/bin/MSBuild.exe"
-MSVC_2013_GENERATOR="Visual Studio 12 2013"
-
-MSVC_2015_BUILDER="MSBuild/14.0/bin/MSBuild.exe"
-MSVC_2015_GENERATOR="Visual Studio 14 2015"
-
 MSVC_2017_BUILDER="Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe"
 MSVC_2017_GENERATOR="Visual Studio 15 2017"
 
 MSVC_2019_BUILDER="Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
 MSVC_2019_GENERATOR="Visual Studio 16 2019"
 
-MSVC_LIST="2019 2017 2015 2013"
+MSVC_LIST="2019 2017"
 
 for msvc in $MSVC_LIST; do
     MSVC_NAME="MSVC ${msvc}"
