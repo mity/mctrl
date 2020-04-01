@@ -298,7 +298,7 @@ cp $TMP/mCtrl-$VERSION-src/CONTRIBUTING.md $TMP/mCtrl-$VERSION/
 cp $TMP/mCtrl-$VERSION-src/README.md $TMP/mCtrl-$VERSION/
 find $TMP/mCtrl-$VERSION -name .git -exec rm -rf {} \;
 find $TMP/mCtrl-$VERSION -name .gitignore -exec rm {} \;
-$MKZIP mCtrl-$VERSION-bin.zip $TMP/mCtrl-$VERSION
+(cd $TMP && $MKZIP $PRJ/mCtrl-$VERSION-bin.zip mCtrl-$VERSION)
 if [ $? -ne 0 ]; then
     echo "Failed." >&3
     exit 1
