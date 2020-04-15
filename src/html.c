@@ -1805,14 +1805,9 @@ html_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             break;
 
         case WM_NOTIFYFORMAT:
-            switch(lp) {
-                case NF_REQUERY:
-                    html_notify_format(html);
-                    return (html->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
-                case NF_QUERY:
-                    return (MC_IS_UNICODE ? NFR_UNICODE : NFR_ANSI);
-            }
-            break;
+            if(lp == NF_REQUERY)
+                html_notify_format(html);
+            return (html->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
 
         case CCM_SETUNICODEFORMAT:
         {
