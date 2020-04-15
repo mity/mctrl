@@ -4138,14 +4138,9 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return 0;
 
         case WM_NOTIFYFORMAT:
-            switch(lp) {
-                case NF_REQUERY:
-                    treelist_notify_format(tl);
-                    return (tl->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
-                case NF_QUERY:
-                    return (MC_IS_UNICODE ? NFR_UNICODE : NFR_ANSI);
-            }
-            break;
+            if(lp == NF_REQUERY)
+                treelist_notify_format(tl);
+            return (tl->unicode_notifications ? NFR_UNICODE : NFR_ANSI);
 
         case CCM_SETUNICODEFORMAT:
         {
