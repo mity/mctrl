@@ -1682,7 +1682,7 @@ grid_install_selection(grid_t* grid, rgn16_t* sel)
 static int
 grid_set_selection(grid_t* grid, MC_GSELECTION* gsel)
 {
-    UINT n = gsel->uDataCount;
+    UINT n = (gsel != NULL ? gsel->uDataCount : 0);
     rgn16_t sel;
 
     if(n == 0) {
