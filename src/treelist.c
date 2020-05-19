@@ -3936,6 +3936,9 @@ treelist_proc(HWND win, UINT msg, WPARAM wp, LPARAM lp)
             return header_item.cxy;
         }
 
+        case MC_TLM_GETCOLUMNCOUNT:
+            return tl->col_count;
+
         case MC_TLM_INSERTITEMW:
         case MC_TLM_INSERTITEMA:
             return (LRESULT) treelist_insert_item(tl, (MC_TLINSERTSTRUCT*) lp,

@@ -56,11 +56,11 @@ extern "C" {
  * Note however that the tree-list control manages the left-most column
  * (i.e. the column with index 0) a bit specially. This column is always used
  * for displaying the tree-like hierarchy of all items and the control prevents
- * such changes, which would make the column with index 0 on other position
+ * any changes which would make the column with index 0 on other position
  * then the left-most one (i.e. for column 0, its @c MC_TLCOLUMN::iOrder is
  * always 0 too).
  *
- * Applications attempts to break this rule (e.g. with resetting the order
+ * Applications attempting to break this rule (e.g. with resetting the order
  * via @ref MC_TLM_SETCOLUMN) will cause the message to fail. The control also
  * supports style @ref MC_TLS_HEADERDRAGDROP which allows user to reorder the
  * columns with mouse, but once again the control prevents change of the order
@@ -1222,6 +1222,14 @@ typedef struct MC_NMTLSUBDISPINFOA_tag {
  * is associated with the control.
  */
 #define MC_TLM_GETTOOLTIPS          (MC_TLM_FIRST + 37)
+
+/**
+ * @brief Get count of columns in the control.
+ * @param wParam Reserved, set to zero.
+ * @param lParam Reserved, set to zero.
+ * @return (@c int) Number of columns in the control.
+ */
+#define MC_TLM_GETCOLUMNCOUNT       (MC_TLM_FIRST + 38)
 
 /*@}*/
 
