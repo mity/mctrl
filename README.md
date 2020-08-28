@@ -9,12 +9,12 @@
 
 ## What is mCtrl
 
-mCtrl is C library providing set of additional user interface controls for
-MS Windows, intended to be complementary to standard Win32API controls from
+mCtrl is a C library providing set of additional user interface controls for
+MS Windows, intended to be complementary to the standard Win32API controls from
 `USER32.DLL` and `COMCTL32.DLL`.
 
-API of the library is designed to be similar to the Win32API. I.e. after window
-class of particular control is registered with corresponding initialization
+The API of the library is designed to be similar to the Win32API. I.e. after
+a window class of a control is registered with corresponding initialization
 function, the control can be normally created with the Win32API's functions
 `CreateWindow()` or `CreateWindowEx()` and controlled with `SendMessage()`.
 
@@ -44,6 +44,7 @@ repository hosted on github:
 ## Using mCtrl
 
 The pre-built release package has the following directory structure:
+
 ```
 mCtrl-x.y.z/
  |  AUTHORS.md            # List of authors contributing to the project
@@ -101,6 +102,7 @@ linker where it can find mCtrl headers and libraries.
 Note you should instruct your C/C++ compiler to search for header files in
 the `include` directory and use the directory `mCtrl` as part of preprocessor
 `#include` directives, e.g.:
+
 ```C
 #include <mCtrl/dialog.h>
 #include <mCtrl/treelist.h>
@@ -120,11 +122,12 @@ expects.
 ### Build with Mingw-w64
 
 It's recommended to use out-of-source-tree builds, so create e.g. a directory
-`build` in the main mCtrl directory. (If you choose to build in other
-directory, replace the `..` in the following instructions with path pointing
-to the root mCtrl directory.)
+`build` in the main mCtrl directory. (If you build in directory located
+elsewhere, replace the `..` in the following instructions with the path
+pointing to the root mCtrl directory.)
 
 To build with MSYS + [mingw-w64](http://mingw-w64.org) + Make:
+
 ```sh
 $ mkdir build
 $ cd build
@@ -133,6 +136,7 @@ $ make
 ```
 
 To build with MSYS + mingw-w64 + [Ninja](http://martine.github.io/ninja):
+
 ```sh
 $ mkdir build
 $ cd build
@@ -142,6 +146,7 @@ $ ninja
 
 To build within [MSYS2](http://msys2.github.io), make sure you have these
 MSYS2 packages installed:
+
  * `make`
  * `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake` (for 32-bit build)
  * `mingw-w64-x86_64-gcc`, `mingw-w64-x86_64-cmake` (for 64-bit build)
@@ -150,21 +155,22 @@ Then start MSYS2 shell with `mingw32_shell.bat` or `mingw64_shell.bat`
 respectively and follow the same instructions as above for MSYS + 
 mingw-w64 + Make.
 
-Note you may need to specify path to `gcc` if you want to use different gcc
-version then the one in your `$PATH`, e.g. if you have multiple  mingw-w64
+Note you may need to specify path to `gcc` if you want to use a different gcc
+version than the one in your `$PATH`, e.g. if you have multiple mingw-w64
 variants installed, one targeting 32-bit and one 64-bit build.
 
 You may do so by setting the variable `CC` prior using CMake. CMake is smart
-enough to derive paths to other tools like linker or resource compiler
+enough to derive paths to the other tools like a linker or a resource compiler
 automatically.
+
 ```sh
 export CC=/path/to/the/desired/gcc
 ```
 
-### Build with Microsoft Visual Studio 2017
+### Build with Microsoft Visual Studio 2017 (or newer)
 
-Visual Studio 2017 supports CMake build system, so you may just follow these
-instructions.
+Visual Studio 2017 and newer supports CMake build system directly:
+
  1. Start Visual Studio 2017.
  2. In menu File, choose submenu Open and Folder.
  3. In the open dialog, navigate to mCtrl main folder and open it.
@@ -172,8 +178,9 @@ instructions.
 
 ### Build with Older Version of Microsoft Visual Studio
 
-To build with older Microsoft Visual Studio 2013 or 2015, you have to
-generate project files manually:
+To build with older Microsoft Visual Studio (versions 2013 and 2015 are known
+to work), you have to generate project files manually:
+
 ```sh
 $ mkdir build
 $ cd build
@@ -182,13 +189,14 @@ $ cmake -G "Visual Studio 12 2013 Win64" ..     # MSVC 2013, 64-bit build
 $ cmake -G "Visual Studio 14 2015" ..           # MSVC 2015, 32-bit build
 $ cmake -G "Visual Studio 14 2015 Win64" ..     # MSVC 2015, 64-bit build
 ```
+
 Then open the generated solution file `build/mCtrl.sln` in Visual Studio and
 build the target `ALL_BUILD`.
 
-Unfortunately, CMake does not support generating projects targeting multiple
-architectures. To build both 32 and 64-bit binaries, you have to generate
-project files or Makefiles twice and build them separately (in different
-directories).
+Unfortunately, for older MSVC versions, CMake does not support generating
+projects targeting multiple architectures. Therefore, to build both 32 and
+64-bit binaries, you have to generate project files or Makefiles twice and
+build them separately, in dedicated directories.
 
 ### Other Toolchains
 
@@ -196,13 +204,15 @@ Other CMake generators may or may not work. If they do not, then one or more
 `CMakeLists.txt` files within mCtrl directory hierarchy may need some tuning.
 
 Use
+
 ```sh
 $ cmake --help
 ```
+
 and refer to CMake documentation to learn more about CMake, its options and
 capabilities.
 
-### After Build
+### After the Build
 
 After the building, consider running a mCtrl test-suite to verify correctness
 of your build. The test suite, as well as some examples demonstrating mCtrl,
