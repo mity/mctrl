@@ -3277,7 +3277,7 @@ mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
                        WPARAM wParam, LPARAM lParam, LRESULT* plResult)
 {
     if(hwndMditab == NULL) {
-        /* It is legally possible, the window did not yet create the MDI tab
+        /* It is legally possible, the window has not yet created the MDI tab
          * control. */
         return FALSE;
     }
@@ -3297,27 +3297,26 @@ mcMditab_DefWindowProc(HWND hwndMain, HWND hwndMditab, UINT uMsg,
     if(uMsg == WM_NCHITTEST) {
         mditab_t* mditab;
         RECT rect;
-        int y = GET_Y_LPARAM(lParam);
+        int x, y;
+
+        x = GET_X_LPARAM(lParam);
+        y = GET_Y_LPARAM(lParam);
 
         /* Check whether the frame is expanded. */
         mditab = (mditab_t*) GetWindowLongPtr(hwndMditab, 0);
         if(!mditab->dwm_extend_frame)
             return FALSE;
 
+        /* We don't care about WM_NCHITTEST happening outside the control:
+         * Let it propagate normally. */
         GetWindowRect(hwndMditab, &rect);
-
-        /* The position is below the MDI tab control and we do not care
-         * about it. */
-        if(y >= rect.bottom)
+        if(!mc_rect_contains_xy(&rect, x, y))
             return FALSE;
 
-        /* The position is within MDI tab control. If it propagated here
-         * from mditab_proc(WM_NCHITTEST) through HTTRANSPARENT, we tell the
-         * system to treat it as window caption. */
-        if(y >= rect.top) {
-            *plResult = HTCAPTION;
-            return TRUE;
-        }
+        /* Treat all WM_NCHITTEST messages the control is not interested in
+         * as the (extended) window caption. */
+        *plResult = HTCAPTION;
+        return TRUE;
     }
 
     return FALSE;
