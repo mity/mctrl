@@ -349,15 +349,15 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
 
         mditab_get_dispinfo(mditab, index, item, &di, MC_MTIF_TEXT);
 
+        w += MDITAB_ITEM_PADDING;
+
         if(mditab->img_list != NULL) {
             int ico_w, ico_h;
             ImageList_GetIconSize(mditab->img_list, &ico_w, &ico_h);
-            w += ico_w + MDITAB_ITEM_PADDING;
+            w += ico_w;
 
             if(di.text != NULL)
                 w += MDITAB_ITEM_ICON_MARGIN;
-            else
-                w += MDITAB_ITEM_PADDING;
         }
 
         if(di.text != NULL) {
@@ -370,10 +370,11 @@ mditab_item_ideal_width(mditab_t* mditab, WORD index)
 
                 c_IDWriteTextLayout_GetMetrics(text_layout, &text_metrics);
                 w += ceilf(text_metrics.width);
-                w += MDITAB_ITEM_PADDING;
                 c_IDWriteTextLayout_Release(text_layout);
             }
         }
+
+        w += MDITAB_ITEM_PADDING;
 
         item->ideal_width = w;
         mditab_free_dispinfo(mditab, item, &di);
